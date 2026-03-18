@@ -1,0 +1,27 @@
+{
+  "id": "s2",
+  "name": "Reset the Beacon",
+  "difficulty": "Medium",
+  "description": "The Beacon of Argynvostholt has been extinguished. You must light the four braziers to restore its light.",
+  "objectives": [
+    {
+      "id": "light_braziers",
+      "type": "interact",
+      "targetType": "brazier",
+      "count": 4,
+      "description": "Light 4 braziers found on special tiles"
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "fog_wraiths",
+      "trigger": { "type": "tile_reveal", "interval": 3 },
+      "effect": "Spawn a Wraith on the newly revealed tile"
+    }
+  ],
+  "startTileId": "start-tile",
+  "maxSurges": 2,
+  "introText": "Argynvostholt's light has faded, and the valley is shrouded in mist. Light the beacon, and the Silver Dragon will watch over you.",
+  "victoryText": "The beacon flares to life, its silver light cutting through the mists of Barovia.",
+  "defeatText": "The mist swallows you whole. Argynvostholt remains a cold, dead ruin."
+}

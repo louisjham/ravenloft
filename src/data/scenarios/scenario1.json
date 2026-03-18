@@ -1,0 +1,30 @@
+{
+  "id": "s1",
+  "name": "Find the Icon of Ravenloft",
+  "difficulty": "Easy",
+  "description": "The Icon of Ravenloft, a powerful holy relic, has been lost within the crypts. You must retrieve it before the darkness consumes you.",
+  "objectives": [
+    {
+      "id": "find_icon",
+      "type": "find_item",
+      "targetId": "item_icon_of_ravenloft",
+      "description": "Find the Icon of Ravenloft in the Treasure deck"
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "strahd_appears",
+      "trigger": { "type": "turn_count", "value": 10 },
+      "effect": "Spawn Strahd on the furthest revealed tile"
+    }
+  ],
+  "startTileId": "start-tile",
+  "tilePiles": {
+    "standard": 10,
+    "special": ["crypt_tile", "laboratory_tile"]
+  },
+  "maxSurges": 2,
+  "introText": "You stand at the threshold of the crypts. The cold damp air smells of ancient dust and rot. Somewhere in these depths lies the Icon of Ravenloft. Find it, and escape.",
+  "victoryText": "The Icon gleams in your hands. Its holy light pushes back the shadows. You have succeeded where many others have fallen.",
+  "defeatText": "The darkness closes in. Your names will be forgotten in the halls of Castle Ravenloft."
+}

@@ -1,0 +1,593 @@
+Here is a list of each menu item and a description of how it
+behaves.  Many menu items also appear on the toolbar as a 
+button.
+
+-= File: New, Open and Save =-
+
+   The TileSystem application deals with TileSystem files 
+   (.TS file extension)  Also referred to as maps or 
+   scenarios.
+
+
+-= File: Change TileSet =-
+
+   A TS files references a particular tileset. This command
+   will allow you to browse for an alternate tileset to use.
+   If the currently open TS file has tiles in it, there will
+   be an error message if the new tileset does not have any 
+   of those tiles in it.   
+
+
+-= File: Publish =-
+
+   This command is only available if you have drawn some 
+   tiles.  The command will prompt you to pick the filename
+   and quality for the JPEG output file.  The higher the 
+   quality level, the better the jpeg file will look, but 
+   the larger the filesize.  If you have text in your 
+   scenario description for the file, an HTML file will also 
+   be generated, using the same base filename as the jpeg.  
+   The HTML file will contain the scenario text and a link 
+   to the jpeg.  If you wish to share the scenario  you 
+   created with others, then you need to provide both the 
+   JPEG and the HTML file.  I recomend writing scenario
+   text in a program like Microsoft Word or OpenOffice
+   Writer.  Then insert the JPEG file into that document
+   and save it as a PDF.
+
+
+-= File: Print, Print Setup
+
+   Will Print the current map.
+
+
+-= File: Generate Report =-
+
+   This command generates, and opens, a text file named 
+   "report.txt" in the TileSystem directory.  The file 
+   contains a list of the tiles with thier maximum count 
+   values and number of times they are used in the map.
+
+
+-= Edit: Undo/Redo =-
+
+   Changes made to tiles and text labels are undo-able. 
+   Changes made to the scenario text are not undo-able.
+   The undo/redo history will have as many levels as can
+   fit into 16 megabytes. Beyond that, it purposely forgets.
+   
+
+-= Edit: Cut, Copy, Paste and Delete =-
+
+   The currently selected tiles may be cut, copied and 
+   pasted by the TileSystem editor like any standard Windows 
+   application.  Pasted tiles will appear in the center of 
+   the view and they will be your current selection. Pasted 
+   tiles obey count restrictions.
+
+
+-= Edit: Flip Selected =-
+
+   This command will "flip" all selected tiles to show thier 
+   other side.  Tiles that are not flippable will be left 
+   alone.
+
+
+-= Edit: Scale Tile =-
+
+   This command will bring up a scaling dialog box.  The
+   dialog box allows you to specify an X and a Y scale 
+   factor.  If you press the OK button, the currently
+   selected tiles will be scaled along thier original
+   axises.
+
+
+-= Edit: Show Resize Handles =-
+
+   This command will toggle a mode.  The resize handle 
+   mode shows four little round handles surrounding a 
+   tile, when it is selected alone.  You can grab the 
+   handles with the left mouse button and use them to 
+   stretch or shrink a tile.  When you release the left
+   mouse button, the tile may snap into the nearest 
+   grid position, if snapping is enabled on that tile.
+
+
+-= Edit: Set Tile Snap / Free =-
+
+   This command will set the currently selected tiles to 
+   either be snappable, or free.  Tiles that snap will 
+   automaticly fit into the nearest grid lines and will
+   rotate to the nearest 90 degree increment.  Free tiles
+   will not snap and can be placed and rotated freely.
+
+
+-= Edit: Set Map Color =-
+
+   This command will allow you to pick a color from a popup 
+   dialog box.  The color will be applied as a color tint 
+   for all selected tiles.  You can also specify how much
+   to tint the tile.
+
+
+-= Edit: Clear Map Color =-
+
+   This command will remove the color tint for all selected 
+   tiles.  Leaving the tiles thier original color.  If the
+   tile was text, then the text will draw using the tileset's
+   textscreencolor or textpublishcolor, depending on the 
+   situation.
+
+
+-= Edit: Set Default Map Color =-
+
+   This command will allow you to pick a color from a popup 
+   dialog box.  The color will be applied as a color tint 
+   for all new tiles.  You can also specify how much
+   to tint the tile.
+
+
+-= Edit: Clear Default Map Color =-
+
+   This command will make new tiles be un-tinted.
+
+
+-= Edit: Edit Scenario =-
+
+   This command brings up the "Scenario Description" dialog
+   box.  Where you can type notes about the scenario.  The
+   text in the dialog will be put into an html file when
+   you publish the scenario.  There is a token system that
+   controls how the html output will look.   The system is
+   based on a pair of tags surrounding a single, continuous
+   line of text. (no line-breaks)  To see what the tags are,
+   and how they effect output, press the help button in the
+   Scenario Description dialog box.
+
+
+-= View: Zoom Extents =-
+
+   This is a command which causes the view to zoom out so
+   that every tile in the map is visible in the view.  If 
+   there are no tiles in the map, it sets the view to the 
+   default location.
+
+
+-= View: Pan Tool =-
+
+   "Pan" means to move the map reletive to the view.
+
+   How to Pan:
+
+      Drag (press down the left mouse button and move) the 
+      mouse. The part of the map under your mouse will move 
+      with your mouse.  Release the left mouse button to 
+      finish.
+
+   How to Zoom Dynamicly:
+
+      Drag up and down, while holding down the right mouse 
+      button.  The further up you drag, the further in the 
+      view will zoom.  The further down you drag, the 
+      further out the view will zoom.  800% is the limit 
+      for how far in you can zoom.  1% is the limit for how 
+      far out you can zoom.
+
+
+
+-= View: Edit Tool =-
+
+   Selecting individual tiles:
+
+      Clicking the left mouse button on a tile will make 
+      that tile the current selection.
+
+      Holding down SHIFT or CTRL while clicking the left 
+      mouse button on a tile will add that tile to the 
+      current selection or remove it from the current 
+      selection, depending on whether it was already 
+      selected when you clicked on it.
+
+
+   Selecting tiles inside a rectangle:
+
+      A selection rectangle is created by pressing, and 
+      holding, the left mouse button and moving the mouse 
+      to a new location.  A dotted rectangle will appear, 
+      outlining the rectangular area from where you pressed 
+      down on the left mouse button to the current location 
+      of the mouse.  Releasing the left mouse button 
+      completes the selection rectangle.
+
+      All tiles inside the selection rectangle become the 
+      current selection.
+
+      If you hold down the SHIFT key while creating a 
+      selection rectangle, all tiles inside the rectangle 
+      are added to the current selection.
+
+      If you hold down the CTRL key while creating a 
+      selection rectangle, all tiles inside the rectangle 
+      are removed from the current selection.
+
+   Moving the currently selected tiles:
+
+      While the mouse is over a selected tile, press down 
+      on the left mouse button and drag the tiles to a new 
+      location.
+
+      When you release the left mouse button, the selected 
+      tiles will snap into the nearest grid location.
+
+      If you drag tiles off the edge of the view, it causes 
+      the view to pan to follow your mouse.  This allows you 
+      to move tiles to a location that may not be visible 
+      when you started to move them.
+
+   Rotating the currently selected tiles:
+
+      If you click the right mouse button on selected tiles, 
+      they will rotate 90 degrees.
+
+      If you press the right mouse button on selected tiles 
+      and then drag them (hold down the right mouse button) 
+      the tiles will rotate freely to follow your mouse 
+      cursor.  When you release the right mouse button, the 
+      tiles will snap to the nearest 90 degree increment.
+
+      If you click or drag the right mouse button on a tile 
+      that is not selected, it will become your current 
+      selection and then be rotated 
+
+   Panning with the Edit Tool:
+
+      If you hold down the middle mouse button, you can pan
+      the view as if you were using the pan tool.
+
+
+
+-= View: Text Tool =-
+
+   To Create New Text:
+      Click the left mouse button in a non-text-occupied grid 
+      square. A "carot" will appear and you can start typing.
+      When you are finished typing, either press the ENTER key, 
+      or the ESC key.  You can also just click the left mouse 
+      button anywhere on the screen.
+
+   To Edit existing Text:
+      Click the left mouse button on an existing text tile.
+      The behavior is the same as creating new text.
+
+   Text Notes:
+
+   - Text Tiles can be moved, rotated, copied and deleted like 
+     any other tile.
+
+   - You can color tint text the same way you tint a map tile.
+
+   - Text that is colored either white or black will appear 
+     white in the editor and black on the exported jpg.
+
+
+-= View: Advanced Mouse Wheel Zoom =-
+
+   This command toggles the advaned mouse wheel zoom feature.
+   Normally, the mouse wheel zooms in and out with the view
+   center unchanging.   The advanced mouse wheel feature
+   will pan the view as it zooms in or out.  When zooming in,
+   the view will pan to center on the location your mouse
+   cursor is currently hovering over.  When zooming out, the
+   view will pan to include the extents of the map.
+
+   If you train yourself to become familiar with the advanced
+   mouse wheel feature, you will find that you don't need to 
+   pan very often.  You also won't have to switch tools.
+
+
+-= View: Tile Panel Menu =-
+
+   The Tile Panel menu contains options for how the tile panel
+   will appear.  You can specify the size of the tile thumbnail
+   images and you can specify how many columns of tiles to 
+   display in the panel.
+
+
+-= View: Quick Draw =-
+
+   This Setting will improve drawing speed by disabling the 
+   bilinear filtering (smoothing) when drawing the tiles.
+
+   For many people, this is not nessessarry.  The speed at
+   which the program can redraw the view depends on how fast
+   your computer's CPU is and how many pixels are in the view.
+
+   Try the program with this setting turned on and turned off
+   and decide for yourself which state is better.
+
+
+-= View: OpenGL =-
+
+   If you have a good 3D accellerated display adapter, you 
+   may see a significant performance boost when enabling 
+   OpenGL rendering.  Turning OpenGL on or off requires
+   that you restart TileSystem before the change is in 
+   effect.   
+
+
+-= View: Zoom Menu =-
+
+   The zoom menu appears when you press the magnifying glass
+   button in the toolbar.  It also appears in the View menu.
+
+   The zoom menu lets you pick a zoom percentage from 100% to 10%.
+   Items on the menu that have a check next to them, indicate that
+   the current zoom level is near that %.
+
+
+-= View: Show Drawtime =-
+
+   This command will cause a number to appear in the left 
+   corner of the status bar.  This number describes how many
+   miliseconds it takes to render the view.   The smaller
+   the number, the faster TileSystem is rendering.
+
+
+-= General hotkeys =-
+
+   Roll MouseWheel up = zooms in on the map.
+   Roll MouseWheel down = zooms out from the map.
+
+   + = zooms in on the map.
+   - = zooms out from the map.
+
+   F = flip selected tiles. (see flip explanation below)
+
+   Arrow Keys = Moves the view in the direction of the arrow key,
+   if no tiles are selected.  If tiles are selected, the tiles 
+   will move in the direction indicated.  If the tiles have snap
+   enabled, they will move one gridsize.  If snap is disabled on 
+   the tiles, they will move 1 pixel.
+
+   If you hold down the Spacebar, while the Edit Tool or the Text 
+   Tool is the current tool, the tool will temporarily change to 
+   the pan tool. As long as you are not currently in the middle 
+   of performing a move, rotate or selection command with the edit 
+   tool.  When you release the spacebar, the tool will revert back 
+   to the edit tool. (Idea borrowed from Adobe Photoshop)
+
+
+-= Tile Palette =-
+
+   Located along the left side of the view, the tile palette
+   presents a list of tiles you may add to the map. When you
+   first start out, there will be no tiles, just some buttons.
+   One button per tile catagory.  When you click on a button, 
+   it will expand to reveal the tiles in that catagory.  More
+   than one catagory can be open at the same time.  Click on 
+   the button again to collapse the catagory and hide the 
+   catagory's tiles.  
+
+   To the left of each catagory button, there is a little 
+   "lock" button.  The button switches between 3 different
+   states.  "Unlocked" = normal operations.  "Locked" = Tiles
+   of that catagory cannot be selected or otherwise altered
+   in the main view.  "Hidden" = Tiles of that catagory are
+   not only locked, but they are hidden as well.
+
+   To add a tile to the map, drag (press left mouse button
+   and move) a tile in the palette onto the view.  At this
+   point, the behavior is the same as the "Move Selected"
+   behavior described in the Edit Tool below.
+
+   Some tiles have different images on the back of them.  So 
+   they serve multiple roles in the game.  These tiles are
+   displayed as two images side by side.  You can grab the 
+   image you wish to use.
+
+   When a red 'X' appears on a tile in palette, that means 
+   you have run out of that tile.  There can be limited 
+   numbers of each tile available.
+
+   When a red 'O' appears on a tile in the palette, that means
+   you have over-used a tile.  This is allowed by some tiles
+   that are limited in number, but get recycled so often that
+   you could make a map with more than the game came with.
+
+   Hovering the mouse over a tile in the palette will inform
+   you of the tile's name and how many are available.
+
+
+
+-= Customization =-
+
+In order to make the editor expandable to include modifications or 
+even other games, I organised the logic so that it works like this:
+
+- All tile PNG images are put into a subdirectory under the editor, 
+rather than in the editor's directory. The name of the subdirectory 
+indicates what sets those tiles apart. For example, at home I have 
+3 directories. "doom" "spacehulk" and "test". Space Hulk is 
+something I whipped up last night using some images that Games 
+Workshop provided freely. "test" was some sample map tiles I used 
+when I was writing the code. Anyway, the tiles that make up a game 
+or whatever are referred to as a "Tileset". I have a Doom tileset, 
+a Space Hulk tileset and a test tileset.
+
+- Each tileset of images needs a file that organizes them in a way 
+that is logical to the editor. So, there is a tileset file in the 
+editor's directory called "doom.set". At home, I have two others 
+"spacehulk.set" and "test.set". These files describe the location 
+of each tile image, give it a name, explain whether or not it is 
+flippable, describe the maximum number of instances of it can be 
+created, describe the background color, describe the background 
+image and the grid color.
+
+- Each map you create has a reference to the "tileset" it uses. 
+
+- All tileset attributes and values that deal with filenames, 
+are relative to the TileSystem application directory.  
+Meaning, the text in the filename will be appended to text
+containing the path to the TileSystem folder.
+
+- Tileset files MUST live in the TileSystem folder, unless they
+are base tilesets.  In which case they can live in a subfolder,
+if the basetilesets specifies that folder in the tileset's 
+filename.
+
+- Download and examine the Doom tilesets.  They are very 
+informative and will help you get a sense of how things work.
+
+
+
+-= Tile Set file format specification =-
+
+The tileset file is written in XML.  
+
+<TileSet>
+
+This is the header element and it has several attributes:
+
+xmlns = Must be set to "tileset".
+
+version = Must be set to "1" 
+
+basetilesets = Optional.  Can contain a list of tileset filenames
+               that this tileset derive from.  Meaning, the tiles 
+               in the base tilesets are loaded first, then this
+               tileset's tiles are loaded.  The filenames can be
+               separated by spaces, if they are all listed on one
+               line of text.   If you seperate the filenames with
+               commas, then you can list each filename on a 
+               separate line of text.
+
+gridsize = Optional.  An integer describing the distance between 
+           one gridline and the next.  The value is used for 
+           snapping tiles.  The default value, if you don't specify 
+           one is "64". 
+
+drawgridsize = Optional.  An integer describing the distance between 
+               one gridline and the next.  The value is used for 
+               drawing the lines.  The default value, is to assign
+               it the same value gridsize is using. 
+
+fontname = Optional.  Name of the TrueType font used for on-screen 
+           text labels and the main title text in the HTML output.  
+           Default is "Arial".
+
+backcolor = Optional. The Red,Green and Blue values of the color 
+            used to draw the background of the view and the tile
+            palette. Default is black "0,0,0".
+
+gridcolor = Optional. The Red,Green and Blue values of the color 
+            used to draw the grid in the view and the background
+            color used to highlight text labels. 
+            Default is white "255,255,255".
+
+backimage = Optional. The reletive path and filename of an image 
+            that would be drawn on the view's background.  If not
+            specified, then just the background color will be used.
+
+textscreencolor = Optional. The Red,Green and Blue values of the 
+                  color used to draw un-tinted text labels. 
+                  Default is white "255,255,255".
+
+textpublishcolor = Optional. The Red,Green and Blue values of the 
+                   color used to draw text labels in an exported
+                   jpeg. Default is black "0,0,0".
+
+htmltitlecolor = Optional.  The html hex color used to draw the 
+                 text in the main title section.  
+                 The default is "#FFFFFF".
+
+htmltitlebkcolor = Optional.  The html hex color used to draw the 
+                   background behind the text in the main title 
+                   section.  The default is "#800000" 
+
+gui_expanded = filename to use for one of the tile panel's buttons.
+               The width must be 111 pixels and height must be 17
+               pixels. The default is "gui_typebutton_expanded.png" 
+
+gui_collapsed = filename to use for one of the tile panel's buttons.
+                The width must be 111 pixels and height must be 17
+                pixels. The default is "gui_typebutton_collapsed.png" 
+
+gui_hidden = filename to use for one of the tile panel's buttons.
+             The width must be 17 pixels and height must be 17
+             pixels. The default is "gui_typebutton_hidden.png". 
+
+gui_locked = filename to use for one of the tile panel's buttons.
+             The width must be 111 pixels and height must be 17
+             pixels. The default is "gui_typebutton_locked.png". 
+
+gui_unlocked = filename to use for one of the tile panel's buttons.
+               The width must be 111 pixels and height must be 17
+               pixels. The default is "gui_typebutton_unlocked.png". 
+
+gui_textcolor = Color to draw the catagory names on the buttons.
+                Default is "0,0,0". 
+
+copyright = Optional.  This is the copyright message that will 
+            appear in the About TileSystem dialog box.  If you 
+            base your tileset on a copyrighted property, you
+            need to include the company's copyright here.
+
+
+
+<TileType>
+
+This is a catagory definition.  It's only attribute is "type" which
+needs to be set to some unique integer.  It's value is the name
+of the catagory.  This is what is drawn in the catagory buttons
+in the tile panel.
+
+
+<Tile>
+
+This is a tile definition.
+Here are it's attributes:
+
+name = Required.  This name must be unique within the scope of
+       this tileset and any base tilesets.
+
+type = Optional. An integer that maps this tile to a catagory.
+       Must be the same value as the type attribute in one of the
+       TileType objects.  The default is "0";
+
+sort = Optional. An integer that describes the order in which
+       tiles get drawn.  Higher numbers are drawn after lower
+       numbers.  If two tiles in a map have the same sort number,
+       then the more recently touched tile draws on top.
+       The default value is mapped to the Tile's type number. 
+
+maxcount = Optional. An integer that describes how many instances
+           of the tile can be used.  If this attribute is not
+           specified, then there is no maximum count.
+
+warn = Optional. Must be "true" or "false".  If there is a 
+       maxcount specified, then this flag controls whether or
+       not the user should be warned (but allowed) to create
+       more instances.  Or if they should be stopped from creating
+       more. Defaults to "false".
+
+flipimage = Optional.  If the tile should have an alternate PNG 
+            image that can be flipped to, then specify the 
+            filename here.  Including any subfolder prefixes.
+
+xscale = Optional.  Specifies the amount to scale the tile, along
+         it's X axis.  Defaults to 1.0.
+
+yscale = Optional.  Specifies the amount to scale the tile, along
+         it's Y axis.  Defaults to 1.0.
+
+freeplacement = Optional.  Must be "true" or "false".  If true,
+                this flag indicates that the tile should not snap
+                to the grid or to 90 degree increments.
+
+alwaysdrawsmooth = Optional. Must be "true" or "false".  When this
+                   flag is turned on, the pixels in the tile's
+                   image will always be bilinear filtered, no 
+                   matter what zoom level you are at.
+
+The object's value is the filename for the PNG image.
+Including any subfolder prefixes. 

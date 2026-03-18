@@ -1,0 +1,42 @@
+[
+  {
+    "id": "card-monster-gargoyle",
+    "name": "Gargoyle",
+    "type": "monster",
+    "description": "Spawn a Gargoyle on the bone pile of the newly revealed tile.",
+    "effects": ["spawn:monster-gargoyle"],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-goblin",
+    "name": "Goblin",
+    "type": "monster",
+    "description": "Spawn a Goblin on the mushroom patch of the newly revealed tile.",
+    "effects": ["spawn:monster-goblin"],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-zombie",
+    "name": "Zombie",
+    "type": "monster",
+    "description": "Spawn a Zombie on the newly revealed tile.",
+    "effects": ["spawn:monster-zombie"],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-skeleton",
+    "name": "Skeleton",
+    "type": "monster",
+    "description": "Spawn a Skeleton on the newly revealed tile.",
+    "effects": ["spawn:monster-skeleton"],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-wolf",
+    "name": "Wolf",
+    "type": "monster",
+    "description": "Spawn a Wolf on the newly revealed tile.",
+    "effects": ["spawn:monster-wolf"],
+    "phase": "exploration"
+  }
+]

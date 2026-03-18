@@ -1,0 +1,475 @@
+[
+  {
+    "id": "treasure_healing_potion",
+    "name": "Healing Potion",
+    "type": "consumable",
+    "description": "Drink to restore 2 HP.",
+    "effects": [
+      {
+        "type": "heal",
+        "value": 2,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_potion_vitality",
+    "name": "Potion of Vitality",
+    "type": "consumable",
+    "description": "Drink to restore 3 HP.",
+    "effects": [
+      {
+        "type": "heal",
+        "value": 3,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_icon_ravenloft",
+    "name": "Icon of Ravenloft",
+    "type": "item",
+    "description": "A holy icon that can repel the undead. Undead monsters in adjacent tiles cannot target you.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "undead_ward",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_silver_dagger",
+    "name": "Silver Dagger",
+    "type": "weapon",
+    "description": "A gleaming silver dagger. +1 to hit against undead.",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 1,
+        "target": "self",
+        "condition": "undead"
+      }
+    ]
+  },
+  {
+    "id": "treasure_holy_water",
+    "name": "Holy Water",
+    "type": "consumable",
+    "description": "Throw at an undead monster. +7 to hit, 2 damage, and the monster is stunned until end of its next turn.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 2,
+        "target": "single",
+        "range": 1
+      },
+      {
+        "type": "status_effect",
+        "statusEffect": "stunned",
+        "target": "single",
+        "range": 1
+      }
+    ]
+  },
+  {
+    "id": "treasure_wooden_stake",
+    "name": "Wooden Stake",
+    "type": "consumable",
+    "description": "Drive through a vampire's heart. +7 to hit, 3 damage against vampires.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 3,
+        "target": "single",
+        "range": 1,
+        "condition": "vampire"
+      }
+    ]
+  },
+  {
+    "id": "treasure_torch",
+    "name": "Torch",
+    "type": "consumable",
+    "description": "Light a torch to illuminate the area. All heroes on this tile gain +1 to hit until end of turn.",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 1,
+        "target": "all_heroes",
+        "range": 0
+      }
+    ]
+  },
+  {
+    "id": "treasure_mirror",
+    "name": "Mirror of Life Trapping",
+    "type": "item",
+    "description": "A magical mirror that can trap souls. Once per adventure, you can force a monster to reroll its attack.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "force_reroll",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_skull",
+    "name": "Skull of Kavan",
+    "type": "item",
+    "description": "A glowing skull that whispers secrets. Once per turn, you may reroll a d20.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "reroll_d20",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_glyph_warding",
+    "name": "Glyph of Warding",
+    "type": "consumable",
+    "description": "Place this glyph on a tile. Monsters cannot enter that tile.",
+    "effects": [
+      {
+        "type": "tile_effect",
+        "value": "warded",
+        "target": "tile"
+      }
+    ]
+  },
+  {
+    "id": "treasure_scroll_healing",
+    "name": "Scroll of Healing",
+    "type": "consumable",
+    "description": "Read this scroll to heal yourself or an adjacent hero for 2 HP.",
+    "effects": [
+      {
+        "type": "heal",
+        "value": 2,
+        "target": "single",
+        "range": 1
+      }
+    ]
+  },
+  {
+    "id": "treasure_scroll_fireball",
+    "name": "Scroll of Fireball",
+    "type": "consumable",
+    "description": "Read this scroll to attack all monsters on a target tile. +6 to hit, 1 damage.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "tile",
+        "range": 0
+      }
+    ]
+  },
+  {
+    "id": "treasure_amulet_protection",
+    "name": "Amulet of Protection",
+    "type": "item",
+    "description": "A protective amulet. +2 AC.",
+    "effects": [
+      {
+        "type": "ac_bonus",
+        "value": 2,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_ring_strength",
+    "name": "Ring of Strength",
+    "type": "item",
+    "description": "A golden ring that enhances your might. +1 to damage.",
+    "effects": [
+      {
+        "type": "damage_bonus",
+        "value": 1,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_boots_speed",
+    "name": "Boots of Speed",
+    "type": "item",
+    "description": "Enchanted boots that make you swift. +2 speed.",
+    "effects": [
+      {
+        "type": "speed_bonus",
+        "value": 2,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_cloak_invisibility",
+    "name": "Cloak of Invisibility",
+    "type": "consumable",
+    "description": "Wear this cloak to become invisible. Monsters cannot target you until your next turn.",
+    "effects": [
+      {
+        "type": "status_effect",
+        "statusEffect": "stealth",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_hammer_smashing",
+    "name": "Hammer of Smashing",
+    "type": "weapon",
+    "description": "A heavy warhammer. +2 to hit, 2 damage.",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 2,
+        "target": "self"
+      },
+      {
+        "type": "damage_bonus",
+        "value": 1,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_staff_arcane",
+    "name": "Staff of Arcane Power",
+    "type": "weapon",
+    "description": "A magical staff. +1 to hit, 1 damage. Can cast Fireball once per encounter.",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 1,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_blessing",
+    "name": "Blessing of the Morninglord",
+    "type": "consumable",
+    "description": "Receive a divine blessing. All heroes gain +2 to hit until end of turn.",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 2,
+        "target": "all_heroes",
+        "range": 0
+      }
+    ]
+  },
+  {
+    "id": "treasure_potion_heroism",
+    "name": "Potion of Heroism",
+    "type": "consumable",
+    "description": "Drink to gain courage. Gain +2 to hit and +1 damage until end of turn.",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 2,
+        "target": "self"
+      },
+      {
+        "type": "damage_bonus",
+        "value": 1,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_potion_clarity",
+    "name": "Potion of Clarity",
+    "type": "consumable",
+    "description": "Drink to clear your mind. Remove all conditions from yourself.",
+    "effects": [
+      {
+        "type": "remove_conditions",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_scroll_lightning",
+    "name": "Scroll of Lightning Bolt",
+    "type": "consumable",
+    "description": "Read this scroll to attack a monster. +7 to hit, 2 damage.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 2,
+        "target": "single",
+        "range": 2
+      }
+    ]
+  },
+  {
+    "id": "treasure_ring_regeneration",
+    "name": "Ring of Regeneration",
+    "type": "item",
+    "description": "A silver band that knits wounds. Heal 1 HP at start of each of your turns.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "regeneration",
+        "value": 1,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_amulet_lifeforce",
+    "name": "Amulet of Lifeforce",
+    "type": "item",
+    "description": "A pulsing amulet that protects from death. Once per adventure, if you would be reduced to 0 HP, you are instead reduced to 1 HP.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "death_save",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_boots_leaping",
+    "name": "Boots of Leaping",
+    "type": "item",
+    "description": "Magical boots that let you jump. You can move through monsters without provoking attacks.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "pass_through",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_cloak_shadows",
+    "name": "Cloak of Shadows",
+    "type": "item",
+    "description": "A dark cloak that blends with darkness. Monsters have -2 to hit against you.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "defense_bonus",
+        "value": -2,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_gauntlet_power",
+    "name": "Gauntlet of Power",
+    "type": "weapon",
+    "description": "A mighty gauntlet. +3 to hit, 2 damage.",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 3,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_potion_giant_strength",
+    "name": "Potion of Giant Strength",
+    "type": "consumable",
+    "description": "Drink to gain incredible strength. +3 to hit and +2 damage until end of turn.",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 3,
+        "target": "self"
+      },
+      {
+        "type": "damage_bonus",
+        "value": 2,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_scroll_teleport",
+    "name": "Scroll of Teleport",
+    "type": "consumable",
+    "description": "Read this scroll to teleport to any revealed tile within 2 tiles.",
+    "effects": [
+      {
+        "type": "teleport",
+        "value": 2,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_gem_seeing",
+    "name": "Gem of Seeing",
+    "type": "item",
+    "description": "A magical gem that reveals hidden things. You can see through secret doors and invisible monsters.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "true_sight",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_helm_brilliance",
+    "name": "Helm of Brilliance",
+    "type": "item",
+    "description": "A shining helm that illuminates darkness. All heroes on your tile gain +1 to hit in darkness.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "light_bonus",
+        "target": "area",
+        "range": 0
+      }
+    ]
+  },
+  {
+    "id": "treasure_bottle_wishes",
+    "name": "Bottle of Wishes",
+    "type": "consumable",
+    "description": "A rare bottle containing a genie. Use once per adventure to heal all heroes to full HP.",
+    "effects": [
+      {
+        "type": "heal_all",
+        "target": "all_heroes"
+      }
+    ]
+  },
+  {
+    "id": "treasure_animal_companion",
+    "name": "Animal Companion",
+    "type": "summon",
+    "description": "A loyal animal joins your party. Place a Wolf on an adjacent tile. The Wolf acts on your turn.",
+    "effects": [
+      {
+        "type": "spawn_ally",
+        "value": "wolf",
+        "target": "adjacent"
+      }
+    ]
+  },
+  {
+    "id": "treasure_portrait",
+    "name": "Portrait of Ravenloft",
+    "type": "item",
+    "description": "A painting of Strahd's castle. Once per adventure, you can force Strahd to reroll a d20.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "boss_reroll",
+        "target": "self"
+      }
+    ]
+  }
+]

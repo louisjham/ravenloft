@@ -1,0 +1,22 @@
+[
+  {
+    "id": "scenario_1",
+    "name": "Find the Icon of Ravenloft",
+    "description": "The heroes must explore the dungeon to find the lost Icon of Ravenloft and escape with their lives.",
+    "victoryConditions": ["Hero possesses Icon of Ravenloft", "All heroes on Start Tile"],
+    "defeatConditions": ["No Healing Surges remaining", "Any hero at 0 HP with no surges"],
+    "specialRules": ["Draw from Encounter deck every exploration phase"],
+    "startTileId": "tile_start",
+    "bossMonsterId": "monster_ghoul",
+    "maxSurges": 2
+  },
+  {
+    "id": "scenario_2",
+    "name": "Reset the Beacon",
+    "description": "Light the four torches in the central chamber to reveal the secret exit.",
+    "victoryConditions": ["4 Torches lit", "All heroes reach the exit"],
+    "defeatConditions": ["No Healing Surges remaining"],
+    "startTileId": "tile_start",
+    "maxSurges": 3
+  }
+]

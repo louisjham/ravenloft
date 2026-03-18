@@ -1,0 +1,142 @@
+[
+  {
+    "id": "monster_skeleton",
+    "name": "Skeleton",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 7,
+    "damage": 1,
+    "experienceValue": 1,
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "lowest_hp"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": []
+  },
+  {
+    "id": "monster_zombie",
+    "name": "Zombie",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 11,
+    "speed": 1,
+    "attackBonus": 5,
+    "damage": 1,
+    "experienceValue": 1,
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": []
+  },
+  {
+    "id": "monster_ghoul",
+    "name": "Ghoul",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 2,
+    "maxHp": 2,
+    "ac": 12,
+    "speed": 2,
+    "attackBonus": 6,
+    "damage": 1,
+    "experienceValue": 2,
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": []
+  },
+  {
+    "id": "monster_wolf",
+    "name": "Wolf",
+    "type": "monster",
+    "monsterType": "Animal",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 13,
+    "speed": 2,
+    "attackBonus": 6,
+    "damage": 1,
+    "experienceValue": 1,
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": []
+  }
+]

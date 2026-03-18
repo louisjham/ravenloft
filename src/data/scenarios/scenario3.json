@@ -1,0 +1,32 @@
+{
+  "id": "s3",
+  "name": "Escape the Dungeon",
+  "difficulty": "Hard",
+  "description": "The dungeon is collapsing. You have limited time to find the exit and escape with your lives.",
+  "objectives": [
+    {
+      "id": "find_exit",
+      "type": "find_tile",
+      "targetTileId": "exit_tile",
+      "description": "Find the secret exit tile"
+    },
+    {
+      "id": "all_heroes_exit",
+      "type": "all_at_position",
+      "targetTileId": "exit_tile",
+      "description": "All heroes must reach the exit tile"
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "collapse_countdown",
+      "trigger": { "type": "turn_total", "value": 20 },
+      "effect": "Instant defeat when timer reaches 0"
+    }
+  ],
+  "startTileId": "start-tile",
+  "maxSurges": 1,
+  "introText": "The ground shakes. Strahd's magic is tearing this place apart. Find the exit before you are buried alive!",
+  "victoryText": "You burst into the cool night air just as the entrance collapses behind you. You are free!",
+  "defeatText": "The ceiling gives way. The dungeon becomes your tomb."
+}

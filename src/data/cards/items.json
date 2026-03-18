@@ -1,0 +1,18 @@
+[
+  {
+    "id": "card-item-shield",
+    "name": "Heavy Shield",
+    "type": "item",
+    "description": "Gain +1 to Defense (AC).",
+    "effects": ["stat-mod:ac,1"],
+    "phase": "hero"
+  },
+  {
+    "id": "card-item-boots-speed",
+    "name": "Boots of Speed",
+    "type": "item",
+    "description": "Gain +1 to Speed.",
+    "effects": ["stat-mod:speed,1"],
+    "phase": "hero"
+  }
+]

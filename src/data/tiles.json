@@ -1,0 +1,139 @@
+[
+  {
+    "id": "start-tile",
+    "name": "Start Tile",
+    "x": 0,
+    "z": 0,
+    "terrainType": "named_room",
+    "isRevealed": true,
+    "isStart": true,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": true
+      }
+    ],
+    "monsters": [],
+    "heroes": [
+      "hero_arjhan",
+      "hero_immeril",
+      "hero_kat",
+      "hero_thorgrim",
+      "hero_vani"
+    ],
+    "items": []
+  },
+  {
+    "id": "tile_corridor_1",
+    "name": "Stone Corridor",
+    "x": 0,
+    "z": 0,
+    "terrainType": "corridor",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "monsters": [],
+    "heroes": [],
+    "items": []
+  },
+  {
+    "id": "tile_corridor_cross",
+    "name": "Vaulted Crossroads",
+    "x": 0,
+    "z": 0,
+    "terrainType": "corridor",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": true
+      }
+    ],
+    "monsters": [],
+    "heroes": [],
+    "items": []
+  },
+  {
+    "id": "tile_crypt",
+    "name": "The Great Crypt",
+    "x": 0,
+    "z": 0,
+    "terrainType": "named_room",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": true,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": false
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "monsters": [
+      "monster_ghoul",
+      "monster_skeleton"
+    ],
+    "heroes": [],
+    "items": []
+  }
+]

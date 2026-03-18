@@ -1,0 +1,522 @@
+[
+  {
+    "id": "enc_trap_arrow",
+    "type": "encounter",
+    "name": "Arrow Trap",
+    "description": "An arrow shoots from the wall! +7 to hit, 1 damage to any hero on the tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "range": 0
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_trap_dart",
+    "type": "encounter",
+    "name": "Dart Trap",
+    "description": "Poisoned darts fly from the walls! +7 to hit, 1 damage to any hero on the tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "range": 0
+      },
+      {
+        "type": "status_effect",
+        "statusEffect": "poisoned",
+        "target": "all_heroes",
+        "range": 0
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_trap_fire",
+    "type": "encounter",
+    "name": "Fire Trap",
+    "description": "Flames erupt from the floor! +7 to hit, 2 damage to any hero on the tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 2,
+        "target": "all_heroes",
+        "range": 0
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_trap_pit",
+    "type": "encounter",
+    "name": "Pit Trap",
+    "description": "The floor gives way beneath you! +7 to hit, 2 damage to any hero on the tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 2,
+        "target": "all_heroes",
+        "range": 0
+      },
+      {
+        "type": "status_effect",
+        "statusEffect": "immobilized",
+        "target": "all_heroes",
+        "range": 0
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_trap_crushing_walls",
+    "type": "encounter",
+    "name": "Crushing Walls",
+    "description": "Stone walls begin to close in! Each hero on the tile takes 2 damage.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 2,
+        "target": "all_heroes",
+        "range": 0
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_trap_sliding_walls",
+    "type": "encounter",
+    "name": "Sliding Walls",
+    "description": "Walls slide together! Each hero on the tile takes 1 damage and is slowed.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "range": 0
+      },
+      {
+        "type": "status_effect",
+        "statusEffect": "slowed",
+        "target": "all_heroes",
+        "range": 0
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_trap_spear_gauntlet",
+    "type": "encounter",
+    "name": "Spear Gauntlet",
+    "description": "Spears thrust from the walls! +7 to hit, 1 damage to any hero on the tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "range": 0
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_fog",
+    "type": "encounter",
+    "name": "Choking Fog",
+    "description": "A thick mist fills the corridor. Each hero on the tile takes 1 damage.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "range": 0
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_darkness",
+    "type": "encounter",
+    "name": "Darkness",
+    "description": "Shadows lengthen and twist. All heroes on the tile are dazed.",
+    "effects": [
+      {
+        "type": "status_effect",
+        "statusEffect": "dazed",
+        "target": "all_heroes",
+        "range": 0
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_freezing_cloud",
+    "type": "encounter",
+    "name": "Freezing Cloud",
+    "description": "Icy mist fills the area! Each hero on the tile takes 1 damage and is slowed.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "range": 0
+      },
+      {
+        "type": "status_effect",
+        "statusEffect": "slowed",
+        "target": "all_heroes",
+        "range": 0
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_illusionary_crowd",
+    "type": "encounter",
+    "name": "Illusionary Crowd",
+    "description": "Ghostly figures surround you! All heroes on the tile are dazed.",
+    "effects": [
+      {
+        "type": "status_effect",
+        "statusEffect": "dazed",
+        "target": "all_heroes",
+        "range": 0
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_alarm",
+    "type": "encounter",
+    "name": "Alarm",
+    "description": "A bell rings loudly! Place a monster from the dungeon deck on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 1,
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_crossbow_turret",
+    "type": "encounter",
+    "name": "Crossbow Turret",
+    "description": "A mechanical turret fires! +7 to hit, 1 damage to any hero on the tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "range": 0
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_consecrated_ground",
+    "type": "encounter",
+    "name": "Consecrated Ground",
+    "description": "Holy light fills the area! Undead monsters on this tile are weakened.",
+    "effects": [
+      {
+        "type": "status_effect",
+        "statusEffect": "weakened",
+        "target": "all_monsters",
+        "range": 0
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_coffin_empty",
+    "type": "encounter",
+    "name": "Empty Coffin",
+    "description": "A dusty coffin stands against the wall. Nothing inside.",
+    "effects": [],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_coffin_monster",
+    "type": "encounter",
+    "name": "Coffin with Monster",
+    "description": "A coffin bursts open! Place a monster from the dungeon deck on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 1,
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_coffin_treasure",
+    "type": "encounter",
+    "name": "Coffin with Treasure",
+    "description": "A coffin contains valuable items! Draw a treasure card.",
+    "effects": [
+      {
+        "type": "draw_treasure",
+        "value": 1
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_coffin_holy_water",
+    "type": "encounter",
+    "name": "Coffin with Holy Water",
+    "description": "A coffin contains holy water! Place a Holy Water item token on this tile.",
+    "effects": [
+      {
+        "type": "spawn_item",
+        "value": "holy_water",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_coffin_trap",
+    "type": "encounter",
+    "name": "Coffin Trap",
+    "description": "The coffin is trapped! +7 to hit, 2 damage to any hero on the tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 2,
+        "target": "all_heroes",
+        "range": 0
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_coffin_wooden_stake",
+    "type": "encounter",
+    "name": "Coffin with Wooden Stake",
+    "description": "A coffin contains a wooden stake! Place a Wooden Stake item token on this tile.",
+    "effects": [
+      {
+        "type": "spawn_item",
+        "value": "wooden_stake",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_coffin_strahd",
+    "type": "encounter",
+    "name": "Coffin with Strahd",
+    "description": "The coffin lid flies open! Strahd appears! Place Strahd on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "strahd",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_altar",
+    "type": "encounter",
+    "name": "Altar",
+    "description": "An ancient altar stands here. A hero may use a healing surge here.",
+    "effects": [
+      {
+        "type": "allow_surge",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_portal",
+    "type": "encounter",
+    "name": "Portal",
+    "description": "A swirling portal appears! Place a monster from the dungeon deck on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 1,
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_secret_door",
+    "type": "encounter",
+    "name": "Secret Door",
+    "description": "A hidden door is revealed! Draw a treasure card.",
+    "effects": [
+      {
+        "type": "draw_treasure",
+        "value": 1
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_chest",
+    "type": "encounter",
+    "name": "Treasure Chest",
+    "description": "A dusty chest sits in the corner. Draw a treasure card.",
+    "effects": [
+      {
+        "type": "draw_treasure",
+        "value": 1
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_chest_trap",
+    "type": "encounter",
+    "name": "Trapped Chest",
+    "description": "The chest is trapped! +7 to hit, 2 damage to any hero on the tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 2,
+        "target": "all_heroes",
+        "range": 0
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_glyph",
+    "type": "encounter",
+    "name": "Glyph of Warding",
+    "description": "A magical glyph glows on the floor. Monsters cannot enter this tile.",
+    "effects": [
+      {
+        "type": "tile_effect",
+        "value": "warded",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_crypt_ambush",
+    "type": "encounter",
+    "name": "Crypt Ambush",
+    "description": "Undead rise from the ground! Place 2 monsters from the dungeon deck on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 2,
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_wandering_monster",
+    "type": "encounter",
+    "name": "Wandering Monster",
+    "description": "A monster stumbles into view! Place a monster from the dungeon deck on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 1,
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_vampire_spawn",
+    "type": "encounter",
+    "name": "Vampire Spawn",
+    "description": "A vampire materializes from mist! Place a Vampire from the dungeon deck on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "vampire",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_wolf_pack",
+    "type": "encounter",
+    "name": "Wolf Pack",
+    "description": "Howling echoes through the halls! Place 2 Wolves from the dungeon deck on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 2,
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_gargoyle_awaken",
+    "type": "encounter",
+    "name": "Awakened Gargoyle",
+    "description": "Stone wings beat the air! Place a Gargoyle from the dungeon deck on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "gargoyle",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_ghost_haunt",
+    "type": "encounter",
+    "name": "Ghostly Haunt",
+    "description": "Spectral figures wail! All heroes on the tile are dazed.",
+    "effects": [
+      {
+        "type": "status_effect",
+        "statusEffect": "dazed",
+        "target": "all_heroes",
+        "range": 0
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_skeleton_horde",
+    "type": "encounter",
+    "name": "Skeleton Horde",
+    "description": "Bones rattle and rise! Place 3 Skeletons from the dungeon deck on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 3,
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "enc_zombie_shamble",
+    "type": "encounter",
+    "name": "Zombie Shuffle",
+    "description": "The dead walk! Place 2 Zombies from the dungeon deck on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 2,
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  }
+]

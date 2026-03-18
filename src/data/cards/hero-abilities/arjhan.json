@@ -1,0 +1,36 @@
+[
+  {
+    "id": "arjhan_power_1",
+    "type": "ability",
+    "name": "Valiant Strike",
+    "description": "A powerful melee attack. +7 to hit, 1 damage.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "single",
+        "range": 1
+      }
+    ],
+    "phase": "hero",
+    "heroClass": "Dragonborn Paladin",
+    "powerType": "at-will"
+  },
+  {
+    "id": "arjhan_power_2",
+    "type": "ability",
+    "name": "Lay on Hands",
+    "description": "Heal a nearby ally for 1 HP.",
+    "effects": [
+      {
+        "type": "heal",
+        "value": 1,
+        "target": "single",
+        "range": 1
+      }
+    ],
+    "phase": "hero",
+    "heroClass": "Dragonborn Paladin",
+    "powerType": "daily"
+  }
+]

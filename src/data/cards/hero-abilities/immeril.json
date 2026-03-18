@@ -1,0 +1,26 @@
+[
+  {
+    "id": "card-immeril-fireball",
+    "name": "Fireball",
+    "type": "ability",
+    "heroClass": "Wizard",
+    "description": "Attack +6 against all monsters on a target tile. Damage 1.",
+    "effects": [
+      "attack:tile,6,1"
+    ],
+    "phase": "hero",
+    "powerType": "daily"
+  },
+  {
+    "id": "card-immeril-shield",
+    "name": "Wizard Shield",
+    "type": "ability",
+    "heroClass": "Wizard",
+    "description": "Gain +4 AC until your next turn.",
+    "effects": [
+      "stat-buff:ac,4,duration:round"
+    ],
+    "phase": "hero",
+    "powerType": "utility"
+  }
+]

@@ -1,0 +1,33 @@
+{
+  "id": "s5",
+  "name": "Rescue the Adventurer",
+  "difficulty": "Hard",
+  "description": "A fellow adventurer is being held captive in the torture chambers. You must find them and escort them back to the entrance.",
+  "objectives": [
+    {
+      "id": "find_captive",
+      "type": "find_event",
+      "targetTileId": "torture_chamber",
+      "description": "Find the Torture Chamber"
+    },
+    {
+      "id": "escort_captive",
+      "type": "escort",
+      "targetEntityId": "npc_adventurer",
+      "targetPositionId": "start-tile",
+      "description": "Escort the prisoner back to the entrance"
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "relentless_pursuit",
+      "trigger": { "type": "on_rescue" },
+      "effect": "Spawn 2 Zombies every turn until escape"
+    }
+  ],
+  "startTileId": "start-tile",
+  "maxSurges": 2,
+  "introText": "One of our own has been taken. We do not leave anyone behind. Get in, find them, and get out!",
+  "victoryText": "The rescued adventurer breathes the free air for the first time in weeks. You have saved a soul from Strahd's grasp.",
+  "defeatText": "The torture continues, and your names are added to the list of the lost."
+}
