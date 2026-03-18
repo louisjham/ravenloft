@@ -35,7 +35,11 @@
       "hero_thorgrim",
       "hero_vani"
     ],
-    "items": []
+    "items": [],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    }
   },
   {
     "id": "tile_corridor_1",
@@ -67,7 +71,11 @@
     ],
     "monsters": [],
     "heroes": [],
-    "items": []
+    "items": [],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    }
   },
   {
     "id": "tile_corridor_cross",
@@ -99,7 +107,11 @@
     ],
     "monsters": [],
     "heroes": [],
-    "items": []
+    "items": [],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    }
   },
   {
     "id": "tile_crypt",
@@ -134,6 +146,10 @@
       "monster_skeleton"
     ],
     "heroes": [],
-    "items": []
+    "items": [],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    }
   }
 ]

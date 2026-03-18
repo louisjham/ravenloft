@@ -18,10 +18,23 @@ import { UIOverlay } from './components/ui/UIOverlay';
 import { GlobalErrorBoundary } from './utils/errorHandling';
 import { SceneTransition, PhaseTransition } from './components/effects/Transitions';
 import { TutorialOverlay, HelpOverlay } from './components/tutorial/TutorialSystem';
+import { TileSystem } from './game/engine/TileSystem';
+import { 
+  ExplorationState, 
+  onArrowClicked, 
+  onRotationConfirmed, 
+  onCancel, 
+  onPlacementComplete 
+} from './game/engine/ExplorationStateMachine';
+import { ExplorationLayer } from './components/3d/ExplorationLayer';
+import { RotationPicker } from './components/ui/RotationPicker';
 
 const App: React.FC = () => {
   const gameState = useGameStore((state) => state.gameState);
   const startNewGame = useGameStore((state) => state.startNewGame);
+  const setGameState = useGameStore((state) => state.setGameState);
+  
+  const [exploration, setExploration] = React.useState<ExplorationState>({ phase: 'idle' });
 
   const activeModal = useUIStore((state) => state.activeModal);
   const hideModal = useUIStore((state) => state.hideModal);
@@ -49,6 +62,15 @@ const App: React.FC = () => {
         <Physics>
           <GameController />
           <DungeonBoard />
+          {gameState && (
+            <ExplorationLayer
+              tiles={gameState.tiles}
+              onEdgeSelected={(point) => {
+                const drawResult = TileSystem.drawAndPlace(gameState, point);
+                setExploration(onArrowClicked(exploration, point, drawResult));
+              }}
+            />
+          )}
 
           <group name="entities">
             {heroes.map((hero) => (
@@ -67,6 +89,38 @@ const App: React.FC = () => {
       </Scene>
 
       <UIOverlay onStartGame={handleStartGame} />
+
+      {exploration.phase === 'awaiting_rotation' && gameState && (
+        <RotationPicker
+          validRotations={exploration.validRotations}
+          tilePreviewId={exploration.drawnTile.id}
+          onConfirm={(rotation) => {
+            const newState = TileSystem.placeTile(
+              gameState,
+              exploration.point,
+              rotation
+            );
+            setGameState(newState);
+            setExploration(onPlacementComplete(exploration));
+          }}
+          onCancel={() => {
+            setGameState({
+              ...gameState,
+              dungeonDeck: [exploration.drawnTile.id, ...exploration.remainingDeck]
+            });
+            setExploration(onCancel(exploration));
+          }}
+        />
+      )}
+
+      {exploration.phase === 'exhausted' && (
+        <div style={{ position:'fixed', top:0, left:0, zIndex: 1000, background: 'rgba(0,0,0,0.8)', color: 'white', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div>No tiles remaining in deck.</div>
+          <button onClick={() => setExploration({ phase:'idle' })}>
+            OK
+          </button>
+        </div>
+      )}
 
       {/* SceneTransition: Only show during actual transitions (controlled by isTransitioning state) */}
       {/* The transition should NOT be active when showing MainMenu because that blocks interactions */}

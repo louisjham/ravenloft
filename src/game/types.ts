@@ -12,11 +12,24 @@ export type EncounterType = 'environment' | 'event' | 'event-attack' | 'trap';
 
 export type EntityType = 'hero' | 'monster' | 'trap' | 'treasure';
 
+// Cardinal direction used for tile edges and movement.
+export type Direction = 'north' | 'east' | 'south' | 'west';
+
+// Valid tile rotation values (clockwise degrees).
+export type Rotation = 0 | 90 | 180 | 270;
+
 export interface Position {
   x: number; // Tile X
   z: number; // Tile Z
   sqX: number; // 0-3 within tile
   sqZ: number; // 0-3 within tile
+}
+
+export interface ExplorationPoint {
+  tileId: string;
+  edge: Direction;
+  worldX: number;
+  worldZ: number;
 }
 
 export interface Condition {
@@ -59,6 +72,7 @@ export interface Monster extends Entity {
   attackBonus: number;
   damage: number;
   experienceValue: number;
+  ownedByHeroId: string | null;
 }
 
 export interface MonsterBehavior {
@@ -82,6 +96,7 @@ export interface Tile {
   z: number; // Dungeon grid Z
   terrainType: 'corridor' | 'named_room' | 'boss_room';
   connections: TileConnection[];
+  boneSquare: { sqX: number, sqZ: number };
   isRevealed: boolean;
   isStart: boolean;
   isExit: boolean;
@@ -157,7 +172,7 @@ export interface GameLogEntry {
   type: 'action' | 'combat' | 'event' | 'system';
 }
 
-export type GamePhase = 'setup' | 'hero' | 'exploration' | 'monster' | 'end' | 'victory' | 'defeat';
+export type GamePhase = 'setup' | 'hero' | 'exploration' | 'villain' | 'monster' | 'end' | 'victory' | 'defeat';
 
 export interface GameState {
   phase: GamePhase;
@@ -179,6 +194,8 @@ export interface GameState {
   experiencePile: string[]; // IDs of monster cards in experience pile
   treasuresDrawnThisTurn: number; // Track treasures drawn this turn
   traps: Trap[]; // Active traps in dungeon
+  villainPhaseQueue: string[];
+  activeVillainId: string | null;
 }
 
 export interface Trap {
@@ -187,6 +204,8 @@ export interface Trap {
   tileId: string;
   position?: Position;
   disabled: boolean;
+  ownedByHeroId: string | null;
+  isTriggered: boolean;
 }
 
 export interface AttackResult {

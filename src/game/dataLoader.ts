@@ -58,6 +58,10 @@ export class DataLoader {
     return this.tiles;
   }
 
+  public getTileById(id: string): Tile | undefined {
+    return this.tiles.find(t => t.id === id);
+  }
+
   public getScenarios(): Scenario[] {
     return this.scenarios;
   }

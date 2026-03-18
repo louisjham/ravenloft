@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
+import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
 import { Text } from '@react-three/drei';
 import { useBox } from '@react-three/cannon';
 import { Tile } from '../../game/types';
@@ -10,6 +12,11 @@ interface Tile3DProps {
 }
 
 /**
+ * A tile is 4x4 units in our world scale (1 unit = 1 square)
+ */
+export const TILE_SIZE = 4;
+
+/**
  * 3D component for a Dungeon Tile (4x4 squares).
  */
 export const Tile3D: React.FC<Tile3DProps> = ({ tile, isRevealed }) => {
@@ -18,8 +25,19 @@ export const Tile3D: React.FC<Tile3DProps> = ({ tile, isRevealed }) => {
   const hoveredTile = useGameStore((state) => state.hoveredTile);
   const isHovered = hoveredTile?.id === tile.id;
 
-  // A tile is 4x4 units in our world scale (1 unit = 1 square)
-  const TILE_SIZE = 4;
+  const groupRef = useRef<THREE.Group>(null);
+
+  useEffect(() => {
+    if (groupRef.current) {
+      groupRef.current.scale.set(1, 0.01, 1);
+    }
+  }, []);
+
+  useFrame(() => {
+    if (groupRef.current && groupRef.current.scale.y <= 0.99) {
+      groupRef.current.scale.y += (1.0 - groupRef.current.scale.y) * 0.15;
+    }
+  });
   
   // Physics floor (Static body so dice don't fall through)
   const [ref] = useBox(() => ({
@@ -29,7 +47,7 @@ export const Tile3D: React.FC<Tile3DProps> = ({ tile, isRevealed }) => {
   }));
 
   return (
-    <group position={[tile.x * TILE_SIZE, 0, tile.z * TILE_SIZE]} userData={{ tile }}>
+    <group ref={groupRef} position={[tile.x * TILE_SIZE, 0, tile.z * TILE_SIZE]} userData={{ tile }}>
       {/* Base Floor Mesh with physics ref */}
       <mesh ref={ref as any} receiveShadow>
         <boxGeometry args={[TILE_SIZE, 0.2, TILE_SIZE]} />
@@ -59,8 +77,7 @@ export const Tile3D: React.FC<Tile3DProps> = ({ tile, isRevealed }) => {
         position={[TILE_SIZE / 2 - 0.5, 0.2, TILE_SIZE / 2 - 0.5]}
         fontSize={0.2}
         color="white"
-        opacity={0.3}
-        transparent
+        fillOpacity={0.3}
         rotation={[-Math.PI / 2, 0, 0]}
       >
         {tile.id}

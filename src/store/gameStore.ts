@@ -111,6 +111,7 @@ export const useGameStore = create<GameStore>()(
           x: 0, z: 0,
           terrainType: 'corridor',
           connections: [],
+          boneSquare: { sqX: 1, sqZ: 1 },
           isRevealed: true,
           isStart: true,
           isExit: false,
@@ -272,7 +273,24 @@ export const useGameStore = create<GameStore>()(
       const state = get().gameState;
       if (!state) return;
 
-      console.log('[DEBUG gameStore] Ending turn for:', state.currentHeroId);
+      console.log('[DEBUG gameStore] Ending hero phase for:', state.currentHeroId, 'Current Phase:', state.phase);
+
+      // Rulebook: After Exploration Phase -> Villain Phase
+      // If we are currently in hero or exploration phase, ending the turn moves us to the Villain phase.
+      if (state.phase === 'hero' || state.phase === 'exploration') {
+        set({
+          gameState: {
+            ...state,
+            phase: 'villain'
+            // We stay on the current hero while their controlled monsters activate.
+          }
+        });
+        console.log('[DEBUG gameStore] Transitioning to Villain phase.');
+        return;
+      }
+      
+      // If we are ALREADY in the Villain phase and ending the turn, we pass to the NEXT hero.
+      console.log('[DEBUG gameStore] Villain phase ended. Passing turn to next hero.');
 
       // Process conditions for the current entity
       const currentEntity = [...state.heroes, ...state.monsters].find(e => e.id === state.currentHeroId);
@@ -300,12 +318,12 @@ export const useGameStore = create<GameStore>()(
         gameState: {
           ...state,
           currentHeroId: nextId,
-          phase: newPhase,
+          phase: 'hero', // Next player starts their Hero phase
           turnCount: state.turnCount + (nextIndex === 0 ? 1 : 0)
         }
       });
 
-      console.log('[DEBUG gameStore] Turn ended, next entity:', nextId, 'new phase:', newPhase);
+      console.log('[DEBUG gameStore] Turn ended, next entity:', nextId, 'new phase: hero');
     },
 
     // Power System actions
@@ -550,7 +568,8 @@ export const useGameStore = create<GameStore>()(
               experienceValue: 100,
               position: { x: 0, z: 0, sqX: 3, sqZ: 3 },
               conditions: [],
-              usedPowers: []
+              usedPowers: [],
+              ownedByHeroId: 'h1'
             }
           ],
           tiles: [
@@ -561,6 +580,7 @@ export const useGameStore = create<GameStore>()(
               z: 0,
               terrainType: 'corridor',
               connections: [],
+              boneSquare: { sqX: 1, sqZ: 1 },
               isRevealed: true,
               isStart: true,
               isExit: false,
@@ -597,7 +617,9 @@ export const useGameStore = create<GameStore>()(
           activeEnvironmentCard: null,
           experiencePile: [],
           treasuresDrawnThisTurn: 0,
-          traps: []
+          traps: [],
+          villainPhaseQueue: [],
+          activeVillainId: null
         }
       });
     }
