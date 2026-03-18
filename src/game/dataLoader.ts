@@ -16,7 +16,7 @@ import scenario5 from '../data/scenarios/scenario5.json';
 
 export class DataLoader {
   private static instance: DataLoader;
-  
+
   private heroes: Hero[] = heroesData as Hero[];
   private monsters: Monster[] = monstersData as Monster[];
   private tiles: Tile[] = tilesData as Tile[];
@@ -33,7 +33,7 @@ export class DataLoader {
     ...(arjhanAbilities as Card[])
   ];
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): DataLoader {
     if (!DataLoader.instance) {
@@ -66,11 +66,15 @@ export class DataLoader {
     return this.cards.find(c => c.id === id);
   }
 
+  public getAllCards(): Card[] {
+    return this.cards;
+  }
+
   public validateData(): boolean {
     // Basic validation logic
     const heroIds = this.heroes.map(h => h.id);
     const tileIds = this.tiles.map(t => t.id);
-    
+
     // Check if every hero has abilities that exist
     for (const hero of this.heroes) {
       for (const abilityId of hero.abilities) {

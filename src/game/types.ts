@@ -1,8 +1,14 @@
-// DEBUG: Condition types - currently NOT implemented
+// Condition types
 export type ConditionType = 'slowed' | 'immobilized' | 'poisoned' | 'dazed' | 'weakened' | 'stunned';
 
-// DEBUG: Power types - currently NOT implemented
+// Power types
 export type PowerType = 'at-will' | 'daily' | 'utility';
+
+// Treasure card types
+export type TreasureType = 'blessing' | 'fortune' | 'item';
+
+// Encounter card types
+export type EncounterType = 'environment' | 'event' | 'event-attack' | 'trap';
 
 export type EntityType = 'hero' | 'monster' | 'trap' | 'treasure';
 
@@ -85,7 +91,7 @@ export interface Tile {
   items: string[]; // Item/Token IDs
 }
 
-export type CardType = 'ability' | 'monster' | 'encounter' | 'treasure' | 'item';
+export type CardType = 'ability' | 'monster' | 'encounter' | 'treasure' | 'item' | 'consumable';
 
 export interface Card {
   id: string;
@@ -96,16 +102,32 @@ export interface Card {
   effects: Effect[];
   phase?: 'hero' | 'exploration' | 'monster';
   heroClass?: string;
-  // DEBUG: Power type - currently NOT used
   powerType?: PowerType;
+  // Treasure card specific
+  treasureType?: TreasureType;
+  // Encounter card specific
+  encounterType?: EncounterType;
+  // Power card specific
+  attackBonus?: number;
+  damage?: number;
+  range?: number;
+  target?: 'self' | 'single' | 'area' | 'all_heroes' | 'all_monsters' | 'adjacent';
+  // Level up card
+  isLevelUp?: boolean;
+  // Trap card specific
+  disableDC?: number; // Difficulty class to disable the trap
 }
 
 export interface Effect {
-  type: 'damage' | 'heal' | 'move' | 'status_effect';
+  type: 'damage' | 'heal' | 'move' | 'status_effect' | 'attack_bonus' | 'defense_bonus' | 'draw_card' | 'flip_power' | 'passive';
   value?: number;
-  target: 'self' | 'single' | 'area' | 'all_heroes' | 'all_monsters';
+  target: 'self' | 'single' | 'area' | 'all_heroes' | 'all_monsters' | 'adjacent';
   range?: number;
   statusEffect?: string;
+  condition?: string; // e.g., 'undead', 'vampire'
+  passiveType?: string; // e.g., 'undead_ward'
+  duration?: number; // For temporary effects
+  attackBonus?: number; // For event-attack and trap cards
 }
 
 export interface Die {
@@ -152,6 +174,19 @@ export interface GameState {
   healingSurges: number;
   turnCount: number;
   log: GameLogEntry[];
+  // New state for card systems
+  activeEnvironmentCard: string | null; // ID of active environment card
+  experiencePile: string[]; // IDs of monster cards in experience pile
+  treasuresDrawnThisTurn: number; // Track treasures drawn this turn
+  traps: Trap[]; // Active traps in dungeon
+}
+
+export interface Trap {
+  id: string;
+  cardId: string;
+  tileId: string;
+  position?: Position;
+  disabled: boolean;
 }
 
 export interface AttackResult {

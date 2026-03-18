@@ -1,10 +1,14 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
-import { GameState, Entity, Tile, Card, GameSettings, Position, Hero, PowerType } from '../game/types'
+import { GameState, Entity, Tile, Card, GameSettings, Position, Hero, PowerType, Trap } from '../game/types'
 import { SaveSystem } from '../game/progression/SaveSystem'
 import { DataLoader } from '../game/dataLoader'
 import { CombatSystem } from '../game/engine/CombatSystem'
 import { ConditionSystem } from '../game/engine/ConditionSystem'
+import { PowerSystem } from '../game/engine/PowerSystem'
+import { EncounterSystem } from '../game/engine/EncounterSystem'
+import { TreasureSystem } from '../game/engine/TreasureSystem'
+import { ExperienceSystem } from '../game/engine/ExperienceSystem'
 
 interface GameStore {
   // State
@@ -31,6 +35,24 @@ interface GameStore {
   attackMonster: (monsterId: string) => void
   playCard: (cardId: string, targetId: string) => void
   endTurn: () => void
+
+  // Power System actions
+  usePower: (cardId: string, targetId: string) => void
+  resetPower: (powerId: string) => void
+  getAvailablePowers: () => Card[]
+
+  // Encounter System actions
+  drawEncounterCard: () => void
+  cancelEncounterCard: (cardId: string) => void
+  disableTrap: (trapId: string) => void
+
+  // Treasure System actions
+  drawTreasureCard: () => void
+  useTreasureCard: (cardId: string, targetId?: string) => void
+  assignItem: (cardId: string, heroId: string) => void
+
+  // Experience System actions
+  levelUpHero: (heroId: string, newDailyPowerId?: string) => void
 
   // UI stubs for testing initial UI components
   initializeDummyState: () => void
@@ -110,7 +132,12 @@ export const useGameStore = create<GameStore>()(
           timestamp: new Date().toLocaleTimeString(),
           message: `Scenario started: ${scenario.name}`,
           type: 'system'
-        }]
+        }],
+        // New state fields
+        activeEnvironmentCard: null,
+        experiencePile: [],
+        treasuresDrawnThisTurn: 0,
+        traps: []
       };
 
       set({ gameState: initialState });
@@ -193,25 +220,52 @@ export const useGameStore = create<GameStore>()(
       const state = get().gameState;
       if (!state) return;
 
-      // DEBUG: Find the card and check if it's a Daily power
       const dataLoader = DataLoader.getInstance();
       const card = dataLoader.getCardById(cardId);
-
-      if (card && card.powerType === 'daily') {
-        const hero = state.heroes.find(h => h.id === state.currentHeroId);
-        if (hero) {
-          if (hero.usedPowers.includes(cardId)) {
-            console.log('[DEBUG gameStore] Daily power already used:', cardId);
-            return; // Cannot use Daily power again
-          }
-          // Mark Daily power as used
-          hero.usedPowers.push(cardId);
-          console.log('[DEBUG gameStore] Daily power marked as used:', cardId);
-        }
+      if (!card) {
+        console.log('[DEBUG gameStore] Card not found:', cardId);
+        return;
       }
 
-      // TODO: Implement card effect resolution
-      console.log('[DEBUG gameStore] Card effect resolution not yet implemented');
+      const hero = state.heroes.find(h => h.id === state.currentHeroId);
+      if (!hero) {
+        console.log('[DEBUG gameStore] Hero not found:', state.currentHeroId);
+        return;
+      }
+
+      // Handle different card types
+      if (card.type === 'ability') {
+        // Use PowerSystem for ability cards
+        const target = targetId ? [...state.heroes, ...state.monsters].find(e => e.id === targetId) || null : null;
+        const result = PowerSystem.usePower(hero, card, target, state);
+
+        if (result.success) {
+          const updatedLog: import('../game/types').GameLogEntry[] = [
+            ...state.log,
+            {
+              id: Math.random().toString(),
+              timestamp: new Date().toLocaleTimeString(),
+              message: result.message,
+              type: 'action'
+            }
+          ];
+          set({ gameState: { ...state, heroes: [...state.heroes], log: updatedLog } });
+        } else {
+          console.log('[DEBUG gameStore] Power use failed:', result.message);
+        }
+      } else if (card.type === 'treasure') {
+        // Handle treasure cards
+        if (card.treasureType === 'blessing') {
+          const result = TreasureSystem.useBlessing(state, card, hero);
+          console.log('[DEBUG gameStore] Blessing result:', result);
+        } else if (card.treasureType === 'fortune') {
+          const result = TreasureSystem.useFortune(state, card, hero);
+          console.log('[DEBUG gameStore] Fortune result:', result);
+        } else if (card.treasureType === 'item') {
+          const result = TreasureSystem.assignItem(state, card, hero);
+          console.log('[DEBUG gameStore] Item assigned:', result);
+        }
+      }
     },
 
     endTurn: () => {
@@ -220,7 +274,7 @@ export const useGameStore = create<GameStore>()(
 
       console.log('[DEBUG gameStore] Ending turn for:', state.currentHeroId);
 
-      // DEBUG: Process conditions for the current entity
+      // Process conditions for the current entity
       const currentEntity = [...state.heroes, ...state.monsters].find(e => e.id === state.currentHeroId);
       if (currentEntity) {
         // Process poison damage at start of turn (if poisoned)
@@ -232,6 +286,9 @@ export const useGameStore = create<GameStore>()(
         // Process condition expiration at end of turn
         ConditionSystem.processTurnEnd(currentEntity);
       }
+
+      // Reset treasures drawn counter for next turn
+      TreasureSystem.resetTreasuresDrawn(state);
 
       const currentIndex = state.turnOrder.indexOf(state.currentHeroId);
       const nextIndex = (currentIndex + 1) % state.turnOrder.length;
@@ -249,6 +306,196 @@ export const useGameStore = create<GameStore>()(
       });
 
       console.log('[DEBUG gameStore] Turn ended, next entity:', nextId, 'new phase:', newPhase);
+    },
+
+    // Power System actions
+    usePower: (cardId: string, targetId: string) => {
+      const state = get().gameState;
+      if (!state) return;
+
+      const dataLoader = DataLoader.getInstance();
+      const card = dataLoader.getCardById(cardId);
+      if (!card) return;
+
+      const hero = state.heroes.find(h => h.id === state.currentHeroId);
+      if (!hero) return;
+
+      const target = targetId ? [...state.heroes, ...state.monsters].find(e => e.id === targetId) || null : null;
+      const result = PowerSystem.usePower(hero, card, target, state);
+
+      if (result.success) {
+        const updatedLog: import('../game/types').GameLogEntry[] = [
+          ...state.log,
+          {
+            id: Math.random().toString(),
+            timestamp: new Date().toLocaleTimeString(),
+            message: result.message,
+            type: 'action'
+          }
+        ];
+        set({ gameState: { ...state, heroes: [...state.heroes], log: updatedLog } });
+      }
+    },
+
+    resetPower: (powerId: string) => {
+      const state = get().gameState;
+      if (!state) return;
+
+      const hero = state.heroes.find(h => h.id === state.currentHeroId);
+      if (!hero) return;
+
+      PowerSystem.resetPower(hero, powerId);
+      set({ gameState: { ...state, heroes: [...state.heroes] } });
+    },
+
+    getAvailablePowers: () => {
+      const state = get().gameState;
+      if (!state) return [];
+
+      const hero = state.heroes.find(h => h.id === state.currentHeroId);
+      if (!hero) return [];
+
+      const dataLoader = DataLoader.getInstance();
+      const allCards = dataLoader.getAllCards();
+      return PowerSystem.getAvailablePowers(hero, allCards);
+    },
+
+    // Encounter System actions
+    drawEncounterCard: () => {
+      const state = get().gameState;
+      if (!state) return;
+
+      const result = EncounterSystem.drawEncounterCard(state);
+      if (result.card) {
+        console.log('[DEBUG gameStore] Encounter card drawn:', result.message);
+        // Process the encounter card based on its type
+        if (result.card.encounterType === 'environment') {
+          EncounterSystem.processEnvironmentCard(state, result.card);
+        } else if (result.card.encounterType === 'event' || result.card.encounterType === 'event-attack') {
+          const hero = state.heroes.find(h => h.id === state.currentHeroId);
+          if (hero) {
+            if (result.card.encounterType === 'event-attack') {
+              EncounterSystem.processEventAttackCard(state, result.card, hero);
+            } else {
+              EncounterSystem.processEventCard(state, result.card, hero);
+            }
+          }
+        } else if (result.card.encounterType === 'trap') {
+          const hero = state.heroes.find(h => h.id === state.currentHeroId);
+          if (hero) {
+            EncounterSystem.placeTrap(state, result.card, hero);
+          }
+        }
+        set({ gameState: { ...state } });
+      }
+    },
+
+    cancelEncounterCard: (cardId: string) => {
+      const state = get().gameState;
+      if (!state) return;
+
+      const result = ExperienceSystem.cancelEncounterCard(state, cardId);
+      console.log('[DEBUG gameStore] Cancel encounter:', result.message);
+      if (result.success) {
+        set({ gameState: { ...state } });
+      }
+    },
+
+    disableTrap: (trapId: string) => {
+      const state = get().gameState;
+      if (!state) return;
+
+      const trap = state.traps.find(t => t.id === trapId);
+      if (!trap) return;
+
+      const hero = state.heroes.find(h => h.id === state.currentHeroId);
+      if (!hero) return;
+
+      const dataLoader = DataLoader.getInstance();
+      const card = dataLoader.getCardById(trap.cardId);
+      if (!card) return;
+
+      const result = EncounterSystem.attemptDisableTrap(state, hero, trap, card);
+      console.log('[DEBUG gameStore] Disable trap:', result.message);
+      if (result.success) {
+        set({ gameState: { ...state } });
+      }
+    },
+
+    // Treasure System actions
+    drawTreasureCard: () => {
+      const state = get().gameState;
+      if (!state) return;
+
+      const hero = state.heroes.find(h => h.id === state.currentHeroId);
+      if (!hero) return;
+
+      const result = TreasureSystem.drawTreasureCard(state, hero);
+      console.log('[DEBUG gameStore] Draw treasure:', result.message);
+      if (result.card) {
+        set({ gameState: { ...state } });
+      }
+    },
+
+    useTreasureCard: (cardId: string, targetId?: string) => {
+      const state = get().gameState;
+      if (!state) return;
+
+      const dataLoader = DataLoader.getInstance();
+      const card = dataLoader.getCardById(cardId);
+      if (!card) return;
+
+      const hero = state.heroes.find(h => h.id === state.currentHeroId);
+      if (!hero) return;
+
+      const target = targetId ? [...state.heroes, ...state.monsters].find(e => e.id === targetId) || null : null;
+      const result = TreasureSystem.useItem(state, card, hero, target);
+      console.log('[DEBUG gameStore] Use treasure:', result.message);
+      if (result.success) {
+        set({ gameState: { ...state, heroes: [...state.heroes] } });
+      }
+    },
+
+    assignItem: (cardId: string, heroId: string) => {
+      const state = get().gameState;
+      if (!state) return;
+
+      const dataLoader = DataLoader.getInstance();
+      const card = dataLoader.getCardById(cardId);
+      if (!card) return;
+
+      const hero = state.heroes.find(h => h.id === heroId);
+      if (!hero) return;
+
+      const result = TreasureSystem.assignItem(state, card, hero);
+      console.log('[DEBUG gameStore] Assign item:', result.message);
+      if (result.success) {
+        set({ gameState: { ...state, heroes: [...state.heroes] } });
+      }
+    },
+
+    // Experience System actions
+    levelUpHero: (heroId: string, newDailyPowerId?: string) => {
+      const state = get().gameState;
+      if (!state) return;
+
+      const hero = state.heroes.find(h => h.id === heroId);
+      if (!hero) return;
+
+      const result = ExperienceSystem.levelUpHero(state, hero, newDailyPowerId);
+      console.log('[DEBUG gameStore] Level up:', result.message);
+      if (result.success) {
+        const updatedLog: import('../game/types').GameLogEntry[] = [
+          ...state.log,
+          {
+            id: Math.random().toString(),
+            timestamp: new Date().toLocaleTimeString(),
+            message: result.message,
+            type: 'system'
+          }
+        ];
+        set({ gameState: { ...state, heroes: [...state.heroes], log: updatedLog } });
+      }
     },
 
     // UI Control
@@ -345,7 +592,12 @@ export const useGameStore = create<GameStore>()(
           turnCount: 1,
           log: [
             { id: '1', timestamp: new Date().toLocaleTimeString(), message: 'The party enters the crypt.', type: 'system' }
-          ]
+          ],
+          // New state fields
+          activeEnvironmentCard: null,
+          experiencePile: [],
+          treasuresDrawnThisTurn: 0,
+          traps: []
         }
       });
     }
