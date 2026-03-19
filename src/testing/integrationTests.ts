@@ -3,11 +3,22 @@
  * These are designed to be run in a dev environment or CI.
  */
 
-import { useGameStore, buildVillainQueue } from '../store/gameStore';
+import { useGameStore, buildVillainQueue, applyTrapResult, executeVillainPhase } from '../store/gameStore';
 import { useUIStore } from '../store/uiStore';
 import { TileSystem } from '../game/engine/TileSystem';
-import type { Tile, TileConnection, Direction, GameState, ExplorationPoint, Monster } from '../game/types';
+import { DataLoader } from '../game/dataLoader';
+import type { Tile, TileConnection, Direction, GameState, ExplorationPoint, Monster, Hero } from '../game/types';
 import { ExplorationState, onArrowClicked, onRotationConfirmed, onCancel, onPlacementComplete } from '../game/engine/ExplorationStateMachine';
+import {
+  manhattanDistance,
+  getAdjacentTileIds,
+  hasLineOfSight,
+  findClosestHero,
+  getPathToward,
+  resolveTactic,
+  resolveTrap,
+  type TacticResult
+} from '../game/engine/MonsterAI';
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -355,16 +366,16 @@ export const runFullGameLoopTest = async () => {
     // 12. TileSystem.rotateBoneSquare
     // -----------------------------------------------------------------------
     console.log('Testing TileSystem.rotateBoneSquare...');
-    
+
     const boneRot0 = TileSystem.rotateBoneSquare(1, 2, 0);
     if (boneRot0.sqX !== 1 || boneRot0.sqZ !== 2) throw new Error(`rotateBoneSquare 0°: expected (1, 2), got (${boneRot0.sqX}, ${boneRot0.sqZ})`);
-    
+
     const boneRot90 = TileSystem.rotateBoneSquare(1, 2, 90);
     if (boneRot90.sqX !== 1 || boneRot90.sqZ !== 1) throw new Error(`rotateBoneSquare 90°: expected (1, 1), got (${boneRot90.sqX}, ${boneRot90.sqZ})`);
 
     const boneRot180 = TileSystem.rotateBoneSquare(1, 2, 180);
     if (boneRot180.sqX !== 2 || boneRot180.sqZ !== 1) throw new Error(`rotateBoneSquare 180°: expected (2, 1), got (${boneRot180.sqX}, ${boneRot180.sqZ})`);
-    
+
     const boneRot270 = TileSystem.rotateBoneSquare(1, 2, 270);
     if (boneRot270.sqX !== 2 || boneRot270.sqZ !== 2) throw new Error(`rotateBoneSquare 270°: expected (2, 2), got (${boneRot270.sqX}, ${boneRot270.sqZ})`);
 
@@ -374,7 +385,7 @@ export const runFullGameLoopTest = async () => {
     // 13. TileSystem.canPlaceTile
     // -----------------------------------------------------------------------
     console.log('Testing TileSystem.canPlaceTile...');
-    
+
     const overlapBoard: Tile[] = [
       { ...templateTile, id: 't1', x: 2, z: 2 }
     ];
@@ -433,7 +444,7 @@ export const runFullGameLoopTest = async () => {
     // 15. TileSystem.getExplorationPoints
     // -----------------------------------------------------------------------
     console.log('Testing TileSystem.getExplorationPoints...');
-    
+
     const tileWithOneSouthEdge: Tile = {
       ...templateTile,
       id: 'iso-start',
@@ -445,7 +456,7 @@ export const runFullGameLoopTest = async () => {
 
     const solitaryTiles = [tileWithOneSouthEdge];
     let explorePoints = TileSystem.getExplorationPoints(solitaryTiles);
-    
+
     if (explorePoints.length !== 1) {
       throw new Error(`getExplorationPoints: Expected 1 point, got ${explorePoints.length}`);
     }
@@ -468,9 +479,9 @@ export const runFullGameLoopTest = async () => {
     // It doesn't actually need the graphs to be wired via connectTiles() to know it's blocked,
     // just the existence of the grid coordinate. In reality, during play, connectTiles handles the rest.
     const connectedTiles = [...solitaryTiles, connectingTile];
-    
+
     explorePoints = TileSystem.getExplorationPoints(connectedTiles);
-    
+
     // We expect the original south edge to be excluded (because 0,1 is occupied)
     // and the new tile's open edges ('north' which overlaps 0,0 and 'east' traversing 1,1)
     // Wait, the north edge of the new tile faces 0,0 which is also occupied!
@@ -482,21 +493,21 @@ export const runFullGameLoopTest = async () => {
     if (explorePoints[0].edge !== 'east' || explorePoints[0].worldX !== 0.5 || explorePoints[0].worldZ !== 1) {
       throw new Error(`getExplorationPoints: New point incorrectly calculated: ${JSON.stringify(explorePoints[0])}`);
     }
-    
+
     console.log('  getExplorationPoints PASSED');
 
     // -----------------------------------------------------------------------
     // 16. ExplorationStateMachine
     // -----------------------------------------------------------------------
     console.log('Testing ExplorationStateMachine...');
-    
+
     let fmState: ExplorationState = { phase: 'idle' };
     const point: ExplorationPoint = { tileId: 'iso-start', edge: 'south', worldX: 0, worldZ: 0.5 };
-    
+
     // Valid draw result mock
     const smDrawResult = {
       tile: { ...templateTile, id: 'test-sm', x: 0, z: 0, isRevealed: false, connections: [] },
-      validRotations: [0, 90] as (0|90|180|270)[],
+      validRotations: [0, 90] as (0 | 90 | 180 | 270)[],
       remainingDeck: ['card2', 'card3'],
       exhausted: false
     };
@@ -504,7 +515,7 @@ export const runFullGameLoopTest = async () => {
     // Happy path tests
     fmState = onArrowClicked(fmState, point, smDrawResult);
     if (fmState.phase !== 'awaiting_rotation') throw new Error('State machine failed to transition to awaiting_rotation');
-    
+
     fmState = onRotationConfirmed(fmState, 90);
     if (fmState.phase !== 'placing') throw new Error('State machine failed to transition to placing');
 
@@ -534,13 +545,13 @@ export const runFullGameLoopTest = async () => {
     // 10. Villain Phase buildVillainQueue
     // -----------------------------------------------------------------------
     console.log('Testing Villain Phase Queue construction...');
-    
+
     // Inject mock monsters into store
     const mockM1: Monster = { id: 'm_test_1', type: 'monster', hp: 1, ownedByHeroId: 'h1' } as any;
     const mockM2: Monster = { id: 'm_test_2', type: 'monster', hp: 1, ownedByHeroId: 'h1' } as any;
     const mockM3: Monster = { id: 'm_test_3', type: 'monster', hp: 1, ownedByHeroId: 'h2' } as any;
     const mockDead: Monster = { id: 'm_test_4', type: 'monster', hp: 0, ownedByHeroId: 'h1' } as any;
-    
+
     useGameStore.setState(state => {
       if (!state.gameState) return state;
       return {
@@ -551,23 +562,1176 @@ export const runFullGameLoopTest = async () => {
         }
       };
     });
-    
+
     const queueState = useGameStore.getState().gameState!;
     const hero1Queue = buildVillainQueue(queueState, 'h1');
-    
+
     if (hero1Queue.length !== 2) {
       throw new Error(`buildVillainQueue: expected 2 ids for Hero 1, got ${hero1Queue.length} (${hero1Queue.join(',')})`);
     }
     if (!hero1Queue.includes('m_test_1') || !hero1Queue.includes('m_test_2')) {
       throw new Error(`buildVillainQueue: incorrect ids returned`);
     }
-    
+
     const hero2Queue = buildVillainQueue(queueState, 'h2');
     if (hero2Queue.length !== 1 || hero2Queue[0] !== 'm_test_3') {
       throw new Error(`buildVillainQueue: expected ['m_test_3'] for Hero 2, got ${hero2Queue.join(',')}`);
     }
-    
+
     console.log('  buildVillainQueue PASSED');
+
+    // -----------------------------------------------------------------------
+    // 17. MonsterAI.manhattanDistance
+    // -----------------------------------------------------------------------
+    console.log('Testing MonsterAI.manhattanDistance...');
+
+    if (manhattanDistance(0, 0, 0, 0) !== 0) {
+      throw new Error('manhattanDistance: (0,0) to (0,0) should be 0');
+    }
+    if (manhattanDistance(0, 0, 3, 4) !== 7) {
+      throw new Error('manhattanDistance: (0,0) to (3,4) should be 7');
+    }
+    if (manhattanDistance(-2, -3, 1, 2) !== 8) {
+      throw new Error('manhattanDistance: (-2,-3) to (1,2) should be 8');
+    }
+
+    console.log('  manhattanDistance PASSED');
+
+    // -----------------------------------------------------------------------
+    // 18. MonsterAI.getAdjacentTileIds
+    // -----------------------------------------------------------------------
+    console.log('Testing MonsterAI.getAdjacentTileIds...');
+
+    const testTile: Tile = {
+      ...templateTile,
+      id: 'test_adjacent',
+      connections: [
+        openEdge('north'),
+        closedEdge('east'),
+        openEdge('south'),
+        openEdge('west')
+      ]
+    };
+
+    // Manually set connectedTileId for open edges
+    testTile.connections[0].connectedTileId = 'tile_north';
+    testTile.connections[2].connectedTileId = 'tile_south';
+    testTile.connections[3].connectedTileId = 'tile_west';
+
+    const adjacentIds = getAdjacentTileIds(testTile, []);
+    if (adjacentIds.length !== 3) {
+      throw new Error(`getAdjacentTileIds: expected 3 adjacent tiles, got ${adjacentIds.length}`);
+    }
+    if (!adjacentIds.includes('tile_north') || !adjacentIds.includes('tile_south') || !adjacentIds.includes('tile_west')) {
+      throw new Error(`getAdjacentTileIds: missing expected tile IDs: ${adjacentIds.join(', ')}`);
+    }
+    if (adjacentIds.includes('tile_east')) {
+      throw new Error('getAdjacentTileIds: should not include closed edge');
+    }
+
+    console.log('  getAdjacentTileIds PASSED');
+
+    // -----------------------------------------------------------------------
+    // 19. MonsterAI.hasLineOfSight
+    // -----------------------------------------------------------------------
+    console.log('Testing MonsterAI.hasLineOfSight...');
+
+    const losStart: Tile = {
+      ...templateTile,
+      id: 'los_start',
+      x: 0,
+      z: 0,
+      connections: [openEdge('north'), openEdge('east'), openEdge('south'), openEdge('west')]
+    };
+    losStart.connections[0].connectedTileId = 'los_middle';
+    losStart.connections[1].connectedTileId = 'los_east';
+
+    const losMiddle: Tile = {
+      ...templateTile,
+      id: 'los_middle',
+      x: 0,
+      z: -1,
+      connections: [openEdge('north'), openEdge('south'), closedEdge('east'), closedEdge('west')]
+    };
+    losMiddle.connections[1].connectedTileId = 'los_start';
+    losMiddle.connections[0].connectedTileId = 'los_end';
+
+    const losEnd: Tile = {
+      ...templateTile,
+      id: 'los_end',
+      x: 0,
+      z: -2,
+      connections: [openEdge('south'), closedEdge('north'), closedEdge('east'), closedEdge('west')]
+    };
+    losEnd.connections[0].connectedTileId = 'los_middle';
+
+    const losEast: Tile = {
+      ...templateTile,
+      id: 'los_east',
+      x: 1,
+      z: 0,
+      connections: [openEdge('west'), closedEdge('north'), closedEdge('south'), closedEdge('east')]
+    };
+    losEast.connections[0].connectedTileId = 'los_start';
+
+    const losBoard = [losStart, losMiddle, losEnd, losEast];
+
+    // Connected path with no blockers
+    if (!hasLineOfSight(losStart, losEnd, losBoard)) {
+      throw new Error('hasLineOfSight: should return true for connected path with no blockers');
+    }
+
+    // Connected tiles directly
+    if (!hasLineOfSight(losStart, losEast, losBoard)) {
+      throw new Error('hasLineOfSight: should return true for directly connected tiles');
+    }
+
+    // Disconnected tiles (no path exists)
+    const isolatedTile: Tile = {
+      ...templateTile,
+      id: 'los_isolated',
+      x: 10,
+      z: 10,
+      connections: [closedEdge('north'), closedEdge('south'), closedEdge('east'), closedEdge('west')]
+    };
+    if (hasLineOfSight(losStart, isolatedTile, [...losBoard, isolatedTile])) {
+      throw new Error('hasLineOfSight: should return false for disconnected tiles');
+    }
+
+    // Path with blocker
+    const losMiddleBlocked: Tile = {
+      ...losMiddle,
+      id: 'los_middle_blocked',
+      blocksLineOfSight: true
+    };
+    const losBoardBlocked = [losStart, losMiddleBlocked, losEnd, losEast];
+    if (hasLineOfSight(losStart, losEnd, losBoardBlocked)) {
+      throw new Error('hasLineOfSight: should return false when path contains a blocker');
+    }
+
+    console.log('  hasLineOfSight PASSED');
+
+    // -----------------------------------------------------------------------
+    // 20. MonsterAI.findClosestHero
+    // -----------------------------------------------------------------------
+    console.log('Testing MonsterAI.findClosestHero...');
+
+    const hero1: Hero = {
+      id: 'hero1',
+      name: 'Hero 1',
+      type: 'hero',
+      heroClass: 'paladin',
+      level: 1,
+      xp: 0,
+      surgeUsed: false,
+      abilities: [],
+      hand: [],
+      items: [],
+      position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+      hp: 10,
+      maxHp: 10,
+      ac: 15,
+      speed: 6,
+      isExhausted: false,
+      conditions: [],
+      usedPowers: []
+    };
+
+    const hero2: Hero = {
+      ...hero1,
+      id: 'hero2',
+      name: 'Hero 2',
+      position: { x: 2, z: 1, sqX: 1, sqZ: 1 }
+    };
+
+    const hero3: Hero = {
+      ...hero1,
+      id: 'hero3',
+      name: 'Hero 3',
+      position: { x: 1, z: 3, sqX: 1, sqZ: 1 }
+    };
+
+    const heroTile1: Tile = {
+      ...templateTile,
+      id: 'hero_tile_1',
+      x: 0,
+      z: 0,
+      connections: []
+    };
+
+    const heroTile2: Tile = {
+      ...templateTile,
+      id: 'hero_tile_2',
+      x: 2,
+      z: 1,
+      connections: []
+    };
+
+    const heroTile3: Tile = {
+      ...templateTile,
+      id: 'hero_tile_3',
+      x: 1,
+      z: 3,
+      connections: []
+    };
+
+    const monsterTile: Tile = {
+      ...templateTile,
+      id: 'monster_tile',
+      x: 0,
+      z: 2,
+      connections: []
+    };
+
+    const heroTiles = [heroTile1, heroTile2, heroTile3, monsterTile];
+
+    // Find closest hero from monster position
+    const closest = findClosestHero(monsterTile, [hero1, hero2, hero3], heroTiles);
+    if (!closest) {
+      throw new Error('findClosestHero: should not return null when heroes exist');
+    }
+    if (closest.hero.id !== 'hero2') {
+      throw new Error(`findClosestHero: expected hero2 (distance 2), got ${closest.hero.id} (distance ${closest.distance})`);
+    }
+    if (closest.distance !== 2) {
+      throw new Error(`findClosestHero: expected distance 2, got ${closest.distance}`);
+    }
+
+    // Empty heroes array
+    const closestEmpty = findClosestHero(monsterTile, [], heroTiles);
+    if (closestEmpty !== null) {
+      throw new Error('findClosestHero: should return null when heroes array is empty');
+    }
+
+    console.log('  findClosestHero PASSED');
+
+    // -----------------------------------------------------------------------
+    // 21. MonsterAI.getPathToward
+    // -----------------------------------------------------------------------
+    console.log('Testing MonsterAI.getPathToward...');
+
+    const pathStart: Tile = {
+      ...templateTile,
+      id: 'path_start',
+      x: 0,
+      z: 0,
+      connections: [openEdge('north'), openEdge('east'), closedEdge('south'), closedEdge('west')]
+    };
+    pathStart.connections[0].connectedTileId = 'path_1';
+    pathStart.connections[1].connectedTileId = 'path_2';
+
+    const path1: Tile = {
+      ...templateTile,
+      id: 'path_1',
+      x: 0,
+      z: -1,
+      connections: [openEdge('north'), openEdge('south'), closedEdge('east'), closedEdge('west')]
+    };
+    path1.connections[1].connectedTileId = 'path_start';
+    path1.connections[0].connectedTileId = 'path_3';
+
+    const path2: Tile = {
+      ...templateTile,
+      id: 'path_2',
+      x: 1,
+      z: 0,
+      connections: [openEdge('north'), openEdge('south'), openEdge('west'), closedEdge('east')]
+    };
+    path2.connections[2].connectedTileId = 'path_start';
+    path2.connections[0].connectedTileId = 'path_3';
+
+    const path3: Tile = {
+      ...templateTile,
+      id: 'path_3',
+      x: 0,
+      z: -2,
+      connections: [openEdge('south'), openEdge('east'), closedEdge('north'), closedEdge('west')]
+    };
+    path3.connections[0].connectedTileId = 'path_1';
+    path3.connections[1].connectedTileId = 'path_2';
+
+    const pathBoard = [pathStart, path1, path2, path3];
+
+    // Path from start to path3
+    const pathToTarget = getPathToward(pathStart, path3, pathBoard, 10);
+    if (pathToTarget.length === 0) {
+      throw new Error('getPathToward: should find a path');
+    }
+    // Should find the shortest path (either path1 or path2, then path3)
+    if (pathToTarget.length !== 2) {
+      throw new Error(`getPathToward: expected path length 2, got ${pathToTarget.length}`);
+    }
+    if (pathToTarget[pathToTarget.length - 1].id !== 'path_3') {
+      throw new Error(`getPathToward: last tile should be path_3, got ${pathToTarget[pathToTarget.length - 1].id}`);
+    }
+
+    // Test steps limit
+    const pathLimited = getPathToward(pathStart, path3, pathBoard, 1);
+    if (pathLimited.length !== 1) {
+      throw new Error(`getPathToward: with steps=1, should return 1 tile, got ${pathLimited.length}`);
+    }
+
+    // No path (disconnected)
+    const isolatedPathTile: Tile = {
+      ...templateTile,
+      id: 'path_isolated',
+      x: 10,
+      z: 10,
+      connections: [closedEdge('north'), closedEdge('south'), closedEdge('east'), closedEdge('west')]
+    };
+    const pathToIsolated = getPathToward(pathStart, isolatedPathTile, [...pathBoard, isolatedPathTile], 10);
+    if (pathToIsolated.length !== 0) {
+      throw new Error('getPathToward: should return empty array when no path exists');
+    }
+
+    // Zero steps
+    const pathZeroSteps = getPathToward(pathStart, path3, pathBoard, 0);
+    if (pathZeroSteps.length !== 0) {
+      throw new Error('getPathToward: with steps=0, should return empty array');
+    }
+
+    // Verify fromTile is not included
+    const pathIncludesStart = getPathToward(pathStart, path3, pathBoard, 10);
+    if (pathIncludesStart.some(t => t.id === 'path_start')) {
+      throw new Error('getPathToward: should not include fromTile in the path');
+    }
+
+    // Test deterministic behavior: identical inputs should produce identical paths
+    // This ensures the sorting of adjacent tiles by (x, z) works correctly
+    const deterministicPath1 = getPathToward(pathStart, path3, pathBoard, 10);
+    const deterministicPath2 = getPathToward(pathStart, path3, pathBoard, 10);
+    if (deterministicPath1.length !== deterministicPath2.length) {
+      throw new Error(`getPathToward: deterministic test failed - path lengths differ: ${deterministicPath1.length} vs ${deterministicPath2.length}`);
+    }
+    for (let i = 0; i < deterministicPath1.length; i++) {
+      if (deterministicPath1[i].id !== deterministicPath2[i].id) {
+        throw new Error(`getPathToward: deterministic test failed - paths differ at index ${i}: ${deterministicPath1[i].id} vs ${deterministicPath2[i].id}`);
+      }
+    }
+
+    console.log('  getPathToward PASSED');
+
+    // -----------------------------------------------------------------------
+    // Monster AI Tactic Tests - Extended Test Cases
+    // -----------------------------------------------------------------------
+    console.log('Testing Monster AI Tactic Tests...');
+
+    // Helper function to create a tile
+    const createAITile = (id: string, x: number, z: number, connections: TileConnection[]): Tile => ({
+      ...templateTile,
+      id,
+      x,
+      z,
+      connections
+    });
+
+    // Helper function to create a monster with moveRange
+    const createAIMonster = (id: string, moveRange: number = 1): Monster => ({
+      id,
+      name: 'AI Test Monster',
+      type: 'monster',
+      monsterType: 'zombie',
+      behavior: { conditions: [], priorityTargets: [], actions: [] },
+      attackBonus: 0,
+      damage: 1,
+      experienceValue: 10,
+      ownedByHeroId: null,
+      position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+      hp: 5,
+      maxHp: 5,
+      ac: 12,
+      speed: 6,
+      isExhausted: false,
+      conditions: [],
+      usedPowers: [],
+      ...(moveRange !== undefined && { moveRange } as any)
+    });
+
+    // Helper function to create a hero
+    const createAIHero = (id: string, x: number, z: number): Hero => ({
+      id,
+      name: 'AI Test Hero',
+      type: 'hero',
+      heroClass: 'fighter',
+      level: 1,
+      xp: 0,
+      surgeUsed: false,
+      abilities: [],
+      hand: [],
+      items: [],
+      position: { x, z, sqX: 1, sqZ: 1 },
+      hp: 10,
+      maxHp: 10,
+      ac: 15,
+      speed: 6,
+      isExhausted: false,
+      conditions: [],
+      usedPowers: []
+    });
+
+    // Helper function to create a game state
+    const createAIState = (heroes: Hero[], tiles: Tile[]): GameState => ({
+      phase: 'monster',
+      currentHeroId: heroes[0]?.id ?? '',
+      heroes,
+      monsters: [],
+      tiles,
+      dungeonDeck: [],
+      treasureDeck: [],
+      encounterDeck: [],
+      discardPiles: {},
+      activeScenario: {
+        id: 'ai_test',
+        name: 'AI Test',
+        difficulty: 'Easy',
+        description: 'AI Test',
+        introText: 'AI Test',
+        victoryText: 'AI Test',
+        defeatText: 'AI Test',
+        objectives: [],
+        specialRules: [],
+        startTileId: tiles[0]?.id ?? '',
+        maxSurges: 3
+      },
+      turnOrder: heroes.map(h => h.id),
+      healingSurges: 2,
+      turnCount: 1,
+      log: [],
+      activeEnvironmentCard: null,
+      experiencePile: [],
+      treasuresDrawnThisTurn: 0,
+      traps: [],
+      villainPhaseQueue: [],
+      activeVillainId: null
+    });
+
+    // Test 1: Close Combat Test - Monster at (1,1), Hero at (1,0) (adjacent)
+    console.log('  Test 1: Close Combat Test...');
+    {
+      const tile11 = createAITile('ai_1_1', 1, 1, [openEdge('north'), closedEdge('east'), closedEdge('south'), closedEdge('west')]);
+      const tile10 = createAITile('ai_1_0', 1, 0, [openEdge('south'), closedEdge('east'), closedEdge('north'), closedEdge('west')]);
+      tile10.connections[0].connectedTileId = 'ai_1_1';
+      tile11.connections[0].connectedTileId = 'ai_1_0';
+
+      const monster = createAIMonster('monster_close', 1);
+      const hero = createAIHero('hero_close', 1, 0);
+      const state = createAIState([hero], [tile11, tile10]);
+
+      const result = resolveTactic(monster, tile11, state);
+      if (result.action !== 'attack') {
+        throw new Error(`Test 1: Expected attack, got ${result.action}`);
+      }
+      if (result.action === 'attack' && result.targetHeroId !== 'hero_close') {
+        throw new Error(`Test 1: Expected targetHeroId 'hero_close', got ${result.targetHeroId}`);
+      }
+      if (result.action === 'attack' && result.damage !== 1) {
+        throw new Error(`Test 1: Expected damage 1, got ${result.damage}`);
+      }
+      console.log('  Test 1 PASSED: Adjacent monster attacks hero');
+    }
+
+    // Test 2: Move to Attack Test - Monster at (2,1), Hero at (0,1) (distance 2, moveRange 1)
+    console.log('  Test 2: Move to Attack Test...');
+    {
+      const tile21 = createAITile('ai_2_1', 2, 1, [openEdge('west'), closedEdge('east'), closedEdge('north'), closedEdge('south')]);
+      const tile11 = createAITile('ai_1_1', 1, 1, [openEdge('west'), openEdge('east'), closedEdge('north'), closedEdge('south')]);
+      const tile01 = createAITile('ai_0_1', 0, 1, [openEdge('east'), closedEdge('west'), closedEdge('north'), closedEdge('south')]);
+
+      tile21.connections[0].connectedTileId = 'ai_1_1';
+      tile11.connections[0].connectedTileId = 'ai_0_1';
+      tile11.connections[1].connectedTileId = 'ai_2_1';
+      tile01.connections[0].connectedTileId = 'ai_1_1';
+
+      const monster = createAIMonster('monster_move', 1);
+      const hero = createAIHero('hero_move', 0, 1);
+      const state = createAIState([hero], [tile21, tile11, tile01]);
+
+      const result = resolveTactic(monster, tile21, state);
+      if (result.action !== 'move') {
+        throw new Error(`Test 2: Expected move, got ${result.action}`);
+      }
+      if (result.action === 'move' && result.path.length !== 1) {
+        throw new Error(`Test 2: Expected path length 1, got ${result.path.length}`);
+      }
+      if (result.action === 'move' && result.path[0].id !== 'ai_1_1') {
+        throw new Error(`Test 2: Expected path to tile 'ai_1_1', got ${result.path[0].id}`);
+      }
+      console.log('  Test 2 PASSED: Monster moves 1 tile closer (distance 2 -> 1)');
+    }
+
+    // Test 3: Multi-Turn Chase Test - Monster at (3,0), Hero at (0,0) (distance 3, moveRange 1)
+    console.log('  Test 3: Multi-Turn Chase Test...');
+    {
+      const tile30 = createAITile('ai_3_0', 3, 0, [openEdge('west'), closedEdge('east'), closedEdge('north'), closedEdge('south')]);
+      const tile20 = createAITile('ai_2_0', 2, 0, [openEdge('west'), openEdge('east'), closedEdge('north'), closedEdge('south')]);
+      const tile10 = createAITile('ai_1_0', 1, 0, [openEdge('west'), openEdge('east'), closedEdge('north'), closedEdge('south')]);
+      const tile00 = createAITile('ai_0_0', 0, 0, [openEdge('east'), closedEdge('west'), closedEdge('north'), closedEdge('south')]);
+
+      tile30.connections[0].connectedTileId = 'ai_2_0';
+      tile20.connections[0].connectedTileId = 'ai_1_0';
+      tile20.connections[1].connectedTileId = 'ai_3_0';
+      tile10.connections[0].connectedTileId = 'ai_0_0';
+      tile10.connections[1].connectedTileId = 'ai_2_0';
+      tile00.connections[0].connectedTileId = 'ai_1_0';
+
+      const monster = createAIMonster('monster_chase', 1);
+      const hero = createAIHero('hero_chase', 0, 0);
+      const state = createAIState([hero], [tile30, tile20, tile10, tile00]);
+
+      const result = resolveTactic(monster, tile30, state);
+      if (result.action !== 'move') {
+        throw new Error(`Test 3: Expected move, got ${result.action}`);
+      }
+      if (result.action === 'move' && result.path.length !== 1) {
+        throw new Error(`Test 3: Expected path length 1, got ${result.path.length}`);
+      }
+      if (result.action === 'move' && result.path[0].id !== 'ai_2_0') {
+        throw new Error(`Test 3: Expected path to tile 'ai_2_0', got ${result.path[0].id}`);
+      }
+      // Verify monster gets 1 tile closer, still 2 tiles away from hero
+      const landingTile = result.path[0];
+      const newDistance = manhattanDistance(landingTile.x, landingTile.z, hero.position.x, hero.position.z);
+      if (newDistance !== 2) {
+        throw new Error(`Test 3: Expected new distance 2, got ${newDistance}`);
+      }
+      console.log('  Test 3 PASSED: Monster moves 1 tile closer (distance 3 -> 2)');
+    }
+
+    // Test 4: No Path Available Test - Monster at (1,1), Hero at (3,3), no connecting tiles
+    console.log('  Test 4: No Path Available Test...');
+    {
+      const tile11 = createAITile('ai_no_1_1', 1, 1, [closedEdge('north'), closedEdge('east'), closedEdge('south'), closedEdge('west')]);
+      const tile33 = createAITile('ai_no_3_3', 3, 3, [closedEdge('north'), closedEdge('east'), closedEdge('south'), closedEdge('west')]);
+
+      const monster = createAIMonster('monster_no_path', 1);
+      const hero = createAIHero('hero_no_path', 3, 3);
+      const state = createAIState([hero], [tile11, tile33]);
+
+      const result = resolveTactic(monster, tile11, state);
+      if (result.action !== 'idle') {
+        throw new Error(`Test 4: Expected idle, got ${result.action}`);
+      }
+      console.log('  Test 4 PASSED: Returns idle when no path available');
+    }
+
+    // Test 5: Move Then Attack Test - Monster at (2,0), Hero at (0,0), moveRange 2
+    console.log('  Test 5: Move Then Attack Test...');
+    {
+      const tile20 = createAITile('ai_mta_2_0', 2, 0, [openEdge('west'), closedEdge('east'), closedEdge('north'), closedEdge('south')]);
+      const tile10 = createAITile('ai_mta_1_0', 1, 0, [openEdge('west'), openEdge('east'), closedEdge('north'), closedEdge('south')]);
+      const tile00 = createAITile('ai_mta_0_0', 0, 0, [openEdge('east'), closedEdge('west'), closedEdge('north'), closedEdge('south')]);
+
+      tile20.connections[0].connectedTileId = 'ai_mta_1_0';
+      tile10.connections[0].connectedTileId = 'ai_mta_0_0';
+      tile10.connections[1].connectedTileId = 'ai_mta_2_0';
+      tile00.connections[0].connectedTileId = 'ai_mta_1_0';
+
+      const monster = createAIMonster('monster_mta', 2); // moveRange 2
+      const hero = createAIHero('hero_mta', 0, 0);
+      const state = createAIState([hero], [tile20, tile10, tile00]);
+
+      const result = resolveTactic(monster, tile20, state);
+      if (result.action !== 'move_then_attack') {
+        throw new Error(`Test 5: Expected move_then_attack, got ${result.action}`);
+      }
+      if (result.action === 'move_then_attack' && result.path.length !== 1) {
+        throw new Error(`Test 5: Expected path length 1, got ${result.path.length}`);
+      }
+      if (result.action === 'move_then_attack' && result.path[0].id !== 'ai_mta_1_0') {
+        throw new Error(`Test 5: Expected path to tile 'ai_mta_1_0', got ${result.path[0].id}`);
+      }
+      if (result.action === 'move_then_attack' && result.targetHeroId !== 'hero_mta') {
+        throw new Error(`Test 5: Expected targetHeroId 'hero_mta', got ${result.targetHeroId}`);
+      }
+      console.log('  Test 5 PASSED: Monster moves then attacks (moveRange 2)');
+    }
+
+    console.log('  Monster AI Tactic Tests PASSED');
+
+    // -----------------------------------------------------------------------
+    // 22. MonsterAI.resolveTactic - Tactic Parser & Monster Activation
+    // -----------------------------------------------------------------------
+    console.log('Testing MonsterAI.resolveTactic...');
+
+    // Create test tiles
+    const tacticTile0: Tile = {
+      ...templateTile,
+      id: 'tactic_0',
+      x: 0,
+      z: 0,
+      connections: [openEdge('north'), openEdge('east'), closedEdge('south'), closedEdge('west')]
+    };
+
+    const tacticTile1: Tile = {
+      ...templateTile,
+      id: 'tactic_1',
+      x: 0,
+      z: -1,
+      connections: [openEdge('north'), openEdge('south'), closedEdge('east'), closedEdge('west')]
+    };
+    tacticTile1.connections[1].connectedTileId = 'tactic_0';
+
+    const tacticTile2: Tile = {
+      ...templateTile,
+      id: 'tactic_2',
+      x: 1,
+      z: 0,
+      connections: [openEdge('north'), openEdge('south'), openEdge('west'), closedEdge('east')]
+    };
+    tacticTile2.connections[2].connectedTileId = 'tactic_0';
+
+    tacticTile0.connections[0].connectedTileId = 'tactic_1';
+    tacticTile0.connections[1].connectedTileId = 'tactic_2';
+
+    const tacticTiles = [tacticTile0, tacticTile1, tacticTile2];
+
+    // Create test monster
+    const testMonster: Monster = {
+      id: 'monster_test',
+      name: 'Test Monster',
+      type: 'monster',
+      monsterType: 'zombie',
+      behavior: { conditions: [], priorityTargets: [], actions: [] },
+      attackBonus: 0,
+      damage: 2,
+      experienceValue: 10,
+      ownedByHeroId: null,
+      position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+      hp: 5,
+      maxHp: 5,
+      ac: 12,
+      speed: 6,
+      isExhausted: false,
+      conditions: [],
+      usedPowers: []
+    };
+
+    // Create test hero
+    const testHero: Hero = {
+      id: 'hero_test',
+      name: 'Test Hero',
+      type: 'hero',
+      heroClass: 'fighter',
+      level: 1,
+      xp: 0,
+      surgeUsed: false,
+      abilities: [],
+      hand: [],
+      items: [],
+      position: { x: 0, z: 0, sqX: 2, sqZ: 2 },
+      hp: 10,
+      maxHp: 10,
+      ac: 15,
+      speed: 6,
+      isExhausted: false,
+      conditions: [],
+      usedPowers: []
+    };
+
+    // Create test game state
+    const testGameState: GameState = {
+      phase: 'monster',
+      currentHeroId: 'hero_test',
+      heroes: [testHero],
+      monsters: [testMonster],
+      tiles: tacticTiles,
+      dungeonDeck: [],
+      treasureDeck: [],
+      encounterDeck: [],
+      discardPiles: {},
+      activeScenario: {
+        id: 'test',
+        name: 'Test',
+        difficulty: 'Easy',
+        description: 'Test',
+        introText: 'Test',
+        victoryText: 'Test',
+        defeatText: 'Test',
+        objectives: [],
+        specialRules: [],
+        startTileId: 'tactic_0',
+        maxSurges: 3
+      },
+      turnOrder: ['hero_test'],
+      healingSurges: 2,
+      turnCount: 1,
+      log: [],
+      activeEnvironmentCard: null,
+      experiencePile: [],
+      treasuresDrawnThisTurn: 0,
+      traps: [],
+      villainPhaseQueue: [],
+      activeVillainId: null
+    };
+
+    // Step 1: Test with no heroes - should return idle
+    const noHeroesState = { ...testGameState, heroes: [] };
+    const result1 = resolveTactic(testMonster, tacticTile0, noHeroesState);
+    if (result1.action !== 'idle') {
+      throw new Error(`Step 1: Expected idle with no heroes, got ${result1.action}`);
+    }
+    console.log('  Step 1 PASSED: Returns idle when no heroes');
+
+    // Step 2: Test with hero on same tile (distance === 0) - should attack if LoS
+    const sameTileHero: Hero = { ...testHero, position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
+    const sameTileState = { ...testGameState, heroes: [sameTileHero] };
+    const result2 = resolveTactic(testMonster, tacticTile0, sameTileState);
+    if (result2.action !== 'attack') {
+      throw new Error(`Step 2: Expected attack with hero on same tile, got ${result2.action}`);
+    }
+    if (result2.action === 'attack' && result2.targetHeroId !== 'hero_test') {
+      throw new Error(`Step 2: Expected targetHeroId 'hero_test', got ${result2.targetHeroId}`);
+    }
+    if (result2.action === 'attack' && result2.damage !== 2) {
+      throw new Error(`Step 2: Expected damage 2, got ${result2.damage}`);
+    }
+    console.log('  Step 2 PASSED: Attacks hero on same tile with LoS');
+
+    // Step 3: Test with hero on adjacent tile (distance === 1) - should attack if LoS
+    const adjacentHero: Hero = { ...testHero, position: { x: 0, z: -1, sqX: 1, sqZ: 1 } };
+    const adjacentState = { ...testGameState, heroes: [adjacentHero] };
+    const result3 = resolveTactic(testMonster, tacticTile0, adjacentState);
+    if (result3.action !== 'attack') {
+      throw new Error(`Step 3: Expected attack with hero on adjacent tile, got ${result3.action}`);
+    }
+    console.log('  Step 3 PASSED: Attacks hero on adjacent tile with LoS');
+
+    // Step 4: Test with hero at distance 2 - should move then attack
+    const distantHero: Hero = { ...testHero, position: { x: 0, z: -2, sqX: 1, sqZ: 1 } };
+    const distantState = { ...testGameState, heroes: [distantHero] };
+    const result4 = resolveTactic(testMonster, tacticTile0, distantState);
+    if (result4.action !== 'move_then_attack') {
+      throw new Error(`Step 4: Expected move_then_attack with hero at distance 2, got ${result4.action}`);
+    }
+    if (result4.action === 'move_then_attack' && result4.path.length === 0) {
+      throw new Error('Step 4: Expected non-empty path for move_then_attack');
+    }
+    if (result4.action === 'move_then_attack' && result4.targetHeroId !== 'hero_test') {
+      throw new Error(`Step 4: Expected targetHeroId 'hero_test', got ${result4.targetHeroId}`);
+    }
+    console.log('  Step 4 PASSED: Moves then attacks hero at distance 2');
+
+    // Step 5: Test with hero too far - should return idle (fallback)
+    const farHero: Hero = { ...testHero, position: { x: 10, z: 10, sqX: 1, sqZ: 1 } };
+    const farState = { ...testGameState, heroes: [farHero] };
+    const result5 = resolveTactic(testMonster, tacticTile0, farState);
+    if (result5.action !== 'idle') {
+      throw new Error(`Step 5: Expected idle when hero is too far, got ${result5.action}`);
+    }
+    console.log('  Step 5 PASSED: Returns idle when hero is too far');
+
+    console.log('  resolveTactic PASSED');
+
+    // -----------------------------------------------------------------------
+    // 23. Trap Activation Tests
+    // -----------------------------------------------------------------------
+    console.log('Testing Trap Activation...');
+
+    // Create test tiles for trap tests
+    const trapTile: Tile = {
+      ...templateTile,
+      id: 'trap_tile',
+      x: 0,
+      z: 0,
+      connections: []
+    };
+
+    const otherTile: Tile = {
+      ...templateTile,
+      id: 'other_tile',
+      x: 1,
+      z: 0,
+      connections: []
+    };
+
+    // Create test hero
+    const trapHero: Hero = {
+      id: 'hero_trap',
+      name: 'Trap Hero',
+      type: 'hero',
+      heroClass: 'fighter',
+      level: 1,
+      xp: 0,
+      surgeUsed: false,
+      abilities: [],
+      hand: [],
+      items: [],
+      position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+      hp: 10,
+      maxHp: 10,
+      ac: 15,
+      speed: 6,
+      isExhausted: false,
+      conditions: [],
+      usedPowers: []
+    };
+
+    // Create test trap
+    const testTrap = {
+      id: 'trap_test',
+      cardId: 'card_trap',
+      tileId: 'trap_tile',
+      disabled: false,
+      ownedByHeroId: null,
+      isTriggered: false
+    };
+
+    // Create test game state
+    const trapGameState: GameState = {
+      phase: 'hero',
+      currentHeroId: 'hero_trap',
+      heroes: [trapHero],
+      monsters: [],
+      tiles: [trapTile, otherTile],
+      dungeonDeck: [],
+      treasureDeck: [],
+      encounterDeck: [],
+      discardPiles: {},
+      activeScenario: {
+        id: 'test_trap',
+        name: 'Trap Test',
+        difficulty: 'Easy',
+        description: 'Test',
+        introText: 'Test',
+        victoryText: 'Test',
+        defeatText: 'Test',
+        objectives: [],
+        specialRules: [],
+        startTileId: 'trap_tile',
+        maxSurges: 3
+      },
+      turnOrder: ['hero_trap'],
+      healingSurges: 2,
+      turnCount: 1,
+      log: [],
+      activeEnvironmentCard: null,
+      experiencePile: [],
+      treasuresDrawnThisTurn: 0,
+      traps: [testTrap],
+      villainPhaseQueue: [],
+      activeVillainId: null
+    };
+
+    // Test 1: Hero on trap tile → result is not null, damage applied
+    const trapResult1 = resolveTrap(testTrap, trapTile, trapGameState);
+    if (trapResult1 === null) {
+      throw new Error('resolveTrap: should return non-null when hero is on trap tile');
+    }
+    if (trapResult1.targetHeroId !== 'hero_trap') {
+      throw new Error(`resolveTrap: expected targetHeroId 'hero_trap', got ${trapResult1.targetHeroId}`);
+    }
+    if (trapResult1.damage !== 1) {
+      throw new Error(`resolveTrap: expected damage 1, got ${trapResult1.damage}`);
+    }
+
+    // Test applyTrapResult with hero on trap tile
+    const trapState1 = applyTrapResult(trapGameState, 'trap_test', trapResult1);
+    if (trapState1.heroes[0].hp !== 9) {
+      throw new Error(`applyTrapResult: expected hp 9 (10-1), got ${trapState1.heroes[0].hp}`);
+    }
+    if (trapState1.traps[0].isTriggered !== true) {
+      throw new Error('applyTrapResult: expected trap.isTriggered to be true');
+    }
+    // Verify original state is unchanged
+    if (trapGameState.heroes[0].hp !== 10) {
+      throw new Error('applyTrapResult: should not mutate original state');
+    }
+    if (trapGameState.traps[0].isTriggered !== false) {
+      throw new Error('applyTrapResult: should not mutate original trap state');
+    }
+    console.log('  Test 1 PASSED: Hero on trap tile → result is not null, damage applied');
+
+    // Test 2: Hero NOT on trap tile → result is null, state unchanged
+    const heroOffTrap: Hero = { ...trapHero, position: { x: 1, z: 0, sqX: 1, sqZ: 1 } };
+    const trapState2 = { ...trapGameState, heroes: [heroOffTrap] };
+    const trapResult2 = resolveTrap(testTrap, trapTile, trapState2);
+    if (trapResult2 !== null) {
+      throw new Error('resolveTrap: should return null when hero is NOT on trap tile');
+    }
+    console.log('  Test 2 PASSED: Hero NOT on trap tile → result is null, state unchanged');
+
+    // Test 3: Already-triggered trap → result is null
+    const triggeredTrap = { ...testTrap, isTriggered: true };
+    const trapState3 = { ...trapGameState, traps: [triggeredTrap] };
+    const trapResult3 = resolveTrap(triggeredTrap, trapTile, trapState3);
+    if (trapResult3 !== null) {
+      throw new Error('resolveTrap: should return null when trap is already triggered');
+    }
+    console.log('  Test 3 PASSED: Already-triggered trap → result is null');
+
+    console.log('  Trap Activation PASSED');
+
+    // -----------------------------------------------------------------------
+    // Villain Phase Sequencer Test
+    // -----------------------------------------------------------------------
+    console.log('Testing Villain Phase Sequencer...');
+
+    // Create test state: 1 hero, 1 skeleton owned by hero, hero 2 tiles away
+    const villainHero: Hero = {
+      id: 'hero_villain',
+      name: 'Test Hero',
+      type: 'hero',
+      heroClass: 'paladin',
+      level: 1,
+      xp: 0,
+      position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+      hp: 10,
+      maxHp: 10,
+      ac: 15,
+      speed: 6,
+      isExhausted: false,
+      surgeUsed: false,
+      conditions: [],
+      usedPowers: [],
+      abilities: [],
+      hand: [],
+      items: []
+    };
+
+    const villainMonster: Monster = {
+      id: 'monster_skeleton_villain',
+      name: 'Skeleton',
+      type: 'monster',
+      monsterType: 'skeleton',
+      behavior: { conditions: [], priorityTargets: [], actions: [] },
+      attackBonus: 3,
+      damage: 1,
+      experienceValue: 10,
+      ownedByHeroId: 'hero_villain',
+      position: { x: 2, z: 0, sqX: 1, sqZ: 1 },
+      hp: 5,
+      maxHp: 5,
+      ac: 12,
+      speed: 6,
+      isExhausted: false,
+      conditions: [],
+      usedPowers: []
+    };
+
+    const villainTiles: Tile[] = [
+      {
+        id: 'tile_0_0',
+        name: 'Tile 0,0',
+        x: 0,
+        z: 0,
+        terrainType: 'corridor',
+        connections: [
+          { edge: 'north', isOpen: false },
+          { edge: 'east', isOpen: true, connectedTileId: 'tile_1_0' },
+          { edge: 'south', isOpen: false },
+          { edge: 'west', isOpen: false }
+        ],
+        boneSquare: { sqX: 1, sqZ: 1 },
+        isRevealed: true,
+        isStart: false,
+        isExit: false,
+        rotation: 0,
+        monsters: [],
+        heroes: ['hero_villain'],
+        items: []
+      },
+      {
+        id: 'tile_1_0',
+        name: 'Tile 1,0',
+        x: 1,
+        z: 0,
+        terrainType: 'corridor',
+        connections: [
+          { edge: 'north', isOpen: false },
+          { edge: 'east', isOpen: true, connectedTileId: 'tile_2_0' },
+          { edge: 'south', isOpen: false },
+          { edge: 'west', isOpen: true, connectedTileId: 'tile_0_0' }
+        ],
+        boneSquare: { sqX: 1, sqZ: 1 },
+        isRevealed: true,
+        isStart: false,
+        isExit: false,
+        rotation: 0,
+        monsters: [],
+        heroes: [],
+        items: []
+      },
+      {
+        id: 'tile_2_0',
+        name: 'Tile 2,0',
+        x: 2,
+        z: 0,
+        terrainType: 'corridor',
+        connections: [
+          { edge: 'north', isOpen: false },
+          { edge: 'east', isOpen: false },
+          { edge: 'south', isOpen: false },
+          { edge: 'west', isOpen: true, connectedTileId: 'tile_1_0' }
+        ],
+        boneSquare: { sqX: 1, sqZ: 1 },
+        isRevealed: true,
+        isStart: false,
+        isExit: false,
+        rotation: 0,
+        monsters: ['monster_skeleton_villain'],
+        heroes: [],
+        items: []
+      }
+    ];
+
+    const villainGameState: GameState = {
+      phase: 'hero',
+      currentHeroId: 'hero_villain',
+      heroes: [villainHero],
+      monsters: [villainMonster],
+      tiles: villainTiles,
+      dungeonDeck: [],
+      treasureDeck: [],
+      encounterDeck: [],
+      discardPiles: {},
+      activeScenario: {
+        id: 'scenario-villain',
+        name: 'Villain Test Scenario',
+        difficulty: 'Easy',
+        description: 'Test villain phase',
+        introText: 'Test',
+        victoryText: 'Test',
+        defeatText: 'Test',
+        objectives: [],
+        specialRules: [],
+        startTileId: 'tile_0_0',
+        maxSurges: 3
+      },
+      turnOrder: ['hero_villain'],
+      healingSurges: 2,
+      turnCount: 1,
+      log: [],
+      activeEnvironmentCard: null,
+      experiencePile: [],
+      treasuresDrawnThisTurn: 0,
+      traps: [],
+      villainPhaseQueue: [],
+      activeVillainId: null
+    };
+
+    // Test: Villain Phase - Move-toward AND move-then-attack behavior in sequence
+
+    // 1. Setup verification
+    const skeletonBefore = villainGameState.monsters.find(m => m.id === 'monster_skeleton_villain');
+    const heroBefore = villainGameState.heroes.find(h => h.id === 'hero_villain');
+    if (!skeletonBefore) {
+      throw new Error('Skeleton not found before villain phase');
+    }
+    if (!heroBefore) {
+      throw new Error('Hero not found before villain phase');
+    }
+
+    // Verify skeleton.position points to tile at (2,0)
+    if (skeletonBefore.position.x !== 2 || skeletonBefore.position.z !== 0) {
+      throw new Error(`Expected skeleton at (2,0) before villain phase, got (${skeletonBefore.position.x}, ${skeletonBefore.position.z})`);
+    }
+
+    // Verify manhattanDistance = 2
+    const initialDistance = manhattanDistance(skeletonBefore.position.x, skeletonBefore.position.z, heroBefore.position.x, heroBefore.position.z);
+    if (initialDistance !== 2) {
+      throw new Error(`Expected initial distance 2, got ${initialDistance}`);
+    }
+
+    // 2. Call executeVillainPhase() (first endTurn)
+    const afterFirstTurn = executeVillainPhase(villainGameState);
+
+    // Find skeleton and hero after first villain phase
+    const skeletonAfterFirst = afterFirstTurn.monsters.find(m => m.id === 'monster_skeleton_villain');
+    const heroAfterFirst = afterFirstTurn.heroes.find(h => h.id === 'hero_villain');
+    if (!skeletonAfterFirst) {
+      throw new Error('Skeleton not found after first villain phase');
+    }
+    if (!heroAfterFirst) {
+      throw new Error('Hero not found after first villain phase');
+    }
+
+    // Verify skeleton.position points to tile at (1,0) - moved 1 tile closer
+    if (skeletonAfterFirst.position.x !== 1 || skeletonAfterFirst.position.z !== 0) {
+      throw new Error(`Expected skeleton at (1,0) after first villain phase, got (${skeletonAfterFirst.position.x}, ${skeletonAfterFirst.position.z})`);
+    }
+
+    // Verify new manhattanDistance = 1
+    const distanceAfterFirst = manhattanDistance(skeletonAfterFirst.position.x, skeletonAfterFirst.position.z, heroAfterFirst.position.x, heroAfterFirst.position.z);
+    if (distanceAfterFirst !== 1) {
+      throw new Error(`Expected distance 1 after first villain phase, got ${distanceAfterFirst}`);
+    }
+
+    // Verify skeleton.hp unchanged (moved but didn't attack)
+    if (skeletonAfterFirst.hp !== skeletonBefore.hp) {
+      throw new Error(`Expected skeleton.hp unchanged (${skeletonBefore.hp}), got ${skeletonAfterFirst.hp}`);
+    }
+
+    // Verify hero.hp unchanged (skeleton not adjacent before move)
+    if (heroAfterFirst.hp !== heroBefore.hp) {
+      throw new Error(`Expected hero.hp unchanged (${heroBefore.hp}), got ${heroAfterFirst.hp}`);
+    }
+
+    console.log('  First turn PASSED: Skeleton moved 1 tile closer (distance 2 → 1), no attack');
+
+    // 3. Call executeVillainPhase() a second time
+    const afterSecondTurn = executeVillainPhase(afterFirstTurn);
+
+    // Find skeleton and hero after second villain phase
+    const skeletonAfterSecond = afterSecondTurn.monsters.find(m => m.id === 'monster_skeleton_villain');
+    const heroAfterSecond = afterSecondTurn.heroes.find(h => h.id === 'hero_villain');
+    if (!skeletonAfterSecond) {
+      throw new Error('Skeleton not found after second villain phase');
+    }
+    if (!heroAfterSecond) {
+      throw new Error('Hero not found after second villain phase');
+    }
+
+    // Verify skeleton.position still at (1,0) - already adjacent, no movement needed
+    if (skeletonAfterSecond.position.x !== 1 || skeletonAfterSecond.position.z !== 0) {
+      throw new Error(`Expected skeleton still at (1,0) after second villain phase, got (${skeletonAfterSecond.position.x}, ${skeletonAfterSecond.position.z})`);
+    }
+
+    // Verify skeleton attacks hero (now adjacent)
+    if (heroAfterSecond.hp !== heroAfterFirst.hp - villainMonster.damage) {
+      throw new Error(`Expected hero.hp reduced by ${villainMonster.damage} (${heroAfterFirst.hp - villainMonster.damage}), got ${heroAfterSecond.hp}`);
+    }
+
+    console.log('  Second turn PASSED: Skeleton attacks hero (now adjacent, distance 1 → 1)');
+
+    // Verify villainPhaseQueue is empty after processing
+    if (afterSecondTurn.villainPhaseQueue.length !== 0) {
+      throw new Error(`Expected villainPhaseQueue to be empty after processing, got length ${afterSecondTurn.villainPhaseQueue.length}`);
+    }
+
+    // Verify activeVillainId is null after processing
+    if (afterSecondTurn.activeVillainId !== null) {
+      throw new Error(`Expected activeVillainId to be null after processing, got ${afterSecondTurn.activeVillainId}`);
+    }
+
+    // Verify original state is unchanged (immutability)
+    if (villainGameState.monsters[0].position.x !== 2) {
+      throw new Error('executeVillainPhase: should not mutate original state');
+    }
+
+    console.log('  Villain Phase Sequencer PASSED: Move-toward AND move-then-attack behavior tested');
+
+    // -----------------------------------------------------------------------
+    // Monster Data Validation - moveRange
+    // -----------------------------------------------------------------------
+    console.log('Testing Monster Data Validation - moveRange...');
+    const dataLoader = DataLoader.getInstance();
+    const monsters = dataLoader.getMonsters();
+
+    for (const monster of monsters) {
+      // Verify moveRange is defined (not undefined)
+      if (monster.moveRange === undefined) {
+        throw new Error(`Monster ${monster.id} (${monster.name}) is missing moveRange property`);
+      }
+
+      // Verify moveRange is within reasonable bounds (1-4)
+      if (monster.moveRange < 1 || monster.moveRange > 4) {
+        throw new Error(`Monster ${monster.id} (${monster.name}) has invalid moveRange: ${monster.moveRange}. Expected 1-4.`);
+      }
+
+      console.log(`  ${monster.name}: moveRange = ${monster.moveRange}`);
+    }
+
+    console.log('  Monster Data Validation PASSED: All monsters have valid moveRange values');
 
     // -----------------------------------------------------------------------
 

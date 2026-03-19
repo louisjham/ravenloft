@@ -18,7 +18,12 @@ export class DataLoader {
   private static instance: DataLoader;
 
   private heroes: Hero[] = heroesData as Hero[];
-  private monsters: Monster[] = monstersData as Monster[];
+  private monsters: Monster[] = (monstersData as any[]).map(m => ({
+    ...m,
+    ownedByHeroId: null,
+    conditions: [],
+    usedPowers: []
+  }));
   private tiles: Tile[] = tilesData as Tile[];
   private scenarios: Scenario[] = [
     scenario1 as any,

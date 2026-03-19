@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
-import { GameState, Entity, Tile, Card, GameSettings, Position, Hero, PowerType, Trap } from '../game/types'
+import { GameState, Entity, Tile, Card, GameSettings, Position, Hero, PowerType, Trap, Monster } from '../game/types'
 import { SaveSystem } from '../game/progression/SaveSystem'
 import { DataLoader } from '../game/dataLoader'
 import { CombatSystem } from '../game/engine/CombatSystem'
@@ -9,6 +9,7 @@ import { PowerSystem } from '../game/engine/PowerSystem'
 import { EncounterSystem } from '../game/engine/EncounterSystem'
 import { TreasureSystem } from '../game/engine/TreasureSystem'
 import { ExperienceSystem } from '../game/engine/ExperienceSystem'
+import { resolveTactic, resolveTrap, type TacticResult } from '../game/engine/MonsterAI'
 
 interface GameStore {
   // State
@@ -138,7 +139,9 @@ export const useGameStore = create<GameStore>()(
         activeEnvironmentCard: null,
         experiencePile: [],
         treasuresDrawnThisTurn: 0,
-        traps: []
+        traps: [],
+        villainPhaseQueue: [],
+        activeVillainId: null
       };
 
       set({ gameState: initialState });
@@ -278,17 +281,18 @@ export const useGameStore = create<GameStore>()(
       // Rulebook: After Exploration Phase -> Villain Phase
       // If we are currently in hero or exploration phase, ending the turn moves us to the Villain phase.
       if (state.phase === 'hero' || state.phase === 'exploration') {
-        set({
-          gameState: {
-            ...state,
-            phase: 'villain'
-            // We stay on the current hero while their controlled monsters activate.
-          }
-        });
-        console.log('[DEBUG gameStore] Transitioning to Villain phase.');
+        // First transition to villain phase, then execute villain phase logic
+        let newState: GameState = {
+          ...state,
+          phase: 'villain' as const
+        };
+        // Execute villain phase immediately after transitioning
+        newState = executeVillainPhase(newState);
+        set({ gameState: newState });
+        console.log('[DEBUG gameStore] Transitioning to Villain phase and executing villain phase.');
         return;
       }
-      
+
       // If we are ALREADY in the Villain phase and ending the turn, we pass to the NEXT hero.
       console.log('[DEBUG gameStore] Villain phase ended. Passing turn to next hero.');
 
@@ -308,18 +312,22 @@ export const useGameStore = create<GameStore>()(
       // Reset treasures drawn counter for next turn
       TreasureSystem.resetTreasuresDrawn(state);
 
-      const currentIndex = state.turnOrder.indexOf(state.currentHeroId);
-      const nextIndex = (currentIndex + 1) % state.turnOrder.length;
-      const nextId = state.turnOrder[nextIndex];
+      // Execute Villain Phase cascade before advancing to next hero
+      let newState = state;
+      newState = executeVillainPhase(newState);
+
+      const currentIndex = newState.turnOrder.indexOf(newState.currentHeroId);
+      const nextIndex = (currentIndex + 1) % newState.turnOrder.length;
+      const nextId = newState.turnOrder[nextIndex];
 
       const newPhase = nextId.startsWith('m') ? 'monster' : 'hero';
 
       set({
         gameState: {
-          ...state,
+          ...newState,
           currentHeroId: nextId,
           phase: 'hero', // Next player starts their Hero phase
-          turnCount: state.turnCount + (nextIndex === 0 ? 1 : 0)
+          turnCount: newState.turnCount + (nextIndex === 0 ? 1 : 0)
         }
       });
 
@@ -625,3 +633,176 @@ export const useGameStore = create<GameStore>()(
     }
   }))
 )
+
+/**
+ * Helper function to build the Villain Phase queue.
+ * Returns an ordered array of ids where:
+ * - All monsters with ownedByHeroId === activeHeroId come first (sorted by insertion order)
+ * - All traps with ownedByHeroId === activeHeroId follow
+ * - Skip any monster with hp <= 0
+ */
+export function buildVillainQueue(
+  state: GameState,
+  activeHeroId: string
+): string[] {
+  const queue: string[] = [];
+
+  // Add monsters owned by the active hero (alive only, insertion order)
+  for (const monster of state.monsters) {
+    if (monster.ownedByHeroId === activeHeroId && monster.hp > 0) {
+      queue.push(monster.id);
+    }
+  }
+
+  // Add traps owned by the active hero (insertion order)
+  for (const trap of state.traps) {
+    if (trap.ownedByHeroId === activeHeroId) {
+      queue.push(trap.id);
+    }
+  }
+
+  return queue;
+}
+
+/**
+ * Execute the Villain Phase cascade.
+ * Processes the villain queue one entry at a time, applying monster tactics and trap triggers.
+ *
+ * Logic:
+ * 1. Call buildVillainQueue(state, state.activeHeroId) and assign to state.villainPhaseQueue
+ * 2. For each id in villainPhaseQueue:
+ *    a. Set state.activeVillainId = id
+ *    b. Determine if id belongs to a Monster or Trap
+ *    c. If Monster:
+ *       - Find the tile where monster.tileId matches
+ *       - Call resolveTactic(monster, monsterTile, state)
+ *       - Apply result to state immutably:
+ *         'move': update monster.tileId to last tile in path
+ *         'attack': reduce target hero hp by damage
+ *         'move_then_attack': apply both
+ *         'idle': no change
+ *    d. If Trap:
+ *       - Find the tile where trap.tileId matches
+ *       - Call resolveTrap(trap, trapTile, state)
+ *       - If result → state = applyTrapResult(state, id, result)
+ * 3. After queue is fully consumed:
+ *    state.activeVillainId = null
+ *    state.villainPhaseQueue = []
+ * 4. Return the final state
+ *
+ * @param state - Current game state
+ * @returns New game state with villain phase applied
+ */
+export function executeVillainPhase(state: GameState): GameState {
+  // 1. Build the villain queue
+  const villainPhaseQueue = buildVillainQueue(state, state.currentHeroId);
+
+  let newState = {
+    ...state,
+    villainPhaseQueue
+  };
+
+  // 2. Process each entry in the queue
+  for (const villainId of villainPhaseQueue) {
+    // a. Set activeVillainId
+    newState = {
+      ...newState,
+      activeVillainId: villainId
+    };
+
+    // b. Determine if it's a Monster or Trap
+    const monster = newState.monsters.find(m => m.id === villainId);
+    const trap = newState.traps.find(t => t.id === villainId);
+
+    if (monster) {
+      // c. If Monster
+      // Find the tile where monster is located by position
+      const monsterTile = newState.tiles.find(tile =>
+        tile.x === monster.position.x && tile.z === monster.position.z
+      );
+      if (monsterTile) {
+        const result = resolveTactic(monster, monsterTile, newState);
+
+        // Apply result to state immutably
+        if (result.action === 'move' || result.action === 'move_then_attack') {
+          // Update monster.position to last tile in path
+          const lastTile = result.path[result.path.length - 1];
+          newState = {
+            ...newState,
+            monsters: newState.monsters.map(m =>
+              m.id === villainId
+                ? { ...m, position: { x: lastTile.x, z: lastTile.z, sqX: m.position.sqX, sqZ: m.position.sqZ } }
+                : m
+            )
+          };
+        }
+
+        if (result.action === 'attack' || result.action === 'move_then_attack') {
+          // Reduce target hero hp by damage
+          newState = {
+            ...newState,
+            heroes: newState.heroes.map(h =>
+              h.id === result.targetHeroId
+                ? { ...h, hp: Math.max(0, h.hp - result.damage) }
+                : h
+            )
+          };
+        }
+        // 'idle': no change
+      }
+    } else if (trap) {
+      // d. If Trap
+      // Find the tile where trap.tileId matches
+      const trapTile = newState.tiles.find(tile => tile.id === trap.tileId);
+      if (trapTile) {
+        const result = resolveTrap(trap, trapTile, newState);
+        if (result) {
+          newState = applyTrapResult(newState, villainId, result);
+        }
+      }
+    }
+  }
+
+  // 3. After queue is fully consumed
+  newState = {
+    ...newState,
+    activeVillainId: null,
+    villainPhaseQueue: []
+  };
+
+  // 4. Return the final state
+  return newState;
+}
+
+/**
+ * Apply trap damage result to game state.
+ *
+ * Pure function that returns a new GameState where:
+ * - The target hero's hp is reduced by result.damage
+ * - The trap's isTriggered is set to true
+ * - No other state is modified
+ *
+ * @param state - Current game state
+ * @param trapId - ID of the trap that triggered
+ * @param result - Result from resolveTrap (non-null)
+ * @returns New game state with trap damage applied
+ */
+export function applyTrapResult(
+  state: GameState,
+  trapId: string,
+  result: NonNullable<ReturnType<typeof import('../game/engine/MonsterAI').resolveTrap>>
+): GameState {
+  return {
+    ...state,
+    heroes: state.heroes.map(hero =>
+      hero.id === result.targetHeroId
+        ? { ...hero, hp: Math.max(0, hero.hp - result.damage) }
+        : hero
+    ),
+    traps: state.traps.map(trap =>
+      trap.id === trapId
+        ? { ...trap, isTriggered: true }
+        : trap
+    )
+  };
+}

@@ -185,7 +185,9 @@ export class EncounterSystem {
             cardId: card.id,
             tileId: activeHero.position.x + ',' + activeHero.position.z,
             position: activeHero.position,
-            disabled: false
+            disabled: false,
+            ownedByHeroId: activeHero.id,
+            isTriggered: false
         };
 
         gameState.traps.push(trap);

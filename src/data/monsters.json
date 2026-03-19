@@ -11,6 +11,7 @@
     "attackBonus": 7,
     "damage": 1,
     "experienceValue": 1,
+    "moveRange": 1,
     "behavior": {
       "conditions": [
         "adjacent_to_hero",
@@ -46,6 +47,7 @@
     "attackBonus": 5,
     "damage": 1,
     "experienceValue": 1,
+    "moveRange": 1,
     "behavior": {
       "conditions": [
         "adjacent_to_hero",
@@ -81,6 +83,7 @@
     "attackBonus": 6,
     "damage": 1,
     "experienceValue": 2,
+    "moveRange": 1,
     "behavior": {
       "conditions": [
         "adjacent_to_hero",
@@ -116,6 +119,7 @@
     "attackBonus": 6,
     "damage": 1,
     "experienceValue": 1,
+    "moveRange": 2,
     "behavior": {
       "conditions": [
         "adjacent_to_hero",

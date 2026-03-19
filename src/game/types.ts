@@ -73,6 +73,7 @@ export interface Monster extends Entity {
   damage: number;
   experienceValue: number;
   ownedByHeroId: string | null;
+  moveRange?: number;
 }
 
 export interface MonsterBehavior {
@@ -104,6 +105,7 @@ export interface Tile {
   monsters: string[]; // Monster IDs on this tile
   heroes: string[]; // Hero IDs on this tile
   items: string[]; // Item/Token IDs
+  blocksLineOfSight?: boolean; // If true, this tile blocks line-of-sight
 }
 
 export type CardType = 'ability' | 'monster' | 'encounter' | 'treasure' | 'item' | 'consumable';

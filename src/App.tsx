@@ -14,17 +14,18 @@ import { MonsterAIIndicator } from './components/3d/MonsterAIIndicator';
 import { AudioReactComponent } from './audio/AudioReactComponent';
 
 import { UIOverlay } from './components/ui/UIOverlay';
+import VillainPhaseOverlay from './components/ui/VillainPhaseOverlay';
 
 import { GlobalErrorBoundary } from './utils/errorHandling';
 import { SceneTransition, PhaseTransition } from './components/effects/Transitions';
 import { TutorialOverlay, HelpOverlay } from './components/tutorial/TutorialSystem';
 import { TileSystem } from './game/engine/TileSystem';
-import { 
-  ExplorationState, 
-  onArrowClicked, 
-  onRotationConfirmed, 
-  onCancel, 
-  onPlacementComplete 
+import {
+  ExplorationState,
+  onArrowClicked,
+  onRotationConfirmed,
+  onCancel,
+  onPlacementComplete
 } from './game/engine/ExplorationStateMachine';
 import { ExplorationLayer } from './components/3d/ExplorationLayer';
 import { RotationPicker } from './components/ui/RotationPicker';
@@ -33,7 +34,7 @@ const App: React.FC = () => {
   const gameState = useGameStore((state) => state.gameState);
   const startNewGame = useGameStore((state) => state.startNewGame);
   const setGameState = useGameStore((state) => state.setGameState);
-  
+
   const [exploration, setExploration] = React.useState<ExplorationState>({ phase: 'idle' });
 
   const activeModal = useUIStore((state) => state.activeModal);
@@ -90,6 +91,16 @@ const App: React.FC = () => {
 
       <UIOverlay onStartGame={handleStartGame} />
 
+      {gameState && (
+        <VillainPhaseOverlay
+          activeVillainId={gameState.activeVillainId}
+          villainQueue={gameState.villainPhaseQueue}
+          monsters={gameState.monsters}
+          traps={gameState.traps}
+          isVillainPhaseActive={gameState.villainPhaseQueue.length > 0}
+        />
+      )}
+
       {exploration.phase === 'awaiting_rotation' && gameState && (
         <RotationPicker
           validRotations={exploration.validRotations}
@@ -114,9 +125,9 @@ const App: React.FC = () => {
       )}
 
       {exploration.phase === 'exhausted' && (
-        <div style={{ position:'fixed', top:0, left:0, zIndex: 1000, background: 'rgba(0,0,0,0.8)', color: 'white', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, zIndex: 1000, background: 'rgba(0,0,0,0.8)', color: 'white', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div>No tiles remaining in deck.</div>
-          <button onClick={() => setExploration({ phase:'idle' })}>
+          <button onClick={() => setExploration({ phase: 'idle' })}>
             OK
           </button>
         </div>
