@@ -7,7 +7,7 @@ import { useGameStore, buildVillainQueue, applyTrapResult, executeVillainPhase }
 import { useUIStore } from '../store/uiStore';
 import { TileSystem } from '../game/engine/TileSystem';
 import { DataLoader } from '../game/dataLoader';
-import type { Tile, TileConnection, Direction, GameState, ExplorationPoint, Monster, Hero } from '../game/types';
+import type { Tile, TileConnection, Direction, GameState, ExplorationPoint, Monster, Hero, TacticResult, MonsterAbility, AbilityEffect } from '../game/types';
 import { ExplorationState, onArrowClicked, onRotationConfirmed, onCancel, onPlacementComplete } from '../game/engine/ExplorationStateMachine';
 import {
   manhattanDistance,
@@ -16,8 +16,7 @@ import {
   findClosestHero,
   getPathToward,
   resolveTactic,
-  resolveTrap,
-  type TacticResult
+  resolveTrap
 } from '../game/engine/MonsterAI';
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1732,6 +1731,740 @@ export const runFullGameLoopTest = async () => {
     }
 
     console.log('  Monster Data Validation PASSED: All monsters have valid moveRange values');
+
+    // -----------------------------------------------------------------------
+    // 24. AbilitySystem.canUseAbility
+    // -----------------------------------------------------------------------
+    console.log('Testing AbilitySystem.canUseAbility...');
+    const { AbilitySystem } = await import('../game/ai/AbilitySystem');
+
+    // Test ability with cooldown
+    const abilityWithCooldown: MonsterAbility = {
+      id: 'ability_cooldown',
+      name: 'Cooldown Ability',
+      description: 'Test ability with cooldown',
+      type: 'active',
+      cooldown: 2,
+      currentCooldown: 1,
+      effects: []
+    };
+
+    const monster: Monster = {
+      id: 'test_monster',
+      name: 'Test Monster',
+      type: 'monster',
+      monsterType: 'zombie',
+      behavior: { conditions: [], priorityTargets: [], actions: [] },
+      attackBonus: 0,
+      damage: 1,
+      experienceValue: 10,
+      ownedByHeroId: null,
+      position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+      hp: 5,
+      maxHp: 5,
+      ac: 12,
+      speed: 6,
+      isExhausted: false,
+      conditions: [],
+      usedPowers: []
+    };
+
+    if (AbilitySystem.canUseAbility(abilityWithCooldown, monster, testGameState)) {
+      throw new Error('canUseAbility: should return false when currentCooldown > 0');
+    }
+
+    // Test ability with no cooldown
+    const abilityNoCooldown: MonsterAbility = {
+      ...abilityWithCooldown,
+      id: 'ability_no_cooldown',
+      currentCooldown: 0
+    };
+
+    if (!AbilitySystem.canUseAbility(abilityNoCooldown, monster, testGameState)) {
+      throw new Error('canUseAbility: should return true when currentCooldown = 0');
+    }
+
+    // Test passive ability
+    const abilityPassive: MonsterAbility = {
+      ...abilityWithCooldown,
+      id: 'ability_passive',
+      type: 'passive',
+      currentCooldown: 0
+    };
+
+    if (AbilitySystem.canUseAbility(abilityPassive, monster, testGameState)) {
+      throw new Error('canUseAbility: should return false for passive abilities');
+    }
+
+    // Test ability with remaining uses
+    const abilityWithUses: MonsterAbility = {
+      ...abilityWithCooldown,
+      id: 'ability_uses',
+      type: 'active',
+      currentCooldown: 0,
+      uses: 3,
+      remainingUses: 0
+    };
+
+    if (AbilitySystem.canUseAbility(abilityWithUses, monster, testGameState)) {
+      throw new Error('canUseAbility: should return false when remainingUses = 0');
+    }
+
+    const abilityWithUsesRemaining: MonsterAbility = {
+      ...abilityWithUses,
+      id: 'ability_uses_remaining',
+      remainingUses: 2
+    };
+
+    if (!AbilitySystem.canUseAbility(abilityWithUsesRemaining, monster, testGameState)) {
+      throw new Error('canUseAbility: should return true when remainingUses > 0');
+    }
+
+    console.log('  canUseAbility PASSED');
+
+    // -----------------------------------------------------------------------
+    // 25. AbilitySystem.getAbilityTargets
+    // -----------------------------------------------------------------------
+    console.log('Testing AbilitySystem.getAbilityTargets...');
+
+    // Test 'self' target
+    const effectSelf: AbilityEffect = {
+      type: 'damage',
+      target: 'self',
+      value: 1
+    };
+
+    const targetsSelf = AbilitySystem.getAbilityTargets(effectSelf, monster, testGameState);
+    if (targetsSelf.length !== 1 || targetsSelf[0].id !== 'test_monster') {
+      throw new Error('getAbilityTargets: self target should return the monster');
+    }
+
+    // Test 'all_heroes' target
+    const effectAllHeroes: AbilityEffect = {
+      type: 'damage',
+      target: 'all_heroes',
+      value: 1
+    };
+
+    const targetsAllHeroes = AbilitySystem.getAbilityTargets(effectAllHeroes, monster, testGameState);
+    if (targetsAllHeroes.length !== 1) {
+      throw new Error(`getAbilityTargets: all_heroes should return 1 hero, got ${targetsAllHeroes.length}`);
+    }
+
+    // Test 'random_hero' target
+    const effectRandomHero: AbilityEffect = {
+      type: 'damage',
+      target: 'random_hero',
+      value: 1
+    };
+
+    const targetsRandomHero = AbilitySystem.getAbilityTargets(effectRandomHero, monster, testGameState);
+    if (targetsRandomHero.length !== 1) {
+      throw new Error('getAbilityTargets: random_hero should return 1 hero');
+    }
+
+    // Test 'closest_hero' target
+    const effectClosestHero: AbilityEffect = {
+      type: 'damage',
+      target: 'closest_hero',
+      value: 1
+    };
+
+    const targetsClosestHero = AbilitySystem.getAbilityTargets(effectClosestHero, monster, testGameState);
+    if (targetsClosestHero.length !== 1) {
+      throw new Error('getAbilityTargets: closest_hero should return 1 hero');
+    }
+
+    console.log('  getAbilityTargets PASSED');
+
+    // -----------------------------------------------------------------------
+    // 26. AbilitySystem.applyAbilityEffect
+    // -----------------------------------------------------------------------
+    console.log('Testing AbilitySystem.applyAbilityEffect...');
+
+    // Test damage effect
+    const effectDamage: AbilityEffect = {
+      type: 'damage',
+      target: 'all_heroes',
+      value: 3
+    };
+
+    const stateBeforeDamage = {
+      ...testGameState,
+      heroes: [{ ...testHero, hp: 10 }]
+    };
+
+    const stateAfterDamage = AbilitySystem.applyAbilityEffect(
+      effectDamage,
+      monster,
+      stateBeforeDamage.heroes,
+      stateBeforeDamage
+    );
+
+    if (stateAfterDamage.heroes[0].hp !== 7) {
+      throw new Error(`applyAbilityEffect: damage should reduce HP from 10 to 7, got ${stateAfterDamage.heroes[0].hp}`);
+    }
+
+    // Verify original state is unchanged
+    if (stateBeforeDamage.heroes[0].hp !== 10) {
+      throw new Error('applyAbilityEffect: should not mutate original state');
+    }
+
+    // Test heal effect
+    const effectHeal: AbilityEffect = {
+      type: 'heal',
+      target: 'self',
+      value: 2
+    };
+
+    const monsterDamaged: Monster = { ...monster, hp: 3 };
+    const stateBeforeHeal = {
+      ...testGameState,
+      monsters: [monsterDamaged]
+    };
+
+    const stateAfterHeal = AbilitySystem.applyAbilityEffect(
+      effectHeal,
+      monsterDamaged,
+      [monsterDamaged],
+      stateBeforeHeal
+    );
+
+    if (stateAfterHeal.monsters[0].hp !== 5) {
+      throw new Error(`applyAbilityEffect: heal should increase HP from 3 to 5, got ${stateAfterHeal.monsters[0].hp}`);
+    }
+
+    // Test heal capped at maxHp
+    const monsterFullHp: Monster = { ...monster, hp: 5, maxHp: 5 };
+    const stateBeforeHealFull = {
+      ...testGameState,
+      monsters: [monsterFullHp]
+    };
+
+    const stateAfterHealFull = AbilitySystem.applyAbilityEffect(
+      effectHeal,
+      monsterFullHp,
+      [monsterFullHp],
+      stateBeforeHealFull
+    );
+
+    if (stateAfterHealFull.monsters[0].hp !== 5) {
+      throw new Error(`applyAbilityEffect: heal should cap at maxHp (5), got ${stateAfterHealFull.monsters[0].hp}`);
+    }
+
+    console.log('  applyAbilityEffect PASSED');
+
+    // -----------------------------------------------------------------------
+    // 27. AbilitySystem.processCooldowns
+    // -----------------------------------------------------------------------
+    console.log('Testing AbilitySystem.processCooldowns...');
+
+    const monsterWithCooldowns: Monster = {
+      ...monster,
+      id: 'monster_cooldowns',
+      abilities: [
+        { ...abilityWithCooldown, id: 'cd_1', currentCooldown: 2 },
+        { ...abilityWithCooldown, id: 'cd_2', currentCooldown: 0 },
+        { ...abilityWithCooldown, id: 'cd_3', currentCooldown: 1 }
+      ]
+    };
+
+    const stateBeforeCooldowns = {
+      ...testGameState,
+      monsters: [monsterWithCooldowns]
+    };
+
+    const stateAfterCooldowns = AbilitySystem.processCooldowns(
+      monsterWithCooldowns,
+      stateBeforeCooldowns
+    );
+
+    const processedMonster = stateAfterCooldowns.monsters.find(m => m.id === 'monster_cooldowns');
+    if (!processedMonster || !processedMonster.abilities) {
+      throw new Error('processCooldowns: monster should have abilities after processing');
+    }
+
+    const cd1 = processedMonster.abilities.find(a => a.id === 'cd_1');
+    const cd2 = processedMonster.abilities.find(a => a.id === 'cd_2');
+    const cd3 = processedMonster.abilities.find(a => a.id === 'cd_3');
+
+    if (cd1?.currentCooldown !== 1) {
+      throw new Error(`processCooldowns: cd_1 should decrement from 2 to 1, got ${cd1?.currentCooldown}`);
+    }
+    if (cd2?.currentCooldown !== 0) {
+      throw new Error(`processCooldowns: cd_2 should stay at 0, got ${cd2?.currentCooldown}`);
+    }
+    if (cd3?.currentCooldown !== 0) {
+      throw new Error(`processCooldowns: cd_3 should decrement from 1 to 0, got ${cd3?.currentCooldown}`);
+    }
+
+    // Verify original state is unchanged
+    const originalMonster = stateBeforeCooldowns.monsters.find(m => m.id === 'monster_cooldowns');
+    if (originalMonster?.abilities?.[0].currentCooldown !== 2) {
+      throw new Error('processCooldowns: should not mutate original state');
+    }
+
+    console.log('  processCooldowns PASSED');
+
+    // -----------------------------------------------------------------------
+    // 28. AbilityLibrary.getAbility - All 12 ids resolve
+    // -----------------------------------------------------------------------
+    console.log('Testing AbilityLibrary.getAbility...');
+    const { getAbility } = await import('../game/ai/behaviors/AbilityLibrary');
+
+    const abilityIds = [
+      'undying', 'plague_aura', 'vampiric_bite', 'mist_form',
+      'regeneration', 'fire_breath', 'summon', 'fear_aura',
+      'drain_life', 'web', 'poison_cloud', 'howl'
+    ];
+
+    for (const id of abilityIds) {
+      try {
+        const ability = getAbility(id);
+        if (ability.id !== id) {
+          throw new Error(`getAbility: expected id "${id}", got "${ability.id}"`);
+        }
+      } catch (error) {
+        throw new Error(`getAbility failed for id "${id}": ${error}`);
+      }
+    }
+
+    console.log('  getAbility PASSED: All 12 ability ids resolve without throwing');
+
+    // -----------------------------------------------------------------------
+    // 29. BossPhases - Phase transitions and tactics
+    // -----------------------------------------------------------------------
+    console.log('Testing BossPhases...');
+    const { BossPhases } = await import('../game/ai/BossPhases');
+
+    // Create a test boss monster
+    const bossMonster: Monster = {
+      id: 'boss-strahd',
+      name: 'Strahd von Zarovich',
+      type: 'monster',
+      monsterType: 'strahd',
+      position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+      hp: 100,
+      maxHp: 100,
+      ac: 18,
+      speed: 6,
+      isExhausted: false,
+      conditions: [],
+      usedPowers: [],
+      behavior: { conditions: [], priorityTargets: [], actions: [] },
+      attackBonus: 10,
+      damage: 15,
+      experienceValue: 200,
+      ownedByHeroId: null,
+      isBoss: true,
+      currentPhase: undefined
+    };
+
+    const bossTestGameState: GameState = {
+      phase: 'hero',
+      currentHeroId: 'hero-1',
+      heroes: [],
+      monsters: [bossMonster],
+      tiles: [],
+      dungeonDeck: [],
+      treasureDeck: [],
+      encounterDeck: [],
+      discardPiles: {},
+      activeScenario: {
+        id: 'test',
+        name: 'Test',
+        difficulty: 'Medium',
+        description: 'Test scenario',
+        introText: 'Test intro',
+        victoryText: 'Test victory',
+        defeatText: 'Test defeat',
+        objectives: [],
+        specialRules: [],
+        startTileId: 'tile-1',
+        maxSurges: 3
+      },
+      turnOrder: [],
+      healingSurges: 3,
+      turnCount: 1,
+      log: [],
+      activeEnvironmentCard: null,
+      experiencePile: [],
+      treasuresDrawnThisTurn: 0,
+      traps: [],
+      villainPhaseQueue: [],
+      activeVillainId: null
+    };
+
+    // Assertion: Boss at 100% HP → getCurrentPhase returns phase p1
+    const phaseAtFullHp = BossPhases.getCurrentPhase(bossMonster, bossTestGameState);
+    if (!phaseAtFullHp || phaseAtFullHp.id !== 'p1') {
+      throw new Error(`BossPhases.getCurrentPhase: expected phase id 'p1' at 100% HP, got ${phaseAtFullHp?.id ?? 'null'}`);
+    }
+
+    // Assertion: Boss at 49% HP → shouldTransitionPhase returns true
+    bossMonster.hp = 49; // 49% of 100
+    const shouldTransition = BossPhases.shouldTransitionPhase(bossMonster, bossTestGameState);
+    if (!shouldTransition) {
+      throw new Error('BossPhases.shouldTransitionPhase: expected true at 49% HP');
+    }
+
+    // Assertion: After transitionPhase → currentPhase is 'p2'
+    const newState = BossPhases.transitionPhase(bossMonster, bossTestGameState);
+    const updatedMonster = newState.monsters.find(m => m.id === bossMonster.id);
+    if (!updatedMonster || updatedMonster.currentPhase !== 'p2') {
+      throw new Error(`BossPhases.transitionPhase: expected currentPhase 'p2', got ${updatedMonster?.currentPhase ?? 'null'}`);
+    }
+
+    // Assertion: getPhaseTactics returns tactics for current phase
+    const tactics = BossPhases.getPhaseTactics(updatedMonster, newState);
+    if (!Array.isArray(tactics) || tactics.length === 0) {
+      throw new Error('BossPhases.getPhaseTactics: expected non-empty tactics array');
+    }
+
+    // Assertion: Non-boss returns null from getCurrentPhase
+    const nonBossMonster: Monster = { ...bossMonster, isBoss: false };
+    const nonBossPhase = BossPhases.getCurrentPhase(nonBossMonster, bossTestGameState);
+    if (nonBossPhase !== null) {
+      throw new Error('BossPhases.getCurrentPhase: expected null for non-boss monster');
+    }
+
+    console.log('  BossPhases PASSED');
+
+    // -----------------------------------------------------------------------
+    // 30. MonsterAI.resolveTactic - Ability and Boss Integration
+    // -----------------------------------------------------------------------
+    console.log('Testing MonsterAI.resolveTactic - Ability and Boss Integration...');
+
+    // Test 1: on_turn_start triggered ability fires before movement
+    console.log('  Test 1: on_turn_start triggered ability fires before movement...');
+    {
+      const testTile: Tile = {
+        ...templateTile,
+        id: 'trigger_test_tile',
+        x: 0,
+        z: 0,
+        connections: [openEdge('north'), openEdge('east'), closedEdge('south'), closedEdge('west')]
+      };
+
+      const triggeredMonster: Monster = {
+        id: 'monster_triggered',
+        name: 'Triggered Monster',
+        type: 'monster',
+        monsterType: 'zombie',
+        behavior: { conditions: [], priorityTargets: [], actions: [] },
+        attackBonus: 0,
+        damage: 1,
+        experienceValue: 10,
+        ownedByHeroId: null,
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+        hp: 10,
+        maxHp: 10,
+        ac: 12,
+        speed: 6,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: [],
+        abilities: [
+          {
+            id: 'regen_test',
+            name: 'Regen Test',
+            description: 'Heal at start of turn',
+            type: 'triggered',
+            trigger: 'on_turn_start',
+            effects: [
+              {
+                type: 'heal',
+                target: 'self',
+                value: 1
+              }
+            ]
+          }
+        ]
+      };
+
+      const triggerHero: Hero = {
+        id: 'hero_trigger',
+        name: 'Trigger Hero',
+        type: 'hero',
+        heroClass: 'fighter',
+        level: 1,
+        xp: 0,
+        surgeUsed: false,
+        abilities: [],
+        hand: [],
+        items: [],
+        position: { x: 0, z: -1, sqX: 1, sqZ: 1 },
+        hp: 10,
+        maxHp: 10,
+        ac: 15,
+        speed: 6,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const triggerState: GameState = {
+        phase: 'monster',
+        currentHeroId: 'hero_trigger',
+        heroes: [triggerHero],
+        monsters: [triggeredMonster],
+        tiles: [testTile, { ...templateTile, id: 'hero_tile', x: 0, z: -1, connections: [openEdge('south'), closedEdge('north'), closedEdge('east'), closedEdge('west')] }],
+        dungeonDeck: [],
+        treasureDeck: [],
+        encounterDeck: [],
+        discardPiles: {},
+        activeScenario: {
+          id: 'trigger_test',
+          name: 'Trigger Test',
+          difficulty: 'Easy',
+          description: 'Test triggered abilities',
+          introText: 'Test',
+          victoryText: 'Test',
+          defeatText: 'Test',
+          objectives: [],
+          specialRules: [],
+          startTileId: 'trigger_test_tile',
+          maxSurges: 3
+        },
+        turnOrder: ['hero_trigger'],
+        healingSurges: 2,
+        turnCount: 1,
+        log: [],
+        activeEnvironmentCard: null,
+        experiencePile: [],
+        treasuresDrawnThisTurn: 0,
+        traps: [],
+        villainPhaseQueue: [],
+        activeVillainId: null
+      };
+
+      const triggerResult = resolveTactic(triggeredMonster, testTile, triggerState);
+      if (triggerResult.action !== 'use_ability') {
+        throw new Error(`Test 1: Expected use_ability, got ${triggerResult.action}`);
+      }
+      if (triggerResult.action === 'use_ability' && triggerResult.abilityId !== 'regen_test') {
+        throw new Error(`Test 1: Expected abilityId 'regen_test', got ${triggerResult.abilityId}`);
+      }
+      console.log('  Test 1 PASSED: on_turn_start triggered ability fires before movement');
+    }
+
+    // Test 2: Boss with hp at 49% returns 'idle' until phase transitions
+    console.log('  Test 2: Boss with hp at 49% returns idle until phase transitions...');
+    {
+      const bossTile: Tile = {
+        ...templateTile,
+        id: 'boss_tile',
+        x: 0,
+        z: 0,
+        connections: []
+      };
+
+      const boss49Hp: Monster = {
+        id: 'boss-49hp',
+        name: 'Boss at 49% HP',
+        type: 'monster',
+        monsterType: 'strahd',
+        behavior: { conditions: [], priorityTargets: [], actions: [] },
+        attackBonus: 10,
+        damage: 15,
+        experienceValue: 200,
+        ownedByHeroId: null,
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+        hp: 49,
+        maxHp: 100,
+        ac: 18,
+        speed: 6,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: [],
+        isBoss: true,
+        currentPhase: 'p1' // Currently in phase 1, but HP is at 49%
+      };
+
+      const bossHero: Hero = {
+        id: 'hero_boss',
+        name: 'Boss Hero',
+        type: 'hero',
+        heroClass: 'paladin',
+        level: 1,
+        xp: 0,
+        surgeUsed: false,
+        abilities: [],
+        hand: [],
+        items: [],
+        position: { x: 1, z: 0, sqX: 1, sqZ: 1 },
+        hp: 10,
+        maxHp: 10,
+        ac: 15,
+        speed: 6,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const boss49State: GameState = {
+        phase: 'monster',
+        currentHeroId: 'hero_boss',
+        heroes: [bossHero],
+        monsters: [boss49Hp],
+        tiles: [bossTile, { ...templateTile, id: 'hero_boss_tile', x: 1, z: 0, connections: [openEdge('west'), closedEdge('north'), closedEdge('south'), closedEdge('east')] }],
+        dungeonDeck: [],
+        treasureDeck: [],
+        encounterDeck: [],
+        discardPiles: {},
+        activeScenario: {
+          id: 'boss_test',
+          name: 'Boss Test',
+          difficulty: 'Hard',
+          description: 'Test boss phase transitions',
+          introText: 'Test',
+          victoryText: 'Test',
+          defeatText: 'Test',
+          objectives: [],
+          specialRules: [],
+          startTileId: 'boss_tile',
+          maxSurges: 3
+        },
+        turnOrder: ['hero_boss'],
+        healingSurges: 2,
+        turnCount: 1,
+        log: [],
+        activeEnvironmentCard: null,
+        experiencePile: [],
+        treasuresDrawnThisTurn: 0,
+        traps: [],
+        villainPhaseQueue: [],
+        activeVillainId: null
+      };
+
+      const boss49Result = resolveTactic(boss49Hp, bossTile, boss49State);
+      if (boss49Result.action !== 'idle') {
+        throw new Error(`Test 2: Expected idle for boss at 49% HP (needs phase transition), got ${boss49Result.action}`);
+      }
+      console.log('  Test 2 PASSED: Boss with hp at 49% returns idle until phase transitions');
+    }
+
+    // Test 3: Boss in phase 2 evaluates phase 2 tactics
+    console.log('  Test 3: Boss in phase 2 evaluates phase 2 tactics...');
+    {
+      const boss2Tile: Tile = {
+        ...templateTile,
+        id: 'boss2_tile',
+        x: 0,
+        z: 0,
+        connections: []
+      };
+
+      const bossPhase2: Monster = {
+        id: 'boss-phase2',
+        name: 'Boss in Phase 2',
+        type: 'monster',
+        monsterType: 'strahd',
+        behavior: { conditions: [], priorityTargets: [], actions: [] },
+        attackBonus: 10,
+        damage: 15,
+        experienceValue: 200,
+        ownedByHeroId: null,
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+        hp: 40,
+        maxHp: 100,
+        ac: 18,
+        speed: 6,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: [],
+        isBoss: true,
+        currentPhase: 'p2', // Already in phase 2
+        abilities: [
+          {
+            id: 'vampiric_bite',
+            name: 'Vampiric Bite',
+            description: 'Heal for damage dealt.',
+            type: 'active',
+            effects: [
+              {
+                type: 'damage',
+                target: 'closest_hero',
+                value: 1
+              },
+              {
+                type: 'heal',
+                target: 'self',
+                value: 1
+              }
+            ]
+          }
+        ]
+      };
+
+      const boss2Hero: Hero = {
+        id: 'hero_boss2',
+        name: 'Boss Phase 2 Hero',
+        type: 'hero',
+        heroClass: 'paladin',
+        level: 1,
+        xp: 0,
+        surgeUsed: false,
+        abilities: [],
+        hand: [],
+        items: [],
+        position: { x: 0, z: -1, sqX: 1, sqZ: 1 },
+        hp: 10,
+        maxHp: 10,
+        ac: 15,
+        speed: 6,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const boss2State: GameState = {
+        phase: 'monster',
+        currentHeroId: 'hero_boss2',
+        heroes: [boss2Hero],
+        monsters: [bossPhase2],
+        tiles: [boss2Tile, { ...templateTile, id: 'hero_boss2_tile', x: 0, z: -1, connections: [openEdge('south'), closedEdge('north'), closedEdge('east'), closedEdge('west')] }],
+        dungeonDeck: [],
+        treasureDeck: [],
+        encounterDeck: [],
+        discardPiles: {},
+        activeScenario: {
+          id: 'boss2_test',
+          name: 'Boss Phase 2 Test',
+          difficulty: 'Hard',
+          description: 'Test boss phase 2 tactics',
+          introText: 'Test',
+          victoryText: 'Test',
+          defeatText: 'Test',
+          objectives: [],
+          specialRules: [],
+          startTileId: 'boss2_tile',
+          maxSurges: 3
+        },
+        turnOrder: ['hero_boss2'],
+        healingSurges: 2,
+        turnCount: 1,
+        log: [],
+        activeEnvironmentCard: null,
+        experiencePile: [],
+        treasuresDrawnThisTurn: 0,
+        traps: [],
+        villainPhaseQueue: [],
+        activeVillainId: null
+      };
+
+      const boss2Result = resolveTactic(bossPhase2, boss2Tile, boss2State);
+      // Boss should use vampiric_bite ability (phase 2 tactic with 'hp_low' condition)
+      if (boss2Result.action !== 'use_ability') {
+        throw new Error(`Test 3: Expected use_ability for boss in phase 2, got ${boss2Result.action}`);
+      }
+      if (boss2Result.action === 'use_ability' && boss2Result.abilityId !== 'vampiric_bite') {
+        throw new Error(`Test 3: Expected abilityId 'vampiric_bite', got ${boss2Result.abilityId}`);
+      }
+      console.log('  Test 3 PASSED: Boss in phase 2 evaluates phase 2 tactics');
+    }
+
+    console.log('  MonsterAI.resolveTactic - Ability and Boss Integration PASSED');
 
     // -----------------------------------------------------------------------
 

@@ -74,6 +74,9 @@ export interface Monster extends Entity {
   experienceValue: number;
   ownedByHeroId: string | null;
   moveRange?: number;
+  abilities?: MonsterAbility[]
+  currentPhase?: string
+  isBoss?: boolean
 }
 
 export interface MonsterBehavior {
@@ -240,3 +243,83 @@ export interface MonsterAction {
   position?: Position;
   abilityId?: string;
 }
+
+// ============================================================================
+// AMI-1: Monster Ability System Types
+// ============================================================================
+
+// Union types for monster abilities
+export type AbilityType = 'passive' | 'active' | 'triggered'
+
+export type AbilityTrigger =
+  | 'on_turn_start' | 'on_turn_end'
+  | 'on_damage_taken' | 'on_damage_dealt'
+  | 'on_death' | 'on_spawn' | 'on_low_hp'
+
+export type AbilityEffectType =
+  | 'damage' | 'heal' | 'condition' | 'move'
+  | 'summon' | 'buff' | 'debuff'
+  | 'teleport' | 'push' | 'pull'
+
+export type AbilityTarget =
+  | 'self' | 'closest_hero' | 'all_heroes'
+  | 'all_monsters' | 'adjacent_heroes'
+  | 'adjacent_monsters' | 'tile' | 'random_hero'
+
+// Interfaces for monster abilities
+export interface AbilityEffect {
+  type: AbilityEffectType
+  target: AbilityTarget
+  value?: number
+  condition?: string
+  duration?: number
+  range?: number
+  aoe?: boolean
+}
+
+export interface MonsterAbility {
+  id: string
+  name: string
+  description: string
+  type: AbilityType
+  trigger?: AbilityTrigger
+  cooldown?: number
+  currentCooldown?: number
+  uses?: number
+  remainingUses?: number
+  effects: AbilityEffect[]
+}
+
+export interface TacticPattern {
+  condition: string
+  actions: string[]
+  ability?: string
+}
+
+export interface BossPhase {
+  id: string
+  className: string
+  hpThreshold: number
+  triggers: string[]
+  abilities: string[]
+  tactics: TacticPattern[]
+  passiveAbilities?: string[]
+}
+
+// TacticResult type moved from MonsterAI.ts and extended
+export type TacticResult =
+  | { action: 'move'; path: Tile[] }
+  | { action: 'attack'; targetHeroId: string; damage: number }
+  | {
+    action: 'move_then_attack';
+    path: Tile[];
+    targetHeroId: string;
+    damage: number
+  }
+  | { action: 'idle' }
+  | {
+    action: 'use_ability';
+    abilityId: string;
+    targetId?: string;
+    effects: AbilityEffect[]
+  }

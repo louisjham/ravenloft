@@ -4,22 +4,10 @@
  * Pure functions with no mutation, no side effects, no UI.
  */
 
-import { Tile, Hero, Monster, GameState, Trap } from '../types';
-
-/**
- * Result type for monster tactic resolution.
- * Represents the action a monster should take during its activation.
- */
-export type TacticResult =
-  | { action: 'move'; path: Tile[] }
-  | { action: 'attack'; targetHeroId: string; damage: number }
-  | {
-    action: 'move_then_attack';
-    path: Tile[];
-    targetHeroId: string;
-    damage: number
-  }
-  | { action: 'idle' };
+import { Tile, Hero, Monster, GameState, Trap, TacticResult, MonsterAbility, AbilityEffect } from '../types';
+import AbilitySystem from '../ai/AbilitySystem';
+import BossPhases from '../ai/BossPhases';
+import { ABILITY_LIBRARY } from '../ai/behaviors/AbilityLibrary';
 
 /**
  * Calculate Manhattan distance between two positions.
@@ -219,23 +207,93 @@ export function getPathToward(
 }
 
 /**
+ * Evaluate a condition string for monster AI tactics.
+ * Pure function with no side effects.
+ */
+function evaluateCondition(
+  condition: string,
+  monster: Monster,
+  monsterTile: Tile,
+  gameState: GameState
+): boolean {
+  switch (condition) {
+    case 'always':
+      return true;
+
+    case 'adjacent_to_hero':
+    case 'within_1_tile_of_hero':
+    case 'heroes_adjacent': {
+      const closestHero = findClosestHero(monsterTile, gameState.heroes, gameState.tiles);
+      if (closestHero === null) {
+        return false;
+      }
+      const distance = manhattanDistance(
+        monsterTile.x, monsterTile.z,
+        closestHero.tile.x, closestHero.tile.z
+      );
+      return distance === 1;
+    }
+
+    case 'hp_below_50_percent':
+      return monster.hp / monster.maxHp < 0.5;
+
+    case 'hp_below_30_percent':
+      return monster.hp / monster.maxHp < 0.3;
+
+    default:
+      console.warn(`MonsterAI: Unrecognised condition string "${condition}"`);
+      return false;
+  }
+}
+
+/**
  * Resolve the tactic for a monster during its activation.
  * This is a pure function that only reads, never writes to state.
  *
  * Logic:
- * 1. Find closest hero using findClosestHero(). If null → return { action: 'idle' }
- * 2. Compute distance = manhattanDistance to hero's tile
- * 3. If distance === 0 (same tile) OR distance === 1 (adjacent):
- *      Check hasLineOfSight
- *      If true → return { action: 'attack', targetHeroId, damage }
- * 4. If distance > 1 (not adjacent):
- *      path = getPathToward(monsterTile, heroTile, tiles, monster.moveRange)
- *      If path is empty → return { action: 'idle' }
- *      landingTile = last tile in path
- *      newDistance = manhattanDistance(landingTile, heroTile)
- *      If newDistance <= 1 → return { action: 'move_then_attack', path, targetHeroId, damage }
- *      Else → return { action: 'move', path }
- * 5. Fallback → return { action: 'idle' }
+ * Step 1 — Boss phase transition check:
+ *   If monster.isBoss:
+ *     If BossPhases.shouldTransitionPhase(monster, gameState):
+ *       Return { action: 'idle' }
+ *       (Caller in gameStore handles the actual transition before re-evaluating)
+ *
+ * Step 2 — Triggered abilities (on_turn_start):
+ *   Find first ability in monster.abilities where
+ *     type === 'triggered'
+ *     trigger === 'on_turn_start'
+ *     AbilitySystem.canUseAbility() returns true
+ *   If found → return { action: 'use_ability', abilityId, effects }
+ *
+ * Step 3 — Boss phase tactics:
+ *   If monster.isBoss:
+ *     tactics = BossPhases.getPhaseTactics(monster, gameState)
+ *     For each tactic in tactics:
+ *       If evaluateCondition(tactic.condition, ...) is true:
+ *         If tactic.ability is defined:
+ *           ability = monster.abilities?.find(a => a.id === tactic.ability)
+ *           If ability AND canUseAbility → return use_ability result
+ *         Else if tactic.actions includes 'move_toward_closest_hero':
+ *           fall through to existing move logic below
+ *
+ * Step 4 — Active abilities (non-boss):
+ *   If NOT monster.isBoss:
+ *     Find first ability where type === 'active' AND canUseAbility returns true
+ *     If found → return use_ability result
+ *
+ * Steps 5+ — Existing move/attack logic (unchanged):
+ *   1. Find closest hero using findClosestHero(). If null → return { action: 'idle' }
+ *   2. Compute distance = manhattanDistance to hero's tile
+ *   3. If distance === 0 (same tile) OR distance === 1 (adjacent):
+ *        Check hasLineOfSight
+ *        If true → return { action: 'attack', targetHeroId, damage }
+ *   4. If distance > 1 (not adjacent):
+ *        path = getPathToward(monsterTile, heroTile, tiles, monster.moveRange)
+ *        If path is empty → return { action: 'idle' }
+ *        landingTile = last tile in path
+ *        newDistance = manhattanDistance(landingTile, heroTile)
+ *        If newDistance <= 1 → return { action: 'move_then_attack', path, targetHeroId, damage }
+ *        Else → return { action: 'move', path }
+ *   5. Fallback → return { action: 'idle' }
  */
 export function resolveTactic(
   monster: Monster,
@@ -244,6 +302,69 @@ export function resolveTactic(
 ): TacticResult {
   const { heroes, tiles } = gameState;
 
+  // Step 1 — Boss phase transition check
+  if (monster.isBoss) {
+    if (BossPhases.shouldTransitionPhase(monster, gameState)) {
+      return { action: 'idle' };
+    }
+  }
+
+  // Step 2 — Triggered abilities (on_turn_start)
+  if (monster.abilities) {
+    const triggeredAbility = monster.abilities.find(
+      ability =>
+        ability.type === 'triggered' &&
+        ability.trigger === 'on_turn_start' &&
+        AbilitySystem.canUseAbility(ability, monster, gameState)
+    );
+    if (triggeredAbility) {
+      return {
+        action: 'use_ability',
+        abilityId: triggeredAbility.id,
+        effects: triggeredAbility.effects
+      };
+    }
+  }
+
+  // Step 3 — Boss phase tactics
+  if (monster.isBoss) {
+    const tactics = BossPhases.getPhaseTactics(monster, gameState);
+    for (const tactic of tactics) {
+      if (evaluateCondition(tactic.condition, monster, monsterTile, gameState)) {
+        if (tactic.ability) {
+          const ability = monster.abilities?.find(a => a.id === tactic.ability);
+          if (ability && AbilitySystem.canUseAbility(ability, monster, gameState)) {
+            return {
+              action: 'use_ability',
+              abilityId: ability.id,
+              effects: ability.effects
+            };
+          }
+        } else if (tactic.actions.includes('move_toward_closest_hero')) {
+          // Fall through to existing move logic below
+          break;
+        }
+      }
+    }
+  }
+
+  // Step 4 — Active abilities (non-boss)
+  if (!monster.isBoss && monster.abilities) {
+    const activeAbility = monster.abilities.find(
+      ability =>
+        ability.type === 'active' &&
+        AbilitySystem.canUseAbility(ability, monster, gameState)
+    );
+    if (activeAbility) {
+      return {
+        action: 'use_ability',
+        abilityId: activeAbility.id,
+        effects: activeAbility.effects
+      };
+    }
+  }
+
+  // Steps 5+ — Existing move/attack logic (unchanged)
   // 1. Find closest hero
   const closestHero = findClosestHero(monsterTile, heroes, tiles);
   if (closestHero === null) {

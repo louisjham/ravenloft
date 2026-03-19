@@ -1,0 +1,41 @@
+AMI-1  Type Definitions
+         ↓
+AMI-2  AbilitySystem Core
+         ↓
+AMI-3  AbilityLibrary Data
+         ↓           ↓
+AMI-4  BossPhases   AMI-5  BossTactics
+         ↓           ↓
+AMI-6  MonsterAI Integration
+         ↓
+AMI-7  gameStore Integration
+         ↓
+AMI-8  Data Updates (monsters.json + boss-phases.json)
+         ↓
+AMI-9  Tests
+
+Before running any AMI prompt, answer these questions
+by reading the current codebase. Record answers — the
+agent will need them as ground truth.
+
+1. Does src/game/ai/BossPhases.ts already exist?
+   If yes, paste its current exported types and methods.
+   If no, mark as NEW.
+
+2. Does Monster in types.ts currently have an hp field?
+   What is its type? (number | { current, max } | other)
+   The boss phase transition check needs this.
+
+3. Does GameState have a monsters field that is Tile[]
+   or a separate Record/Map structure?
+   AbilitySystem needs to know how to look up monsters.
+
+4. Does any d20 / dice roll utility already exist?
+   If yes, note the import path.
+   If no, AMI-2 will create one.
+
+5. Does the existing ConditionType exist in types.ts?
+   The plan references it in AbilityEffect. Paste it
+   if it exists, mark as ABSENT if not.
+
+Record all five answers before running AMI-1.

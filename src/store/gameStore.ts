@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
-import { GameState, Entity, Tile, Card, GameSettings, Position, Hero, PowerType, Trap, Monster } from '../game/types'
+import { GameState, Entity, Tile, Card, GameSettings, Position, Hero, PowerType, Trap, Monster, TacticResult } from '../game/types'
 import { SaveSystem } from '../game/progression/SaveSystem'
 import { DataLoader } from '../game/dataLoader'
 import { CombatSystem } from '../game/engine/CombatSystem'
@@ -9,7 +9,7 @@ import { PowerSystem } from '../game/engine/PowerSystem'
 import { EncounterSystem } from '../game/engine/EncounterSystem'
 import { TreasureSystem } from '../game/engine/TreasureSystem'
 import { ExperienceSystem } from '../game/engine/ExperienceSystem'
-import { resolveTactic, resolveTrap, type TacticResult } from '../game/engine/MonsterAI'
+import { resolveTactic, resolveTrap } from '../game/engine/MonsterAI'
 
 interface GameStore {
   // State
