@@ -1,7 +1,6 @@
 import { GameState, Hero, Monster, Position, AttackResult, Card } from '../types';
 import { CombatSystem } from './CombatSystem';
 import { TileSystem } from './TileSystem';
-import { MonsterAI } from './MonsterAI';
 import { ConditionSystem } from './ConditionSystem';
 
 /**

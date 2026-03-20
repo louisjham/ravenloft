@@ -1,6 +1,6 @@
 # Castle Ravenloft Digital Game - MVP Implementation Estimate
 
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-03-19 (Encounter System Integration Complete)
 **Project Location:** `c:/antigravity/ravenloft`
 
 ---
@@ -9,9 +9,17 @@
 
 This document provides a comprehensive implementation estimate for the Castle Ravenloft digital game MVP. The MVP aims to deliver a fully playable single-player experience that captures the core mechanics of the board game.
 
+**CODE REVIEW FINDINGS (2026-03-19):**
+
+- Multiple components marked as "Not Started" are actually **FULLY IMPLEMENTED**
+- Core game systems are more complete than documented
+- Primary gap is **UI INTEGRATION** - components exist but aren't connected to the app
+- Playable MVP is much closer than the estimate suggests
+
 ### Current Implementation Status
 
 **Completed Systems:**
+
 - ✅ Core game loop (Hero Phase → Exploration Phase → Villain Phase)
 - ✅ Condition System (Slowed, Immobilized, Poisoned, Dazed, Weakened, Stunned)
 - ✅ Power System (Daily, At-Will, Utility powers)
@@ -26,20 +34,31 @@ This document provides a comprehensive implementation estimate for the Castle Ra
 - ✅ Tile System (placement, connections, exploration)
 - ✅ Card System (deck management, card drawing)
 - ✅ Action Resolver (move, attack, use power actions)
+- ✅ **NEW:** Special Abilities System (AbilitySystem.ts)
+- ✅ **NEW:** Ability Library (common monster abilities)
+- ✅ **NEW:** Monster-Specific Behaviors (Gargoyle, Ghost, Goblin, Skeleton, Strahd, Vampire, Wolf, Zombie)
+- ✅ **NEW:** Boss-Specific Tactics (BossTactics.ts with phase definitions)
+- ✅ **NEW:** Scenario Objectives System (Objectives.ts with ObjectiveTracker)
+- ✅ **NEW:** Victory/Defeat Screens (VictoryScreen.tsx)
+- ✅ **NEW:** Boss Phase Data (boss-phases.json with Strahd, Vampire Lord, Young Red Dragon)
+- ✅ **NEW:** Monster Abilities Integration (abilities array in monsters.json)
+- ✅ **NEW:** Power Selection System (PowerSelectionSystem.ts with constraints, auto-select, validation)
+- ✅ **NEW:** Power Selection UI (PowerSelectionScreen.tsx with hero tabs, power cards)
+- ✅ **NEW:** Power Card Display (PowerCardDisplay.tsx for individual card rendering)
+- ✅ **NEW:** Power Card Data (powerCards.json with 50+ power cards across hero classes)
+- ✅ **NEW:** Power Card Loader (powerCardLoader.ts for data management)
 
 **Partially Implemented:**
-- 🟡 Monster AI (basic tactics, needs special abilities and advanced behaviors)
-- 🟡 Scenario System (basic structure, needs objectives and win/lose conditions)
-- 🟡 UI Components (some implemented, many missing)
+
+- 🟡 UI Components (backend systems complete, some UI not integrated)
+- 🟡 Adventure-Specific Rules (basic structure exists)
 
 **Not Implemented:**
-- ❌ Advanced Monster AI (special abilities, boss-specific tactics)
-- ❌ Power Selection System (choosing power cards for heroes)
-- ❌ Condition Markers UI (visual indicators for conditions)
-- ❌ Card UI Systems (power selection, encounter, treasure card interfaces)
-- ❌ Difficulty Adjustment (healing surge options)
-- ❌ Scenario Objectives (adventure-specific win/lose conditions)
-- ❌ Adventure-specific rules and mechanics
+
+- ❌ Scenario Setup UI (difficulty selection, hero selection)
+- ❌ Experience Spending UI (spend XP interface)
+- ❌ Card UI Integration (components exist but not connected to app)
+- ❌ Hero Selection UI (choose heroes before game start)
 
 ---
 
@@ -111,7 +130,7 @@ The Villain Phase implementation includes:
    - `villainPhaseQueue`: Ordered list of villains to activate
    - Automatic transition from Hero/Exploration to Villain phase
 
-### Phase 4: Advanced Monster AI 🟡 IN PROGRESS
+### Phase 4: Advanced Monster AI ✅ COMPLETED
 
 | Component | Status | Notes |
 |-----------|--------|-------|
@@ -119,19 +138,22 @@ The Villain Phase implementation includes:
 | Pathfinding | ✅ Complete | A* pathfinding for movement |
 | Threat Assessment | ✅ Complete | Hero targeting based on distance/HP |
 | Boss Phases Framework | ✅ Complete | Phase structure for bosses |
-| Special Abilities | ❌ Not Started | Monster-specific abilities |
-| Boss-Specific Tactics | ❌ Not Started | Unique boss behaviors |
-| Monster Coordination | ❌ Not Started | Multi-monster strategies |
+| Special Abilities | ✅ Complete | AbilitySystem.ts with execution engine |
+| Ability Library | ✅ Complete | 10+ common abilities (fireball, undying, plague_aura, vampiric_bite, mist_form, regeneration, etc.) |
+| Monster-Specific Behaviors | ✅ Complete | 8 behavior modules (Gargoyle, Ghost, Goblin, Skeleton, Strahd, Vampire, Wolf, Zombie) |
+| Boss-Specific Tactics | ✅ Complete | BossTactics.ts with phase-based behaviors |
+| Monster Coordination | 🟡 Partial | Basic coordination via behavior modules |
 
-### Phase 5: Scenario System 🟡 PARTIAL
+### Phase 5: Scenario System ✅ COMPLETED
 
 | Component | Status | Notes |
 |-----------|--------|-------|
 | Scenario Data Structure | ✅ Complete | JSON scenarios with basic info |
 | Scenario Loading | ✅ Complete | ScenarioManager loads scenarios |
-| Scenario Objectives | ❌ Not Started | Win/lose conditions |
-| Adventure-Specific Rules | ❌ Not Started | Special mechanics per adventure |
-| Victory/Defeat Screens | ❌ Not Started | End-game UI |
+| Scenario Objectives | ✅ Complete | Objectives.ts with ObjectiveTracker |
+| Objective Types | ✅ Complete | 10 types (find_item, kill_boss, escape, escort, survive, find_tile, all_at_position, interact, collect_items, find_event) |
+| Adventure-Specific Rules | 🟡 Partial | Basic structure exists |
+| Victory/Defeat Screens | ✅ Complete | VictoryScreen.tsx with stats display |
 
 ### Phase 6: UI Components 🟡 PARTIAL
 
@@ -144,19 +166,27 @@ The Villain Phase implementation includes:
 | Combat Log | ✅ Complete | Logs combat events |
 | Turn Indicator | ✅ Complete | Shows current phase/hero |
 | Villain Phase Overlay | ✅ Complete | Shows villain activation |
-| Condition Markers UI | ❌ Not Started | Visual condition indicators |
-| Power Selection UI | ❌ Not Started | Choose power cards |
-| Encounter Card UI | ❌ Not Started | Draw/resolve encounter cards |
-| Treasure Card UI | ❌ Not Started | Draw/use treasure cards |
+| Victory/Defeat Screens | ✅ Complete | VictoryScreen.tsx with stats and narrative text |
+| Power Selection UI | ✅ Complete | PowerSelectionScreen.tsx with hero tabs and power cards |
+| Power Card Display | ✅ Complete | PowerCardDisplay.tsx for individual card rendering |
+| Condition Markers UI | ✅ Complete | Integrated into HeroPanel.tsx |
+| Encounter Card UI | ✅ Complete | Integrated into App.tsx and EncounterSystem.ts |
+| Treasure Card UI | ✅ Complete | Integrated into App.tsx and UIOverlay.tsx |
+| Card Flip Animation | ✅ Complete | CardFlip.tsx (107 lines) with 3D flip |
+| Card Face Display | ✅ Complete | CardFace.tsx for card rendering |
+| Card Resolution System | ✅ Complete | CardResolutionSystem.ts (165 lines) |
+| Experience System | ✅ Complete | ExperienceSystem.ts (228 lines) with leveling |
 | Experience Spending UI | ❌ Not Started | Spend XP interface |
-| Victory/Defeat Screens | ❌ Not Started | End-game screens |
+| Scenario Setup UI | ❌ Not Started | Difficulty/hero selection |
+| Hero Selection UI | ❌ Not Started | Choose heroes before game |
 
-### Phase 7: Advanced Features ❌ NOT STARTED
+### Phase 7: Advanced Features 🟡 PARTIAL
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Power Selection System | ❌ Not Started | Choose power cards per hero |
-| Difficulty Adjustment | ❌ Not Started | Healing surge options |
+| Power Selection System | ✅ Complete | Choose power cards per hero with constraints |
+| Card UI Systems | ✅ Complete | Fully integrated (Encounter + Treasure) |
+| Difficulty Adjustment | 🟡 Partial | Settings exist, no UI selector |
 | Save/Load System | 🟡 Partial | Basic structure exists |
 | Tutorial System | 🟡 Partial | Basic structure exists |
 | Audio System | 🟡 Partial | Basic structure exists |
@@ -166,92 +196,171 @@ The Villain Phase implementation includes:
 
 ## Remaining Work Analysis
 
-### Largest Game Logic Pieces (Ranked by Complexity)
+### CODE REVIEW FINDINGS (2026-03-19)
 
-1. **Advanced Monster AI** - HIGH PRIORITY
-   - Special abilities for different monster types
-   - Boss-specific tactics and behaviors
-   - Monster coordination (if applicable)
-   - Special ability triggers and effects
-   - Estimated complexity: HIGH
+**DISCOVERY:** Multiple components marked as "Not Started" are actually FULLY IMPLEMENTED:
 
-2. **Scenario Objectives System** - HIGH PRIORITY
-   - Win/lose conditions per adventure
-   - Adventure-specific rules and mechanics
-   - Objective tracking and completion
-   - Victory/Defeat logic
-   - Estimated complexity: HIGH
+- `EncounterCardOverlay.tsx` (242 lines) - Complete encounter card UI with phases, effects display
+- `TreasureCardPanel.tsx` (176 lines) - Complete treasure card UI with usage interface
+- `ConditionMarkers.tsx` (115 lines) - Complete condition visual indicators with duration badges
+- `CardFlip.tsx` (107 lines) - Card flip animation component
+- `CardFace.tsx` - Card face display component
+- `CardResolutionSystem.ts` (165 lines) - Complete card resolution system
+- `ExperienceSystem.ts` (228 lines) - Complete XP system with leveling
 
-3. **Power Selection System** - MEDIUM PRIORITY
-   - Hero card specifications for power counts
-   - Power card pool management
-   - Selection UI (manual vs random)
-   - Power assignment to heroes
-   - Estimated complexity: MEDIUM
+**PRIMARY GAP: SETUP & XP UI**
 
-4. **Card UI Systems** - MEDIUM PRIORITY
-   - Encounter card drawing and resolution UI
-   - Treasure card drawing and usage UI
-   - Power card selection and usage UI
-   - Card animations and effects
-   - Estimated complexity: MEDIUM
+- Scenario selection and Hero selection are still hardcoded in `MainMenu.tsx`
+- Experience spending (canceling encounters, leveling up) has no UI interface yet
+- Core gameplay (movement, combat, exploration, encounters) is 100% playable in the 3D scene
 
-5. **Condition Markers UI** - LOW PRIORITY
-   - Visual indicators for conditions on heroes
-   - Condition duration display
-   - Hover tooltips for condition effects
-   - Estimated complexity: LOW
+### Largest Remaining Tasks (Ranked by Complexity)
 
-6. **Difficulty Adjustment** - LOW PRIORITY
-   - Healing surge token options (1, 2, 3)
-   - Difficulty selection in scenario setup
-   - Estimated complexity: LOW
+1. **Card UI Integration** - HIGH PRIORITY (CRITICAL FOR PLAYABILITY)
+    - Add `EncounterCardOverlay` to `App.tsx` when card resolution state is active
+    - Add `TreasureCardPanel` to `App.tsx` when treasure is drawn
+    - Wire up card drawing during exploration phase
+    - Connect card resolution actions to UI
+    - Estimated complexity: MEDIUM (components exist, just need integration)
+    - **Risk Factors:**
+      - State synchronization between card resolution and game flow
+      - Timing of card displays during exploration
+      - Proper cleanup when card resolution completes
+
+2. **Scenario Setup UI** - HIGH PRIORITY (NEEDED FOR GAME START)
+    - Create scenario selection screen with difficulty options
+    - Add hero selection interface (choose 1-5 heroes)
+    - Add healing surge token selection (1, 2, or 3 surges)
+    - Connect to `startNewGame` with selected parameters
+    - Estimated complexity: MEDIUM
+
+3. **Condition Markers Integration** ✅ COMPLETED
+    - Integrated into `HeroPanel.tsx`
+    - Displaying active conditions with duration badges
+    - Status: Fully Functional
+
+4. **Experience Spending UI** - MEDIUM PRIORITY
+    - Create XP spending interface
+    - Allow spending XP to cancel encounter cards
+    - Allow spending XP to level up heroes
+    - Display available XP from experience pile
+    - Estimated complexity: MEDIUM
+
+5. **Hero Selection UI** - LOW PRIORITY (CAN USE DEFAULTS FOR MVP)
+    - Choose heroes before game start
+    - Display hero stats and abilities
+    - Estimated complexity: LOW
 
 ---
 
-## Next Implementation Priority: Advanced Monster AI
+## Next Implementation Priority: Path to Playable MVP
 
 ### Rationale
 
-Advanced Monster AI is the largest remaining game logic piece and is critical for:
+Based on the code review, the game is MUCH closer to a playable MVP than previously estimated. The primary remaining work is **UI INTEGRATION** - most components already exist and are fully functional.
 
-1. **Gameplay Depth**: Special abilities make monsters more interesting and challenging
-2. **Boss Encounters**: Bosses need unique tactics to be memorable
-3. **Strategic Play**: Players need to anticipate and counter monster abilities
-4. **MVP Completeness**: Without advanced AI, combat feels repetitive
+### Playable MVP Definition
 
-### Scope
+A playable MVP should allow:
 
-The Advanced Monster AI implementation will include:
+1. **Start a game** with scenario selection and hero selection
+2. **Explore the dungeon** with tile placement
+3. **Encounter cards** drawn during exploration with visual feedback
+4. **Combat** with monsters (move, attack, powers)
+5. **Treasure cards** discovered and used
+6. **Villain phase** with monster activation
+7. **Victory/defeat** conditions checked and displayed
 
-1. **Monster Special Abilities**
-   - Define ability data structure
-   - Implement ability triggers and effects
-   - Create ability library for common monster abilities
-   - Integrate abilities into monster tactics
+### Implementation Priority (Fast Path to Playable MVP)
 
-2. **Boss-Specific Tactics**
-   - Expand boss phase system with phase-specific behaviors
-   - Implement unique boss abilities
-   - Create boss AI patterns (e.g., Strahd's teleportation, vampire's regeneration)
-   - Phase transition logic and effects
+#### 1. Card UI & Conditions Integration ✅ COMPLETED
 
-3. **Monster Coordination** (Optional for MVP)
-   - Basic monster communication (e.g., goblin swarms)
-   - Flanking behaviors
-   - Target priority coordination
+**Status:** Completed and verified
 
-4. **Special Ability System Architecture**
-   - Ability data format in monster JSON
-   - Ability execution engine
-   - Ability effects on game state
-   - Ability cooldowns and charges
+**Tasks:**
+
+- Add `EncounterCardOverlay` to `App.tsx`: ✅ Done
+- Wire up `drawEncounterCard()` during exploration: ✅ Done
+- Implement `advanceCardResolution()` logic: ✅ Done
+- Use real card data from `DataLoader`: ✅ Done
+- Integrate `ConditionMarkers` into `HeroPanel`: ✅ Done
+
+**Files to modify:**
+
+- `src/App.tsx` - Add card overlay components
+- `src/game/engine/TileSystem.ts` - Trigger encounter card on tile placement
+- `src/components/ui/ActionBar.tsx` - Add treasure card button
+
+#### 2. Scenario Setup UI (HIGH PRIORITY - 1 day)
+
+**Status:** New component needed
+
+**Tasks:**
+
+- Create `ScenarioSetupScreen.tsx` with:
+  - Scenario selection (dropdown or cards)
+  - Hero selection (checkboxes for 1-5 heroes)
+  - Difficulty selection (Easy/Medium/Hard)
+  - Healing surge selection (1/2/3)
+- Replace hardcoded scenario/hero in `MainMenu.tsx`
+- Connect to `startNewGame` with selected parameters
+
+**Files to create:**
+
+- `src/components/ui/ScenarioSetupScreen.tsx`
+
+**Files to modify:**
+
+- `src/components/ui/MainMenu.tsx` - Route to setup screen
+
+#### 3. Condition Markers Integration (MEDIUM PRIORITY - 0.5 day)
+
+**Status:** Component exists, need integration
+
+**Tasks:**
+
+- Add `ConditionMarkers` to `HeroPanel.tsx`
+- Display for each hero with their active conditions
+- Show duration badges
+
+**Files to modify:**
+
+- `src/components/ui/HeroPanel.tsx`
+
+#### 4. Experience Spending UI (LOW PRIORITY FOR MVP - 0.5 day)
+
+**Status:** New component needed
+
+**Tasks:**
+
+- Create simple XP spending dialog
+- Allow cancel encounter cards (5 XP)
+- Allow level up heroes (5 XP)
+- Display available XP
+
+**Files to create:**
+
+- `src/components/ui/ExperienceDialog.tsx`
+
+**Files to modify:**
+
+- `src/components/ui/HeroPanel.tsx` - Add XP spend button
+
+### Estimated Time to Playable MVP
+
+| Task | Estimated Time | Priority |
+|------|---------------|----------|
+| Scenario Setup UI | 1 day | CRITICAL |
+| Experience Spending UI | 0.5 day | MEDIUM |
+| **TOTAL** | **1.5 days** | - |
+
+**Note:** This assumes the existing components work as expected. Integration testing and bug fixing may add additional time.
 
 ---
 
 ## Implementation Architecture
 
-### Monster Ability Data Structure
+### Monster Ability Data Structure (IMPLEMENTED)
 
 ```typescript
 interface MonsterAbility {
@@ -265,15 +374,15 @@ interface MonsterAbility {
 }
 
 interface AbilityEffect {
-  type: 'damage' | 'heal' | 'condition' | 'move' | 'summon' | 'buff' | 'debuff';
-  target: 'self' | 'closest_hero' | 'all_heroes' | 'all_monsters' | 'adjacent';
+  type: 'damage' | 'heal' | 'condition' | 'move' | 'summon' | 'buff' | 'debuff' | 'teleport';
+  target: 'self' | 'closest_hero' | 'all_heroes' | 'all_monsters' | 'adjacent' | 'adjacent_heroes' | 'tile';
   value?: number;
   condition?: string; // Condition to apply
   duration?: number; // Duration in turns
 }
 ```
 
-### Boss Phase Data Structure
+### Boss Phase Data Structure (IMPLEMENTED)
 
 ```typescript
 interface BossPhase {
@@ -283,6 +392,24 @@ interface BossPhase {
   triggers: string[];
   abilities: string[];
   tactics: TacticPattern[];
+}
+```
+
+### Scenario Objective Data Structure (IMPLEMENTED)
+
+```typescript
+interface Objective {
+  id: string;
+  type: 'find_item' | 'kill_boss' | 'escape' | 'escort' | 'survive' |
+        'find_tile' | 'all_at_position' | 'interact' | 'collect_items' | 'find_event';
+  description: string;
+  isCompleted: boolean;
+  targetId?: string;
+  targetTileId?: string;
+  targetEntityId?: string;
+  targetPositionId?: string;
+  count?: number;
+  currentCount?: number;
 }
 ```
 
@@ -297,35 +424,132 @@ src/game/
 │   ├── BossPhases.ts             (Existing - basic structure)
 │   ├── Pathfinding.ts            (Existing)
 │   ├── ThreatAssessment.ts       (Existing)
-│   ├── behaviors/                (New directory)
-│   │   ├── SpecialAbilities.ts   (New - ability definitions)
-│   │   ├── BossTactics.ts        (New - boss-specific behaviors)
-│   │   └── AbilityLibrary.ts     (New - common abilities)
-│   └── AbilitySystem.ts          (New - ability execution engine)
+│   ├── AbilitySystem.ts          (✅ Complete - ability execution engine)
+│   └── behaviors/                (✅ Complete directory)
+│       ├── AbilityLibrary.ts     (✅ Complete - common abilities)
+│       ├── BossTactics.ts        (✅ Complete - boss-specific behaviors)
+│       ├── GargoyleBehavior.ts   (✅ Complete - gargoyle behavior)
+│       ├── GhostBehavior.ts      (✅ Complete - ghost behavior)
+│       ├── GoblinBehavior.ts     (✅ Complete - goblin behavior)
+│       ├── SkeletonBehavior.ts   (✅ Complete - skeleton behavior)
+│       ├── StrahdBehavior.ts     (✅ Complete - Strahd behavior)
+│       ├── VampireBehavior.ts    (✅ Complete - vampire behavior)
+│       ├── WolfBehavior.ts       (✅ Complete - wolf behavior)
+│       └── ZombieBehavior.ts     (✅ Complete - zombie behavior)
 ├── engine/
-│   └── MonsterAI.ts              (Existing - tactic resolution)
+│   ├── MonsterAI.ts              (Existing - tactic resolution)
+│   ├── PowerSelectionSystem.ts   (✅ Complete - power selection logic)
+│   ├── EncounterSystem.ts        (✅ Complete - encounter card system)
+│   ├── TreasureSystem.ts         (✅ Complete - treasure card system)
+│   ├── ExperienceSystem.ts       (✅ Complete - XP and leveling)
+│   └── CardResolutionSystem.ts  (✅ Complete - card resolution engine)
+├── scenarios/
+│   ├── ScenarioManager.ts        (Existing)
+│   ├── Events.ts                 (Existing)
+│   └── Objectives.ts             (✅ Complete - objective system)
 ├── data/
-│   ├── monsters.json             (Update - add abilities)
-│   └── boss-phases.json          (New - boss phase data)
-└── types.ts                      (Update - add ability types)
+│   ├── monsters.json             (✅ Updated - with abilities)
+│   ├── boss-phases.json          (✅ Complete - boss phase data)
+│   ├── powerCards.json           (✅ Complete - 50+ power cards)
+│   └── powerCardLoader.ts        (✅ Complete - power card data loader)
+└── types.ts                      (✅ Updated - with ability types)
+
+src/components/ui/
+├── VictoryScreen.tsx             (✅ Complete - victory/defeat screens)
+├── PowerSelectionScreen.tsx      (✅ Complete - power selection UI)
+├── PowerCardDisplay.tsx          (✅ Complete - individual power card display)
+├── EncounterCardOverlay.tsx      (✅ Complete - ✅ INTEGRATED)
+├── TreasureCardPanel.tsx         (✅ Complete - ✅ INTEGRATED)
+├── ConditionMarkers.tsx          (✅ Complete - ✅ INTEGRATED)
+├── cards/
+│   ├── CardFace.tsx              (✅ Complete - card face display)
+│   └── CardFlip.tsx             (✅ Complete - card flip animation)
+└── [ScenarioSetupScreen.tsx]     (❌ NEEDED - scenario/hero selection)
 ```
 
 ---
 
 ## Next Steps
 
-1. Design and implement the Special Abilities System
-2. Create ability library for common monster abilities
-3. Implement boss-specific tactics and behaviors
-4. Integrate abilities into monster tactics
-5. Test and balance monster AI
+### Immediate (Path to Playable MVP - 3-4 days)
+
+1. **Scenario Setup UI** (CRITICAL - Start Here)
+   - Create `ScenarioSetupScreen.tsx` with scenario/hero/difficulty/surge selection
+   - Update `MainMenu.tsx` to route to setup screen
+   - Connect to `startNewGame` with selected parameters
+
+2. **Experience Spending UI** (MEDIUM PRIORITY)
+   - Create simple XP spending dialog
+   - Allow cancel encounter cards and level up heroes
+   - Connect to `ExperienceSystem.ts` methods
+
+### Future Enhancements (Post-MVP)
+
+1. Save/Load System - Persist game state
+2. Tutorial System - Guide new players
+3. Audio System - Music and sound effects
+4. Accessibility Features - Screen reader support, high contrast mode
+5. Adventure-Specific Rules - Unique mechanics per adventure
+6. Multiplayer Support - Co-op gameplay
 
 ---
 
-## Notes
+## Summary & Key Findings
 
-- The Villain Phase implementation is complete and tested
-- All core game systems are functional
-- The next logical step is to enhance monster AI for better gameplay
-- UI components can be implemented in parallel with game logic
-- Scenario objectives are the next priority after Advanced Monster AI
+### What's Complete
+
+**Core Game Systems (100%):**
+
+- ✅ Game loop (Hero → Exploration → Villain phases)
+- ✅ Condition System (all 6 conditions with turn processing)
+- ✅ Power System (Daily, At-Will, Utility powers)
+- ✅ Encounter System (Environment, Event, Event-Attack, Trap cards)
+- ✅ Treasure System (Blessings, Fortunes, Items)
+- ✅ Experience System (XP spending, leveling up)
+- ✅ Villain Phase (queue building, monster/trap activation)
+- ✅ Combat System (attack rolls, damage, HP tracking)
+- ✅ Tile System (placement, connections, exploration)
+- ✅ Card System (deck management, card drawing)
+- ✅ Monster AI (tactics, pathfinding, threat assessment)
+- ✅ Boss Phases (phase-based behaviors)
+- ✅ Special Abilities (AbilitySystem with 10+ abilities)
+- ✅ Monster-Specific Behaviors (8 behavior modules)
+- ✅ Scenario Objectives (10 objective types)
+- ✅ Victory/Defeat Screens
+
+**UI Components (Mostly Complete):**
+
+- ✅ Main Menu
+- ✅ Hero Panel
+- ✅ Action Bar
+- ✅ Card Hand
+- ✅ Combat Log
+- ✅ Turn Indicator
+- ✅ Villain Phase Overlay
+- ✅ Victory/Defeat Screens
+- ✅ Power Selection Screen
+- ✅ Power Card Display
+- ✅ Condition Markers
+- ✅ Encounter Card Overlay
+- ✅ Treasure Card Panel
+- ✅ Card Flip Animation
+- ✅ Card Face Display
+- ✅ Card Resolution System
+- ✅ Experience System
+
+### What's Missing for Playable MVP
+
+1. **Card UI Integration** - Components exist, need to be connected to app
+2. **Scenario Setup UI** - Need scenario/hero/difficulty/surge selection screen
+3. **Condition Markers Integration** - Component exists, need to add to HeroPanel
+4. **Experience Spending UI** - Need simple dialog for XP spending
+
+### Estimated Time to Playable MVP
+
+**1.5 days** of focused development work.
+
+### Key Insight
+
+The codebase is now **mostly integrated**. The only remaining major hurdle for a "Complete" MVP loop is the **Scenario Setup interface**. All core gameplay mechanics are now functional and wired to the UI.
+
+This means the project is in its **final polish and entry-point phase**.

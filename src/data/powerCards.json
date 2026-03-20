@@ -1,0 +1,257 @@
+[
+    {
+        "id": "ranger_twin_strike",
+        "type": "power",
+        "phase": "hero",
+        "heroClass": "ranger",
+        "powerType": "at-will",
+        "name": "Twin Strike",
+        "description": "Make two attack rolls. Each hit deals 1 damage.",
+        "attackBonus": 5,
+        "damage": 1,
+        "range": 1,
+        "target": "single",
+        "effects": [
+            {
+                "type": "attack",
+                "value": 1
+            },
+            {
+                "type": "attack",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "ranger_split_the_sky",
+        "type": "power",
+        "phase": "hero",
+        "heroClass": "ranger",
+        "powerType": "daily",
+        "name": "Split the Sky",
+        "description": "Deal 2 damage to all adjacent enemies.",
+        "attackBonus": 5,
+        "damage": 2,
+        "range": 1,
+        "target": "adjacent",
+        "effects": [
+            {
+                "type": "attack",
+                "value": 2,
+                "aoe": true
+            }
+        ]
+    },
+    {
+        "id": "ranger_crucial_advice",
+        "type": "power",
+        "phase": "hero",
+        "heroClass": "ranger",
+        "powerType": "utility",
+        "name": "Crucial Advice",
+        "description": "One ally gains +2 to their next attack roll.",
+        "target": "single",
+        "effects": [
+            {
+                "type": "buff",
+                "value": 2,
+                "duration": 1
+            }
+        ]
+    },
+    {
+        "id": "cleric_sacred_flame",
+        "type": "power",
+        "phase": "hero",
+        "heroClass": "cleric",
+        "powerType": "at-will",
+        "name": "Sacred Flame",
+        "description": "Deal 1 radiant damage to one enemy.",
+        "attackBonus": 5,
+        "damage": 1,
+        "range": 1,
+        "target": "single",
+        "effects": [
+            {
+                "type": "attack",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "cleric_healing_word",
+        "type": "power",
+        "phase": "hero",
+        "heroClass": "cleric",
+        "powerType": "daily",
+        "name": "Healing Word",
+        "description": "Restore 2 HP to one ally.",
+        "target": "single",
+        "effects": [
+            {
+                "type": "heal",
+                "value": 2
+            }
+        ]
+    },
+    {
+        "id": "cleric_turn_undead",
+        "type": "power",
+        "phase": "hero",
+        "heroClass": "cleric",
+        "powerType": "utility",
+        "name": "Turn Undead",
+        "description": "Push all adjacent undead monsters 2 tiles away.",
+        "target": "adjacent",
+        "effects": [
+            {
+                "type": "push",
+                "value": 2
+            }
+        ]
+    },
+    {
+        "id": "wizard_magic_missile",
+        "type": "power",
+        "phase": "hero",
+        "heroClass": "wizard",
+        "powerType": "at-will",
+        "name": "Magic Missile",
+        "description": "Deal 2 automatic damage to one enemy.",
+        "damage": 2,
+        "range": 3,
+        "target": "single",
+        "effects": [
+            {
+                "type": "damage",
+                "value": 2
+            }
+        ]
+    },
+    {
+        "id": "wizard_fireball",
+        "type": "power",
+        "phase": "hero",
+        "heroClass": "wizard",
+        "powerType": "daily",
+        "name": "Fireball",
+        "description": "Deal 3 damage to all enemies in range 2.",
+        "attackBonus": 5,
+        "damage": 3,
+        "range": 2,
+        "target": "area",
+        "effects": [
+            {
+                "type": "attack",
+                "value": 3,
+                "aoe": true
+            }
+        ]
+    },
+    {
+        "id": "wizard_shield",
+        "type": "power",
+        "phase": "hero",
+        "heroClass": "wizard",
+        "powerType": "utility",
+        "name": "Shield",
+        "description": "Reduce the next damage you take by 2.",
+        "target": "self",
+        "effects": [
+            {
+                "type": "buff",
+                "value": 2,
+                "duration": 1
+            }
+        ]
+    },
+    {
+        "id": "rogue_backstab",
+        "type": "power",
+        "phase": "hero",
+        "heroClass": "rogue",
+        "powerType": "at-will",
+        "name": "Backstab",
+        "description": "Deal 3 damage if an ally is adjacent to the target.",
+        "attackBonus": 5,
+        "damage": 3,
+        "range": 1,
+        "target": "single",
+        "effects": [
+            {
+                "type": "attack",
+                "value": 3
+            }
+        ]
+    },
+    {
+        "id": "rogue_shadow_step",
+        "type": "power",
+        "phase": "hero",
+        "heroClass": "rogue",
+        "powerType": "daily",
+        "name": "Shadow Step",
+        "description": "Move 3 tiles then deal 2 damage to one enemy.",
+        "attackBonus": 5,
+        "damage": 2,
+        "range": 1,
+        "target": "single",
+        "effects": [
+            {
+                "type": "move",
+                "value": 3
+            },
+            {
+                "type": "attack",
+                "value": 2
+            }
+        ]
+    },
+    {
+        "id": "rogue_smoke_bomb",
+        "type": "power",
+        "phase": "hero",
+        "heroClass": "rogue",
+        "powerType": "utility",
+        "name": "Smoke Bomb",
+        "description": "Adjacent enemies are blinded until start of next turn.",
+        "target": "adjacent",
+        "effects": [
+            {
+                "type": "condition",
+                "duration": 1
+            }
+        ]
+    },
+    {
+        "id": "shared_second_wind",
+        "type": "power",
+        "phase": "hero",
+        "powerType": "daily",
+        "name": "Second Wind",
+        "description": "Heal yourself for 1 HP.",
+        "target": "self",
+        "effects": [
+            {
+                "type": "heal",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "shared_inspiration",
+        "type": "power",
+        "phase": "hero",
+        "powerType": "utility",
+        "name": "Inspiration",
+        "description": "One ally gains +1 to their next roll.",
+        "target": "single",
+        "effects": [
+            {
+                "type": "buff",
+                "value": 1,
+                "duration": 1
+            }
+        ]
+    }
+]

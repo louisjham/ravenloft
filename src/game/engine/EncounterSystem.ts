@@ -1,4 +1,5 @@
 import { Card, EncounterType, Entity, GameState, Hero, Trap } from '../types';
+import { DataLoader } from '../dataLoader';
 import { CombatSystem } from './CombatSystem';
 import { ConditionSystem } from './ConditionSystem';
 
@@ -25,15 +26,10 @@ export class EncounterSystem {
             return { card: null, message: 'Failed to draw encounter card' };
         }
 
-        // In a real implementation, we'd look up the card from DataLoader
-        // For now, we'll return a placeholder
-        const card: Card = {
-            id: cardId,
-            type: 'encounter',
-            name: 'Encounter',
-            description: 'An encounter occurs',
-            effects: []
-        };
+        const card = DataLoader.getInstance().getCardById(cardId);
+        if (!card) {
+            return { card: null, message: `Encounter card not found: ${cardId}` };
+        }
 
         return { card, message: `Drew encounter card: ${card.name}` };
     }
@@ -353,5 +349,48 @@ export class EncounterSystem {
             gameState.discardPiles['encounter'].push(gameState.activeEnvironmentCard);
             gameState.activeEnvironmentCard = null;
         }
+    }
+
+    /**
+     * Advances the card resolution process (e.g., after a target is selected)
+     */
+    public static advanceCardResolution(gameState: GameState): GameState {
+        const resolution = gameState.cardResolution;
+        if (!resolution) return gameState;
+
+        const phaseOrder: import('../types').CardResolutionPhase[] =
+            ['drawing', 'revealing', 'resolving', 'complete'];
+        const currentIndex = phaseOrder.indexOf(resolution.phase as any);
+
+        // At end or unknown phase — clear resolution
+        if (currentIndex === -1 || currentIndex === phaseOrder.length - 1) {
+            return { ...gameState, cardResolution: undefined };
+        }
+
+        const nextPhase = phaseOrder[currentIndex + 1];
+
+        // Apply effects only when advancing TO complete
+        if (nextPhase === 'complete' && resolution.cardId) {
+            const card = DataLoader.getInstance().getCardById(resolution.cardId);
+            if (card) {
+                const hero = gameState.heroes.find(
+                    h => h.id === gameState.currentHeroId
+                );
+                if (card.encounterType === 'environment') {
+                    EncounterSystem.processEnvironmentCard(gameState, card);
+                } else if (card.encounterType === 'event-attack' && hero) {
+                    EncounterSystem.processEventAttackCard(gameState, card, hero);
+                } else if (card.encounterType === 'event' && hero) {
+                    EncounterSystem.processEventCard(gameState, card, hero);
+                } else if (card.encounterType === 'trap' && hero) {
+                    EncounterSystem.placeTrap(gameState, card, hero);
+                }
+            }
+        }
+
+        return {
+            ...gameState,
+            cardResolution: { ...resolution, phase: nextPhase }
+        };
     }
 }

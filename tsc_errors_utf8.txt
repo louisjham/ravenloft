@@ -1,0 +1,28 @@
+﻿src/components/ui/EncounterCardOverlay.tsx(166,53): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/ui/EncounterCardOverlay.tsx(177,14): error TS18048: 'resolution.pendingEffects' is possibly 'undefined'.
+src/components/ui/EncounterCardOverlay.tsx(180,18): error TS18048: 'resolution.pendingEffects' is possibly 'undefined'.
+src/components/ui/EncounterCardOverlay.tsx(185,14): error TS18048: 'resolution.resolvedEffects' is possibly 'undefined'.
+src/components/ui/EncounterCardOverlay.tsx(188,18): error TS18048: 'resolution.resolvedEffects' is possibly 'undefined'.
+src/components/ui/EncounterCardOverlay.tsx(220,56): error TS18048: 'resolution.pendingEffects' is possibly 'undefined'.
+src/components/ui/EncounterCardOverlay.tsx(222,25): error TS18048: 'resolution.pendingEffects' is possibly 'undefined'.
+src/components/ui/TreasureCardPanel.tsx(138,19): error TS2367: This comparison appears to be unintentional because the types 'TreasureType | undefined' and '"consumable"' have no overlap.
+src/game/engine/ActionResolver.ts(4,10): error TS2305: Module '"./MonsterAI"' has no exported member 'MonsterAI'.
+src/game/engine/CardResolutionSystem.ts(23,5): error TS2739: Type '{ phase: "drawing"; cardId: string; cardType: "treasure" | "encounter"; targetEntityId: string; result: null; pendingEffects: never[]; resolvedEffects: never[]; }' is missing the following properties from type 'CardResolutionState': card, step
+src/game/engine/CardResolutionSystem.ts(60,13): error TS18048: 'res.pendingEffects' is possibly 'undefined'.
+src/game/engine/CardResolutionSystem.ts(61,26): error TS18048: 'res.pendingEffects' is possibly 'undefined'.
+src/game/engine/CardResolutionSystem.ts(63,11): error TS18048: 'res.resolvedEffects' is possibly 'undefined'.
+src/game/engine/CardResolutionSystem.ts(65,15): error TS18048: 'res.pendingEffects' is possibly 'undefined'.
+src/game/engine/CardResolutionSystem.ts(85,5): error TS2739: Type '{ phase: "idle"; cardId: null; cardType: null; targetEntityId: null; result: null; pendingEffects: never[]; resolvedEffects: never[]; }' is missing the following properties from type 'CardResolutionState': card, step
+src/game/GameEngine.ts(4,10): error TS2305: Module '"./engine/MonsterAI"' has no exported member 'MonsterAI'.
+src/store/gameStore.ts(748,27): error TS18048: 'gameState.activeConditions' is possibly 'undefined'.
+src/store/gameStore.ts(749,34): error TS2488: Type 'ActiveCondition[] | undefined' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/store/gameStore.ts(772,29): error TS18048: 'gameState.activeConditions' is possibly 'undefined'.
+src/store/gameStore.ts(781,30): error TS18048: 'gameState.activeConditions' is possibly 'undefined'.
+src/testing/integrationTests.ts(1017,7): error TS1117: An object literal cannot have multiple properties with the same name.
+src/testing/integrationTests.ts(1277,7): error TS1117: An object literal cannot have multiple properties with the same name.
+src/testing/integrationTests.ts(2473,9): error TS1117: An object literal cannot have multiple properties with the same name.
+src/testing/integrationTests.ts(2605,7): error TS1117: An object literal cannot have multiple properties with the same name.
+src/testing/integrationTests.ts(2808,7): error TS1117: An object literal cannot have multiple properties with the same name.
+src/utils/accessibility.ts(25,49): error TS2339: Property 'accessibility' does not exist on type 'GameSettings'.
+src/utils/accessibility.ts(40,53): error TS2339: Property 'accessibility' does not exist on type 'GameSettings'.

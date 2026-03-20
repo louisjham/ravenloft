@@ -24,10 +24,21 @@ import { TileSystem } from '../engine/TileSystem';
  */
 export class AbilitySystem {
     /**
+     * Roll override for testing purposes.
+     * Set to a function that returns a fixed roll value.
+     * Reset to null after each test to restore normal behavior.
+     */
+    public static _rollOverride: (() => number) | null = null;
+
+    /**
      * Roll a d20 (1-20).
      * Returns Math.floor(Math.random() * 20) + 1
+     * Uses _rollOverride if set (for testing).
      */
     private static rollD20(): number {
+        if (this._rollOverride) {
+            return this._rollOverride();
+        }
         return Math.floor(Math.random() * 20) + 1;
     }
 

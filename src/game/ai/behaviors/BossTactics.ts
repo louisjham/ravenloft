@@ -1,80 +1,11 @@
 import { BossPhase } from '../../types'
+import bossPhases from '../../../data/boss-phases.json'
 
 export interface BossTacticsDefinition {
     phases: BossPhase[]
 }
 
-export const BOSS_TACTICS: Record<string, BossTacticsDefinition> = {
-    strahd: {
-        phases: [
-            {
-                id: 'p1',
-                className: 'The Lord of Ravenloft',
-                hpThreshold: 1.0,
-                triggers: ['start'],
-                abilities: ['fireball', 'summon_skeletons'],
-                tactics: [
-                    { condition: 'within_1_tile_of_hero', actions: ['attack'], ability: 'fireball' },
-                    { condition: 'always', actions: ['move_toward_closest_hero'] }
-                ]
-            },
-            {
-                id: 'p2',
-                className: 'The Ancient Fear',
-                hpThreshold: 0.5,
-                triggers: ['half_hp'],
-                abilities: ['vampiric_bite', 'mist_form', 'multiattack'],
-                tactics: [
-                    { condition: 'hp_below_50_percent', actions: ['use_ability'], ability: 'mist_form' },
-                    { condition: 'adjacent_to_hero', actions: ['attack', 'use_ability'], ability: 'vampiric_bite' }
-                ]
-            }
-        ]
-    },
-
-    vampire_lord: {
-        phases: [
-            {
-                id: 'p1',
-                className: 'Bloodweaver',
-                hpThreshold: 1.0,
-                triggers: ['start'],
-                abilities: ['drain_life', 'summon'],
-                tactics: [
-                    { condition: 'adjacent_to_hero', actions: ['use_ability'], ability: 'drain_life' },
-                    { condition: 'always', actions: ['move_toward_closest_hero'] }
-                ]
-            },
-            {
-                id: 'p2',
-                className: 'Sanguine Beast',
-                hpThreshold: 0.3,
-                triggers: ['near_death'],
-                abilities: ['vampiric_bite', 'regeneration'],
-                tactics: [
-                    { condition: 'hp_below_30_percent', actions: ['use_ability'], ability: 'regeneration' },
-                    { condition: 'adjacent_to_hero', actions: ['attack'], ability: 'vampiric_bite' }
-                ]
-            }
-        ]
-    },
-
-    young_red_dragon: {
-        phases: [
-            {
-                id: 'p1',
-                className: 'The Burning Terror',
-                hpThreshold: 1.0,
-                triggers: ['start'],
-                abilities: ['fire_breath', 'fear_aura'],
-                tactics: [
-                    { condition: 'heroes_adjacent', actions: ['use_ability'], ability: 'fire_breath' },
-                    { condition: 'always', actions: ['move_toward_closest_hero'] }
-                ]
-            }
-        ]
-    }
-}
+export const BOSS_TACTICS = bossPhases as Record<string, BossTacticsDefinition>
 
 export function getBossTactics(monsterType: string): BossTacticsDefinition {
     const tactics = BOSS_TACTICS[monsterType]

@@ -2,6 +2,9 @@
  * Simple test to verify villain phase logic works correctly
  */
 
+// Test utilities for console capture, assertions, etc.
+import { captureWarn, captureError, captureLog, runWithCapturedConsole } from './testUtils';
+
 import { executeVillainPhase, buildVillainQueue } from '../store/gameStore';
 import type { GameState, Hero, Monster, Tile } from '../game/types';
 
@@ -145,7 +148,8 @@ const villainGameState: GameState = {
     treasuresDrawnThisTurn: 0,
     traps: [],
     villainPhaseQueue: [],
-    activeVillainId: null
+    activeVillainId: null,
+activeConditions: []
 };
 
 console.log('--- VILLAIN PHASE TEST ---');
@@ -197,3 +201,4 @@ if (villainGameState.monsters[0].position.x !== 2) {
 
 console.log('  Villain Phase Sequencer PASSED: Skeleton moved 1 tile closer to hero');
 console.log('--- VILLAIN PHASE TEST PASSED ---');
+

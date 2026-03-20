@@ -12,6 +12,9 @@
     "damage": 1,
     "experienceValue": 1,
     "moveRange": 1,
+    "abilities": [
+      "undying"
+    ],
     "behavior": {
       "conditions": [
         "adjacent_to_hero",
@@ -48,6 +51,9 @@
     "damage": 1,
     "experienceValue": 1,
     "moveRange": 1,
+    "abilities": [
+      "undying"
+    ],
     "behavior": {
       "conditions": [
         "adjacent_to_hero",
@@ -84,6 +90,9 @@
     "damage": 1,
     "experienceValue": 2,
     "moveRange": 1,
+    "abilities": [
+      "plague_aura"
+    ],
     "behavior": {
       "conditions": [
         "adjacent_to_hero",
@@ -120,6 +129,375 @@
     "damage": 1,
     "experienceValue": 1,
     "moveRange": 2,
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": []
+  },
+  {
+    "id": "monster_vampire",
+    "name": "Vampire",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 3,
+    "maxHp": 3,
+    "ac": 15,
+    "speed": 2,
+    "attackBonus": 8,
+    "damage": 2,
+    "experienceValue": 3,
+    "moveRange": 2,
+    "abilities": [
+      "vampiric_bite",
+      "mist_form",
+      "regeneration",
+      "drain_life"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": []
+  },
+  {
+    "id": "monster_troll",
+    "name": "Troll",
+    "type": "monster",
+    "monsterType": "Giant",
+    "hp": 4,
+    "maxHp": 4,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 7,
+    "damage": 2,
+    "experienceValue": 4,
+    "moveRange": 1,
+    "abilities": [
+      "regeneration"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": []
+  },
+  {
+    "id": "monster_dragon",
+    "name": "Dragon",
+    "type": "monster",
+    "monsterType": "Dragon",
+    "hp": 5,
+    "maxHp": 5,
+    "ac": 16,
+    "speed": 1,
+    "attackBonus": 9,
+    "damage": 3,
+    "experienceValue": 5,
+    "moveRange": 1,
+    "abilities": [
+      "fire_breath",
+      "fear_aura"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": []
+  },
+  {
+    "id": "monster_necromancer",
+    "name": "Necromancer",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 2,
+    "maxHp": 2,
+    "ac": 12,
+    "speed": 1,
+    "attackBonus": 6,
+    "damage": 1,
+    "experienceValue": 2,
+    "moveRange": 1,
+    "abilities": [
+      "summon"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": []
+  },
+  {
+    "id": "monster_werewolf",
+    "name": "Werewolf",
+    "type": "monster",
+    "monsterType": "Beast",
+    "hp": 3,
+    "maxHp": 3,
+    "ac": 14,
+    "speed": 2,
+    "attackBonus": 7,
+    "damage": 2,
+    "experienceValue": 3,
+    "moveRange": 2,
+    "abilities": [
+      "howl"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": []
+  },
+  {
+    "id": "monster_spider",
+    "name": "Spider",
+    "type": "monster",
+    "monsterType": "Beast",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 12,
+    "speed": 1,
+    "attackBonus": 6,
+    "damage": 1,
+    "experienceValue": 1,
+    "moveRange": 1,
+    "abilities": [
+      "web"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": []
+  },
+  {
+    "id": "monster_strahd",
+    "name": "Strahd",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 10,
+    "maxHp": 10,
+    "ac": 18,
+    "speed": 2,
+    "attackBonus": 10,
+    "damage": 3,
+    "experienceValue": 10,
+    "moveRange": 2,
+    "isBoss": true,
+    "currentPhase": null,
+    "abilities": [
+      "fireball",
+      "summon_skeletons",
+      "vampiric_bite",
+      "mist_form",
+      "multiattack"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": []
+  },
+  {
+    "id": "monster_vampire_lord",
+    "name": "Vampire Lord",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 8,
+    "maxHp": 8,
+    "ac": 17,
+    "speed": 2,
+    "attackBonus": 9,
+    "damage": 3,
+    "experienceValue": 8,
+    "moveRange": 2,
+    "isBoss": true,
+    "currentPhase": null,
+    "abilities": [
+      "drain_life",
+      "summon",
+      "vampiric_bite",
+      "regeneration"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": []
+  },
+  {
+    "id": "monster_young_red_dragon",
+    "name": "Young Red Dragon",
+    "type": "monster",
+    "monsterType": "Dragon",
+    "hp": 6,
+    "maxHp": 6,
+    "ac": 16,
+    "speed": 1,
+    "attackBonus": 9,
+    "damage": 3,
+    "experienceValue": 6,
+    "moveRange": 1,
+    "isBoss": true,
+    "currentPhase": null,
+    "abilities": [
+      "fire_breath",
+      "fear_aura"
+    ],
     "behavior": {
       "conditions": [
         "adjacent_to_hero",

@@ -1,9 +1,17 @@
 import React from 'react';
 import { useGameStore } from '../../store/gameStore';
+import ConditionMarkers from './ConditionMarkers';
 
 export const HeroPanel: React.FC = () => {
   const gameState = useGameStore((state) => state.gameState);
-  const currentHero = gameState?.heroes?.find(h => h.id === gameState?.currentHeroId);
+  
+  // Individual selectors for Condition logic
+  const currentHeroId = useGameStore(s => s.gameState?.currentHeroId);
+  const activeConditions = useGameStore(
+    s => s.gameState?.activeConditions ?? []
+  );
+
+  const currentHero = gameState?.heroes?.find(h => h.id === currentHeroId);
 
   if (!currentHero) return null;
 
@@ -39,6 +47,14 @@ export const HeroPanel: React.FC = () => {
           <div className="hero-class" style={{ color: 'var(--color-text-dim)', fontSize: '0.9rem' }}>{currentHero.heroClass}</div>
           <div className="hero-level" style={{ color: 'var(--color-gold)', fontSize: '0.8rem', fontWeight: 'bold' }}>LVL {currentHero.level} | XP {currentHero.xp}</div>
         </div>
+      </div>
+
+      <div className="hero-conditions" style={{ marginBottom: '15px' }}>
+        <ConditionMarkers 
+          entityId={currentHeroId ?? ''} 
+          conditions={activeConditions} 
+          size="small" 
+        />
       </div>
 
       <div className="status-bars">

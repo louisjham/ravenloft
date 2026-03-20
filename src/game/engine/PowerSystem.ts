@@ -15,6 +15,12 @@ export class PowerSystem {
      * Checks if a hero can use a specific power
      */
     public static canUsePower(hero: Hero, powerCard: Card): { canUse: boolean; reason?: string } {
+        // Power selection guard - only fires when selectedPowerIds is populated
+        const selectedIds = hero.selectedPowerIds ?? [];
+        if (selectedIds.length > 0 && !selectedIds.includes(powerCard.id)) {
+            return { canUse: false, reason: 'Power not selected' };
+        }
+
         // Check if power is in hero's abilities
         if (!hero.abilities.includes(powerCard.id) && !hero.hand.includes(powerCard.id)) {
             return { canUse: false, reason: 'Power not in hero abilities or hand' };
@@ -50,6 +56,16 @@ export class PowerSystem {
         target: Entity | null,
         gameState: any
     ): { success: boolean; message: string; effects: any[] } {
+        // Power selection guard - only fires when selectedPowerIds is populated
+        const selectedIds = hero.selectedPowerIds ?? [];
+        if (selectedIds.length > 0 && !selectedIds.includes(powerCard.id)) {
+            return {
+                success: false,
+                message: `${hero.heroClass ?? 'Hero'} has not selected power: ${powerCard.name}`,
+                effects: []
+            };
+        }
+
         const canUse = this.canUsePower(hero, powerCard);
         if (!canUse.canUse) {
             return { success: false, message: canUse.reason || 'Cannot use power', effects: [] };

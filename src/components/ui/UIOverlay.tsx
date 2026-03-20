@@ -11,9 +11,10 @@ import { PauseMenu } from './PauseMenu';
 
 interface UIOverlayProps {
   onStartGame: (scenarioId: string, heroIds: string[]) => void;
+  onOpenTreasure?: (heroId: string) => void;
 }
 
-export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame }) => {
+export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasure }) => {
   const gameState = useGameStore((state) => state.gameState);
   const isPaused = useGameStore((state) => state.isPaused);
   const unpauseGame = useGameStore((state) => state.unpauseGame);
@@ -46,7 +47,7 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame }) => {
             <ScenarioPanel />
           </div>
           <div style={{ pointerEvents: 'auto', marginTop: 'auto' }}>
-            <ActionBar />
+            <ActionBar onOpenTreasure={onOpenTreasure} />
           </div>
         </div>
 

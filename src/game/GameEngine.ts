@@ -1,7 +1,7 @@
 import { GameState, Hero, Monster, Tile, Card, Position, GamePhase, GameLogEntry } from './types';
 import { CardSystem } from './engine/CardSystem';
 import { TileSystem } from './engine/TileSystem';
-import { MonsterAI } from './engine/MonsterAI';
+import { findClosestHero, manhattanDistance } from './engine/MonsterAI';
 import { CombatSystem } from './engine/CombatSystem';
 import { ActionResolver } from './engine/ActionResolver';
 import { GAME_CONSTANTS } from './constants';
@@ -63,17 +63,17 @@ export class GameEngine {
     this.log("Monsters are moving...", 'event');
     
     this.state.monsters.forEach(monster => {
-      const target = MonsterAI.findNearestHero(monster, this.state.heroes);
+      const target = findClosestHero(monster.position as any, this.state.heroes, this.state.tiles);
       if (target) {
-        if (MonsterAI.isAdjacent(monster.position, target.position)) {
-          const result = ActionResolver.resolveAttack(monster, target);
-          this.log(`Monster attacks ${target.name}: ${result.hit ? 'HIT' : 'MISS'} (${result.roll})`, 'combat');
+        if (manhattanDistance(monster.position.x, monster.position.z, target.hero.position.x, target.hero.position.z) <= 1) {
+          const result = ActionResolver.resolveAttack(monster, target.hero);
+          this.log(`Monster attacks ${target.hero.name}: ${result.hit ? 'HIT' : 'MISS'} (${result.roll})`, 'combat');
           if (result.hit) {
-            CombatSystem.applyDamage(target, result.damage);
+            CombatSystem.applyDamage(target.hero, result.damage);
           }
         } else {
           // Placeholder for movement
-          this.log(`Monster moves toward ${target.name}`, 'action');
+          this.log(`Monster moves toward ${target.hero.name}`, 'action');
         }
       }
     });

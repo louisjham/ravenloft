@@ -38,6 +38,10 @@ export interface Condition {
   turnsRemaining: number; // How many turns until it expires
 }
 
+export interface ActiveCondition extends Condition {
+  targetId: string;
+}
+
 export interface Entity {
   id: string;
   name: string;
@@ -48,6 +52,7 @@ export interface Entity {
   ac: number;
   speed: number;
   isExhausted: boolean;
+  isDefeated?: boolean;
   // DEBUG: Conditions array - currently NOT used
   conditions: Condition[];
   // DEBUG: Used powers tracking - currently NOT used
@@ -63,6 +68,10 @@ export interface Hero extends Entity {
   abilities: string[]; // Ability IDs
   hand: string[]; // Card IDs
   items: string[]; // Item IDs
+  selectedPowerIds?: string[]
+  // Card ids confirmed during power selection.
+  // Populated by applySelectionsToHeroes().
+  // Initially empty array — not optional, always present.
 }
 
 export interface Monster extends Entity {
@@ -179,6 +188,30 @@ export interface GameLogEntry {
 
 export type GamePhase = 'setup' | 'hero' | 'exploration' | 'villain' | 'monster' | 'end' | 'victory' | 'defeat';
 
+export type CardResolutionPhase =
+  | 'idle'
+  | 'drawing'
+  | 'revealing'
+  | 'resolving'
+  | 'complete'
+
+export interface CardResolutionState {
+  phase: CardResolutionPhase;
+  cardId: string | null;
+  cardType: 'encounter' | 'treasure' | null;
+  pendingEffects?: Effect[];
+  resolvedEffects?: Effect[];
+  targetEntityId: string | null;
+  result?: { success: boolean; message: string; results?: any[] } | null;
+}
+
+export interface TreasureAssignment {
+  cardId: string
+  heroId: string
+  assignedAt: number
+  isUsed: boolean
+}
+
 export interface GameState {
   phase: GamePhase;
   currentHeroId: string;
@@ -201,6 +234,13 @@ export interface GameState {
   traps: Trap[]; // Active traps in dungeon
   villainPhaseQueue: string[];
   activeVillainId: string | null;
+  powerSelections?: PowerSelection[]
+  // One entry per hero, populated at game initialization.
+  // Card resolution (Prompt CUI-1)
+  cardResolution?: CardResolutionState;
+  
+  treasureAssignments?: TreasureAssignment[];
+  activeConditions?: ActiveCondition[];
 }
 
 export interface Trap {
@@ -230,6 +270,12 @@ export interface GameSettings {
   voiceVolume: number;
   showDevTools: boolean;
   difficulty: 'normal' | 'hard';
+  accessibility?: {
+    colorblindMode?: 'none' | 'protanopia' | 'deuteranopia' | 'tritanopia';
+    highContrast?: boolean;
+    textSize?: 'small' | 'medium' | 'large';
+    [key: string]: boolean | number | string | undefined;
+  };
 }
 
 export interface Path {
@@ -323,3 +369,41 @@ export type TacticResult =
     targetId?: string;
     effects: AbilityEffect[]
   }
+
+// ============================================================================
+// PSS-1: Power Selection System Types
+// ============================================================================
+
+export type PowerTargetType =
+  | 'self' | 'single_enemy' | 'single_ally'
+  | 'all_enemies' | 'all_allies'
+  | 'adjacent_enemies' | 'adjacent_allies'
+  | 'area' | 'tile'
+
+export type PowerKeyword =
+  | 'arcane' | 'divine' | 'martial' | 'shadow'
+  | 'fire' | 'cold' | 'thunder' | 'necrotic'
+  | 'radiant' | 'poison'
+
+export interface PowerSelection {
+  heroId: string
+  selectedPowerIds: string[]
+  isConfirmed: boolean
+}
+
+export interface PowerSelectionConstraints {
+  heroType: string
+  maxAtWill: number    // maps to 'at-will' cards
+  maxDaily: number     // maps to 'daily' cards
+  maxUtility: number   // maps to 'utility' cards
+  totalMax: number
+}
+
+export type PowerCardRef = Pick<Card,
+  'id' | 'name' | 'description' | 'flavorText' |
+  'powerType' | 'heroClass' | 'effects' | 'attackBonus' |
+  'damage' | 'range' | 'target'
+> & {
+  keywords?: PowerKeyword[]
+  maxPerDeck?: number
+}

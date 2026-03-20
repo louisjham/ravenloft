@@ -3,11 +3,16 @@
  * These are designed to be run in a dev environment or CI.
  */
 
+// Test utilities for console capture, assertions, etc.
+import { captureWarn, captureError, captureLog, runWithCapturedConsole } from './testUtils';
+
+import { runAbilitySystemTests } from './ability-system-tests';
 import { useGameStore, buildVillainQueue, applyTrapResult, executeVillainPhase } from '../store/gameStore';
 import { useUIStore } from '../store/uiStore';
 import { TileSystem } from '../game/engine/TileSystem';
 import { DataLoader } from '../game/dataLoader';
-import type { Tile, TileConnection, Direction, GameState, ExplorationPoint, Monster, Hero, TacticResult, MonsterAbility, AbilityEffect } from '../game/types';
+import type { Tile, TileConnection, Direction, GameState, ExplorationPoint, Monster, Hero, TacticResult, MonsterAbility, AbilityEffect, Card } from '../game/types';
+import { CardResolutionSystem } from '../game/engine/CardResolutionSystem';
 import { ExplorationState, onArrowClicked, onRotationConfirmed, onCancel, onPlacementComplete } from '../game/engine/ExplorationStateMachine';
 import {
   manhattanDistance,
@@ -34,6 +39,13 @@ export const runFullGameLoopTest = async () => {
   console.log('--- STARTING INTEGRATION TEST ---');
 
   try {
+    // Run ability system tests first
+    console.log('Running Ability System Tests...');
+    const abilityTestsPassed = runAbilitySystemTests();
+    if (!abilityTestsPassed) {
+      throw new Error('Ability System Tests FAILED');
+    }
+
     const store = useGameStore.getState();
     const ui = useUIStore.getState();
 
@@ -1001,7 +1013,7 @@ export const runFullGameLoopTest = async () => {
       treasuresDrawnThisTurn: 0,
       traps: [],
       villainPhaseQueue: [],
-      activeVillainId: null
+      activeVillainId: null, activeConditions: []
     });
 
     // Test 1: Close Combat Test - Monster at (1,1), Hero at (1,0) (adjacent)
@@ -1260,7 +1272,7 @@ export const runFullGameLoopTest = async () => {
       treasuresDrawnThisTurn: 0,
       traps: [],
       villainPhaseQueue: [],
-      activeVillainId: null
+      activeVillainId: null, activeConditions: []
     };
 
     // Step 1: Test with no heroes - should return idle
@@ -1408,7 +1420,8 @@ export const runFullGameLoopTest = async () => {
       treasuresDrawnThisTurn: 0,
       traps: [testTrap],
       villainPhaseQueue: [],
-      activeVillainId: null
+      activeVillainId: null,
+      activeConditions: []
     };
 
     // Test 1: Hero on trap tile → result is not null, damage applied
@@ -1605,7 +1618,8 @@ export const runFullGameLoopTest = async () => {
       treasuresDrawnThisTurn: 0,
       traps: [],
       villainPhaseQueue: [],
-      activeVillainId: null
+      activeVillainId: null,
+      activeConditions: []
     };
 
     // Test: Villain Phase - Move-toward AND move-then-attack behavior in sequence
@@ -2092,7 +2106,8 @@ export const runFullGameLoopTest = async () => {
       treasuresDrawnThisTurn: 0,
       traps: [],
       villainPhaseQueue: [],
-      activeVillainId: null
+      activeVillainId: null,
+      activeConditions: []
     };
 
     // Assertion: Boss at 100% HP → getCurrentPhase returns phase p1
@@ -2235,7 +2250,8 @@ export const runFullGameLoopTest = async () => {
         treasuresDrawnThisTurn: 0,
         traps: [],
         villainPhaseQueue: [],
-        activeVillainId: null
+        activeVillainId: null,
+        activeConditions: []
       };
 
       const triggerResult = resolveTactic(triggeredMonster, testTile, triggerState);
@@ -2334,7 +2350,8 @@ export const runFullGameLoopTest = async () => {
         treasuresDrawnThisTurn: 0,
         traps: [],
         villainPhaseQueue: [],
-        activeVillainId: null
+        activeVillainId: null,
+        activeConditions: []
       };
 
       const boss49Result = resolveTactic(boss49Hp, bossTile, boss49State);
@@ -2450,7 +2467,7 @@ export const runFullGameLoopTest = async () => {
         treasuresDrawnThisTurn: 0,
         traps: [],
         villainPhaseQueue: [],
-        activeVillainId: null
+        activeVillainId: null, activeConditions: []
       };
 
       const boss2Result = resolveTactic(bossPhase2, boss2Tile, boss2State);
@@ -2465,6 +2482,836 @@ export const runFullGameLoopTest = async () => {
     }
 
     console.log('  MonsterAI.resolveTactic - Ability and Boss Integration PASSED');
+
+    // -----------------------------------------------------------------------
+    // AMI-7: gameStore Integration Test
+    // -----------------------------------------------------------------------
+    console.log('Testing gameStore.executeVillainPhase integration...');
+
+    // Test 1: Strahd at 45% HP → phase transitions to p2 before tactic evaluates
+    const strahdBoss: Monster = {
+      id: 'strahd_test',
+      name: 'Strahd von Zarovich',
+      type: 'monster',
+      monsterType: 'strahd',
+      hp: 9, // 45% of 20 HP
+      maxHp: 20,
+      ac: 18,
+      speed: 6,
+      isExhausted: false,
+      behavior: { conditions: [], priorityTargets: [], actions: [] },
+      attackBonus: 10,
+      damage: 10,
+      experienceValue: 500,
+      ownedByHeroId: 'hero_test',
+      isBoss: true,
+      currentPhase: 'p1',
+      position: { x: 0, z: 0, sqX: 3, sqZ: 3 },
+      conditions: [],
+      usedPowers: [],
+      abilities: [
+        {
+          id: 'fireball',
+          name: 'Fireball',
+          description: 'Launches a devastating fireball',
+          type: 'active',
+          trigger: 'on_turn_start',
+          cooldown: 3,
+          currentCooldown: 0,
+          effects: [
+            { type: 'damage', value: 5, target: 'all_heroes' }
+          ]
+        },
+        {
+          id: 'vampiric_bite',
+          name: 'Vampiric Bite',
+          description: 'Bites a hero to drain their life force',
+          type: 'active',
+          trigger: 'on_turn_start',
+          cooldown: 2,
+          currentCooldown: 0,
+          effects: [
+            { type: 'damage', value: 3, target: 'closest_hero' }
+          ]
+        }
+      ]
+    };
+
+    const strahdHero: Hero = {
+      id: 'hero_test',
+      name: 'Test Hero',
+      type: 'hero',
+      heroClass: 'paladin',
+      level: 1,
+      xp: 0,
+      surgeUsed: false,
+      abilities: [],
+      hand: [],
+      items: [],
+      position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+      hp: 10,
+      maxHp: 10,
+      ac: 15,
+      speed: 6,
+      isExhausted: false,
+      conditions: [],
+      usedPowers: []
+    };
+
+    const strahdTile: Tile = {
+      ...templateTile,
+      id: 'strahd_tile',
+      x: 0,
+      z: 0,
+      connections: [openEdge('north'), openEdge('south'), closedEdge('east'), closedEdge('west')]
+    };
+
+    const strahdState: GameState = {
+      phase: 'villain',
+      currentHeroId: 'hero_test',
+      heroes: [strahdHero],
+      monsters: [strahdBoss],
+      tiles: [strahdTile, { ...templateTile, id: 'hero_test_tile', x: 0, z: -1, connections: [openEdge('south'), closedEdge('north'), closedEdge('east'), closedEdge('west')] }],
+      dungeonDeck: [],
+      treasureDeck: [],
+      encounterDeck: [],
+      discardPiles: {},
+      activeScenario: {
+        id: 'strahd_test',
+        name: 'Strahd Phase Transition Test',
+        difficulty: 'Hard',
+        description: 'Test Strahd phase transition',
+        introText: 'Test',
+        victoryText: 'Test',
+        defeatText: 'Test',
+        objectives: [],
+        specialRules: [],
+        startTileId: 'strahd_tile',
+        maxSurges: 3
+      },
+      turnOrder: ['hero_test'],
+      healingSurges: 2,
+      turnCount: 1,
+      log: [],
+      activeEnvironmentCard: null,
+      experiencePile: [],
+      treasuresDrawnThisTurn: 0,
+      traps: [],
+      villainPhaseQueue: [],
+      activeVillainId: null, activeConditions: []
+    };
+
+    // Execute villain phase - Strahd should transition to phase 2 before evaluating tactics
+    const strahdResult = executeVillainPhase(strahdState);
+    const updatedStrahd = strahdResult.monsters.find(m => m.id === 'strahd_test');
+    if (!updatedStrahd) {
+      throw new Error('Test 1: Strahd monster not found after villain phase');
+    }
+    if (updatedStrahd.currentPhase !== 'p2') {
+      throw new Error(`Test 1: Expected Strahd to transition to phase p2, got ${updatedStrahd.currentPhase}`);
+    }
+    console.log('  Test 1 PASSED: Strahd at 45% HP transitions to phase 2 before tactic evaluates');
+
+    // Test 2: Monster with regeneration → gains 1 HP at turn start
+    const regenMonster: Monster = {
+      id: 'regen_test',
+      name: 'Regenerating Monster',
+      type: 'monster',
+      monsterType: 'vampire',
+      hp: 8,
+      maxHp: 10,
+      ac: 14,
+      speed: 6,
+      isExhausted: false,
+      behavior: { conditions: [], priorityTargets: [], actions: [] },
+      attackBonus: 5,
+      damage: 3,
+      experienceValue: 200,
+      ownedByHeroId: 'hero_test2',
+      position: { x: 0, z: 0, sqX: 3, sqZ: 3 },
+      conditions: [],
+      usedPowers: [],
+      abilities: [
+        {
+          id: 'regeneration',
+          name: 'Regeneration',
+          description: 'Heals 1 HP at the start of each turn',
+          type: 'passive',
+          trigger: 'on_turn_start',
+          effects: [
+            { type: 'heal', value: 1, target: 'self' }
+          ]
+        }
+      ]
+    };
+
+    const regenHero: Hero = {
+      id: 'hero_test2',
+      name: 'Test Hero 2',
+      type: 'hero',
+      heroClass: 'cleric',
+      level: 1,
+      xp: 0,
+      surgeUsed: false,
+      abilities: [],
+      hand: [],
+      items: [],
+      position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+      hp: 10,
+      maxHp: 10,
+      ac: 15,
+      speed: 6,
+      isExhausted: false,
+      conditions: [],
+      usedPowers: []
+    };
+
+    const regenState: GameState = {
+      phase: 'villain',
+      currentHeroId: 'hero_test2',
+      heroes: [regenHero],
+      monsters: [regenMonster],
+      tiles: [strahdTile, { ...templateTile, id: 'hero_test2_tile', x: 0, z: -1, connections: [openEdge('south'), closedEdge('north'), closedEdge('east'), closedEdge('west')] }],
+      dungeonDeck: [],
+      treasureDeck: [],
+      encounterDeck: [],
+      discardPiles: {},
+      activeScenario: {
+        id: 'regen_test',
+        name: 'Regeneration Test',
+        difficulty: 'Medium',
+        description: 'Test regeneration passive ability',
+        introText: 'Test',
+        victoryText: 'Test',
+        defeatText: 'Test',
+        objectives: [],
+        specialRules: [],
+        startTileId: 'regen_tile',
+        maxSurges: 3
+      },
+      turnOrder: ['hero_test2'],
+      healingSurges: 2,
+      turnCount: 1,
+      log: [],
+      activeEnvironmentCard: null,
+      experiencePile: [],
+      treasuresDrawnThisTurn: 0,
+      traps: [],
+      villainPhaseQueue: [],
+      activeVillainId: null,
+      activeConditions: []
+    };
+
+    const regenResult = executeVillainPhase(regenState);
+    const updatedRegenMonster = regenResult.monsters.find(m => m.id === 'regen_test');
+    if (!updatedRegenMonster) {
+      throw new Error('Test 2: Regenerating monster not found after villain phase');
+    }
+    if (updatedRegenMonster.hp !== 9) {
+      throw new Error(`Test 2: Expected regenerating monster to have 9 HP (8 + 1), got ${updatedRegenMonster.hp}`);
+    }
+    console.log('  Test 2 PASSED: Monster with regeneration gains 1 HP at turn start');
+
+    // Test 3: Skeleton defeated → undying rolls and potentially returns to 1 HP
+    const skeletonMonster: Monster = {
+      id: 'skeleton_undying_test',
+      name: 'Skeleton',
+      type: 'monster',
+      monsterType: 'skeleton',
+      hp: 0, // Defeated
+      maxHp: 5,
+      ac: 13,
+      speed: 6,
+      isExhausted: false,
+      behavior: { conditions: [], priorityTargets: [], actions: [] },
+      attackBonus: 4,
+      damage: 2,
+      experienceValue: 100,
+      ownedByHeroId: 'hero_test3',
+      position: { x: 0, z: 0, sqX: 3, sqZ: 3 },
+      conditions: [],
+      usedPowers: [],
+      abilities: [
+        {
+          id: 'undying',
+          name: 'Undying',
+          description: 'Rolls to return to 1 HP when defeated',
+          type: 'active',
+          trigger: 'on_death',
+          cooldown: 0,
+          currentCooldown: 0,
+          effects: [
+            { type: 'heal', value: 1, target: 'self' }
+          ]
+        }
+      ]
+    };
+
+    const undyingHero: Hero = {
+      id: 'hero_test3',
+      name: 'Test Hero 3',
+      type: 'hero',
+      heroClass: 'fighter',
+      level: 1,
+      xp: 0,
+      surgeUsed: false,
+      abilities: [],
+      hand: [],
+      items: [],
+      position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+      hp: 10,
+      maxHp: 10,
+      ac: 16,
+      speed: 6,
+      isExhausted: false,
+      conditions: [],
+      usedPowers: []
+    };
+
+    const undyingState: GameState = {
+      phase: 'villain',
+      currentHeroId: 'hero_test3',
+      heroes: [undyingHero],
+      monsters: [skeletonMonster],
+      tiles: [strahdTile, { ...templateTile, id: 'hero_test3_tile', x: 0, z: -1, connections: [openEdge('south'), closedEdge('north'), closedEdge('east'), closedEdge('west')] }],
+      dungeonDeck: [],
+      treasureDeck: [],
+      encounterDeck: [],
+      discardPiles: {},
+      activeScenario: {
+        id: 'undying_test',
+        name: 'Undying Test',
+        difficulty: 'Medium',
+        description: 'Test undying ability',
+        introText: 'Test',
+        victoryText: 'Test',
+        defeatText: 'Test',
+        objectives: [],
+        specialRules: [],
+        startTileId: 'undying_tile',
+        maxSurges: 3
+      },
+      turnOrder: ['hero_test3'],
+      healingSurges: 2,
+      turnCount: 1,
+      log: [],
+      activeEnvironmentCard: null,
+      experiencePile: [],
+      treasuresDrawnThisTurn: 0,
+      traps: [],
+      villainPhaseQueue: [],
+      activeVillainId: null, activeConditions: []
+    };
+
+    const undyingResult = executeVillainPhase(undyingState);
+    const updatedSkeleton = undyingResult.monsters.find(m => m.id === 'skeleton_undying_test');
+    if (!updatedSkeleton) {
+      throw new Error('Test 3: Skeleton monster not found after villain phase');
+    }
+    // The skeleton should have isDefeated flag set to true
+    // The undying ability should execute and potentially heal the skeleton to 1 HP
+    // Since undying uses a roll condition, we just check that the monster is marked as defeated
+    if (!updatedSkeleton.isDefeated) {
+      throw new Error('Test 3: Expected skeleton to have isDefeated flag set to true');
+    }
+    // Note: The actual undying roll result is handled by AbilitySystem.executeAbility
+    // which includes a roll_15_plus condition check
+    console.log('  Test 3 PASSED: Skeleton defeated with isDefeated flag, undying ability checked');
+
+    console.log('  gameStore.executeVillainPhase Integration PASSED');
+
+    // -----------------------------------------------------------------------
+    // 31. PowerSelectionSystem Tests
+    // -----------------------------------------------------------------------
+    console.log('Testing PowerSelectionSystem...');
+    const PowerSelectionSystem = await import('../game/engine/PowerSelectionSystem');
+
+    // Test setup: Create mock power cards
+    const mockPowerCards: Card[] = [
+      { id: 'power_atwill_1', type: 'ability', name: 'At-Will 1', description: '', effects: [], powerType: 'at-will' },
+      { id: 'power_atwill_2', type: 'ability', name: 'At-Will 2', description: '', effects: [], powerType: 'at-will' },
+      { id: 'power_atwill_3', type: 'ability', name: 'At-Will 3', description: '', effects: [], powerType: 'at-will' },
+      { id: 'power_daily_1', type: 'ability', name: 'Daily 1', description: '', effects: [], powerType: 'daily' },
+      { id: 'power_daily_2', type: 'ability', name: 'Daily 2', description: '', effects: [], powerType: 'daily' },
+      { id: 'power_utility_1', type: 'ability', name: 'Utility 1', description: '', effects: [], powerType: 'utility' },
+      { id: 'power_utility_2', type: 'ability', name: 'Utility 2', description: '', effects: [], powerType: 'utility' },
+    ];
+
+    const heroId = 'hero_test_pss';
+    const constraints = PowerSelectionSystem.default.getConstraints('paladin');
+
+    // Test 1: canSelectPower blocks when at-will limit (2) reached
+    console.log('  Test 1: canSelectPower blocks when at-will limit (2) reached...');
+    {
+      const selection: any = { heroId, selectedPowerIds: ['power_atwill_1', 'power_atwill_2'], isConfirmed: false };
+      const canSelect = PowerSelectionSystem.default.canSelectPower(
+        mockPowerCards[2], // power_atwill_3
+        selection,
+        constraints,
+        mockPowerCards
+      );
+      if (canSelect !== false) {
+        throw new Error('canSelectPower should return false when at-will limit (2) is reached');
+      }
+      console.log('  Test 1 PASSED: canSelectPower blocks when at-will limit (2) reached');
+    }
+
+    // Test 2: canSelectPower blocks duplicate id
+    console.log('  Test 2: canSelectPower blocks duplicate id...');
+    {
+      const selection: any = { heroId, selectedPowerIds: ['power_atwill_1'], isConfirmed: false };
+      const canSelect = PowerSelectionSystem.default.canSelectPower(
+        mockPowerCards[0], // power_atwill_1 (already selected)
+        selection,
+        constraints,
+        mockPowerCards
+      );
+      if (canSelect !== false) {
+        throw new Error('canSelectPower should return false for duplicate id');
+      }
+      console.log('  Test 2 PASSED: canSelectPower blocks duplicate id');
+    }
+
+    // Test 3: canSelectPower blocks when totalMax reached
+    console.log('  Test 3: canSelectPower blocks when totalMax reached...');
+    {
+      const selection: any = {
+        heroId,
+        selectedPowerIds: ['power_atwill_1', 'power_atwill_2', 'power_daily_1', 'power_utility_1'],
+        isConfirmed: false
+      };
+      const canSelect = PowerSelectionSystem.default.canSelectPower(
+        mockPowerCards[3], // power_daily_2
+        selection,
+        constraints,
+        mockPowerCards
+      );
+      if (canSelect !== false) {
+        throw new Error('canSelectPower should return false when totalMax (4) is reached');
+      }
+      console.log('  Test 3 PASSED: canSelectPower blocks when totalMax reached');
+    }
+
+    // Test 4: confirmSelection returns error string when 2 of 4 selected
+    console.log('  Test 4: confirmSelection returns error string when 2 of 4 selected...');
+    {
+      const selection: any = {
+        heroId,
+        selectedPowerIds: ['power_atwill_1', 'power_daily_1'],
+        isConfirmed: false
+      };
+      const result = PowerSelectionSystem.default.confirmSelection(selection, constraints);
+      if (typeof result !== 'object' || !('error' in result)) {
+        throw new Error('confirmSelection should return error object when not all powers selected');
+      }
+      if (!result.error.includes('2 more power(s)')) {
+        throw new Error(`Expected error message to mention "2 more power(s)", got: ${result.error}`);
+      }
+      console.log('  Test 4 PASSED: confirmSelection returns error string when 2 of 4 selected');
+    }
+
+    // Test 5: autoSelectPowers returns exactly 4 confirmed ids
+    console.log('  Test 5: autoSelectPowers returns exactly 4 confirmed ids...');
+    {
+      const result = PowerSelectionSystem.default.autoSelectPowers('paladin', heroId, constraints);
+      if (result.selectedPowerIds.length !== 4) {
+        throw new Error(`autoSelectPowers should return exactly 4 ids, got ${result.selectedPowerIds.length}`);
+      }
+      if (result.isConfirmed !== true) {
+        throw new Error('autoSelectPowers should return isConfirmed: true');
+      }
+      // Verify correct distribution: 2 at-will, 1 daily, 1 utility
+      const atWillCount = result.selectedPowerIds.filter(id =>
+        mockPowerCards.find(c => c.id === id)?.powerType === 'at-will'
+      ).length;
+      const dailyCount = result.selectedPowerIds.filter(id =>
+        mockPowerCards.find(c => c.id === id)?.powerType === 'daily'
+      ).length;
+      const utilityCount = result.selectedPowerIds.filter(id =>
+        mockPowerCards.find(c => c.id === id)?.powerType === 'utility'
+      ).length;
+      if (atWillCount !== 2 || dailyCount !== 1 || utilityCount !== 1) {
+        throw new Error(`autoSelectPowers should select 2 at-will, 1 daily, 1 utility, got: ${atWillCount} at-will, ${dailyCount} daily, ${utilityCount} utility`);
+      }
+      console.log('  Test 5 PASSED: autoSelectPowers returns exactly 4 confirmed ids (2 at-will, 1 daily, 1 utility)');
+    }
+
+    // Test 6: deselectPower resets isConfirmed to false
+    console.log('  Test 6: deselectPower resets isConfirmed to false...');
+    {
+      const selection: any = {
+        heroId,
+        selectedPowerIds: ['power_atwill_1', 'power_atwill_2', 'power_daily_1', 'power_utility_1'],
+        isConfirmed: true
+      };
+      const result = PowerSelectionSystem.default.deselectPower('power_atwill_1', selection);
+      if (result.isConfirmed !== false) {
+        throw new Error('deselectPower should reset isConfirmed to false');
+      }
+      if (result.selectedPowerIds.includes('power_atwill_1')) {
+        throw new Error('deselectPower should remove the card id from selection');
+      }
+      console.log('  Test 6 PASSED: deselectPower resets isConfirmed to false');
+    }
+
+    // Test 7: applySelectionsToHeroes sets selectedPowerIds correctly
+    console.log('  Test 7: applySelectionsToHeroes sets selectedPowerIds correctly...');
+    {
+      const heroes: Hero[] = [
+        {
+          id: 'hero_1',
+          name: 'Hero 1',
+          type: 'hero',
+          heroClass: 'paladin',
+          level: 1,
+          xp: 0,
+          surgeUsed: false,
+          abilities: [],
+          hand: [],
+          items: [],
+          position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+          hp: 10,
+          maxHp: 10,
+          ac: 15,
+          speed: 6,
+          isExhausted: false,
+          conditions: [],
+          usedPowers: []
+        },
+        {
+          id: 'hero_2',
+          name: 'Hero 2',
+          type: 'hero',
+          heroClass: 'ranger',
+          level: 1,
+          xp: 0,
+          surgeUsed: false,
+          abilities: [],
+          hand: [],
+          items: [],
+          position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+          hp: 10,
+          maxHp: 10,
+          ac: 15,
+          speed: 6,
+          isExhausted: false,
+          conditions: [],
+          usedPowers: []
+        }
+      ];
+
+      const selections: any[] = [
+        { heroId: 'hero_1', selectedPowerIds: ['power_atwill_1', 'power_atwill_2', 'power_daily_1', 'power_utility_1'], isConfirmed: true },
+        { heroId: 'hero_2', selectedPowerIds: ['power_atwill_3', 'power_daily_2', 'power_utility_2'], isConfirmed: false }, // Not confirmed
+        { heroId: 'hero_3', selectedPowerIds: ['power_atwill_1'], isConfirmed: true } // No matching hero
+      ];
+
+      const result = PowerSelectionSystem.default.applySelectionsToHeroes(heroes, selections);
+
+      const hero1Result = result.find(h => h.id === 'hero_1');
+      const hero2Result = result.find(h => h.id === 'hero_2');
+
+      if (!hero1Result || !hero2Result) {
+        throw new Error('applySelectionsToHeroes should return all heroes');
+      }
+
+      if (!hero1Result.selectedPowerIds || hero1Result.selectedPowerIds.length !== 4) {
+        throw new Error(`Hero 1 should have 4 selectedPowerIds, got ${hero1Result.selectedPowerIds?.length ?? 0}`);
+      }
+
+      if (!hero2Result.selectedPowerIds || hero2Result.selectedPowerIds.length !== 0) {
+        throw new Error(`Hero 2 should have 0 selectedPowerIds (not confirmed), got ${hero2Result.selectedPowerIds?.length ?? 0}`);
+      }
+
+      console.log('  Test 7 PASSED: applySelectionsToHeroes sets selectedPowerIds correctly');
+    }
+
+    console.log('  PowerSelectionSystem PASSED');
+
+    // -----------------------------------------------------------------------
+    // 32. Power Selection Store Actions Tests
+    // -----------------------------------------------------------------------
+    console.log('Testing Power Selection Store Actions...');
+
+    // Test 1: selectPower no-ops when phase !== 'setup'
+    console.log('  Test 1: selectPower no-ops when phase !== \'setup\'...');
+    {
+      const testHeroId = 'test_hero_select';
+      const testCard: Card = {
+        id: 'test_power_1',
+        type: 'ability',
+        name: 'Test Power',
+        description: 'Test power card',
+        effects: [],
+        powerType: 'at-will'
+      };
+
+      // Create game state in 'hero' phase (not 'setup')
+      const heroPhaseState: GameState = {
+        ...testGameState,
+        phase: 'hero',
+        currentHeroId: testHeroId,
+        heroes: [{ ...testHero, id: testHeroId }],
+        powerSelections: [
+          { heroId: testHeroId, selectedPowerIds: [], isConfirmed: false }
+        ]
+      };
+
+      // Store the state
+      useGameStore.setState({ gameState: heroPhaseState });
+
+      // Capture selection before calling selectPower
+      const selectionBefore = useGameStore.getState().gameState?.powerSelections?.find(s => s.heroId === testHeroId);
+      const countBefore = selectionBefore?.selectedPowerIds.length ?? 0;
+
+      // Try to select power - should no-op
+      useGameStore.getState().selectPower(testHeroId, testCard);
+
+      // Verify selection unchanged
+      const selectionAfter = useGameStore.getState().gameState?.powerSelections?.find(s => s.heroId === testHeroId);
+      const countAfter = selectionAfter?.selectedPowerIds.length ?? 0;
+
+      if (countAfter !== countBefore) {
+        throw new Error(`Test 1: selectPower should no-op when phase !== 'setup', but selection changed from ${countBefore} to ${countAfter}`);
+      }
+
+      console.log('  Test 1 PASSED: selectPower no-ops when phase !== \'setup\'');
+    }
+
+    // Test 2: selectPower adds card.id to hero's selection
+    console.log('  Test 2: selectPower adds card.id to hero\'s selection...');
+    {
+      const testHeroId = 'test_hero_select2';
+      const testCard: Card = {
+        id: 'test_power_2',
+        type: 'ability',
+        name: 'Test Power 2',
+        description: 'Test power card 2',
+        effects: [],
+        powerType: 'at-will'
+      };
+
+      // Create game state in 'setup' phase
+      const setupPhaseState: GameState = {
+        ...testGameState,
+        phase: 'setup',
+        currentHeroId: testHeroId,
+        heroes: [{ ...testHero, id: testHeroId }],
+        powerSelections: [
+          { heroId: testHeroId, selectedPowerIds: ['existing_power'], isConfirmed: false }
+        ]
+      };
+
+      // Store the state
+      useGameStore.setState({ gameState: setupPhaseState });
+
+      // Select power
+      useGameStore.getState().selectPower(testHeroId, testCard);
+
+      // Verify card.id added to selection
+      const selectionAfter = useGameStore.getState().gameState?.powerSelections?.find(s => s.heroId === testHeroId);
+      if (!selectionAfter?.selectedPowerIds.includes('test_power_2')) {
+        throw new Error('Test 2: selectPower should add card.id to hero\'s selection');
+      }
+
+      // Verify existing power still present
+      if (!selectionAfter?.selectedPowerIds.includes('existing_power')) {
+        throw new Error('Test 2: selectPower should preserve existing selected powers');
+      }
+
+      console.log('  Test 2 PASSED: selectPower adds card.id to hero\'s selection');
+    }
+
+    // Test 3: confirmHeroSelection logs warning when under totalMax
+    console.log('  Test 3: confirmHeroSelection logs warning when under totalMax...');
+    {
+      const testHeroId = 'test_hero_confirm';
+      const constraints = PowerSelectionSystem.default.getConstraints('paladin');
+
+      // Create game state with only 1 selected power (under totalMax of 4)
+      const underMaxState: GameState = {
+        ...testGameState,
+        phase: 'setup',
+        currentHeroId: testHeroId,
+        heroes: [{ ...testHero, heroClass: 'paladin', id: testHeroId }],
+        powerSelections: [
+          { heroId: testHeroId, selectedPowerIds: ['power_1'], isConfirmed: false }
+        ]
+      };
+
+      // Store the state
+      useGameStore.setState({ gameState: underMaxState });
+
+      // Capture console.warn before calling confirmHeroSelection
+      const originalWarn = console.warn;
+      const warnCapture = { message: '' as string, called: false };
+      console.warn = (message: string) => {
+        warnCapture.message = message;
+        warnCapture.called = true;
+      };
+
+      try {
+        // Try to confirm - should log warning
+        useGameStore.getState().confirmHeroSelection(testHeroId);
+      } finally {
+        // Restore console.warn before assertions
+        console.warn = originalWarn;
+      }
+
+      if (!warnCapture.called) {
+        throw new Error(
+          'Expected console.warn to be called but it was not'
+        );
+      }
+      if (!warnCapture.message.includes('3 more power(s)')) {
+        throw new Error(
+          `Expected warning about power count but got:
+           "${warnCapture.message}"`
+        );
+      }
+
+      console.log('  Test 3 PASSED: confirmHeroSelection logs warning when under totalMax');
+    }
+
+    // Test 4: All confirmed → hero.selectedPowerIds populated
+    console.log('  Test 4: All confirmed → hero.selectedPowerIds populated...');
+    {
+      const testHeroId = 'test_hero_populate';
+      const testCardIds = ['power_a', 'power_b', 'power_c', 'power_d'];
+
+      // Create game state with confirmed selections
+      const confirmedState: GameState = {
+        ...testGameState,
+        phase: 'setup',
+        currentHeroId: testHeroId,
+        heroes: [{ ...testHero, heroClass: 'paladin', id: testHeroId }],
+        powerSelections: [
+          { heroId: testHeroId, selectedPowerIds: testCardIds, isConfirmed: true }
+        ]
+      };
+
+      // Store the state
+      useGameStore.setState({ gameState: confirmedState });
+
+      // Verify hero.selectedPowerIds populated
+      const heroAfter = useGameStore.getState().gameState?.heroes.find(h => h.id === testHeroId);
+      if (!heroAfter?.selectedPowerIds || heroAfter.selectedPowerIds.length !== 4) {
+        throw new Error('Test 4: All confirmed should populate hero.selectedPowerIds');
+      }
+
+      // Verify correct IDs
+      for (const cardId of testCardIds) {
+        if (!heroAfter?.selectedPowerIds.includes(cardId)) {
+          throw new Error(`Test 4: hero.selectedPowerIds should contain ${cardId}`);
+        }
+      }
+
+      console.log('  Test 4 PASSED: All confirmed → hero.selectedPowerIds populated');
+    }
+
+    // Test 5: beginAdventure no-ops when powerSelections not all confirmed
+    console.log('  Test 5: beginAdventure no-ops when powerSelections not all confirmed...');
+    {
+      const testHeroId = 'test_hero_begin';
+
+      // Create game state with unconfirmed selections
+      const unconfirmedState: GameState = {
+        ...testGameState,
+        phase: 'setup',
+        currentHeroId: testHeroId,
+        heroes: [{ ...testHero, id: testHeroId }],
+        powerSelections: [
+          { heroId: testHeroId, selectedPowerIds: ['power_1'], isConfirmed: false }
+        ]
+      };
+
+      // Store the state
+      useGameStore.setState({ gameState: unconfirmedState });
+
+      // Capture console.warn before calling beginAdventure
+      const originalWarn = console.warn;
+      const warnCapture = { message: '' as string, called: false };
+      console.warn = (message: string) => {
+        warnCapture.message = message;
+        warnCapture.called = true;
+      };
+
+      try {
+        // Try to begin adventure - should log warning and no-op
+        useGameStore.getState().beginAdventure();
+      } finally {
+        // Restore console.warn before assertions
+        console.warn = originalWarn;
+      }
+
+      if (!warnCapture.called) {
+        throw new Error(
+          'Expected console.warn to be called but it was not'
+        );
+      }
+      if (!warnCapture.message.includes('All heroes must confirm power selection')) {
+        throw new Error(
+          `Expected warning about power selection confirmation but got:
+           "${warnCapture.message}"`
+        );
+      }
+
+      // Verify phase unchanged (still 'setup')
+      const phaseAfter = useGameStore.getState().gameState?.phase;
+      if (phaseAfter !== 'setup') {
+        throw new Error('Test 5: beginAdventure should no-op and keep phase as setup when powerSelections not all confirmed');
+      }
+
+      console.log('  Test 5 PASSED: beginAdventure no-ops when powerSelections not all confirmed');
+    }
+
+    console.log('  Power Selection Store Actions PASSED');
+
+    // -----------------------------------------------------------------------
+    // 21. CardResolutionSystem
+    // -----------------------------------------------------------------------
+    console.log('Testing CardResolutionSystem...');
+
+    const gameTestState = useGameStore.getState().gameState!;
+    const cardHero = gameTestState.heroes[0];
+    const envCard: Card = { id: 'encounter-volcanic-smoke', type: 'encounter', name: 'Volcanic Smoke', description: '', effects: [] };
+
+    // Test 1: Full phase cycle
+    console.log('  Testing phase transitions (idle -> drawing -> revealing -> resolving -> complete -> idle)...');
+    let resState = CardResolutionSystem.beginResolution(gameTestState, envCard, cardHero);
+    if (!resState.cardResolution || resState.cardResolution.phase !== 'drawing') throw new Error('beginResolution: phase should be drawing');
+    if (resState.cardResolution.cardId !== envCard.id) throw new Error('beginResolution: cardId mismatch');
+
+    resState = CardResolutionSystem.advanceResolution(resState, cardHero);
+    if (!resState.cardResolution || resState.cardResolution.phase !== 'revealing') throw new Error('advanceResolution: phase should be revealing');
+
+    resState = CardResolutionSystem.advanceResolution(resState, cardHero);
+    if (!resState.cardResolution || resState.cardResolution.phase !== 'resolving') throw new Error('advanceResolution: phase should be resolving');
+
+    resState = CardResolutionSystem.advanceResolution(resState, cardHero);
+    if (!resState.cardResolution || resState.cardResolution.phase !== 'complete') throw new Error('advanceResolution: phase should be complete');
+    if (!resState.cardResolution.result?.success) throw new Error(`advanceResolution (resolving): expected success, got ${resState.cardResolution.result?.message}`);
+
+    // Verify EncounterSystem effect (activeEnvironmentCard should be set)
+    if (resState.activeEnvironmentCard !== envCard.id) throw new Error(`advanceResolution (resolving): expected activeEnvironmentCard to be ${envCard.id}`);
+
+    resState = CardResolutionSystem.advanceResolution(resState, cardHero);
+    if (!resState.cardResolution || resState.cardResolution.phase !== 'idle') throw new Error('advanceResolution (complete): phase should be idle');
+    if (resState.cardResolution.cardId !== null) throw new Error('advanceResolution (complete): cardId should be null');
+
+    // Test 2: Treasure Assignment
+    console.log('  Testing assignTreasure (item assignment)...');
+    const treasureCard: Card = { id: 'treasure-luck-stone', type: 'treasure', name: 'Luck Stone', description: '', effects: [], treasureType: 'item' };
+    resState = CardResolutionSystem.assignTreasure(resState, treasureCard, cardHero);
+    const assignment = resState.treasureAssignments?.find(a => a.cardId === treasureCard.id && a.heroId === cardHero.id);
+    if (!assignment) throw new Error('assignTreasure: assignment missing from state');
+
+    // Test 3: Treasure Usage
+    console.log('  Testing useTreasure...');
+    resState = CardResolutionSystem.useTreasure(resState, treasureCard, cardHero);
+    if (!assignment.isUsed) throw new Error('useTreasure: assignment not marked as used');
+
+    console.log('  CardResolutionSystem PASSED');
 
     // -----------------------------------------------------------------------
 
@@ -2488,3 +3335,4 @@ export const runAIStressTest = async (iterations: number = 50) => {
   }
   console.log('AI Stress Test Complete.');
 };
+

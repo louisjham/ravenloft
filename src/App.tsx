@@ -15,11 +15,14 @@ import { AudioReactComponent } from './audio/AudioReactComponent';
 
 import { UIOverlay } from './components/ui/UIOverlay';
 import VillainPhaseOverlay from './components/ui/VillainPhaseOverlay';
+import PowerSelectionScreen from './components/ui/PowerSelectionScreen';
 
 import { GlobalErrorBoundary } from './utils/errorHandling';
 import { SceneTransition, PhaseTransition } from './components/effects/Transitions';
 import { TutorialOverlay, HelpOverlay } from './components/tutorial/TutorialSystem';
 import { TileSystem } from './game/engine/TileSystem';
+import EncounterCardOverlay from './components/ui/EncounterCardOverlay';
+import { DataLoader } from './game/dataLoader';
 import {
   ExplorationState,
   onArrowClicked,
@@ -29,11 +32,20 @@ import {
 } from './game/engine/ExplorationStateMachine';
 import { ExplorationLayer } from './components/3d/ExplorationLayer';
 import { RotationPicker } from './components/ui/RotationPicker';
+import TreasureCardPanel from './components/ui/TreasureCardPanel';
 
 const App: React.FC = () => {
   const gameState = useGameStore((state) => state.gameState);
   const startNewGame = useGameStore((state) => state.startNewGame);
   const setGameState = useGameStore((state) => state.setGameState);
+
+  // Power selection store methods
+  const selectPower = useGameStore((state) => state.selectPower);
+  const deselectPower = useGameStore((state) => state.deselectPower);
+  const confirmHeroSelection = useGameStore((state) => state.confirmHeroSelection);
+  const autoSelectPowers = useGameStore((state) => state.autoSelectPowers);
+  const beginAdventure = useGameStore((state) => state.beginAdventure);
+  const drawEncounterCard = useGameStore((state) => state.drawEncounterCard);
 
   const [exploration, setExploration] = React.useState<ExplorationState>({ phase: 'idle' });
 
@@ -42,6 +54,34 @@ const App: React.FC = () => {
   const isTransitioning = useUIStore((state) => state.isTransitioning);
   const startTransition = useUIStore((state) => state.startTransition);
   const endTransition = useUIStore((state) => state.endTransition);
+
+  // Individual game store selectors for card resolution system
+  const cardResolution = useGameStore((state) => state.gameState?.cardResolution);
+  const heroes = useGameStore((state) => state.gameState?.heroes || []);
+  const advanceCardResolution = useGameStore((state) => state.advanceCardResolution);
+  const selectResolutionTarget = useGameStore((state) => state.selectResolutionTarget);
+  const dismissCardResolution = useGameStore((state) => state.dismissCardResolution);
+
+  // Treasure Card Panel state and individual selectors
+  const [treasurePanelHeroId, setTreasurePanelHeroId] = React.useState<string | null>(null);
+  const treasureAssignments = useGameStore(s => s.gameState?.treasureAssignments || []);
+  const turnCount = useGameStore(s => s.gameState?.turnCount || 0);
+  const useTreasureCard = useGameStore(s => s.useTreasureCard);
+
+  const treasurePanelHero = React.useMemo(() =>
+    heroes.find(h => h.id === treasurePanelHeroId) ?? null,
+    [heroes, treasurePanelHeroId]
+  );
+
+  const allCards = React.useMemo(() =>
+    DataLoader.getInstance().getAllCards(),
+    [] // card definitions are static
+  );
+
+  const resolvedCard = React.useMemo(() => {
+    if (!cardResolution?.cardId) return null;
+    return DataLoader.getInstance().getCardById(cardResolution.cardId) ?? null;
+  }, [cardResolution?.cardId]);
 
   const handleStartGame = (scenarioId: string, heroIds: string[]) => {
     console.log('[DEBUG] App.handleStartGame: Called with', scenarioId, heroIds);
@@ -52,44 +92,55 @@ const App: React.FC = () => {
     setTimeout(() => endTransition(), 1500);
   };
 
-  const heroes = gameState?.heroes || [];
   const monsters = gameState?.monsters || [];
 
   return (
     <div className="app-container">
       <AudioReactComponent />
 
-      <Scene>
-        <Physics>
-          <GameController />
-          <DungeonBoard />
-          {gameState && (
-            <ExplorationLayer
-              tiles={gameState.tiles}
-              onEdgeSelected={(point) => {
-                const drawResult = TileSystem.drawAndPlace(gameState, point);
-                setExploration(onArrowClicked(exploration, point, drawResult));
-              }}
-            />
-          )}
+      {gameState && gameState.phase === 'setup' ? (
+        <PowerSelectionScreen
+          heroes={gameState.heroes}
+          powerSelections={gameState.powerSelections ?? []}
+          onSelectPower={(heroId: string, card: any) => selectPower(heroId, card)}
+          onDeselectPower={(heroId: string, id: string) => deselectPower(heroId, id)}
+          onConfirmHero={(heroId: string) => confirmHeroSelection(heroId)}
+          onAutoSelect={(heroId: string) => autoSelectPowers(heroId)}
+          onConfirmAll={() => beginAdventure()}
+        />
+      ) : (
+        <Scene>
+          <Physics>
+            <GameController />
+            <DungeonBoard />
+            {gameState && (
+              <ExplorationLayer
+                tiles={gameState.tiles}
+                onEdgeSelected={(point) => {
+                  const drawResult = TileSystem.drawAndPlace(gameState, point);
+                  setExploration(onArrowClicked(exploration, point, drawResult));
+                }}
+              />
+            )}
 
-          <group name="entities">
-            {heroes.map((hero) => (
-              <Hero3D key={hero.id} hero={hero} />
-            ))}
+            <group name="entities">
+              {heroes.map((hero) => (
+                <Hero3D key={hero.id} hero={hero} />
+              ))}
 
-            {monsters.map((monster) => (
-              <Monster3D key={monster.id} monster={monster} />
-            ))}
-          </group>
+              {monsters.map((monster) => (
+                <Monster3D key={monster.id} monster={monster} />
+              ))}
+            </group>
 
-          <Dice3D />
-          <FireParticles position={[0.5, 0, 0.5]} />
-          <MonsterAIIndicator />
-        </Physics>
-      </Scene>
+            <Dice3D />
+            <FireParticles position={[0.5, 0, 0.5]} />
+            <MonsterAIIndicator />
+          </Physics>
+        </Scene>
+      )}
 
-      <UIOverlay onStartGame={handleStartGame} />
+      <UIOverlay onStartGame={handleStartGame} onOpenTreasure={(heroId) => setTreasurePanelHeroId(heroId)} />
 
       {gameState && (
         <VillainPhaseOverlay
@@ -113,6 +164,11 @@ const App: React.FC = () => {
             );
             setGameState(newState);
             setExploration(onPlacementComplete(exploration));
+
+            // Trigger encounter card draw — exclude setup phase only
+            if (gameState.phase !== 'setup') {
+              drawEncounterCard();
+            }
           }}
           onCancel={() => {
             setGameState({
@@ -140,6 +196,28 @@ const App: React.FC = () => {
       <HelpOverlay isOpen={activeModal === 'help'} onClose={hideModal} />
 
       <div id="aria-announcer" className="sr-only" aria-live="polite"></div>
+      
+      {cardResolution && cardResolution.phase !== 'idle' && resolvedCard && (
+        <EncounterCardOverlay
+          resolution={cardResolution}
+          card={resolvedCard}
+          heroes={heroes}
+          onAdvance={advanceCardResolution}
+          onSelectTarget={selectResolutionTarget}
+          onDismiss={dismissCardResolution}
+        />
+      )}
+
+      {treasurePanelHero && (
+        <TreasureCardPanel
+          hero={treasurePanelHero}
+          assignments={treasureAssignments}
+          allCards={allCards}
+          currentTurn={turnCount}
+          onUseTreasure={(cardId, heroId) => useTreasureCard(cardId, heroId)}
+          onClose={() => setTreasurePanelHeroId(null)}
+        />
+      )}
     </div>
   );
 };

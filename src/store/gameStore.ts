@@ -10,6 +10,10 @@ import { EncounterSystem } from '../game/engine/EncounterSystem'
 import { TreasureSystem } from '../game/engine/TreasureSystem'
 import { ExperienceSystem } from '../game/engine/ExperienceSystem'
 import { resolveTactic, resolveTrap } from '../game/engine/MonsterAI'
+import { AbilitySystem } from '../game/ai/AbilitySystem'
+import { BossPhases } from '../game/ai/BossPhases'
+import PowerSelectionSystem from '../game/engine/PowerSelectionSystem'
+import { getAllPowerCards } from '../data/powerCardLoader'
 
 interface GameStore {
   // State
@@ -42,6 +46,13 @@ interface GameStore {
   resetPower: (powerId: string) => void
   getAvailablePowers: () => Card[]
 
+  // Power Selection System actions
+  selectPower: (heroId: string, card: Card) => void
+  deselectPower: (heroId: string, cardId: string) => void
+  confirmHeroSelection: (heroId: string) => void
+  autoSelectPowers: (heroId: string) => void
+  beginAdventure: () => void
+
   // Encounter System actions
   drawEncounterCard: () => void
   cancelEncounterCard: (cardId: string) => void
@@ -57,6 +68,16 @@ interface GameStore {
 
   // UI stubs for testing initial UI components
   initializeDummyState: () => void
+
+  // Card Resolution actions
+  advanceCardResolution: () => void
+  selectResolutionTarget: (entityId: string) => void
+  dismissCardResolution: () => void
+
+  // Condition actions
+  applyCondition: (targetId: string, type: import('../game/types').ConditionType, sourceId?: string, duration?: number) => void
+  removeCondition: (targetId: string, type: import('../game/types').ConditionType) => void
+  decrementConditions: () => void
 
   // UI Actions
   pauseGame: () => void
@@ -123,7 +144,19 @@ export const useGameStore = create<GameStore>()(
         }],
         dungeonDeck: [],
         treasureDeck: [],
-        encounterDeck: [],
+        encounterDeck: (() => {
+          const encounterIds = DataLoader.getInstance()
+            .getAllCards()
+            .filter(c => c.type === 'encounter')
+            .map(c => c.id);
+
+          // Inline Fisher-Yates shuffle
+          for (let i = encounterIds.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [encounterIds[i], encounterIds[j]] = [encounterIds[j], encounterIds[i]];
+          }
+          return encounterIds;
+        })(),
         discardPiles: {},
         activeScenario: scenario,
         turnOrder: selectedHeroes.map(h => h.id),
@@ -141,7 +174,24 @@ export const useGameStore = create<GameStore>()(
         treasuresDrawnThisTurn: 0,
         traps: [],
         villainPhaseQueue: [],
-        activeVillainId: null
+        activeVillainId: null,
+        // Power Selection state
+        // Persisted automatically via SaveSystem — no extra work needed.
+        powerSelections: selectedHeroes.map(hero => ({
+          heroId: hero.id,
+          selectedPowerIds: [],
+          isConfirmed: false
+        })),
+        activeConditions: [],
+        cardResolution: {
+          phase: 'idle',
+          cardId: null,
+          cardType: null,
+          pendingEffects: [],
+          resolvedEffects: [],
+          targetEntityId: null,
+          result: null,
+        }
       };
 
       set({ gameState: initialState });
@@ -312,6 +362,9 @@ export const useGameStore = create<GameStore>()(
       // Reset treasures drawn counter for next turn
       TreasureSystem.resetTreasuresDrawn(state);
 
+      // Decrement conditions at end of turn
+      get().decrementConditions();
+
       // Execute Villain Phase cascade before advancing to next hero
       let newState = state;
       newState = executeVillainPhase(newState);
@@ -386,34 +439,173 @@ export const useGameStore = create<GameStore>()(
       return PowerSystem.getAvailablePowers(hero, allCards);
     },
 
+    // Power Selection System actions
+    selectPower: (heroId: string, card: Card) => {
+      const state = get().gameState;
+      if (!state) return;
+      // Guard: if state.phase !== 'setup' return (no-op)
+      if (state.phase !== 'setup') return;
+
+      const selection = state.powerSelections?.find(s => s.heroId === heroId);
+      if (!selection) return;
+
+      const hero = state.heroes.find(h => h.id === heroId);
+      if (!hero) return;
+
+      const constraints = PowerSelectionSystem.getConstraints(hero.heroClass);
+      const allPowerCards = getAllPowerCards();
+
+      const updatedSelection = PowerSelectionSystem.selectPower(
+        card,
+        selection,
+        constraints,
+        allPowerCards
+      );
+
+      const newSelections = state.powerSelections?.map(s =>
+        s.heroId === heroId ? updatedSelection : s
+      ) ?? [];
+
+      set({ gameState: { ...state, powerSelections: newSelections } });
+    },
+
+    deselectPower: (heroId: string, cardId: string) => {
+      const state = get().gameState;
+      if (!state) return;
+      // Guard: if state.phase !== 'setup' return
+      if (state.phase !== 'setup') return;
+
+      const selection = state.powerSelections?.find(s => s.heroId === heroId);
+      if (!selection) return;
+
+      const updatedSelection = PowerSelectionSystem.deselectPower(cardId, selection);
+
+      const newSelections = state.powerSelections?.map(s =>
+        s.heroId === heroId ? updatedSelection : s
+      ) ?? [];
+
+      set({ gameState: { ...state, powerSelections: newSelections } });
+    },
+
+    confirmHeroSelection: (heroId: string) => {
+      const state = get().gameState;
+      if (!state) return;
+      // Guard: if state.phase !== 'setup' return
+      if (state.phase !== 'setup') return;
+
+      const selection = state.powerSelections?.find(s => s.heroId === heroId);
+      if (!selection) return;
+
+      const hero = state.heroes.find(h => h.id === heroId);
+      if (!hero) return;
+
+      const constraints = PowerSelectionSystem.getConstraints(hero.heroClass);
+      const result = PowerSelectionSystem.confirmSelection(selection, constraints);
+
+      // If result has error field → console.warn(result.error), return without changing state
+      if ('error' in result) {
+        console.warn(result.error);
+        return;
+      }
+
+      // If result is confirmed PowerSelection, replace in powerSelections
+      const newSelections = state.powerSelections?.map(s =>
+        s.heroId === heroId ? result : s
+      ) ?? [];
+
+      // Check if ALL powerSelections are now isConfirmed
+      const allConfirmed = newSelections.every(s => s.isConfirmed);
+
+      if (allConfirmed) {
+        // Apply selections to heroes
+        const updatedHeroes = PowerSelectionSystem.applySelectionsToHeroes(
+          state.heroes,
+          newSelections
+        );
+        set({ gameState: { ...state, heroes: updatedHeroes, powerSelections: newSelections } });
+      } else {
+        set({ gameState: { ...state, powerSelections: newSelections } });
+      }
+    },
+
+    autoSelectPowers: (heroId: string) => {
+      const state = get().gameState;
+      if (!state) return;
+      // Guard: if state.phase !== 'setup' return
+      if (state.phase !== 'setup') return;
+
+      const hero = state.heroes.find(h => h.id === heroId);
+      if (!hero) return;
+
+      const constraints = PowerSelectionSystem.getConstraints(hero.heroClass);
+      const updatedSelection = PowerSelectionSystem.autoSelectPowers(
+        hero.heroClass,
+        heroId,
+        constraints
+      );
+
+      const newSelections = state.powerSelections?.map(s =>
+        s.heroId === heroId ? updatedSelection : s
+      ) ?? [];
+
+      // Check if ALL powerSelections are now isConfirmed
+      const allConfirmed = newSelections.every(s => s.isConfirmed);
+
+      if (allConfirmed) {
+        // Apply selections to heroes
+        const updatedHeroes = PowerSelectionSystem.applySelectionsToHeroes(
+          state.heroes,
+          newSelections
+        );
+        set({ gameState: { ...state, heroes: updatedHeroes, powerSelections: newSelections } });
+      } else {
+        set({ gameState: { ...state, powerSelections: newSelections } });
+      }
+    },
+
+    beginAdventure: () => {
+      const state = get().gameState;
+      if (!state) return;
+
+      // Gate game start on power selection
+      const allConfirmed = state.powerSelections?.every(s => s.isConfirmed) ?? false;
+      if (!allConfirmed) {
+        console.warn(
+          'All heroes must confirm power selection before the game can start.'
+        );
+        return;
+      }
+
+      // Transition from 'setup' to 'hero' phase
+      set({ gameState: { ...state, phase: 'hero' as const } });
+    },
+
     // Encounter System actions
     drawEncounterCard: () => {
       const state = get().gameState;
       if (!state) return;
 
       const result = EncounterSystem.drawEncounterCard(state);
-      if (result.card) {
-        console.log('[DEBUG gameStore] Encounter card drawn:', result.message);
-        // Process the encounter card based on its type
-        if (result.card.encounterType === 'environment') {
-          EncounterSystem.processEnvironmentCard(state, result.card);
-        } else if (result.card.encounterType === 'event' || result.card.encounterType === 'event-attack') {
-          const hero = state.heroes.find(h => h.id === state.currentHeroId);
-          if (hero) {
-            if (result.card.encounterType === 'event-attack') {
-              EncounterSystem.processEventAttackCard(state, result.card, hero);
-            } else {
-              EncounterSystem.processEventCard(state, result.card, hero);
-            }
-          }
-        } else if (result.card.encounterType === 'trap') {
-          const hero = state.heroes.find(h => h.id === state.currentHeroId);
-          if (hero) {
-            EncounterSystem.placeTrap(state, result.card, hero);
-          }
+      if (!result.card) return;  // deck empty — silent return is correct
+
+      const cardResolution: import('../game/types').CardResolutionState = {
+        phase: 'drawing',
+        cardId: result.card.id,
+        cardType: result.card.type as 'encounter' | 'treasure',
+        pendingEffects: [],
+        resolvedEffects: [],
+        targetEntityId: null,
+        result: null
+      };
+
+      // NOTE: { ...state } already captures the .pop() mutation 
+      // on encounterDeck — do NOT manually adjust the deck here
+      set({
+        gameState: {
+          ...state,
+          cardResolution
         }
-        set({ gameState: { ...state } });
-      }
+      });
     },
 
     cancelEncounterCard: (cardId: string) => {
@@ -524,6 +716,99 @@ export const useGameStore = create<GameStore>()(
       }
     },
 
+    // Card Resolution actions
+    advanceCardResolution: () => {
+      const { gameState } = get();
+      if (!gameState || !gameState.cardResolution) return;
+
+      const nextState = EncounterSystem.advanceCardResolution(gameState);
+      set({ gameState: nextState });
+    },
+
+    selectResolutionTarget: (entityId: string) => {
+      const { gameState } = get();
+      if (!gameState || !gameState.cardResolution) return;
+
+      const nextState = {
+        ...gameState,
+        cardResolution: {
+          ...gameState.cardResolution,
+          targetId: entityId
+        }
+      };
+      set({ gameState: nextState });
+    },
+
+    dismissCardResolution: () => {
+      const { gameState } = get();
+      if (!gameState) return;
+
+      set({
+        gameState: {
+          ...gameState,
+          cardResolution: undefined
+        }
+      });
+    },
+
+    // Condition actions
+    applyCondition: (targetId: string, type: import('../game/types').ConditionType, sourceId?: string, duration: number = 1) => {
+      const { gameState } = get();
+      if (!gameState) return;
+
+      const newCondition: import('../game/types').ActiveCondition = {
+        type,
+        targetId,
+        sourceId,
+        turnsRemaining: duration
+      };
+
+      // Check if already has condition
+      const existingIdx = (gameState.activeConditions ?? []).findIndex(c => c.targetId === targetId && c.type === type);
+      const nextConditions = [...(gameState.activeConditions ?? [])];
+
+      if (existingIdx >= 0) {
+        nextConditions[existingIdx] = newCondition;
+      } else {
+        nextConditions.push(newCondition);
+      }
+
+      set({
+        gameState: {
+          ...gameState,
+          activeConditions: nextConditions
+        }
+      });
+    },
+
+    removeCondition: (targetId: string, type: import('../game/types').ConditionType) => {
+      const { gameState } = get();
+      if (!gameState) return;
+
+      set({
+        gameState: {
+          ...gameState,
+          activeConditions: (gameState.activeConditions ?? []).filter(c => !(c.targetId === targetId && c.type === type))
+        }
+      });
+    },
+
+    decrementConditions: () => {
+      const { gameState } = get();
+      if (!gameState) return;
+
+      const nextConditions = (gameState.activeConditions ?? [])
+        .map(c => ({ ...c, turnsRemaining: c.turnsRemaining - 1 }))
+        .filter(c => c.turnsRemaining > 0 || c.turnsRemaining === -1);
+
+      set({
+        gameState: {
+          ...gameState,
+          activeConditions: nextConditions
+        }
+      });
+    },
+
     // UI Control
     pauseGame: () => set({ isPaused: true }),
     unpauseGame: () => set({ isPaused: false }),
@@ -627,7 +912,8 @@ export const useGameStore = create<GameStore>()(
           treasuresDrawnThisTurn: 0,
           traps: [],
           villainPhaseQueue: [],
-          activeVillainId: null
+          activeVillainId: null,
+          activeConditions: []
         }
       });
     }
@@ -711,14 +997,25 @@ export function executeVillainPhase(state: GameState): GameState {
     };
 
     // b. Determine if it's a Monster or Trap
-    const monster = newState.monsters.find(m => m.id === villainId);
+    let monster = newState.monsters.find(m => m.id === villainId);
     const trap = newState.traps.find(t => t.id === villainId);
 
     if (monster) {
       // c. If Monster
+      // Phase transition check BEFORE calling resolveTactic
+      if (monster.isBoss && BossPhases.shouldTransitionPhase(monster!, newState)) {
+        newState = BossPhases.transitionPhase(monster!, newState);
+        // Re-fetch monster from newState after transition
+        // so resolveTactic sees the updated currentPhase
+        const updatedMonster = newState.monsters.find(m => m.id === monster!.id);
+        if (updatedMonster) {
+          monster = updatedMonster;
+        }
+      }
+
       // Find the tile where monster is located by position
       const monsterTile = newState.tiles.find(tile =>
-        tile.x === monster.position.x && tile.z === monster.position.z
+        tile.x === monster!.position.x && tile.z === monster!.position.z
       );
       if (monsterTile) {
         const result = resolveTactic(monster, monsterTile, newState);
@@ -748,7 +1045,60 @@ export function executeVillainPhase(state: GameState): GameState {
             )
           };
         }
+
+        // Handle 'use_ability' action
+        if (result.action === 'use_ability') {
+          const ability = monster.abilities?.find(
+            a => a.id === result.abilityId
+          );
+          if (ability) {
+            newState = AbilitySystem.executeAbility(
+              ability, monster, newState
+            );
+          }
+        }
         // 'idle': no change
+
+        // Death check after each ability or attack resolves
+        newState = {
+          ...newState,
+          heroes: newState.heroes.map(h =>
+            h.hp <= 0 ? { ...h, isDefeated: true } : h
+          ),
+          monsters: newState.monsters.map(m =>
+            m.hp <= 0 ? { ...m, isDefeated: true } : m
+          )
+        };
+
+        // Handle undying ability for defeated monsters
+        const defeatedMonster = newState.monsters.find(m => m.id === monster!.id && m.isDefeated);
+        if (defeatedMonster) {
+          const undyingAbility = defeatedMonster.abilities?.find(a => a.id === 'undying');
+          if (undyingAbility) {
+            newState = AbilitySystem.executeAbility(
+              undyingAbility, defeatedMonster, newState
+            );
+          }
+        }
+
+        // Cooldown processing at end of each monster's activation
+        newState = AbilitySystem.processCooldowns(monster, newState);
+
+        // Passive aura processing for each monster
+        if (monster.abilities) {
+          for (const passive of monster.abilities) {
+            if (passive.type === 'passive' && passive.trigger === 'on_turn_start') {
+              for (const effect of passive.effects) {
+                const targets = AbilitySystem.getAbilityTargets(
+                  effect, monster, newState
+                );
+                newState = AbilitySystem.applyAbilityEffect(
+                  effect, monster, targets, newState
+                );
+              }
+            }
+          }
+        }
       }
     } else if (trap) {
       // d. If Trap
