@@ -143,7 +143,19 @@ export const useGameStore = create<GameStore>()(
           items: []
         }],
         dungeonDeck: [],
-        treasureDeck: [],
+        treasureDeck: (() => {
+          const treasureIds = DataLoader.getInstance()
+            .getAllCards()
+            .filter(c => c.type === 'treasure')
+            .map(c => c.id);
+
+          // Inline Fisher-Yates shuffle
+          for (let i = treasureIds.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [treasureIds[i], treasureIds[j]] = [treasureIds[j], treasureIds[i]];
+          }
+          return treasureIds;
+        })(),
         encounterDeck: (() => {
           const encounterIds = DataLoader.getInstance()
             .getAllCards()
@@ -157,7 +169,12 @@ export const useGameStore = create<GameStore>()(
           }
           return encounterIds;
         })(),
-        discardPiles: {},
+        discardPiles: {
+          treasure: [],
+          encounter: [],
+          ability: [],
+          monster: []
+        },
         activeScenario: scenario,
         turnOrder: selectedHeroes.map(h => h.id),
         healingSurges: scenario.maxSurges,

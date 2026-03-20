@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface MainMenuProps {
-  onStart: (scenarioId: string, heroIds: string[]) => void;
+  onStart: () => void;
 }
 
 export const MainMenu: React.FC<MainMenuProps> = ({ onStart }) => {
@@ -48,8 +48,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStart }) => {
             style={{ fontSize: '1.4rem', padding: '15px' }}
             onClick={() => {
               console.log('[DEBUG] MainMenu: Begin Adventure clicked');
-              console.log('[DEBUG] MainMenu: Calling onStart with s1 and hero_arjhan');
-              onStart('s1', ['hero_arjhan']);
+              onStart();
             }}
           >
             Begin Adventure

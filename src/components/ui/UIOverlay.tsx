@@ -8,6 +8,11 @@ import { ScenarioPanel } from './ScenarioPanel';
 import { TurnIndicator } from './TurnIndicator';
 import { MainMenu } from './MainMenu';
 import { PauseMenu } from './PauseMenu';
+import { ScenarioSetupScreen } from './ScenarioSetupScreen';
+import { useState } from 'react';
+import { useUIStore } from '../../store/uiStore';
+import { ExperiencePanel } from './ExperiencePanel';
+import { PartySidebar } from './PartySidebar';
 
 interface UIOverlayProps {
   onStartGame: (scenarioId: string, heroIds: string[]) => void;
@@ -19,8 +24,22 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
   const isPaused = useGameStore((state) => state.isPaused);
   const unpauseGame = useGameStore((state) => state.unpauseGame);
 
+  const [showSetup, setShowSetup] = useState(false);
+  const activeModal = useUIStore((state) => state.activeModal);
+
   if (!gameState) {
-    return <MainMenu onStart={onStartGame} />;
+    if (showSetup) {
+      return (
+        <ScenarioSetupScreen 
+          onBack={() => setShowSetup(false)} 
+          onStart={(scenarioId, heroIds) => {
+            setShowSetup(false);
+            onStartGame(scenarioId, heroIds);
+          }} 
+        />
+      );
+    }
+    return <MainMenu onStart={() => setShowSetup(true)} />;
   }
 
   return (
@@ -31,13 +50,18 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
           <TurnIndicator />
         </div>
 
-        {/* Left: Hero Status & Combat Log */}
-        <div style={{ gridArea: 'left', display: 'flex', flexDirection: 'column', gap: '20px', pointerEvents: 'none' }}>
+        {/* Left: Party Sidebar & Hero Status/Combat Log */}
+        <div style={{ gridArea: 'left', display: 'flex', gap: '20px', pointerEvents: 'none' }}>
           <div style={{ pointerEvents: 'auto' }}>
-            <HeroPanel />
+            <PartySidebar />
           </div>
-          <div style={{ pointerEvents: 'auto', marginTop: 'auto' }}>
-            <CombatLog />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
+            <div style={{ pointerEvents: 'auto' }}>
+              <HeroPanel />
+            </div>
+            <div style={{ pointerEvents: 'auto', marginTop: 'auto' }}>
+              <CombatLog />
+            </div>
           </div>
         </div>
 
@@ -62,6 +86,11 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
       {/* Pause Menu Overlay */}
       {isPaused && (
         <PauseMenu onResume={unpauseGame} onQuit={() => window.location.reload()} />
+      )}
+
+      {/* Experience Page Overlay */}
+      {activeModal === 'experience' && (
+        <ExperiencePanel />
       )}
     </>
   );

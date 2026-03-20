@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type ModalType = 'none' | 'scenario_intro' | 'victory' | 'defeat' | 'settings' | 'tutorial' | 'help';
+export type ModalType = 'none' | 'scenario_intro' | 'victory' | 'defeat' | 'settings' | 'tutorial' | 'help' | 'experience';
 
 interface Notification {
   id: string;

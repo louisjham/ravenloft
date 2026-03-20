@@ -1,6 +1,7 @@
 import React from 'react';
 import { CardResolutionState, Card, Hero, Effect } from '../../game/types';
 import CardFlip from './cards/CardFlip';
+import { useGameStore } from '../../store/gameStore';
 
 interface EncounterCardOverlayProps {
   resolution: CardResolutionState;
@@ -212,7 +213,27 @@ const EncounterCardOverlay: React.FC<EncounterCardOverlayProps> = ({
 
         <div style={buttonContainerStyle}>
           {resolution.phase === 'revealing' && (!needsTarget || resolution.targetEntityId) && (
-            <button style={primaryButtonStyle} onClick={onAdvance}>Resolve</button>
+            <>
+              <button style={primaryButtonStyle} onClick={onAdvance}>Resolve</button>
+              {/* Experience spending option */}
+              <button 
+                className="gothic-button"
+                style={{ 
+                  marginTop: '10px', 
+                  fontSize: '0.9rem', 
+                  padding: '8px',
+                  opacity: (useGameStore.getState().gameState?.experiencePile.length || 0) >= 5 ? 1 : 0.5
+                }}
+                disabled={(useGameStore.getState().gameState?.experiencePile.length || 0) < 5}
+                onClick={() => {
+                  if (card.id) {
+                    useGameStore.getState().cancelEncounterCard(card.id);
+                  }
+                }}
+              >
+                Cancel Encounter (Spend 5 XP)
+              </button>
+            </>
           )}
 
           {resolution.phase === 'resolving' && (

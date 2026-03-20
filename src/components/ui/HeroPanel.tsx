@@ -1,5 +1,6 @@
 import React from 'react';
 import { useGameStore } from '../../store/gameStore';
+import { useUIStore } from '../../store/uiStore';
 import ConditionMarkers from './ConditionMarkers';
 
 export const HeroPanel: React.FC = () => {
@@ -26,7 +27,7 @@ export const HeroPanel: React.FC = () => {
   const hpPercentage = (currentHero.hp / currentHero.maxHp) * 100;
 
   return (
-    <div className="hero-panel gothic-panel" style={{ gridArea: 'left', alignSelf: 'start', padding: '15px' }}>
+    <div className="hero-panel gothic-panel" style={{ alignSelf: 'start', padding: '15px' }}>
       <div className="hero-header" style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
         <div className="hero-portrait-container" style={{ 
           width: '80px', 
@@ -45,7 +46,37 @@ export const HeroPanel: React.FC = () => {
         <div className="hero-info">
           <h2 className="gothic-title" style={{ margin: 0, fontSize: '1.2rem' }}>{currentHero.name}</h2>
           <div className="hero-class" style={{ color: 'var(--color-text-dim)', fontSize: '0.9rem' }}>{currentHero.heroClass}</div>
-          <div className="hero-level" style={{ color: 'var(--color-gold)', fontSize: '0.8rem', fontWeight: 'bold' }}>LVL {currentHero.level} | XP {currentHero.xp}</div>
+          <div 
+            className="hero-level" 
+            style={{ 
+              color: 'var(--color-gold)', 
+              fontSize: '0.8rem', 
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            LVL {currentHero.level} 
+            <span style={{ color: '#444' }}>|</span>
+            <button
+              className="xp-button"
+              style={{
+                background: 'rgba(255, 215, 0, 0.1)',
+                border: '1px solid var(--color-gold)',
+                borderRadius: '4px',
+                padding: '2px 8px',
+                color: 'var(--color-gold)',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+                fontFamily: 'Cinzel, serif',
+                transition: 'all 0.2s'
+              }}
+              onClick={() => useUIStore.getState().showModal('experience')}
+            >
+              XP {gameState?.experiencePile?.length || 0}
+            </button>
+          </div>
         </div>
       </div>
 
