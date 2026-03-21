@@ -205,10 +205,17 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
         backgroundColor: '#6a3a3a',
     };
 
+    // DIAGNOSTIC: Log layout info
+    React.useEffect(() => {
+        console.log('[PowerSelectionScreen] Render with activeHero:', activeHeroId);
+        console.log('[PowerSelectionScreen] Available powers count:', availablePowers.length);
+        console.log('[PowerSelectionScreen] Selected powers count:', activeSelection.selectedPowerIds.length);
+    }, [activeHeroId, availablePowers.length, activeSelection.selectedPowerIds.length]);
+
     return (
         <div style={containerStyle}>
             {/* TOP BAR */}
-            <div style={topBarStyle}>
+            <div style={topBarStyle} id="power-top-bar">
                 <div style={titleStyle}>Choose Your Powers</div>
                 <div style={heroButtonsStyle}>
                     {heroes.map(hero => {
@@ -256,12 +263,15 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
                                         const isExpanded = expandedCardId === card.id;
 
                                         return (
-                                            <div key={card.id} style={cardWrapperStyle}>
+                                            <div key={card.id} style={cardWrapperStyle} data-card-id={card.id}>
                                                 <div
                                                     style={cardNameClickAreaStyle}
-                                                    onClick={() => setExpandedCardId(
-                                                        expandedCardId === card.id ? null : card.id
-                                                    )}
+                                                    onClick={() => {
+                                                        console.log('[PowerSelectionScreen] Card clicked:', card.name, 'expanded:', expandedCardId === card.id);
+                                                        setExpandedCardId(
+                                                            expandedCardId === card.id ? null : card.id
+                                                        );
+                                                    }}
                                                 >
                                                     <PowerCardDisplay
                                                         card={card}
@@ -309,11 +319,14 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
             </div>
 
             {/* BOTTOM BAR */}
-            <div style={bottomBarStyle}>
+            <div style={bottomBarStyle} id="power-bottom-bar">
                 <button
                     style={activeSelection.isConfirmed ? disabledButtonStyle : buttonStyle}
                     disabled={activeSelection.isConfirmed}
-                    onClick={() => onAutoSelect(activeHeroId)}
+                    onClick={() => {
+                        console.log('[PowerSelectionScreen] Auto-Select clicked');
+                        onAutoSelect(activeHeroId);
+                    }}
                 >
                     Auto-Select
                 </button>
@@ -325,7 +338,10 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
                 ) : (
                     <button
                         style={confirmButtonStyle}
-                        onClick={() => onConfirmHero(activeHeroId)}
+                        onClick={() => {
+                            console.log('[PowerSelectionScreen] Confirm clicked');
+                            onConfirmHero(activeHeroId);
+                        }}
                     >
                         Confirm
                     </button>
@@ -334,7 +350,10 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
                 {allConfirmed && (
                     <button
                         style={startButtonStyle}
-                        onClick={onConfirmAll}
+                        onClick={() => {
+                            console.log('[PowerSelectionScreen] Start Game clicked');
+                            onConfirmAll();
+                        }}
                     >
                         Start Game
                     </button>
