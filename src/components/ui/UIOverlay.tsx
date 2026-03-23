@@ -26,6 +26,8 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
 
   const [showSetup, setShowSetup] = useState(false);
   const activeModal = useUIStore((state) => state.activeModal);
+  const showTilePlacer = useUIStore((state) => state.showTilePlacer);
+  const tilePlacementError = useUIStore((state) => state.tilePlacementError);
 
   if (!gameState) {
     if (showSetup) {
@@ -44,6 +46,32 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
 
   return (
     <>
+      {/* Tile Placement overlay */}
+      {showTilePlacer && (
+        <div style={{
+          position: 'absolute', top: '10%', left: '50%', transform: 'translateX(-50%)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', zIndex: 1000, pointerEvents: 'none'
+        }}>
+          {tilePlacementError && (
+            <div style={{
+              background: 'rgba(200, 0, 0, 0.9)', color: 'white', padding: '10px 20px',
+              borderRadius: '4px', border: '2px solid #500', fontWeight: 'bold'
+            }}>
+              {tilePlacementError}
+            </div>
+          )}
+          <div style={{
+            background: 'rgba(20, 20, 20, 0.9)', color: '#ffb347', padding: '10px 20px',
+            borderRadius: '4px', border: '2px solid #555', fontFamily: 'Cinzel, serif', textAlign: 'center'
+          }}>
+            <div>Position Tile</div>
+            <div style={{ fontSize: '0.8rem', color: '#ccc', marginTop: '4px' }}>
+              [R] Rotate • [Enter/Click] Confirm • [Esc] Cancel
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="ui-layer">
         {/* Top: Turn Info */}
         <div style={{ gridArea: 'top', display: 'flex', justifyContent: 'center' }}>

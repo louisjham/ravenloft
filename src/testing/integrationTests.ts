@@ -525,7 +525,7 @@ export const runFullGameLoopTest = async () => {
 
     // Happy path tests
     fmState = onArrowClicked(fmState, point, smDrawResult);
-    if (fmState.phase !== 'awaiting_rotation') throw new Error('State machine failed to transition to awaiting_rotation');
+    if (fmState.phase !== 'positioning') throw new Error('State machine failed to transition to positioning');
 
     fmState = onRotationConfirmed(fmState, 90);
     if (fmState.phase !== 'placing') throw new Error('State machine failed to transition to placing');
@@ -535,7 +535,7 @@ export const runFullGameLoopTest = async () => {
 
     // Cancel test
     fmState = onArrowClicked(fmState, point, smDrawResult);
-    if (fmState.phase !== 'awaiting_rotation') throw new Error('State machine failed reset to awaiting_rotation for cancel test');
+    if (fmState.phase !== 'positioning') throw new Error('State machine failed reset to positioning for cancel test');
 
     fmState = onCancel(fmState);
     if (fmState.phase !== 'idle') throw new Error('State machine failed to transition back to idle on cancel');

@@ -32,6 +32,25 @@ export interface ExplorationPoint {
   worldZ: number;
 }
 
+/**
+ * Describes a conflict when attempting to place a tile.
+ */
+export interface EdgeConflict {
+  edge: Direction;
+  issue: 'open_to_wall' | 'wall_to_open' | 'open_to_boundary' | 'primary_blocked';
+  neighborTileId?: string;
+  description: string;
+}
+
+/**
+ * Result of validating a tile placement.
+ */
+export interface ValidationResult {
+  valid: boolean;
+  conflicts: EdgeConflict[];
+  warnings: string[];
+}
+
 export interface Condition {
   type: ConditionType;
   sourceId?: string; // Who applied this condition
@@ -102,6 +121,8 @@ export interface TileConnection {
   connectedTileId?: string;
 }
 
+export type EdgeDirection = 'north' | 'south' | 'east' | 'west';
+
 export interface Tile {
   id: string;
   name: string;
@@ -119,7 +140,7 @@ export interface Tile {
   items: string[]; // Item/Token IDs
   blocksLineOfSight?: boolean; // If true, this tile blocks line-of-sight
   imageUrl?: string;
-  encounterType?: 'black' | 'white';
+  openEdges?: EdgeDirection[];
 }
 
 export type CardType = 'ability' | 'monster' | 'encounter' | 'treasure' | 'item' | 'consumable';
@@ -240,7 +261,7 @@ export interface GameState {
   // One entry per hero, populated at game initialization.
   // Card resolution (Prompt CUI-1)
   cardResolution?: CardResolutionState;
-  
+
   treasureAssignments?: TreasureAssignment[];
   activeConditions?: ActiveCondition[];
 }

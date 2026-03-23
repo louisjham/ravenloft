@@ -1,18 +1,23 @@
 [
   {
-    "id": "card-monster-gargoyle",
-    "name": "Gargoyle",
+    "id": "card-monster-skeleton",
+    "name": "Skeleton",
     "type": "monster",
-    "description": "Spawn a Gargoyle on the bone pile of the newly revealed tile.",
-    "effects": ["spawn:monster-gargoyle"],
+    "description": "Spawn a Skeleton on the bone pile of the newly revealed tile.",
+    "effects": [
+      "spawn:monster_skeleton"
+    ],
     "phase": "exploration"
   },
   {
-    "id": "card-monster-goblin",
-    "name": "Goblin",
+    "id": "card-monster-skeleton-2",
+    "name": "Skeleton Horde",
     "type": "monster",
-    "description": "Spawn a Goblin on the mushroom patch of the newly revealed tile.",
-    "effects": ["spawn:monster-goblin"],
+    "description": "Spawn 2 Skeletons on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_skeleton",
+      "spawn:monster_skeleton"
+    ],
     "phase": "exploration"
   },
   {
@@ -20,15 +25,41 @@
     "name": "Zombie",
     "type": "monster",
     "description": "Spawn a Zombie on the newly revealed tile.",
-    "effects": ["spawn:monster-zombie"],
+    "effects": [
+      "spawn:monster_zombie"
+    ],
     "phase": "exploration"
   },
   {
-    "id": "card-monster-skeleton",
-    "name": "Skeleton",
+    "id": "card-monster-zombie-2",
+    "name": "Zombie Shuffle",
     "type": "monster",
-    "description": "Spawn a Skeleton on the newly revealed tile.",
-    "effects": ["spawn:monster-skeleton"],
+    "description": "Spawn 2 Zombies on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_zombie",
+      "spawn:monster_zombie"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-goblin",
+    "name": "Goblin",
+    "type": "monster",
+    "description": "Spawn a Goblin on the mushroom patch of the newly revealed tile.",
+    "effects": [
+      "spawn:monster_goblin"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-goblin-2",
+    "name": "Goblin Ambush",
+    "type": "monster",
+    "description": "Spawn 2 Goblins on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_goblin",
+      "spawn:monster_goblin"
+    ],
     "phase": "exploration"
   },
   {
@@ -36,7 +67,236 @@
     "name": "Wolf",
     "type": "monster",
     "description": "Spawn a Wolf on the newly revealed tile.",
-    "effects": ["spawn:monster-wolf"],
+    "effects": [
+      "spawn:monster_wolf"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-wolf-2",
+    "name": "Wolf Pack",
+    "type": "monster",
+    "description": "Spawn 2 Wolves on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_wolf",
+      "spawn:monster_wolf"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-gargoyle",
+    "name": "Gargoyle",
+    "type": "monster",
+    "description": "Spawn a Gargoyle on the bone pile of the newly revealed tile.",
+    "effects": [
+      "spawn:monster_gargoyle"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-ghoul",
+    "name": "Ghoul",
+    "type": "monster",
+    "description": "Spawn a Ghoul on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_ghoul"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-ghoul-2",
+    "name": "Ghoul Tide",
+    "type": "monster",
+    "description": "Spawn 2 Ghouls on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_ghoul",
+      "spawn:monster_ghoul"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-spider",
+    "name": "Giant Spider",
+    "type": "monster",
+    "description": "Spawn a Giant Spider on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_spider"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-spider-2",
+    "name": "Spider Nest",
+    "type": "monster",
+    "description": "Spawn 2 Giant Spiders on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_spider",
+      "spawn:monster_spider"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-werewolf",
+    "name": "Werewolf",
+    "type": "monster",
+    "description": "Spawn a Werewolf on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_werewolf"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-vampire",
+    "name": "Vampire",
+    "type": "monster",
+    "description": "Spawn a Vampire on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_vampire"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-necromancer",
+    "name": "Necromancer",
+    "type": "monster",
+    "description": "Spawn a Necromancer and a Skeleton on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_necromancer",
+      "spawn:monster_skeleton"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-troll",
+    "name": "Troll",
+    "type": "monster",
+    "description": "Spawn a Troll on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_troll"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-dragon",
+    "name": "Young Dragon",
+    "type": "monster",
+    "description": "Spawn a Young Dragon on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_dragon"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-mixed-1",
+    "name": "Undead Rising",
+    "type": "monster",
+    "description": "Spawn a Skeleton and a Zombie on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_skeleton",
+      "spawn:monster_zombie"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-mixed-2",
+    "name": "Dark Menagerie",
+    "type": "monster",
+    "description": "Spawn a Goblin and a Wolf on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_goblin",
+      "spawn:monster_wolf"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-mixed-3",
+    "name": "Haunted Crypt",
+    "type": "monster",
+    "description": "Spawn a Ghoul and a Skeleton on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_ghoul",
+      "spawn:monster_skeleton"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-mixed-4",
+    "name": "Predator's Den",
+    "type": "monster",
+    "description": "Spawn a Wolf and a Spider on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_wolf",
+      "spawn:monster_spider"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-mixed-5",
+    "name": "Nightmare Pack",
+    "type": "monster",
+    "description": "Spawn a Werewolf and a Wolf on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_werewolf",
+      "spawn:monster_wolf"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-mixed-6",
+    "name": "Cursed Tomb",
+    "type": "monster",
+    "description": "Spawn a Necromancer and 2 Skeletons on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_necromancer",
+      "spawn:monster_skeleton",
+      "spawn:monster_skeleton"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-mixed-7",
+    "name": "Stone Guardians",
+    "type": "monster",
+    "description": "Spawn 2 Gargoyles on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_gargoyle",
+      "spawn:monster_gargoyle"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-mixed-8",
+    "name": "Swarming Mass",
+    "type": "monster",
+    "description": "Spawn 3 Goblins on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_goblin",
+      "spawn:monster_goblin",
+      "spawn:monster_goblin"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-mixed-9",
+    "name": "Legion of Doom",
+    "type": "monster",
+    "description": "Spawn 3 Skeletons on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_skeleton",
+      "spawn:monster_skeleton",
+      "spawn:monster_skeleton"
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card-monster-mixed-10",
+    "name": "Crimson Court",
+    "type": "monster",
+    "description": "Spawn a Vampire and a Ghoul on the newly revealed tile.",
+    "effects": [
+      "spawn:monster_vampire",
+      "spawn:monster_ghoul"
+    ],
     "phase": "exploration"
   }
 ]

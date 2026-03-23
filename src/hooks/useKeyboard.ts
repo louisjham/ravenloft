@@ -24,6 +24,23 @@ export const useKeyboard = () => {
       // Game state dependent shortcuts
       if (isPaused || activeModal !== 'none') return;
 
+      const { showTilePlacer, rotatePendingTile, closeTilePlacer } = useUIStore.getState();
+
+      if (showTilePlacer) {
+        if (event.key.toLowerCase() === 'r') {
+          rotatePendingTile();
+          return;
+        } else if (event.key === 'Escape') {
+          // Trigger cancel event
+          window.dispatchEvent(new CustomEvent('cancel-tile-placement'));
+          return;
+        } else if (event.key === 'Enter') {
+          // Trigger confirm event
+          window.dispatchEvent(new CustomEvent('confirm-tile-placement'));
+          return;
+        }
+      }
+
       switch (event.key.toLowerCase()) {
         case 't':
           if (gameState?.phase === 'hero') {

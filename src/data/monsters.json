@@ -153,6 +153,84 @@
     "usedPowers": []
   },
   {
+    "id": "monster_goblin",
+    "name": "Goblin",
+    "type": "monster",
+    "monsterType": "Humanoid",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 13,
+    "speed": 2,
+    "attackBonus": 6,
+    "damage": 1,
+    "experienceValue": 1,
+    "moveRange": 2,
+    "abilities": [
+      "sneak_attack"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "lowest_hp"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": []
+  },
+  {
+    "id": "monster_gargoyle",
+    "name": "Gargoyle",
+    "type": "monster",
+    "monsterType": "Construct",
+    "hp": 2,
+    "maxHp": 2,
+    "ac": 15,
+    "speed": 1,
+    "attackBonus": 7,
+    "damage": 1,
+    "experienceValue": 2,
+    "moveRange": 1,
+    "abilities": [
+      "stone_form"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": []
+  },
+  {
     "id": "monster_vampire",
     "name": "Vampire",
     "type": "monster",

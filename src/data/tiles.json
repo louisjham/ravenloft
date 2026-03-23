@@ -41,90 +41,765 @@
       "sqZ": 1
     },
     "imageUrl": "/assets/tiles/StartTile.png",
-    "encounterType": "white"
+    "encounterType": "white",
+    "openEdges": [
+      "north",
+      "south",
+      "east",
+      "west"
+    ]
   },
   {
-    "id": "tile_corridor_1",
-    "name": "Stone Corridor",
-    "x": 0,
-    "z": 0,
-    "terrainType": "corridor",
-    "isRevealed": false,
-    "isStart": false,
-    "isExit": false,
-    "rotation": 0,
-    "connections": [
-      {
-        "edge": "north",
-        "isOpen": true
-      },
-      {
-        "edge": "south",
-        "isOpen": true
-      },
-      {
-        "edge": "east",
-        "isOpen": false
-      },
-      {
-        "edge": "west",
-        "isOpen": false
-      }
-    ],
-    "monsters": [],
-    "heroes": [],
-    "items": [],
-    "boneSquare": {
-      "sqX": 1,
-      "sqZ": 1
-    },
-    "imageUrl": "/assets/tiles/Tile_Black_x2_01.png",
-    "encounterType": "black"
-  },
-  {
-    "id": "tile_corridor_cross",
-    "name": "Vaulted Crossroads",
-    "x": 0,
-    "z": 0,
-    "terrainType": "corridor",
-    "isRevealed": false,
-    "isStart": false,
-    "isExit": false,
-    "rotation": 0,
-    "connections": [
-      {
-        "edge": "north",
-        "isOpen": true
-      },
-      {
-        "edge": "south",
-        "isOpen": true
-      },
-      {
-        "edge": "east",
-        "isOpen": true
-      },
-      {
-        "edge": "west",
-        "isOpen": true
-      }
-    ],
-    "monsters": [],
-    "heroes": [],
-    "items": [],
-    "boneSquare": {
-      "sqX": 1,
-      "sqZ": 1
-    },
-    "imageUrl": "/assets/tiles/Tile_Black_x4_01.png",
-    "encounterType": "black"
-  },
-  {
-    "id": "tile_crypt",
-    "name": "The Great Crypt",
-    "x": 0,
-    "z": 0,
+    "id": "named_arcane_circle",
+    "name": "Arcane Circle",
     "terrainType": "named_room",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Named_ArcaneCircle.png",
+    "specialEffect": "arcane_ritual",
+    "effectDescription": "Heroes can use a Utility power at will while on this tile"
+  },
+  {
+    "id": "named_chapel",
+    "name": "Chapel",
+    "terrainType": "named_room",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Named_Chapel.png",
+    "specialEffect": "holy_ground",
+    "effectDescription": "Healing powers used here restore +1 HP"
+  },
+  {
+    "id": "named_dark_fountain",
+    "name": "Dark Fountain",
+    "terrainType": "named_room",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Named_DarkFountain.png",
+    "specialEffect": "dark_waters",
+    "effectDescription": "Hero drinking from fountain must succeed on DC12 save or take 1 damage"
+  },
+  {
+    "id": "named_fetid_den",
+    "name": "Fetid Den",
+    "terrainType": "named_room",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Named_FetidDen.png",
+    "specialEffect": "poison_air",
+    "effectDescription": "Heroes starting turn here take 1 poison damage"
+  },
+  {
+    "id": "named_laboratory",
+    "name": "Laboratory",
+    "terrainType": "named_room",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Named_Laboratory.png",
+    "specialEffect": "alchemical_supplies",
+    "effectDescription": "Heroes can spend XP to gain potion effects"
+  },
+  {
+    "id": "named_rotting_nook",
+    "name": "Rotting Nook",
+    "terrainType": "named_room",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Named_RottingNook.png",
+    "specialEffect": "decaying_structures",
+    "effectDescription": "Difficult terrain - movement costs +1 square"
+  },
+  {
+    "id": "named_secret_stairway",
+    "name": "Secret Stairway",
+    "terrainType": "named_room",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Named_SecretStairway.png",
+    "specialEffect": "hidden_passage",
+    "effectDescription": "Heroes can move to any other Secret Stairway tile"
+  },
+  {
+    "id": "named_workshop",
+    "name": "Workshop",
+    "terrainType": "named_room",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Named_Workshop.png",
+    "specialEffect": "crafting_tools",
+    "effectDescription": "Heroes can repair or upgrade equipment"
+  },
+  {
+    "id": "crypt_corner_1_5",
+    "name": "Crypt Corner (1-5)",
+    "terrainType": "crypt",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": false
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "south",
+      "east"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Crypt_Corner1-5.png",
+    "isCornerMarker": true,
+    "cornerRange": [
+      1,
+      5
+    ]
+  },
+  {
+    "id": "crypt_corner_6_10",
+    "name": "Crypt Corner (6-10)",
+    "terrainType": "crypt",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": false
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "south",
+      "east"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Crypt_Corner6-10.png",
+    "isCornerMarker": true,
+    "cornerRange": [
+      6,
+      10
+    ]
+  },
+  {
+    "id": "crypt_corner_11_15",
+    "name": "Crypt Corner (11-15)",
+    "terrainType": "crypt",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": false
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "south",
+      "east"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Crypt_Corner11-15.png",
+    "isCornerMarker": true,
+    "cornerRange": [
+      11,
+      15
+    ]
+  },
+  {
+    "id": "crypt_corner_16_20",
+    "name": "Crypt Corner (16-20)",
+    "terrainType": "crypt",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": false
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "south",
+      "east"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Crypt_Corner16-20.png",
+    "isCornerMarker": true,
+    "cornerRange": [
+      16,
+      20
+    ]
+  },
+  {
+    "id": "crypt_artimus",
+    "name": "Crypt of Artimus",
+    "terrainType": "crypt",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": false
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Crypt_CryptOfArtimus.png",
+    "specialEffect": "ancient_tomb",
+    "effectDescription": "May contain treasure or undead guardian"
+  },
+  {
+    "id": "crypt_barov_ravenovia",
+    "name": "Crypt of Barov and Ravenovia",
+    "terrainType": "crypt",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": false
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Crypt_CryptOfBarovAndRavenovia.png",
+    "specialEffect": "royal_tomb",
+    "effectDescription": "Contains ancient treasures and powerful guardians"
+  },
+  {
+    "id": "crypt_sergei",
+    "name": "Crypt of Sergei Von Zarovich",
+    "terrainType": "crypt",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": false
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Crypt_CryptOfSergeiVonZarovich.png",
+    "specialEffect": "tragic_hero_tomb",
+    "effectDescription": "Story-related encounter location"
+  },
+  {
+    "id": "crypt_ireena",
+    "name": "Ireena Kolyana's Crypt",
+    "terrainType": "crypt",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": false
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Crypt_IreenaKolyanasCrypt.png",
+    "specialEffect": "innocent_tomb",
+    "effectDescription": "Key story location - may trigger special events"
+  },
+  {
+    "id": "crypt_king",
+    "name": "King's Crypt",
+    "terrainType": "crypt",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": false
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Crypt_KingsCrypt.png",
+    "specialEffect": "royal_guardian",
+    "effectDescription": "Contains powerful undead guardian and treasure"
+  },
+  {
+    "id": "crypt_lonely",
+    "name": "Lonely Crypt",
+    "terrainType": "crypt",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": false
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Crypt_LonelyCrypt.png",
+    "specialEffect": "forgotten_tomb",
+    "effectDescription": "May contain random encounter or treasure"
+  },
+  {
+    "id": "crypt_prince_aurel",
+    "name": "Prince Aurel's Crypt",
+    "terrainType": "crypt",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": false
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Crypt_PrinceAurelsCrypt.png",
+    "specialEffect": "noble_tomb",
+    "effectDescription": "Contains noble treasures and vampire guardian"
+  },
+  {
+    "id": "crypt_strahd",
+    "name": "Strahd's Crypt",
+    "terrainType": "boss_room",
+    "encounterType": "white",
     "isRevealed": false,
     "isStart": false,
     "isExit": true,
@@ -147,17 +822,774 @@
         "isOpen": false
       }
     ],
-    "monsters": [
-      "monster_ghoul",
-      "monster_skeleton"
+    "openEdges": [
+      "north"
     ],
-    "heroes": [],
-    "items": [],
     "boneSquare": {
       "sqX": 1,
       "sqZ": 1
     },
     "imageUrl": "/assets/tiles/Crypt_StrahdsCrypt.png",
-    "encounterType": "white"
+    "specialEffect": "boss_arena",
+    "effectDescription": "Final boss encounter location - Strahd von Zarovich"
+  },
+  {
+    "id": "black_x2_01",
+    "name": "Dark Corridor",
+    "terrainType": "corridor",
+    "encounterType": "black",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_Black_x2_01.png"
+  },
+  {
+    "id": "black_x2_02",
+    "name": "Shadow Passage",
+    "terrainType": "corridor",
+    "encounterType": "black",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_Black_x2_02.png"
+  },
+  {
+    "id": "black_x2_03",
+    "name": "Gloomy Hall",
+    "terrainType": "corridor",
+    "encounterType": "black",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": false
+      },
+      {
+        "edge": "south",
+        "isOpen": false
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": true
+      }
+    ],
+    "openEdges": [
+      "east",
+      "west"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_Black_x2_03.png"
+  },
+  {
+    "id": "black_x2_04",
+    "name": "Dim Walkway",
+    "terrainType": "corridor",
+    "encounterType": "black",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": false
+      },
+      {
+        "edge": "south",
+        "isOpen": false
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": true
+      }
+    ],
+    "openEdges": [
+      "east",
+      "west"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_Black_x2_04.png"
+  },
+  {
+    "id": "black_x3_01",
+    "name": "Dark Junction",
+    "terrainType": "corridor",
+    "encounterType": "black",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south",
+      "east"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_Black_x3_01.png"
+  },
+  {
+    "id": "black_x3_02",
+    "name": "Shadow Fork",
+    "terrainType": "corridor",
+    "encounterType": "black",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": true
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south",
+      "west"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_Black_x3_02.png"
+  },
+  {
+    "id": "black_x4_01",
+    "name": "Vaulted Crossroads",
+    "terrainType": "corridor",
+    "encounterType": "black",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": true
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south",
+      "east",
+      "west"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_Black_x4_01.png"
+  },
+  {
+    "id": "black_x4_02",
+    "name": "Grand Intersection",
+    "terrainType": "corridor",
+    "encounterType": "black",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": true
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south",
+      "east",
+      "west"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_Black_x4_02.png"
+  },
+  {
+    "id": "black_x4_03",
+    "name": "Four-Way Passage",
+    "terrainType": "corridor",
+    "encounterType": "black",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": true
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south",
+      "east",
+      "west"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_Black_x4_03.png"
+  },
+  {
+    "id": "black_x4_04",
+    "name": "Central Hub",
+    "terrainType": "corridor",
+    "encounterType": "black",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": true
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south",
+      "east",
+      "west"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_Black_x4_04.png"
+  },
+  {
+    "id": "black_x4_05",
+    "name": "Dark Nexus",
+    "terrainType": "corridor",
+    "encounterType": "black",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": true
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south",
+      "east",
+      "west"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_Black_x4_05.png"
+  },
+  {
+    "id": "black_x4_06",
+    "name": "Gothic Crossing",
+    "terrainType": "corridor",
+    "encounterType": "black",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": true
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south",
+      "east",
+      "west"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_Black_x4_06.png"
+  },
+  {
+    "id": "white_x2_01",
+    "name": "Stone Corridor",
+    "terrainType": "corridor",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_White_x2_01.png"
+  },
+  {
+    "id": "white_x2_02",
+    "name": "Ancient Passage",
+    "terrainType": "corridor",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": false
+      },
+      {
+        "edge": "south",
+        "isOpen": false
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": true
+      }
+    ],
+    "openEdges": [
+      "east",
+      "west"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_White_x2_02.png"
+  },
+  {
+    "id": "white_x2_03",
+    "name": "Dusty Hall",
+    "terrainType": "corridor",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_White_x2_03.png"
+  },
+  {
+    "id": "white_x3_01",
+    "name": "Stone Junction",
+    "terrainType": "corridor",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south",
+      "east"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_White_x3_01.png"
+  },
+  {
+    "id": "white_x3_02",
+    "name": "Ancient Fork",
+    "terrainType": "corridor",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": false
+      },
+      {
+        "edge": "west",
+        "isOpen": true
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south",
+      "west"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_White_x3_02.png"
+  },
+  {
+    "id": "white_x3_03",
+    "name": "Dusty Intersection",
+    "terrainType": "corridor",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": false
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": true
+      }
+    ],
+    "openEdges": [
+      "south",
+      "east",
+      "west"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_White_x3_03.png"
+  },
+  {
+    "id": "white_x3_04",
+    "name": "Weathered Junction",
+    "terrainType": "corridor",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": false
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": true
+      }
+    ],
+    "openEdges": [
+      "north",
+      "east",
+      "west"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_White_x3_04.png"
+  },
+  {
+    "id": "white_x3_05",
+    "name": "Eroded Passage",
+    "terrainType": "corridor",
+    "encounterType": "white",
+    "isRevealed": false,
+    "isStart": false,
+    "isExit": false,
+    "rotation": 0,
+    "connections": [
+      {
+        "edge": "north",
+        "isOpen": true
+      },
+      {
+        "edge": "south",
+        "isOpen": true
+      },
+      {
+        "edge": "east",
+        "isOpen": true
+      },
+      {
+        "edge": "west",
+        "isOpen": false
+      }
+    ],
+    "openEdges": [
+      "north",
+      "south",
+      "east"
+    ],
+    "boneSquare": {
+      "sqX": 1,
+      "sqZ": 1
+    },
+    "imageUrl": "/assets/tiles/Tile_White_x3_05.png"
   }
 ]

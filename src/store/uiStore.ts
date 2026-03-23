@@ -20,8 +20,15 @@ interface UIStore {
     rotation: number
   }
   isTransitioning: boolean
+  tilePlacementError: string | null
+  pendingTileRotation: 0 | 90 | 180 | 270
+  showTilePlacer: boolean
 
   // Actions
+  setTilePlacementError: (error: string | null) => void
+  rotatePendingTile: () => void
+  openTilePlacer: () => void
+  closeTilePlacer: () => void
   showModal: (modal: ModalType) => void
   hideModal: () => void
   addNotification: (message: string, type?: Notification['type']) => void
@@ -43,6 +50,28 @@ export const useUIStore = create<UIStore>()((set) => ({
     rotation: 0
   },
   isTransitioning: false,
+  tilePlacementError: null,
+  pendingTileRotation: 0,
+  showTilePlacer: false,
+
+  setTilePlacementError: (error) => set({ tilePlacementError: error }),
+  
+  rotatePendingTile: () => set((state) => ({ 
+    pendingTileRotation: ((state.pendingTileRotation + 90) % 360) as 0 | 90 | 180 | 270,
+    tilePlacementError: null
+  })),
+
+  openTilePlacer: () => set({
+    showTilePlacer: true,
+    pendingTileRotation: 0,
+    tilePlacementError: null
+  }),
+
+  closeTilePlacer: () => set({
+    showTilePlacer: false,
+    pendingTileRotation: 0,
+    tilePlacementError: null
+  }),
 
   showModal: (modal) => set({ activeModal: modal }),
   hideModal: () => set({ activeModal: 'none' }),

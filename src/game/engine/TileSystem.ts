@@ -1,4 +1,4 @@
-import { Tile, Position, TileConnection, Direction, Rotation, GameState, ExplorationPoint } from '../types';
+import { Tile, Position, TileConnection, Direction, Rotation, GameState, ExplorationPoint, EdgeConflict, ValidationResult, EdgeDirection } from '../types';
 import { GAME_CONSTANTS } from '../constants';
 import { DataLoader } from '../dataLoader';
 
@@ -18,6 +18,138 @@ export class TileSystem {
   ): boolean {
     const occupied = TileSystem.getOccupiedKeys(tiles);
     return !occupied.has(`${targetX},${targetZ}`);
+  }
+
+  /**
+   * Validates whether a tile can be placed at a position with given rotation.
+   * Checks all edge alignments against existing neighbor tiles.
+   *
+   * @param tiles - Current placed tiles
+   * @param newTile - Tile template to validate (will be cloned)
+   * @param targetX - Target grid X position
+   * @param targetZ - Target grid Z position
+   * @param rotation - Rotation to apply (0, 90, 180, 270)
+   * @param explorationEdge - The edge the player is exploring from (parent tile's edge)
+   * @returns ValidationResult with valid flag, conflicts, and warnings
+   */
+  public static validateEdgeAlignment(
+    tiles: Tile[],
+    newTile: Tile,
+    targetX: number,
+    targetZ: number,
+    rotation: Rotation,
+    explorationEdge: Direction
+  ): ValidationResult {
+    const conflicts: EdgeConflict[] = [];
+    const warnings: string[] = [];
+
+    // Apply rotation to get the actual connections
+    const rotatedConnections = TileSystem.rotateConnections(
+      newTile.connections.map(c => ({ ...c })),
+      rotation
+    );
+
+    // The edge on the NEW tile that must connect to the parent
+    const requiredEdge = TileSystem.opposite(explorationEdge);
+
+    // Check primary edge (must be open to connect to parent)
+    const primaryConn = rotatedConnections.find(c => c.edge === requiredEdge);
+    if (!primaryConn || !primaryConn.isOpen) {
+      conflicts.push({
+        edge: requiredEdge,
+        issue: 'primary_blocked',
+        description: `The ${requiredEdge} edge must be open to connect to the explored tile.`
+      });
+    }
+
+    // Check all edges for neighbor compatibility
+    for (const conn of rotatedConnections) {
+      const edge = conn.edge as Direction;
+
+      // Skip the primary edge (already checked)
+      if (edge === requiredEdge) continue;
+
+      // Get neighbor coordinates
+      const neighborCoords = TileSystem.getTargetCoords(targetX, targetZ, edge);
+      const neighbor = tiles.find(t => t.x === neighborCoords.x && t.z === neighborCoords.z);
+
+      if (neighbor) {
+        // There's a neighbor tile - check edge compatibility
+        const neighborLookingBack = TileSystem.opposite(edge);
+        const neighborConn = neighbor.connections.find(c => c.edge === neighborLookingBack);
+
+        if (conn.isOpen && neighborConn && !neighborConn.isOpen) {
+          // Open edge meets a wall
+          conflicts.push({
+            edge,
+            issue: 'open_to_wall',
+            neighborTileId: neighbor.id,
+            description: `Open ${edge} edge meets a wall on ${neighbor.name || neighbor.id}.`
+          });
+        } else if (!conn.isOpen && neighborConn && neighborConn.isOpen) {
+          // Wall meets an open edge - this is a warning, not an error
+          warnings.push(
+            `The ${edge} edge is closed but ${neighbor.name || neighbor.id} has an opening there. ` +
+            `This will block the path.`
+          );
+        }
+        // Open meets open = valid connection
+        // Wall meets wall = valid (no connection needed)
+      }
+      // No neighbor = edge can be open or closed (creates exploration point if open)
+    }
+
+    return {
+      valid: conflicts.length === 0,
+      conflicts,
+      warnings
+    };
+  }
+
+  /**
+   * Gets all neighbors of a grid position as a map of direction to tile (or null).
+   */
+  public static getNeighborTiles(
+    tiles: Tile[],
+    x: number,
+    z: number
+  ): Map<Direction, Tile | null> {
+    const neighbors = new Map<Direction, Tile | null>();
+
+    for (const edge of ['north', 'east', 'south', 'west'] as Direction[]) {
+      const coords = TileSystem.getTargetCoords(x, z, edge);
+      const neighbor = tiles.find(t => t.x === coords.x && t.z === coords.z) || null;
+      neighbors.set(edge, neighbor);
+    }
+
+    return neighbors;
+  }
+
+  /**
+   * Returns the current tile to the bottom of the deck and draws the next tile.
+   * Used when player chooses "Draw Different Tile" after invalid placement.
+   *
+   * @param currentTileCardId - The card ID of the tile being returned
+   * @param deck - Current dungeon deck
+   * @returns Object with new tile (or null if exhausted), card ID, and updated deck
+   */
+  public static returnAndDrawNext(
+    currentTileCardId: string,
+    deck: string[]
+  ): { tile: Tile | null; cardId: string | null; remainingDeck: string[] } {
+    // Put current tile at the bottom of the deck
+    const deckWithReturned = [...deck, currentTileCardId];
+
+    // Draw the next tile from the top
+    if (deckWithReturned.length === 0) {
+      return { tile: null, cardId: null, remainingDeck: [] };
+    }
+
+    const nextCardId = deckWithReturned[0];
+    const remainingDeck = deckWithReturned.slice(1);
+    const tile = TileSystem.getTileTemplate(nextCardId);
+
+    return { tile: tile || null, cardId: nextCardId, remainingDeck };
   }
 
   /**
@@ -100,10 +232,10 @@ export class TileSystem {
    *   270° → north→west→south→east (cycle)
    */
   private static readonly ROTATION_MAP: Record<Direction, Record<Rotation, Direction>> = {
-    north: { 0: 'north', 90: 'east',  180: 'south', 270: 'west'  },
-    east:  { 0: 'east',  90: 'south', 180: 'west',  270: 'north' },
-    south: { 0: 'south', 90: 'west',  180: 'north', 270: 'east'  },
-    west:  { 0: 'west',  90: 'north', 180: 'east',  270: 'south' },
+    north: { 0: 'north', 90: 'east', 180: 'south', 270: 'west' },
+    east: { 0: 'east', 90: 'south', 180: 'west', 270: 'north' },
+    south: { 0: 'south', 90: 'west', 180: 'north', 270: 'east' },
+    west: { 0: 'west', 90: 'north', 180: 'east', 270: 'south' },
   };
 
   /** All valid rotation values, kept DRY for iteration. */
@@ -120,8 +252,8 @@ export class TileSystem {
     switch (edge) {
       case 'north': return 'south';
       case 'south': return 'north';
-      case 'east':  return 'west';
-      case 'west':  return 'east';
+      case 'east': return 'west';
+      case 'west': return 'east';
     }
   }
 
@@ -141,10 +273,10 @@ export class TileSystem {
     edge: Direction,
   ): { x: number; z: number } {
     switch (edge) {
-      case 'north': return { x: parentX,     z: parentZ - 1 };
-      case 'south': return { x: parentX,     z: parentZ + 1 };
-      case 'east':  return { x: parentX + 1, z: parentZ     };
-      case 'west':  return { x: parentX - 1, z: parentZ     };
+      case 'north': return { x: parentX, z: parentZ - 1 };
+      case 'south': return { x: parentX, z: parentZ + 1 };
+      case 'east': return { x: parentX + 1, z: parentZ };
+      case 'west': return { x: parentX - 1, z: parentZ };
     }
   }
 
@@ -174,10 +306,10 @@ export class TileSystem {
       tile.connections.forEach(conn => {
         if (conn.isOpen && !conn.connectedTileId) {
           const edge = conn.edge as Direction;
-          
+
           // Determine adjacent grid cell coordinate
           const targetCoords = TileSystem.getTargetCoords(tile.x, tile.z, edge);
-          
+
           // Only add point if the adjacent space is empty
           if (TileSystem.canPlaceTile(tiles, targetCoords.x, targetCoords.z)) {
             let worldX = tile.x;
@@ -186,8 +318,8 @@ export class TileSystem {
             switch (edge) {
               case 'north': worldZ -= 0.5; break;
               case 'south': worldZ += 0.5; break;
-              case 'east':  worldX += 0.5; break;
-              case 'west':  worldX -= 0.5; break;
+              case 'east': worldX += 0.5; break;
+              case 'west': worldX -= 0.5; break;
             }
 
             points.push({ tileId: tile.id, edge, worldX, worldZ });
@@ -208,8 +340,8 @@ export class TileSystem {
     switch (direction) {
       case 'north': nextPos.z -= 1; break;
       case 'south': nextPos.z += 1; break;
-      case 'east':  nextPos.x += 1; break;
-      case 'west':  nextPos.x -= 1; break;
+      case 'east': nextPos.x += 1; break;
+      case 'west': nextPos.x -= 1; break;
     }
     return nextPos;
   }
@@ -221,8 +353,8 @@ export class TileSystem {
   public static isValidSquareMove(from: Position, to: Position, speed: number): boolean {
     const fromGlobalX = from.x * GAME_CONSTANTS.TILE_SIZE_SQUARES + from.sqX;
     const fromGlobalZ = from.z * GAME_CONSTANTS.TILE_SIZE_SQUARES + from.sqZ;
-    const toGlobalX   = to.x   * GAME_CONSTANTS.TILE_SIZE_SQUARES + to.sqX;
-    const toGlobalZ   = to.z   * GAME_CONSTANTS.TILE_SIZE_SQUARES + to.sqZ;
+    const toGlobalX = to.x * GAME_CONSTANTS.TILE_SIZE_SQUARES + to.sqX;
+    const toGlobalZ = to.z * GAME_CONSTANTS.TILE_SIZE_SQUARES + to.sqZ;
 
     const distance = Math.abs(fromGlobalX - toGlobalX) + Math.abs(fromGlobalZ - toGlobalZ);
     return distance <= speed;
@@ -285,10 +417,10 @@ export class TileSystem {
   ): { sqX: number; sqZ: number } {
     const N = 3;
     switch (rotation) {
-      case 0:   return { sqX, sqZ };
-      case 90:  return { sqX: N - sqZ, sqZ: sqX };
+      case 0: return { sqX, sqZ };
+      case 90: return { sqX: N - sqZ, sqZ: sqX };
       case 180: return { sqX: N - sqX, sqZ: N - sqZ };
-      case 270: return { sqX: sqZ,     sqZ: N - sqX };
+      case 270: return { sqX: sqZ, sqZ: N - sqX };
     }
   }
 
@@ -404,7 +536,7 @@ export class TileSystem {
 
     for (const newTileConn of remainingEdges) {
       const neighborCoords = TileSystem.getTargetCoords(newTile.x, newTile.z, newTileConn.edge as Direction);
-      
+
       const neighbor = tiles.find(t => t.x === neighborCoords.x && t.z === neighborCoords.z);
       if (!neighbor) continue;
 
@@ -423,11 +555,77 @@ export class TileSystem {
     }
 
     const resultTiles = tiles.map(t => updatedTilesMap.has(t.id) ? updatedTilesMap.get(t.id)! : t);
-    
+
     if (!resultTiles.find(t => t.id === newTile.id)) {
       resultTiles.push(updatedTilesMap.get(newTile.id)!);
     }
 
     return resultTiles;
   }
+}
+
+export const OPPOSITE_EDGE: Record<EdgeDirection, EdgeDirection> = {
+  north: 'south',
+  south: 'north',
+  east: 'west',
+  west: 'east'
+};
+
+export const ROTATION_ORDER: EdgeDirection[] = ['north', 'east', 'south', 'west'];
+
+export function getEffectiveOpenEdges(openEdges: EdgeDirection[], rotation: number): EdgeDirection[] {
+  const steps = rotation / 90;
+  return openEdges.map(edge => {
+    const currentIndex = ROTATION_ORDER.indexOf(edge);
+    const newIndex = (currentIndex + steps) % 4;
+    return ROTATION_ORDER[newIndex];
+  });
+}
+
+export function isPlacementValid(
+  candidateOpenEdges: EdgeDirection[],
+  candidateRotation: number,
+  targetX: number,
+  targetY: number,
+  board: Map<string, { openEdges: EdgeDirection[], rotation: number }>
+): { valid: boolean; reason?: string } {
+  const key = `${targetX},${targetY}`;
+  if (board.has(key)) {
+    return { valid: false, reason: "A tile already exists here." };
+  }
+
+  const effectiveEdges = getEffectiveOpenEdges(candidateOpenEdges, candidateRotation);
+  let hasNeighbor = false;
+
+  for (const direction of ROTATION_ORDER) {
+    let neighborX = targetX;
+    let neighborY = targetY;
+    
+    if (direction === 'north') neighborY -= 1;
+    if (direction === 'south') neighborY += 1;
+    if (direction === 'east') neighborX += 1;
+    if (direction === 'west') neighborX -= 1;
+
+    const neighborKey = `${neighborX},${neighborY}`;
+    const neighbor = board.get(neighborKey);
+
+    if (neighbor) {
+      hasNeighbor = true;
+      const neighborEffectiveEdges = getEffectiveOpenEdges(neighbor.openEdges, neighbor.rotation);
+      
+      const candidateIsOpen = effectiveEdges.includes(direction);
+      const oppositeDir = OPPOSITE_EDGE[direction];
+      const neighborIsOpen = neighborEffectiveEdges.includes(oppositeDir);
+
+      if (candidateIsOpen !== neighborIsOpen) {
+        return { valid: false, reason: `Edge mismatch on the ${direction} side.` };
+      }
+    }
+  }
+
+  if (!hasNeighbor) {
+    return { valid: false, reason: "Tile must be placed adjacent to an existing tile." };
+  }
+
+  return { valid: true };
 }

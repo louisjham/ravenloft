@@ -26,7 +26,8 @@ import { DataLoader } from './game/dataLoader';
 import {
   ExplorationState,
   onArrowClicked,
-  onRotationConfirmed,
+  onPlacementAttempted,
+  setTileRotation,
   onCancel,
   onPlacementComplete
 } from './game/engine/ExplorationStateMachine';
@@ -94,6 +95,48 @@ const App: React.FC = () => {
 
   const monsters = gameState?.monsters || [];
 
+  React.useEffect(() => {
+    const handleConfirm = () => {
+      if (!gameState || (exploration.phase !== 'positioning' && exploration.phase !== 'placement_blocked')) return;
+      
+      const { pendingTileRotation, closeTilePlacer } = useUIStore.getState();
+      const newState = onPlacementAttempted(
+        setTileRotation(exploration, pendingTileRotation), 
+        { valid: true, conflicts: [], warnings: [] }
+      );
+      
+      if (newState.phase === 'placing') {
+         closeTilePlacer();
+         const finalState = TileSystem.placeTile(gameState, newState.point, newState.rotation);
+         setGameState(finalState);
+         setExploration(onPlacementComplete(newState));
+         if (gameState.phase !== 'setup') drawEncounterCard();
+      } else {
+         setExploration(newState);
+      }
+    };
+
+    const handleCancel = () => {
+      if (!gameState || (exploration.phase !== 'positioning' && exploration.phase !== 'placement_blocked')) return;
+
+      setGameState({
+        ...gameState,
+        // @ts-ignore
+        dungeonDeck: [exploration.drawnTile.id, ...exploration.remainingDeck]
+      });
+      useUIStore.getState().closeTilePlacer();
+      setExploration(onCancel(exploration));
+    };
+
+    window.addEventListener('confirm-tile-placement', handleConfirm);
+    window.addEventListener('cancel-tile-placement', handleCancel);
+
+    return () => {
+      window.removeEventListener('confirm-tile-placement', handleConfirm);
+      window.removeEventListener('cancel-tile-placement', handleCancel);
+    };
+  }, [exploration, gameState, setGameState, drawEncounterCard]);
+
   return (
     <div className="app-container">
       <AudioReactComponent />
@@ -116,9 +159,15 @@ const App: React.FC = () => {
             {gameState && (
               <ExplorationLayer
                 tiles={gameState.tiles}
+                // @ts-ignore
+                explorationState={exploration}
                 onEdgeSelected={(point) => {
                   const drawResult = TileSystem.drawAndPlace(gameState, point);
-                  setExploration(onArrowClicked(exploration, point, drawResult));
+                  const newState = onArrowClicked(exploration, point, drawResult);
+                  setExploration(newState);
+                  if (newState.phase === 'positioning') {
+                    useUIStore.getState().openTilePlacer();
+                  }
                 }}
               />
             )}
@@ -152,34 +201,6 @@ const App: React.FC = () => {
           monsters={gameState.monsters}
           traps={gameState.traps}
           isVillainPhaseActive={gameState.villainPhaseQueue.length > 0}
-        />
-      )}
-
-      {exploration.phase === 'awaiting_rotation' && gameState && (
-        <RotationPicker
-          validRotations={exploration.validRotations}
-          tilePreviewId={exploration.drawnTile.id}
-          onConfirm={(rotation) => {
-            const newState = TileSystem.placeTile(
-              gameState,
-              exploration.point,
-              rotation
-            );
-            setGameState(newState);
-            setExploration(onPlacementComplete(exploration));
-
-            // Trigger encounter card draw — exclude setup phase only
-            if (gameState.phase !== 'setup') {
-              drawEncounterCard();
-            }
-          }}
-          onCancel={() => {
-            setGameState({
-              ...gameState,
-              dungeonDeck: [exploration.drawnTile.id, ...exploration.remainingDeck]
-            });
-            setExploration(onCancel(exploration));
-          }}
         />
       )}
 
