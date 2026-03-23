@@ -79,6 +79,11 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
         alignItems: 'center',
         padding: '16px',
         borderBottom: '2px solid #444',
+        flexShrink: 0,
+        zIndex: 10,
+        position: 'relative',
+        overflow: 'hidden',
+        minHeight: '100px',
     };
 
     const titleStyle: React.CSSProperties = {
@@ -93,6 +98,8 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
         gap: '12px',
         flexWrap: 'wrap',
         justifyContent: 'center',
+        width: '100%',
+        maxWidth: '100%',
     };
 
     const heroButtonStyle: React.CSSProperties = {
@@ -115,23 +122,26 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
     };
 
     const mainPanelStyle: React.CSSProperties = {
-        display: 'flex',
-        flexDirection: 'row',
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
         flex: 1,
         overflow: 'hidden',
+        position: 'relative',
+        zIndex: 1,
+        gap: '0',
     };
 
     const leftPanelStyle: React.CSSProperties = {
-        flex: 1,
         padding: '16px',
         overflowY: 'auto',
         borderRight: '2px solid #444',
+        minWidth: 0,
     };
 
     const rightPanelStyle: React.CSSProperties = {
-        flex: 1,
         padding: '16px',
         overflowY: 'auto',
+        minWidth: 0,
     };
 
     const sectionHeaderStyle: React.CSSProperties = {
@@ -149,6 +159,7 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
         flexDirection: 'column',
         gap: '12px',
         marginBottom: '24px',
+        maxWidth: '100%',
     };
 
     const cardWrapperStyle: React.CSSProperties = {
@@ -174,6 +185,7 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
         gap: '16px',
         padding: '16px',
         borderTop: '2px solid #444',
+        flexShrink: 0,
     };
 
     const buttonStyle: React.CSSProperties = {

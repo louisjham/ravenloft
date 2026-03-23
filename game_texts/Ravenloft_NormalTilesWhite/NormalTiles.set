@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TileSet xmlns="tileset" version="1">
+
+<!-- =========================================
+     =========   Declare Tile Types  ========= 
+     ========================================= -->
+
+   <TileType type="4">Normal Tiles</TileType>
+
+
+<!-- =========================================
+     ==============  End Tiles  ==============
+     ========================================= -->
+
+   <Tile name="Tile Back" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_Back.png</Tile>
+
+   <Tile name="Start Back" sort="10" type="4" maxcount="1" warn="true" flipimage="CastleRavenloft\StartTileBack.png">CastleRavenloft\StartTile.png</Tile>
+
+   <Tile name="Tile Black x2-1" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_Black_x2_01.png</Tile>
+   <Tile name="Tile Black x2-2" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_Black_x2_02.png</Tile>
+   <Tile name="Tile Black x2-3" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_Black_x2_03.png</Tile>
+   <Tile name="Tile Black x2-4" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_Black_x2_04.png</Tile>
+
+   <Tile name="Tile Black x3-1" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_Black_x3_01.png</Tile>
+   <Tile name="Tile Black x3-2" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_Black_x3_02.png</Tile>
+
+   <Tile name="Tile Black x4-1" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_Black_x4_01.png</Tile>
+   <Tile name="Tile Black x4-2" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_Black_x4_02.png</Tile>
+   <Tile name="Tile Black x4-3" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_Black_x4_03.png</Tile>
+   <Tile name="Tile Black x4-4" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_Black_x4_04.png</Tile>
+   <Tile name="Tile Black x4-5" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_Black_x4_05.png</Tile>
+   <Tile name="Tile Black x4-6" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_Black_x4_06.png</Tile>
+
+   <Tile name="Tile White x2-1" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_White_x2_01.png</Tile>
+   <Tile name="Tile White x2-2" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_White_x2_02.png</Tile>
+   <Tile name="Tile White x2-3" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_White_x2_03.png</Tile>
+
+   <Tile name="Tile White x3-1" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_White_x3_01.png</Tile>
+   <Tile name="Tile White x3-2" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_White_x3_02.png</Tile>
+   <Tile name="Tile White x3-3" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_White_x3_03.png</Tile>
+   <Tile name="Tile White x3-4" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_White_x3_04.png</Tile>
+   <Tile name="Tile White x3-5" sort="10" type="4" maxcount="1" warn="true">CastleRavenloft\Tile_White_x3_05.png</Tile>
+</TileSet>

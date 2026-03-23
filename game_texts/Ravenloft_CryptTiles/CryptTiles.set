@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TileSet xmlns="tileset" version="1">
+
+<!-- =========================================
+     =========   Declare Tile Types  ========= 
+     ========================================= -->
+
+   <TileType type="6">Crypt Tiles</TileType>
+
+
+<!-- =========================================
+     ==============  End Tiles  ==============
+     ========================================= -->
+
+   <Tile name="Crypt Corner 1-5" sort="10" type="6" maxcount="1" warn="true">CastleRavenloft\Crypt_Corner1-5.png</Tile>
+   <Tile name="Crypt Corner 6-10" sort="10" type="6" maxcount="1" warn="true">CastleRavenloft\Crypt_Corner6-10.png</Tile>
+   <Tile name="Crypt Corner 11-15" sort="10" type="6" maxcount="1" warn="true">CastleRavenloft\Crypt_Corner11-15.png</Tile>
+   <Tile name="Crypt Corner 16-20" sort="10" type="6" maxcount="1" warn="true">CastleRavenloft\Crypt_Corner16-20.png</Tile>
+
+   <Tile name="Crypt of Artimus" sort="10" type="6" maxcount="1" warn="true">CastleRavenloft\Crypt_CryptOfArtimus.png</Tile>
+   <Tile name="Crypt of Barov and Ravenovia" sort="10" type="6" maxcount="1" warn="true">CastleRavenloft\Crypt_CryptOfBarovAndRavenovia.png</Tile>
+   <Tile name="Crypt of Sergei Von Zarovich" sort="10" type="6" maxcount="1" warn="true">CastleRavenloft\Crypt_CryptOfSergeiVonZarovich.png</Tile>
+   <Tile name="Ireena Kolyana's Crypt" sort="10" type="6" maxcount="1" warn="true">CastleRavenloft\Crypt_IreenaKolyanasCrypt.png</Tile>
+   <Tile name="King's Crypt" sort="10" type="6" maxcount="1" warn="true">CastleRavenloft\Crypt_KingsCrypt.png</Tile>
+   <Tile name="Lonely Crypt" sort="10" type="6" maxcount="1" warn="true">CastleRavenloft\Crypt_LonelyCrypt.png</Tile>
+   <Tile name="Prince Aurel's Crypt" sort="10" type="6" maxcount="1" warn="true">CastleRavenloft\Crypt_PrinceAurelsCrypt.png</Tile>
+   <Tile name="Strahd's Crypt" sort="10" type="6" maxcount="1" warn="true">CastleRavenloft\Crypt_StrahdsCrypt.png</Tile>
+</TileSet>

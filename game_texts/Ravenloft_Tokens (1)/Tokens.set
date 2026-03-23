@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TileSet xmlns="tileset" version="1">
+
+<!-- =========================================
+     =========   Declare Tile Types  ========= 
+     ========================================= -->
+
+   <TileType type="8">Monster Tokens</TileType>
+
+
+<!-- =========================================
+     ==============  End Tiles  ==============
+     ========================================= -->
+
+   <Tile name="Monster 0" sort="30" type="8" maxcount="9" warn="true" flipimage="CastleRavenloft\Token_MonsterBack.png">CastleRavenloft\Token_Monster_0.png</Tile>
+   <Tile name="Monster 1" sort="30" type="8" maxcount="12" warn="true" flipimage="CastleRavenloft\Token_MonsterBack.png">CastleRavenloft\Token_Monster_1.png</Tile>
+   <Tile name="Monster 2" sort="30" type="8" maxcount="6" warn="true" flipimage="CastleRavenloft\Token_MonsterBack.png">CastleRavenloft\Token_Monster_2.png</Tile>
+   <Tile name="Monster 3" sort="30" type="8" maxcount="2" warn="true" flipimage="CastleRavenloft\Token_MonsterBack.png">CastleRavenloft\Token_Monster_3.png</Tile>
+   <Tile name="Dragolich" sort="30" type="8" maxcount="2" warn="true" flipimage="CastleRavenloft\Token_MonsterBack.png">CastleRavenloft\Token_Monster_Dragolich.png</Tile>
+   <Tile name="Flesh Golem" sort="30" type="8" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_MonsterBack.png">CastleRavenloft\Token_Monster_FleshGolem.png</Tile>
+   <Tile name="Howling Hag" sort="30" type="8" maxcount="5" warn="true" flipimage="CastleRavenloft\Token_MonsterBack.png">CastleRavenloft\Token_Monster_HowlingHag.png</Tile>
+   <Tile name="Kobold Sorceror" sort="30" type="8" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_MonsterBack.png">CastleRavenloft\Token_Monster_KoboldSorceror.png</Tile>
+   <Tile name="Count Strahd" sort="30" type="8" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_MonsterBack.png">CastleRavenloft\Token_Monster_Strahd.png</Tile>
+   <Tile name="Werewolf" sort="30" type="8" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_MonsterBack.png">CastleRavenloft\Token_Monster_Werewolf.png</Tile>
+   <Tile name="Young Vampire" sort="30" type="8" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_MonsterBack.png">CastleRavenloft\Token_Monster_YoungVampire.png</Tile>
+   <Tile name="Zombie Dragon" sort="30" type="8" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_MonsterBack.png">CastleRavenloft\Token_Monster_ZombieDragon.png</Tile>
+
+
+<!-- =========================================
+     =========   Declare Tile Types  ========= 
+     ========================================= -->
+
+   <TileType type="9">Encounter Tokens</TileType>
+
+<!-- =========================================
+     ==============  End Tiles  ==============
+     ========================================= -->
+
+   <Tile name="Fire Trap" sort="20" type="9" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_EncounterBack.png">CastleRavenloft\Token_Encounter_FireTrap.png</Tile>
+   <Tile name="Alarm" sort="20" type="9" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_EncounterBack.png">CastleRavenloft\Token_Encounter_Alarm.png</Tile>
+   <Tile name="Crossbow Turret" sort="20" type="9" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_EncounterBack.png">CastleRavenloft\Token_Encounter_CrossbowTurret.png</Tile>
+   <Tile name="Crushing Walls" sort="20" type="9" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_EncounterBack.png">CastleRavenloft\Token_Encounter_CrushingWalls.png</Tile>
+   <Tile name="Dart Trap" sort="20" type="9" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_EncounterBack.png">CastleRavenloft\Token_Encounter_DartTrap.png</Tile>
+   <Tile name="Sliding Walls" sort="20" type="9" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_EncounterBack.png">CastleRavenloft\Token_Encounter_SlidingWalls.png</Tile>
+   <Tile name="Spear Gauntlet" sort="20" type="9" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_EncounterBack.png">CastleRavenloft\Token_Encounter_SpearGauntlet.png</Tile>
+   <Tile name="Consecrated Ground" sort="20" type="9" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_EncounterBack.png">CastleRavenloft\Token_Encounter_ConsecratedGround.png</Tile>
+   <Tile name="Illusionary Crowd" sort="20" type="9" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_EncounterBack.png">CastleRavenloft\Token_Encounter_IllusionaryCrowd.png</Tile>
+   <Tile name="Freezing Cloud" sort="20" type="9" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_EncounterBack.png">CastleRavenloft\Token_Encounter_FreezingCloud.png</Tile>
+   <Tile name="Klak's Artifact" sort="20" type="9" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_AdventureBack.png">CastleRavenloft\Token_Adventure_KlaksArtifact.png</Tile>
+   <Tile name="Glyph of Warding" sort="20" type="9" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_ItemBack.png">CastleRavenloft\Token_Item_GlyphOfWarding.png</Tile>
+
+<!-- =========================================
+     =========   Declare Tile Types  ========= 
+     ========================================= -->
+
+   <TileType type="10">Misc Tokens</TileType>
+
+<!-- =========================================
+     ==============  End Tiles  ==============
+     ========================================= -->
+
+   <Tile name="Time Token" sort="20" type="10" maxcount="5" warn="true" flipimage="CastleRavenloft\Token_Misc_TimeBack.png">CastleRavenloft\Token_Misc_Time.png</Tile>
+   <Tile name="Freezing Cloud small" sort="20" type="10" maxcount="3" warn="true">CastleRavenloft\Token_Misc_FreezingCloud.png</Tile>
+   <Tile name="Sun" sort="20" type="10" maxcount="1" warn="true">CastleRavenloft\Token_Misc_Sun.png</Tile>
+   <Tile name="Monster HP" sort="20" type="10" maxcount="10" warn="true" flipimage="CastleRavenloft\Token_Misc_MonsterHPBack.png">CastleRavenloft\Token_Misc_MonsterHP.png</Tile>
+   <Tile name="condition: Immobilized" sort="20" type="10" maxcount="5" warn="true" flipimage="CastleRavenloft\Token_Misc_ConditionBack.png">CastleRavenloft\Token_Misc_ConditionImmobilized.png</Tile>
+   <Tile name="condition: Slowed" sort="20" type="10" maxcount="5" warn="true" flipimage="CastleRavenloft\Token_Misc_ConditionBack.png">CastleRavenloft\Token_Misc_ConditionSlowed.png</Tile>
+   <Tile name="Reaction: Calm" sort="20" type="10" maxcount="3" warn="true" flipimage="CastleRavenloft\Token_Misc_ReactionBack.png">CastleRavenloft\Token_Misc_ReactionCalm.png</Tile>
+   <Tile name="Reaction: Enrage" sort="20" type="10" maxcount="3" warn="true" flipimage="CastleRavenloft\Token_Misc_ReactionBack.png">CastleRavenloft\Token_Misc_ReactionEnrage.png</Tile>
+   <Tile name="Marker: Dragon's Breath" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_MarkerBack.png">CastleRavenloft\Token_Misc_MarkerDragonsBreath.png</Tile>
+   <Tile name="Marker: Mist Form" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_MarkerBack.png">CastleRavenloft\Token_Misc_MarkerMistForm.png</Tile>
+   <Tile name="HP 5" sort="20" type="10" maxcount="10" warn="true" flipimage="CastleRavenloft\Token_Misc_HP5Back.png">CastleRavenloft\Token_Misc_HP5.png</Tile>
+   <Tile name="HP 1" sort="20" type="10" maxcount="60" warn="true" flipimage="CastleRavenloft\Token_Misc_HP1Back.png">CastleRavenloft\Token_Misc_HP1.png</Tile>
+   <Tile name="Healing Surge" sort="20" type="10" maxcount="5" warn="true" flipimage="CastleRavenloft\Token_Misc_HealingSurgeBack.png">CastleRavenloft\Token_Misc_HealingSurge.png</Tile>
+   <Tile name="Item: Animal" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_ItemBack.png">CastleRavenloft\Token_Misc_ItemAnimal.png</Tile>
+   <Tile name="Item: Dimensional Shackles" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_ItemBack.png">CastleRavenloft\Token_Misc_ItemDimensionalShackles.png</Tile>
+   <Tile name="Item: Feywalk Amulet" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_ItemBack.png">CastleRavenloft\Token_Misc_ItemFeywalkAmulet.png</Tile>
+   <Tile name="Item: Food" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_ItemBack.png">CastleRavenloft\Token_Misc_ItemFood.png</Tile>
+   <Tile name="Item: Gravestorm's Phylactery" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_ItemBack.png">CastleRavenloft\Token_Misc_ItemGravestormsPhylactery.png</Tile>
+   <Tile name="Item: Holy Water" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_ItemBack.png">CastleRavenloft\Token_Misc_ItemHolyWater.png</Tile>
+   <Tile name="Item: Icon of Ravenloft" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_ItemBack.png">CastleRavenloft\Token_Misc_ItemIconOfRavenloft.png</Tile>
+   <Tile name="Item: Mirror" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_ItemBack.png">CastleRavenloft\Token_Misc_ItemMirror.png</Tile>
+   <Tile name="Item: Portrait" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_ItemBack.png">CastleRavenloft\Token_Misc_ItemPortrait.png</Tile>
+   <Tile name="Item: Silver Dagger" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_ItemBack.png">CastleRavenloft\Token_Misc_ItemSilverDagger.png</Tile>
+   <Tile name="Item: Skull" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_ItemBack.png">CastleRavenloft\Token_Misc_ItemSkull.png</Tile>
+   <Tile name="Item: Torch" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_ItemBack.png">CastleRavenloft\Token_Misc_ItemTorch.png</Tile>
+   <Tile name="Item: Treasure" sort="20" type="10" maxcount="4" warn="true" flipimage="CastleRavenloft\Token_Misc_ItemBack.png">CastleRavenloft\Token_Misc_ItemTreasure.png</Tile>
+   <Tile name="Item: Wooden Stake" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_ItemBack.png">CastleRavenloft\Token_Misc_ItemWoodenStake.png</Tile>
+   <Tile name="Kavan" sort="20" type="10" maxcount="1" warn="true">CastleRavenloft\Token_Misc_ItemKavan.png</Tile>
+   <Tile name="Coffin: Empty" sort="20" type="10" maxcount="2" warn="true" flipimage="CastleRavenloft\Token_Misc_CoffinBack.png">CastleRavenloft\Token_Misc_CoffinEmpty.png</Tile>
+   <Tile name="Coffin: Holy Water" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_CoffinBack.png">CastleRavenloft\Token_Misc_CoffinHolyWater.png</Tile>
+   <Tile name="Coffin: Monster" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_CoffinBack.png">CastleRavenloft\Token_Misc_CoffinMonster.png</Tile>
+   <Tile name="Coffin: Strahd" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_CoffinBack.png">CastleRavenloft\Token_Misc_CoffinStrahd.png</Tile>
+   <Tile name="Coffin: Trap" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_CoffinBack.png">CastleRavenloft\Token_Misc_CoffinTrap.png</Tile>
+   <Tile name="Coffin: Treasure" sort="20" type="10" maxcount="2" warn="true" flipimage="CastleRavenloft\Token_Misc_CoffinBack.png">CastleRavenloft\Token_Misc_CoffinTreasure.png</Tile>
+   <Tile name="Coffin: Wooden Stake" sort="20" type="10" maxcount="1" warn="true" flipimage="CastleRavenloft\Token_Misc_CoffinBack.png">CastleRavenloft\Token_Misc_CoffinWoodenStake.png</Tile>
+
+</TileSet>

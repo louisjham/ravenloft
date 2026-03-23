@@ -118,6 +118,8 @@ export interface Tile {
   heroes: string[]; // Hero IDs on this tile
   items: string[]; // Item/Token IDs
   blocksLineOfSight?: boolean; // If true, this tile blocks line-of-sight
+  imageUrl?: string;
+  encounterType?: 'black' | 'white';
 }
 
 export type CardType = 'ability' | 'monster' | 'encounter' | 'treasure' | 'item' | 'consumable';

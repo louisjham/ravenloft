@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TileSet xmlns="tileset" version="1">
+
+<!-- =========================================
+     =========   Declare Tile Types  ========= 
+     ========================================= -->
+
+   <TileType type="3">Villains</TileType>
+
+
+<!-- =========================================
+     ==============  End Tiles  ==============
+     ========================================= -->
+
+   <Tile name="Klak, Kobold Sorceror" sort="50" type="3" maxcount="1" warn="true">CastleRavenloft\Villain_Klak.png</Tile>
+   <Tile name="Howling Hag" sort="50" type="3" maxcount="1" warn="true">CastleRavenloft\Villain_HowlingHag.png</Tile>
+   <Tile name="Young Vampire" sort="50" type="3" maxcount="1" warn="true">CastleRavenloft\Villain_YoungVampire.png</Tile>
+   <Tile name="Werewolf" sort="50" type="3" maxcount="1" warn="true">CastleRavenloft\Villain_Werewolf.png</Tile>
+   <Tile name="Strahd" sort="50" type="3" maxcount="1" warn="true">CastleRavenloft\Villain_Strahd.png</Tile>
+   <Tile name="Flesh Golum" sort="50" type="3" maxcount="1" warn="true">CastleRavenloft\Villain_FleshGolem.png</Tile>
+   <Tile name="Zombie Dragon" sort="50" type="3" maxcount="1" warn="true">CastleRavenloft\Villain_ZombieDragon.png</Tile>
+   <Tile name="Gravestorm, Dragolich" sort="50" type="3" maxcount="1" warn="true">CastleRavenloft\Villain_Gravestorm.png</Tile>
+</TileSet>

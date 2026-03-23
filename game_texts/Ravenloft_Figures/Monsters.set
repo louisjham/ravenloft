@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TileSet xmlns="tileset" version="1">
+
+<!-- =========================================
+     =========   Declare Tile Types  ========= 
+     ========================================= -->
+
+   <TileType type="2">Monsters</TileType>
+
+
+<!-- =========================================
+     ==============  End Tiles  ==============
+     ========================================= -->
+
+   <Tile name="Wraith" sort="50" type="2" maxcount="3" warn="true">CastleRavenloft\Monster_Wraith.png</Tile>
+   <Tile name="Blazing Skeleton" sort="50" type="2" maxcount="3" warn="true">CastleRavenloft\Monster_BlazingSkeleton.png</Tile>
+
+   <Tile name="Gargoyle" sort="50" type="2" maxcount="3" warn="true">CastleRavenloft\Monster_Gargoyle.png</Tile>
+   <Tile name="Skeleton" sort="50" type="2" maxcount="3" warn="true">CastleRavenloft\Monster_Skeleton.png</Tile>
+   <Tile name="Zombie" sort="50" type="2" maxcount="3" warn="true">CastleRavenloft\Monster_Zombie.png</Tile>
+
+   <Tile name="Ghoul" sort="50" type="2" maxcount="3" warn="true">CastleRavenloft\Monster_Ghoul.png</Tile>
+   <Tile name="Kobold Skirmisher" sort="50" type="2" maxcount="3" warn="true">CastleRavenloft\Monster_KoboldSkirmisher.png</Tile>
+   <Tile name="Rat Swarm" sort="50" type="2" maxcount="3" warn="true">CastleRavenloft\Monster_RatSwarm.png</Tile>
+   <Tile name="Spider" sort="50" type="2" maxcount="3" warn="true">CastleRavenloft\Monster_Spider.png</Tile>
+   <Tile name="Wolf" sort="50" type="2" maxcount="3" warn="true">CastleRavenloft\Monster_Wolf.png</Tile>
+</TileSet>

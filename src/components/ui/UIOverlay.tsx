@@ -30,12 +30,12 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
   if (!gameState) {
     if (showSetup) {
       return (
-        <ScenarioSetupScreen 
-          onBack={() => setShowSetup(false)} 
+        <ScenarioSetupScreen
+          onBack={() => setShowSetup(false)}
           onStart={(scenarioId, heroIds) => {
             setShowSetup(false);
             onStartGame(scenarioId, heroIds);
-          }} 
+          }}
         />
       );
     }
@@ -75,12 +75,14 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
           </div>
         </div>
 
-        {/* Bottom: Card Hand */}
-        <div style={{ gridArea: 'bot', pointerEvents: 'none' }}>
-          <div style={{ pointerEvents: 'auto' }}>
-            <CardHand />
+        {/* Bottom: Card Hand - only show during hero phase, not setup phase */}
+        {gameState && gameState.phase !== 'setup' && (
+          <div style={{ gridArea: 'bot', pointerEvents: 'none' }}>
+            <div style={{ pointerEvents: 'auto' }}>
+              <CardHand />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Pause Menu Overlay */}

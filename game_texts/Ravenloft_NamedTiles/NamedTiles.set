@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TileSet xmlns="tileset" version="1">
+
+<!-- =========================================
+     =========   Declare Tile Types  ========= 
+     ========================================= -->
+
+   <TileType type="5">Named Tiles</TileType>
+
+
+<!-- =========================================
+     ==============  End Tiles  ==============
+     ========================================= -->
+
+   <Tile name="Arcane Circle" sort="10" type="5" maxcount="1" warn="true">CastleRavenloft\Named_ArcaneCircle.png</Tile>
+   <Tile name="Chapel" sort="10" type="5" maxcount="1" warn="true">CastleRavenloft\Named_Chapel.png</Tile>
+   <Tile name="Dark Fountain" sort="10" type="5" maxcount="1" warn="true">CastleRavenloft\Named_DarkFountain.png</Tile>
+   <Tile name="Fetid Den" sort="10" type="5" maxcount="1" warn="true">CastleRavenloft\Named_FetidDen.png</Tile>
+   <Tile name="Laboratory" sort="10" type="5" maxcount="1" warn="true">CastleRavenloft\Named_Laboratory.png</Tile>
+   <Tile name="Rotting Nook" sort="10" type="5" maxcount="1" warn="true">CastleRavenloft\Named_RottingNook.png</Tile>
+   <Tile name="Secret Stairway" sort="10" type="5" maxcount="1" warn="true">CastleRavenloft\Named_SecretStairway.png</Tile>
+   <Tile name="Workshop" sort="10" type="5" maxcount="1" warn="true">CastleRavenloft\Named_Workshop.png</Tile>
+
+</TileSet>

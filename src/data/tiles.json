@@ -39,7 +39,9 @@
     "boneSquare": {
       "sqX": 1,
       "sqZ": 1
-    }
+    },
+    "imageUrl": "/assets/tiles/StartTile.png",
+    "encounterType": "white"
   },
   {
     "id": "tile_corridor_1",
@@ -75,7 +77,9 @@
     "boneSquare": {
       "sqX": 1,
       "sqZ": 1
-    }
+    },
+    "imageUrl": "/assets/tiles/Tile_Black_x2_01.png",
+    "encounterType": "black"
   },
   {
     "id": "tile_corridor_cross",
@@ -111,7 +115,9 @@
     "boneSquare": {
       "sqX": 1,
       "sqZ": 1
-    }
+    },
+    "imageUrl": "/assets/tiles/Tile_Black_x4_01.png",
+    "encounterType": "black"
   },
   {
     "id": "tile_crypt",
@@ -150,6 +156,8 @@
     "boneSquare": {
       "sqX": 1,
       "sqZ": 1
-    }
+    },
+    "imageUrl": "/assets/tiles/Crypt_StrahdsCrypt.png",
+    "encounterType": "white"
   }
 ]

@@ -140,7 +140,10 @@ const App: React.FC = () => {
         </Scene>
       )}
 
-      <UIOverlay onStartGame={handleStartGame} onOpenTreasure={(heroId) => setTreasurePanelHeroId(heroId)} />
+      {/* Only show UIOverlay during gameplay, not during setup phase */}
+      {gameState && gameState.phase !== 'setup' && (
+        <UIOverlay onStartGame={handleStartGame} onOpenTreasure={(heroId) => setTreasurePanelHeroId(heroId)} />
+      )}
 
       {gameState && (
         <VillainPhaseOverlay
@@ -196,7 +199,7 @@ const App: React.FC = () => {
       <HelpOverlay isOpen={activeModal === 'help'} onClose={hideModal} />
 
       <div id="aria-announcer" className="sr-only" aria-live="polite"></div>
-      
+
       {cardResolution && cardResolution.phase !== 'idle' && resolvedCard && (
         <EncounterCardOverlay
           resolution={cardResolution}

@@ -1,5 +1,57 @@
 [
     {
+        "id": "paladin_holy_strike",
+        "type": "power",
+        "phase": "hero",
+        "heroClass": "paladin",
+        "powerType": "at-will",
+        "name": "Holy Strike",
+        "description": "Deal 2 radiant damage to one enemy.",
+        "attackBonus": 5,
+        "damage": 2,
+        "range": 1,
+        "target": "single",
+        "effects": [
+            {
+                "type": "attack",
+                "value": 2
+            }
+        ]
+    },
+    {
+        "id": "paladin_lay_on_hands",
+        "type": "power",
+        "phase": "hero",
+        "heroClass": "paladin",
+        "powerType": "daily",
+        "name": "Lay on Hands",
+        "description": "Heal yourself or an ally for 3 HP.",
+        "target": "single",
+        "effects": [
+            {
+                "type": "heal",
+                "value": 3
+            }
+        ]
+    },
+    {
+        "id": "paladin_divine_shield",
+        "type": "power",
+        "phase": "hero",
+        "heroClass": "paladin",
+        "powerType": "utility",
+        "name": "Divine Shield",
+        "description": "Grant +2 AC to yourself or an ally until end of turn.",
+        "target": "single",
+        "effects": [
+            {
+                "type": "buff",
+                "value": 2,
+                "duration": 1
+            }
+        ]
+    },
+    {
         "id": "ranger_twin_strike",
         "type": "power",
         "phase": "hero",

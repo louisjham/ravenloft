@@ -510,14 +510,19 @@ export const useGameStore = create<GameStore>()(
       // Guard: if state.phase !== 'setup' return
       if (state.phase !== 'setup') return;
 
+      console.log('[gameStore] confirmHeroSelection called for heroId:', heroId);
       const selection = state.powerSelections?.find(s => s.heroId === heroId);
+      console.log('[gameStore] Selection found:', selection);
       if (!selection) return;
 
       const hero = state.heroes.find(h => h.id === heroId);
+      console.log('[gameStore] Hero found:', hero, 'heroClass:', hero?.heroClass);
       if (!hero) return;
 
       const constraints = PowerSelectionSystem.getConstraints(hero.heroClass);
+      console.log('[gameStore] Constraints:', constraints);
       const result = PowerSelectionSystem.confirmSelection(selection, constraints);
+      console.log('[gameStore] Confirm result:', result);
 
       // If result has error field → console.warn(result.error), return without changing state
       if ('error' in result) {
@@ -551,15 +556,19 @@ export const useGameStore = create<GameStore>()(
       // Guard: if state.phase !== 'setup' return
       if (state.phase !== 'setup') return;
 
+      console.log('[gameStore] autoSelectPowers called for heroId:', heroId);
       const hero = state.heroes.find(h => h.id === heroId);
+      console.log('[gameStore] Hero found:', hero, 'heroClass:', hero?.heroClass);
       if (!hero) return;
 
       const constraints = PowerSelectionSystem.getConstraints(hero.heroClass);
+      console.log('[gameStore] Constraints:', constraints);
       const updatedSelection = PowerSelectionSystem.autoSelectPowers(
         hero.heroClass,
         heroId,
         constraints
       );
+      console.log('[gameStore] Updated selection:', updatedSelection);
 
       const newSelections = state.powerSelections?.map(s =>
         s.heroId === heroId ? updatedSelection : s

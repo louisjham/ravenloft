@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Text } from '@react-three/drei';
@@ -46,17 +46,37 @@ export const Tile3D: React.FC<Tile3DProps> = ({ tile, isRevealed }) => {
     position: [tile.x * TILE_SIZE + TILE_SIZE / 2 - 0.5, -0.1, tile.z * TILE_SIZE + TILE_SIZE / 2 - 0.5],
   }));
 
+  const [texture, setTexture] = useState<THREE.Texture | null>(null);
+
+  useEffect(() => {
+    if (tile.imageUrl) {
+      const loader = new THREE.TextureLoader();
+      loader.load(tile.imageUrl, (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        setTexture(tex);
+      });
+    }
+  }, [tile.imageUrl]);
+
   return (
     <group ref={groupRef} position={[tile.x * TILE_SIZE, 0, tile.z * TILE_SIZE]} userData={{ tile }}>
       {/* Base Floor Mesh with physics ref */}
       <mesh ref={ref as any} receiveShadow>
         <boxGeometry args={[TILE_SIZE, 0.2, TILE_SIZE]} />
         <meshStandardMaterial 
-          color={isHovered ? "#333333" : "#222222"} 
+          color={isHovered && !texture ? "#333333" : "#222222"} 
           roughness={0.8} 
           metalness={0.2} 
         />
       </mesh>
+
+      {/* Textured face */}
+      {texture && (
+        <mesh position={[TILE_SIZE / 2 - 0.5, 0.101, TILE_SIZE / 2 - 0.5]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+          <planeGeometry args={[TILE_SIZE, TILE_SIZE]} />
+          <meshStandardMaterial map={texture} roughness={0.9} transparent={true} />
+        </mesh>
+      )}
 
       {/* Hover Highlight */}
       {isHovered && (
