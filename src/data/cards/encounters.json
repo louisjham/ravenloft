@@ -1,0 +1,975 @@
+[
+  {
+    "id": "enc_bat_swarm",
+    "type": "encounter",
+    "name": "Bat Swarm",
+    "description": "A swarm of bats descends! Deal 1 damage to all heroes on this tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "environment"
+  },
+  {
+    "id": "enc_blood_fog",
+    "type": "encounter",
+    "name": "Blood Fog",
+    "description": "A crimson mist seeps through the area. Monsters deal +1 damage.",
+    "effects": [
+      {
+        "type": "damage_bonus",
+        "value": 1,
+        "target": "all_monsters"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "environment"
+  },
+  {
+    "id": "enc_cackling_skull",
+    "type": "encounter",
+    "name": "Cackling Skull",
+    "description": "A skull emits a piercing laughter! All heroes on this tile are dazed.",
+    "effects": [
+      {
+        "type": "status_effect",
+        "statusEffect": "dazed",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "environment"
+  },
+  {
+    "id": "enc_crippling_miasma",
+    "type": "encounter",
+    "name": "Crippling Miasma",
+    "description": "Thick fog slows your movements. All heroes on this tile are slowed.",
+    "effects": [
+      {
+        "type": "status_effect",
+        "statusEffect": "slowed",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "environment"
+  },
+  {
+    "id": "enc_deadly_shadows",
+    "type": "encounter",
+    "name": "Deadly Shadows",
+    "description": "Shadows writhe and blind you! All heroes on this tile are stunned.",
+    "effects": [
+      {
+        "type": "status_effect",
+        "statusEffect": "stunned",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "environment"
+  },
+  {
+    "id": "enc_haunted_mists",
+    "type": "encounter",
+    "name": "Haunted Mists",
+    "description": "Ghostly mists surround you! All heroes on this tile draw an encounter card.",
+    "effects": [
+      {
+        "type": "draw_card",
+        "value": 1,
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "environment"
+  },
+  {
+    "id": "enc_music_of_the_damned",
+    "type": "encounter",
+    "name": "Music of the Damned",
+    "description": "Eerie music echoes through the halls! All heroes on this tile are dazed.",
+    "effects": [
+      {
+        "type": "status_effect",
+        "statusEffect": "dazed",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "environment"
+  },
+  {
+    "id": "enc_spirit_of_doom_env",
+    "type": "encounter",
+    "name": "Spirit of Doom",
+    "description": "A spectre of doom appears! Deal 1 damage to all heroes on this tile and daze them.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes"
+      },
+      {
+        "type": "status_effect",
+        "statusEffect": "dazed",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "environment"
+  },
+  {
+    "id": "enc_bubbling_cauldron",
+    "type": "encounter",
+    "name": "Bubbling Cauldron",
+    "description": "A cauldron bubbles with foul liquid! Spawn 1 monster on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 1,
+        "target": "tile"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_corner_of_your_eye",
+    "type": "encounter",
+    "name": "Corner of Your Eye",
+    "description": "Something moves in the shadows! Spawn 1 monster on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 1,
+        "target": "tile"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_cowardly_flight",
+    "type": "encounter",
+    "name": "Cowardly Flight",
+    "description": "Fear gives you speed! All heroes gain +2 speed this turn.",
+    "effects": [
+      {
+        "type": "speed_bonus",
+        "value": 2,
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_cyrus_belview",
+    "type": "encounter",
+    "name": "Cyrus Belview",
+    "description": "The twisted bellhop offers aid. Heal 1 HP for all heroes on this tile.",
+    "effects": [
+      {
+        "type": "heal",
+        "value": 1,
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_frenzy",
+    "type": "encounter",
+    "name": "Frenzy",
+    "description": "Chaos erupts! Spawn 2 monsters on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 2,
+        "target": "tile"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_frenzy_2",
+    "type": "encounter",
+    "name": "Frenzy",
+    "description": "Chaos erupts! Spawn 2 monsters on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 2,
+        "target": "tile"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_ghost_prince_of_aurel",
+    "type": "encounter",
+    "name": "Ghost Prince of Aurel",
+    "description": "The ghost prince offers a gift. Draw a treasure card.",
+    "effects": [
+      {
+        "type": "draw_treasure",
+        "value": 1
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_howl_of_the_wolf",
+    "type": "encounter",
+    "name": "Howl of the Wolf",
+    "description": "Howling echoes through the castle! Spawn 2 Wolves on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_wolf",
+        "target": "tile"
+      },
+      {
+        "type": "spawn_monster",
+        "value": "monster_wolf",
+        "target": "tile"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_illusionary_trick",
+    "type": "encounter",
+    "name": "Illusionary Trick",
+    "description": "Illusions confound your mind! All heroes on this tile are dazed.",
+    "effects": [
+      {
+        "type": "status_effect",
+        "statusEffect": "dazed",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_lief_lipsiege",
+    "type": "encounter",
+    "name": "Lief Lipsiege",
+    "description": "The Vistani merchant tends to your wounds. Heal 1 HP for all heroes on this tile.",
+    "effects": [
+      {
+        "type": "heal",
+        "value": 1,
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_mists_of_terror",
+    "type": "encounter",
+    "name": "Mists of Terror",
+    "description": "Terrifying visions freeze you in place! All heroes on this tile are immobilized.",
+    "effects": [
+      {
+        "type": "status_effect",
+        "statusEffect": "immobilized",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_neglected_passage",
+    "type": "encounter",
+    "name": "Neglected Passage",
+    "description": "An empty, forgotten corridor. Nothing happens.",
+    "effects": [],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_neglected_passage_2",
+    "type": "encounter",
+    "name": "Neglected Passage",
+    "description": "An empty, forgotten corridor. Nothing happens.",
+    "effects": [],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_overrun",
+    "type": "encounter",
+    "name": "Overrun",
+    "description": "Monsters pour through the area! Spawn 2 monsters on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 2,
+        "target": "tile"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_overrun_2",
+    "type": "encounter",
+    "name": "Overrun",
+    "description": "Monsters pour through the area! Spawn 2 monsters on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 2,
+        "target": "tile"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_overwhelming_terror",
+    "type": "encounter",
+    "name": "Overwhelming Terror",
+    "description": "Unbearable horror grips your heart! All heroes on this tile are stunned.",
+    "effects": [
+      {
+        "type": "status_effect",
+        "statusEffect": "stunned",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_passage_of_time",
+    "type": "encounter",
+    "name": "Passage of Time",
+    "description": "Time flows strangely here. Spawn 1 monster on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 1,
+        "target": "tile"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_passage_of_time_2",
+    "type": "encounter",
+    "name": "Passage of Time",
+    "description": "Time flows strangely here. Spawn 1 monster on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 1,
+        "target": "tile"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_prowling_spirits",
+    "type": "encounter",
+    "name": "Prowling Spirits",
+    "description": "Angry spirits lash out! Deal 1 damage to all heroes on this tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_reinforcements",
+    "type": "encounter",
+    "name": "Reinforcements",
+    "description": "Enemy reinforcements arrive! Spawn 1 monster on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 1,
+        "target": "tile"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_secret_door",
+    "type": "encounter",
+    "name": "Secret Door",
+    "description": "A hidden passage is found! Draw a treasure card.",
+    "effects": [
+      {
+        "type": "draw_treasure",
+        "value": 1
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_spirit_of_doom_event",
+    "type": "encounter",
+    "name": "Spirit of Doom",
+    "description": "A spirit of doom manifests! Deal 1 damage to all heroes on this tile and daze them.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes"
+      },
+      {
+        "type": "status_effect",
+        "statusEffect": "dazed",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_strahds_hunger",
+    "type": "encounter",
+    "name": "Strahd's Hunger",
+    "description": "Strahd's minions answer his call. Spawn 1 monster on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 1,
+        "target": "tile"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_strahds_minions",
+    "type": "encounter",
+    "name": "Strahd's Minions",
+    "description": "Strahd's servants emerge from the darkness! Spawn 2 monsters on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 2,
+        "target": "tile"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_strahds_trick",
+    "type": "encounter",
+    "name": "Strahd's Trick",
+    "description": "A malicious trick slows your progress! All heroes on this tile are slowed.",
+    "effects": [
+      {
+        "type": "status_effect",
+        "statusEffect": "slowed",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_strahds_whispers",
+    "type": "encounter",
+    "name": "Strahd's Whispers",
+    "description": "Whispers cloud your mind! All heroes on this tile are dazed.",
+    "effects": [
+      {
+        "type": "status_effect",
+        "statusEffect": "dazed",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_summoning_circle",
+    "type": "encounter",
+    "name": "Summoning Circle",
+    "description": "A circle flares with dark energy! Spawn 2 monsters on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 2,
+        "target": "tile"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_teleport_glyph",
+    "type": "encounter",
+    "name": "Teleport Glyph",
+    "description": "A glyph transports you back! Move all heroes on this tile to the starting tile.",
+    "effects": [
+      {
+        "type": "teleport",
+        "value": "start",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_treasure_chest",
+    "type": "encounter",
+    "name": "Treasure Chest",
+    "description": "A chest lies against the wall. Draw a treasure card.",
+    "effects": [
+      {
+        "type": "draw_treasure",
+        "value": 1
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_voice_of_the_master",
+    "type": "encounter",
+    "name": "Voice of the Master",
+    "description": "Strahd's voice commands his forces! Spawn 2 monsters on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 2,
+        "target": "tile"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
+    "id": "enc_ambush",
+    "type": "encounter",
+    "name": "Ambush!",
+    "description": "Monsters spring from hiding! +7 to hit, 1 damage to all heroes on this tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event-attack"
+  },
+  {
+    "id": "enc_ambush_2",
+    "type": "encounter",
+    "name": "Ambush!",
+    "description": "Monsters spring from hiding! +7 to hit, 1 damage to all heroes on this tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event-attack"
+  },
+  {
+    "id": "enc_animated_armor",
+    "type": "encounter",
+    "name": "Animated Armor",
+    "description": "An empty suit of armor attacks! +7 to hit, 1 damage to all heroes on this tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event-attack"
+  },
+  {
+    "id": "enc_choking_fog",
+    "type": "encounter",
+    "name": "Choking Fog",
+    "description": "The fog tightens around your throat! +7 to hit, 1 damage to all heroes on this tile, also slowed.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      },
+      {
+        "type": "status_effect",
+        "statusEffect": "slowed",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event-attack"
+  },
+  {
+    "id": "enc_circle_of_death",
+    "type": "encounter",
+    "name": "Circle of Death",
+    "description": "A circle of dark energy expands! +7 to hit, 1 damage to all heroes on this tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event-attack"
+  },
+  {
+    "id": "enc_gray_ooze",
+    "type": "encounter",
+    "name": "Gray Ooze",
+    "description": "A gray ooze drips from the ceiling! +7 to hit, 1 damage to all heroes on this tile, also poisoned.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      },
+      {
+        "type": "status_effect",
+        "statusEffect": "poisoned",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event-attack"
+  },
+  {
+    "id": "enc_green_slime",
+    "type": "encounter",
+    "name": "Green Slime",
+    "description": "Green slime drops from above! +7 to hit, 1 damage to all heroes on this tile, also poisoned.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      },
+      {
+        "type": "status_effect",
+        "statusEffect": "poisoned",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event-attack"
+  },
+  {
+    "id": "enc_hands_of_the_dead",
+    "type": "encounter",
+    "name": "Hands of the Dead",
+    "description": "Skeletal hands grasp at you! +7 to hit, 1 damage to all heroes on this tile, also immobilized.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      },
+      {
+        "type": "status_effect",
+        "statusEffect": "immobilized",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event-attack"
+  },
+  {
+    "id": "enc_howling_ghost",
+    "type": "encounter",
+    "name": "Howling Ghost",
+    "description": "A ghost howls in rage! +7 to hit, 1 damage to all heroes on this tile, also dazed.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      },
+      {
+        "type": "status_effect",
+        "statusEffect": "dazed",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event-attack"
+  },
+  {
+    "id": "enc_icy_corridor",
+    "type": "encounter",
+    "name": "Icy Corridor",
+    "description": "Freezing cold fills the hall! +7 to hit, 1 damage to all heroes on this tile, also slowed.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      },
+      {
+        "type": "status_effect",
+        "statusEffect": "slowed",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event-attack"
+  },
+  {
+    "id": "enc_king_tomescus_portal",
+    "type": "encounter",
+    "name": "King Tomescu's Portal",
+    "description": "A portal opens to a dark realm! +7 to hit, 1 damage to all heroes on this tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event-attack"
+  },
+  {
+    "id": "enc_patrina_velikovna",
+    "type": "encounter",
+    "name": "Patrina Velikovna",
+    "description": "Patrina's spirit attacks! +7 to hit, 1 damage to all heroes on this tile, also dazed.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      },
+      {
+        "type": "status_effect",
+        "statusEffect": "dazed",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event-attack"
+  },
+  {
+    "id": "enc_prowling_ghost",
+    "type": "encounter",
+    "name": "Prowling Ghost",
+    "description": "A ghost attacks from the shadows! +7 to hit, 1 damage to all heroes on this tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event-attack"
+  },
+  {
+    "id": "enc_spider_webs",
+    "type": "encounter",
+    "name": "Spider Webs",
+    "description": "Thick webs entangle you! +7 to hit, 1 damage to all heroes on this tile, also immobilized.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      },
+      {
+        "type": "status_effect",
+        "statusEffect": "immobilized",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event-attack"
+  },
+  {
+    "id": "enc_strahd_attacks",
+    "type": "encounter",
+    "name": "Strahd Attacks",
+    "description": "Strahd himself strikes! +7 to hit, 1 damage to all heroes on this tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event-attack"
+  },
+  {
+    "id": "enc_alarm_trap",
+    "type": "encounter",
+    "name": "Alarm",
+    "description": "A magical alarm summons guardians! Spawn 1 monster on this tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": 1,
+        "target": "tile"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "trap",
+    "disableDC": 10
+  },
+  {
+    "id": "enc_crossbow_turret",
+    "type": "encounter",
+    "name": "Crossbow Turret",
+    "description": "A turret fires bolts! +7 to hit, 1 damage to any hero on this tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "trap",
+    "disableDC": 12
+  },
+  {
+    "id": "enc_crushing_walls",
+    "type": "encounter",
+    "name": "Crushing Walls",
+    "description": "The walls close in! +7 to hit, 1 damage to any hero on this tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "trap",
+    "disableDC": 12
+  },
+  {
+    "id": "enc_dart_trap",
+    "type": "encounter",
+    "name": "Dart Trap",
+    "description": "Poisoned darts fly from the walls! +7 to hit, 1 damage to any hero on this tile, also poisoned.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      },
+      {
+        "type": "status_effect",
+        "statusEffect": "poisoned",
+        "target": "all_heroes"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "trap",
+    "disableDC": 14
+  },
+  {
+    "id": "enc_fire_trap",
+    "type": "encounter",
+    "name": "Fire Trap",
+    "description": "Flames erupt from hidden vents! +7 to hit, 1 damage to any hero on this tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "trap",
+    "disableDC": 12
+  },
+  {
+    "id": "enc_sliding_walls",
+    "type": "encounter",
+    "name": "Sliding Walls",
+    "description": "Walls shift and crush! +7 to hit, 1 damage to any hero on this tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "trap",
+    "disableDC": 12
+  },
+  {
+    "id": "enc_spear_gauntlet",
+    "type": "encounter",
+    "name": "Spear Gauntlet",
+    "description": "Spears thrust from the floor! +7 to hit, 1 damage to any hero on this tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_heroes",
+        "attackBonus": 7
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "trap",
+    "disableDC": 12
+  }
+]

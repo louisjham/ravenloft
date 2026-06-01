@@ -1,0 +1,38 @@
+{
+  "id": "adventure_09",
+  "name": "Gauntlet of Terror",
+  "difficulty": "Medium",
+  "description": "Prevent Strahd's Monsters from leaving the dungeon and attacking the village.",
+  "objectives": [
+    {
+      "id": "defeat_monsters",
+      "type": "defeat_villains",
+      "count": 20,
+      "currentCount": 0,
+      "description": "Defeat 20 Monsters before too many escape the dungeon.",
+      "isCompleted": false
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "monster_tokens_face_down",
+      "description": "When the active Hero moves within 1 tile of a face-down Monster token, flip it and place 0-3 Monsters accordingly."
+    },
+    {
+      "id": "monsters_move_to_exit",
+      "description": "Monsters move toward the Start tile. When a Monster ends a Villain Phase on the Start tile, it escapes and removes 1 Hit Point from the Start tile."
+    },
+    {
+      "id": "start_tile_hp",
+      "description": "Place 5 HP tokens on the Start tile. If all are removed (5 monsters escape), the adventure is lost.",
+      "trigger": { "type": "on_start" }
+    }
+  ],
+  "startTileId": "start-tile",
+  "setAsideTileIds": [],
+  "specialTilePlacements": [],
+  "maxSurges": 2,
+  "introText": "The Heroes must stop Strahd's monsters from reaching Barovia.",
+  "victoryText": "The monsters lie slain! Barovia is safe from Strahd's invasion.",
+  "defeatText": "Too many monsters escape into Barovia. The village falls to Strahd's darkness."
+}

@@ -1,0 +1,44 @@
+{
+  "id": "adventure_10",
+  "name": "Blood and Fog",
+  "difficulty": "Medium",
+  "description": "Find the Secret Stairway tile and escape from the dungeon before the Zombie Dragon consumes you.",
+  "objectives": [
+    {
+      "id": "escape_via_secret_stairway",
+      "type": "escape_via_stairway",
+      "description": "All Heroes must escape via the Secret Stairway tile.",
+      "isCompleted": false
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "undead_no_xp_cancel",
+      "description": "Defeated Undead Monsters cannot be spent as Experience to cancel Encounter Cards, but can be used to level up Heroes."
+    },
+    {
+      "id": "rotting_nook_boss",
+      "description": "When the Rotting Nook is revealed, place the Zombie Dragon instead of drawing a Monster; it activates each Villain Phase."
+    },
+    {
+      "id": "secret_stairway_escape",
+      "description": "A Hero ending their Hero Phase on the stairway of the Secret Stairway tile escapes and is removed from play except for Villain Phase activations."
+    }
+  ],
+  "startTileId": "start-tile",
+  "setAsideTileIds": ["named_rotting_nook", "named_secret_stairway"],
+  "specialTilePlacements": [
+    {
+      "tileId": "named_rotting_nook",
+      "insertAfterIndex": 5
+    },
+    {
+      "tileId": "named_secret_stairway",
+      "insertAfterIndex": 10
+    }
+  ],
+  "maxSurges": 2,
+  "introText": "The Heroes are trapped and must find another exit through blood-soaked mist-filled crypts.",
+  "victoryText": "All Heroes escape through the Secret Stairway! The mist swirls behind you as you leave the horrors of Ravenloft behind.",
+  "defeatText": "The Zombie Dragon or the dungeon's terrors overwhelm you. The mist claims another victims."
+}

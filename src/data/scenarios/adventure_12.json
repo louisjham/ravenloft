@@ -1,0 +1,52 @@
+{
+  "id": "adventure_12",
+  "name": "The Hunt for Strahd, Part 1",
+  "difficulty": "Hard",
+  "description": "Defeat Strahd's bodyguard and find the secret passage leading to the final encounter.",
+  "objectives": [
+    {
+      "id": "defeat_strahd_and_bodyguard",
+      "type": "defeat_villains",
+      "count": 2,
+      "currentCount": 0,
+      "targetIds": ["monster_strahd"],
+      "description": "Defeat Count Strahd and his bodyguard.",
+      "isCompleted": false
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "arcane_circle_bodyguard",
+      "description": "When the Arcane Circle is revealed, place a random Villain as Strahd's Bodyguard on the Arcane Circle tile instead of drawing a Monster."
+    },
+    {
+      "id": "secret_stairway_strahd",
+      "description": "When the Secret Stairway is revealed, place Count Strahd on the Secret Stairway tile instead of drawing a Monster.",
+      "villainMonsterId": "monster_strahd"
+    },
+    {
+      "id": "black_arrow_items",
+      "description": "Whenever a Hero explores and draws a new dungeon tile with a black arrow, place a random Item token on that tile."
+    },
+    {
+      "id": "stahd_removed_crypt",
+      "description": "Strahd's Crypt tile is not used in this adventure."
+    }
+  ],
+  "startTileId": "start-tile",
+  "setAsideTileIds": ["named_arcane_circle", "named_secret_stairway", "crypt_strahd"],
+  "specialTilePlacements": [
+    {
+      "tileId": "named_arcane_circle",
+      "insertAfterIndex": 4
+    },
+    {
+      "tileId": "named_secret_stairway",
+      "insertAfterIndex": 8
+    }
+  ],
+  "maxSurges": 2,
+  "introText": "The Heroes hunt through the crypts for the passage to Strahd's hidden resting place.",
+  "victoryText": "Strahd turns to mist and flees! You have defeated his bodyguard and wounded the vampire lord.",
+  "defeatText": "Strahd's power overwhelms you. The hunt ends in tragedy."
+}

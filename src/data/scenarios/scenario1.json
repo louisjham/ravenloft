@@ -1,0 +1,41 @@
+{
+  "id": "s1",
+  "name": "Find Strahd's Coffin",
+  "difficulty": "Easy",
+  "description": "Count Strahd von Zarovich sleeps in one of many coffins hidden throughout the crypts. You must search the coffins to find and destroy him before he awakens.",
+  "objectives": [
+    {
+      "id": "find_strahds_coffin",
+      "type": "find_coffin",
+      "targetId": "coffin_strahd",
+      "description": "Search coffin tokens to find Strahd's resting place",
+      "isCompleted": false
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "coffin_tokens",
+      "description": "Each explored tile receives a coffin token face-down. Search to reveal its contents."
+    },
+    {
+      "id": "strahd_awakens",
+      "trigger": {
+        "type": "coffins_searched",
+        "value": 4
+      },
+      "effect": "If Strahd's coffin hasn't been found, he spawns on the nearest unexplored edge"
+    }
+  ],
+  "startTileId": "start-tile",
+  "tilePiles": {
+    "standard": 10,
+    "special": [
+      "crypt_tile",
+      "laboratory_tile"
+    ]
+  },
+  "maxSurges": 2,
+  "introText": "The crypts stretch before you, filled with dusty coffins. Somewhere among them lies Count Strahd himself. Search carefully - for disturbing the wrong coffin may bring dire consequences.",
+  "victoryText": "You have found Strahd's Coffin! With a wooden stake driven through its heart, the vampire lord's reign of terror ends. The crypts grow quiet at last.",
+  "defeatText": "The darkness closes in. Your names will be forgotten in the halls of Castle Ravenloft."
+}

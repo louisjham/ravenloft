@@ -1,0 +1,1010 @@
+[
+  {
+    "id": "card_monster_blazing_skeleton_1",
+    "name": "Blazing Skeleton",
+    "type": "monster",
+    "description": "Spawn a Blazing Skeleton on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_blazing_skeleton",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_blazing_skeleton_2",
+    "name": "Blazing Skeleton",
+    "type": "monster",
+    "description": "Spawn a Blazing Skeleton on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_blazing_skeleton",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_blazing_skeleton_3",
+    "name": "Blazing Skeleton",
+    "type": "monster",
+    "description": "Spawn a Blazing Skeleton on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_blazing_skeleton",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_gargoyle_1",
+    "name": "Gargoyle",
+    "type": "monster",
+    "description": "Spawn a Gargoyle on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_gargoyle",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_gargoyle_2",
+    "name": "Gargoyle",
+    "type": "monster",
+    "description": "Spawn a Gargoyle on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_gargoyle",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_gargoyle_3",
+    "name": "Gargoyle",
+    "type": "monster",
+    "description": "Spawn a Gargoyle on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_gargoyle",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_ghoul_1",
+    "name": "Ghoul",
+    "type": "monster",
+    "description": "Spawn a Ghoul on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_ghoul",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_ghoul_2",
+    "name": "Ghoul",
+    "type": "monster",
+    "description": "Spawn a Ghoul on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_ghoul",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_ghoul_3",
+    "name": "Ghoul",
+    "type": "monster",
+    "description": "Spawn a Ghoul on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_ghoul",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_kobold_1",
+    "name": "Kobold",
+    "type": "monster",
+    "description": "Spawn a Kobold on the mushroom patch of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_kobold",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_kobold_2",
+    "name": "Kobold",
+    "type": "monster",
+    "description": "Spawn a Kobold on the mushroom patch of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_kobold",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_kobold_3",
+    "name": "Kobold",
+    "type": "monster",
+    "description": "Spawn a Kobold on the mushroom patch of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_kobold",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_rat_swarm_1",
+    "name": "Rat Swarm",
+    "type": "monster",
+    "description": "Spawn a Rat Swarm on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_rat_swarm",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_rat_swarm_2",
+    "name": "Rat Swarm",
+    "type": "monster",
+    "description": "Spawn a Rat Swarm on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_rat_swarm",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_rat_swarm_3",
+    "name": "Rat Swarm",
+    "type": "monster",
+    "description": "Spawn a Rat Swarm on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_rat_swarm",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_skeleton_1",
+    "name": "Skeleton",
+    "type": "monster",
+    "description": "Spawn a Skeleton on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_skeleton",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_skeleton_2",
+    "name": "Skeleton",
+    "type": "monster",
+    "description": "Spawn a Skeleton on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_skeleton",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_skeleton_3",
+    "name": "Skeleton",
+    "type": "monster",
+    "description": "Spawn a Skeleton on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_skeleton",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_spider_1",
+    "name": "Spider",
+    "type": "monster",
+    "description": "Spawn a Spider on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_spider",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_spider_2",
+    "name": "Spider",
+    "type": "monster",
+    "description": "Spawn a Spider on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_spider",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_spider_3",
+    "name": "Spider",
+    "type": "monster",
+    "description": "Spawn a Spider on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_spider",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_wolf_1",
+    "name": "Wolf",
+    "type": "monster",
+    "description": "Spawn a Wolf on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_wolf",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_wolf_2",
+    "name": "Wolf",
+    "type": "monster",
+    "description": "Spawn a Wolf on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_wolf",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_wolf_3",
+    "name": "Wolf",
+    "type": "monster",
+    "description": "Spawn a Wolf on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_wolf",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_wraith_1",
+    "name": "Wraith",
+    "type": "monster",
+    "description": "Spawn a Wraith on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_wraith",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_wraith_2",
+    "name": "Wraith",
+    "type": "monster",
+    "description": "Spawn a Wraith on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_wraith",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_wraith_3",
+    "name": "Wraith",
+    "type": "monster",
+    "description": "Spawn a Wraith on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_wraith",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_zombie_1",
+    "name": "Zombie",
+    "type": "monster",
+    "description": "Spawn a Zombie on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_zombie",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_zombie_2",
+    "name": "Zombie",
+    "type": "monster",
+    "description": "Spawn a Zombie on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_zombie",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_zombie_3",
+    "name": "Zombie",
+    "type": "monster",
+    "description": "Spawn a Zombie on the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_zombie",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_gravehound_1",
+    "name": "Gravehound",
+    "type": "monster",
+    "description": "Spawn a Gravehound on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_gravehound",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_gravehound_2",
+    "name": "Gravehound",
+    "type": "monster",
+    "description": "Spawn a Gravehound on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_gravehound",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_gravehound_3",
+    "name": "Gravehound",
+    "type": "monster",
+    "description": "Spawn a Gravehound on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_gravehound",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_dark_acolyte_1",
+    "name": "Dark Acolyte",
+    "type": "monster",
+    "description": "Spawn a Dark Acolyte on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_dark_acolyte",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_skeletal_archer_1",
+    "name": "Skeletal Archer",
+    "type": "monster",
+    "description": "Spawn a Skeletal Archer on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_skeletal_archer",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_skeletal_archer_2",
+    "name": "Skeletal Archer",
+    "type": "monster",
+    "description": "Spawn a Skeletal Archer on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_skeletal_archer",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_skeletal_archer_3",
+    "name": "Skeletal Archer",
+    "type": "monster",
+    "description": "Spawn a Skeletal Archer on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_skeletal_archer",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_mummy_1",
+    "name": "Mummy",
+    "type": "monster",
+    "description": "Spawn a Mummy on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_mummy",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_vampire_bat_1",
+    "name": "Vampire Bat",
+    "type": "monster",
+    "description": "Spawn a Vampire Bat on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_vampire_bat",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_vampire_bat_2",
+    "name": "Vampire Bat",
+    "type": "monster",
+    "description": "Spawn a Vampire Bat on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_vampire_bat",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_vampire_bat_3",
+    "name": "Vampire Bat",
+    "type": "monster",
+    "description": "Spawn a Vampire Bat on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_vampire_bat",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_skull_lord_1",
+    "name": "Skull Lord",
+    "type": "monster",
+    "description": "Spawn a Skull Lord on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_skull_lord",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_dread_warrior_1",
+    "name": "Dread Warrior",
+    "type": "monster",
+    "description": "Spawn a Dread Warrior on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_dread_warrior",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_dread_warrior_2",
+    "name": "Dread Warrior",
+    "type": "monster",
+    "description": "Spawn a Dread Warrior on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_dread_warrior",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_dread_warrior_3",
+    "name": "Dread Warrior",
+    "type": "monster",
+    "description": "Spawn a Dread Warrior on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_dread_warrior",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_spectre_1",
+    "name": "Spectre",
+    "type": "monster",
+    "description": "Spawn a Spectre on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_spectre",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_ghast_1",
+    "name": "Ghast",
+    "type": "monster",
+    "description": "Spawn a Ghast on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_ghast",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_ghast_2",
+    "name": "Ghast",
+    "type": "monster",
+    "description": "Spawn a Ghast on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_ghast",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_ghast_3",
+    "name": "Ghast",
+    "type": "monster",
+    "description": "Spawn a Ghast on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_ghast",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_tomb_guardian_1",
+    "name": "Tomb Guardian",
+    "type": "monster",
+    "description": "Spawn a Tomb Guardian on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_tomb_guardian",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_battle_wight_1",
+    "name": "Battle Wight",
+    "type": "monster",
+    "description": "Spawn a Battle Wight on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_battle_wight",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_battle_wight_2",
+    "name": "Battle Wight",
+    "type": "monster",
+    "description": "Spawn a Battle Wight on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_battle_wight",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_battle_wight_3",
+    "name": "Battle Wight",
+    "type": "monster",
+    "description": "Spawn a Battle Wight on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_battle_wight",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_wererat_1",
+    "name": "Wererat",
+    "type": "monster",
+    "description": "Spawn a Wererat on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_wererat",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_bodak_1",
+    "name": "Bodak",
+    "type": "monster",
+    "description": "Spawn a Bodak on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_bodak",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_bodak_2",
+    "name": "Bodak",
+    "type": "monster",
+    "description": "Spawn a Bodak on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_bodak",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_bodak_3",
+    "name": "Bodak",
+    "type": "monster",
+    "description": "Spawn a Bodak on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_bodak",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_dire_bat_1",
+    "name": "Dire Bat",
+    "type": "monster",
+    "description": "Spawn a Dire Bat on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_dire_bat",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_insect_swarm_1",
+    "name": "Insect Swarm",
+    "type": "monster",
+    "description": "Spawn a Insect Swarm on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_insect_swarm",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_zombie_hulk_1",
+    "name": "Zombie Hulk",
+    "type": "monster",
+    "description": "Spawn a Zombie Hulk on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_zombie_hulk",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_vargouille_1",
+    "name": "Vargouille",
+    "type": "monster",
+    "description": "Spawn a Vargouille on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_vargouille",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_vargouille_2",
+    "name": "Vargouille",
+    "type": "monster",
+    "description": "Spawn a Vargouille on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_vargouille",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_vargouille_3",
+    "name": "Vargouille",
+    "type": "monster",
+    "description": "Spawn a Vargouille on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_vargouille",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_direguard_1",
+    "name": "Direguard",
+    "type": "monster",
+    "description": "Spawn a Direguard on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_direguard",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_warforged_minion_1",
+    "name": "Warforged Minion",
+    "type": "monster",
+    "description": "Spawn a Warforged Minion on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_warforged_minion",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_warforged_minion_2",
+    "name": "Warforged Minion",
+    "type": "monster",
+    "description": "Spawn a Warforged Minion on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_warforged_minion",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_warforged_minion_3",
+    "name": "Warforged Minion",
+    "type": "monster",
+    "description": "Spawn a Warforged Minion on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_warforged_minion",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_flameskull_1",
+    "name": "Flameskull",
+    "type": "monster",
+    "description": "Spawn a Flameskull on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_flameskull",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_banshee_1",
+    "name": "Banshee",
+    "type": "monster",
+    "description": "Spawn a Banshee on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_banshee",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_bone_naga_1",
+    "name": "Bone Naga",
+    "type": "monster",
+    "description": "Spawn a Bone Naga on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_bone_naga",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_boneclaw_1",
+    "name": "Boneclaw",
+    "type": "monster",
+    "description": "Spawn a Boneclaw on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_boneclaw",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  },
+  {
+    "id": "card_monster_trap_haunt_1",
+    "name": "Trap Haunt",
+    "type": "monster",
+    "description": "Spawn a Trap Haunt on the bone pile of the newly revealed tile.",
+    "effects": [
+      {
+        "type": "spawn_monster",
+        "value": "monster_trap_haunt",
+        "target": "tile"
+      }
+    ],
+    "phase": "exploration"
+  }
+]

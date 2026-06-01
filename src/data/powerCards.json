@@ -1,0 +1,1186 @@
+[
+  {
+    "id": "cleric_healing_word",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "cleric",
+    "powerType": "utility",
+    "name": "Healing Word",
+    "description": "Use this in your Hero Phase. One Hero within 1 tile regains Hit Points equal to their Surge Value.",
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "heal",
+        "value": "surge",
+        "target": "single",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "cleric_divine_flare",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "cleric",
+    "powerType": "at-will",
+    "name": "Divine Flare",
+    "description": "The light of your deity scorches your foe and empowers your ally. Attack one Monster on your tile. If you hit, end one Condition on a Hero on your tile.",
+    "attackBonus": 6,
+    "damage": 1,
+    "range": 0,
+    "target": "single",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "single",
+        "when": "always"
+      },
+      {
+        "type": "remove_condition",
+        "target": "tile",
+        "when": "hit"
+      }
+    ]
+  },
+  {
+    "id": "cleric_healing_strike",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "cleric",
+    "powerType": "at-will",
+    "name": "Healing Strike",
+    "description": "Attack one adjacent Monster. If you hit, you or one Hero within 1 tile regains 1 HP.",
+    "attackBonus": 8,
+    "damage": 1,
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "single",
+        "when": "always"
+      },
+      {
+        "type": "heal",
+        "value": 1,
+        "target": "single",
+        "when": "hit"
+      }
+    ]
+  },
+  {
+    "id": "cleric_lance_of_faith",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "cleric",
+    "powerType": "at-will",
+    "name": "Lance of Faith",
+    "description": "Attack one Monster within 1 tile of you. Deals +1 damage against Undead.",
+    "attackBonus": 6,
+    "damage": 1,
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "single",
+        "when": "always"
+      },
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "single",
+        "condition": "undead",
+        "when": "hit"
+      }
+    ]
+  },
+  {
+    "id": "cleric_beacon_of_hope",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "cleric",
+    "powerType": "daily",
+    "name": "Beacon of Hope",
+    "description": "Choose a tile within 1 tile of you. Attack each Monster on that tile. Each Hero on the chosen tile regains 1 HP.",
+    "attackBonus": 6,
+    "damage": 2,
+    "range": 1,
+    "target": "area",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 2,
+        "target": "area",
+        "when": "always"
+      },
+      {
+        "type": "heal",
+        "value": 1,
+        "target": "tile",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "cleric_flame_strike",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "cleric",
+    "powerType": "daily",
+    "name": "Flame Strike",
+    "description": "Choose a tile within 2 tiles of you. Attack each Monster on that tile. Miss: 1 Damage.",
+    "attackBonus": 6,
+    "damage": 3,
+    "range": 2,
+    "target": "area",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 3,
+        "target": "area",
+        "when": "always"
+      },
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "area",
+        "when": "miss"
+      }
+    ]
+  },
+  {
+    "id": "cleric_hallowed_advance",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "cleric",
+    "powerType": "daily",
+    "name": "Hallowed Advance",
+    "description": "Attack one adjacent Monster. Hit or miss, each other Hero can move 1 tile. Miss: 1 Damage.",
+    "attackBonus": 5,
+    "damage": 3,
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 3,
+        "target": "single",
+        "when": "always"
+      },
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "single",
+        "when": "miss"
+      },
+      {
+        "type": "move",
+        "value": 1,
+        "target": "all_heroes",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "cleric_bless",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "cleric",
+    "powerType": "utility",
+    "name": "Bless",
+    "description": "All Heroes within 1 tile gain a +2 bonus to attack rolls until the end of your turn.",
+    "range": 1,
+    "target": "all_heroes",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 2,
+        "target": "all_heroes",
+        "duration": 1
+      }
+    ]
+  },
+  {
+    "id": "cleric_consecrated_ground",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "cleric",
+    "powerType": "utility",
+    "name": "Consecrated Ground",
+    "description": "Use this power during your Hero Phase instead of attacking. Choose a tile within 1 tile of you. If there is a marker on that tile, discard it. Place the Consecrated Ground marker on the chosen tile. The next time you would place an Encounter marker on that tile, discard that Encounter Card and do not draw a new one.",
+    "range": 1,
+    "target": "area",
+    "effects": [
+      {
+        "type": "tile_effect",
+        "value": "cancel_encounter",
+        "target": "tile"
+      }
+    ]
+  },
+  {
+    "id": "cleric_shield_of_faith",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "cleric",
+    "powerType": "utility",
+    "name": "Shield of Faith",
+    "description": "All Heroes within 1 tile gain a +2 bonus to AC until the end of your turn.",
+    "range": 1,
+    "target": "all_heroes",
+    "effects": [
+      {
+        "type": "ac_bonus",
+        "value": 2,
+        "target": "all_heroes",
+        "duration": 1
+      }
+    ]
+  },
+  {
+    "id": "fighter_dragons_breath",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "fighter",
+    "powerType": "daily",
+    "name": "Dragon's Breath",
+    "description": "Attack each Monster on your tile. This attack does not count as an attack action.",
+    "attackBonus": 4,
+    "damage": 1,
+    "range": 0,
+    "target": "all_monsters",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "all_monsters",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "fighter_cleave",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "fighter",
+    "powerType": "at-will",
+    "name": "Cleave",
+    "description": "Attack one adjacent Monster. If you hit, choose another Monster on your tile and move adjacent to it. That Monster takes 1 damage.",
+    "attackBonus": 6,
+    "damage": 1,
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "single",
+        "when": "always"
+      },
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "area",
+        "when": "hit"
+      }
+    ]
+  },
+  {
+    "id": "fighter_trapping_strike",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "fighter",
+    "powerType": "at-will",
+    "name": "Trapping Strike",
+    "description": "Choose one Monster within 1 tile of you. Place that Monster adjacent to your Hero and attack it.",
+    "attackBonus": 8,
+    "damage": 1,
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "move",
+        "value": 0,
+        "target": "single"
+      },
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "single",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "fighter_tide_of_iron",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "fighter",
+    "powerType": "at-will",
+    "name": "Tide of Iron",
+    "description": "Attack one adjacent Monster. If you hit, place that Monster (if not destroyed) on a tile within 1 tile of you, and you can move to any square on your tile.",
+    "attackBonus": 8,
+    "damage": 1,
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "single",
+        "when": "always"
+      },
+      {
+        "type": "move",
+        "value": 1,
+        "target": "single",
+        "when": "hit"
+      }
+    ]
+  },
+  {
+    "id": "fighter_brute_strike",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "fighter",
+    "powerType": "daily",
+    "name": "Brute Strike",
+    "description": "Attack one adjacent Monster. If you miss, do not flip this card over.",
+    "attackBonus": 5,
+    "damage": 4,
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 4,
+        "target": "single",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "fighter_come_and_get_it",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "fighter",
+    "powerType": "daily",
+    "name": "Come and Get It",
+    "description": "Choose a tile within 1 tile of you. Place each Monster on that tile adjacent to your Hero, and then attack each adjacent Monster.",
+    "attackBonus": 6,
+    "damage": 1,
+    "range": 1,
+    "target": "area",
+    "effects": [
+      {
+        "type": "move",
+        "value": 0,
+        "target": "area"
+      },
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "adjacent",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "fighter_precise_strike",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "fighter",
+    "powerType": "daily",
+    "name": "Precise Strike",
+    "description": "Attack one adjacent Monster. If you miss, do not flip this card over.",
+    "attackBonus": 11,
+    "damage": 2,
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 2,
+        "target": "single",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "fighter_bodyguard",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "fighter",
+    "powerType": "utility",
+    "name": "Bodyguard",
+    "description": "Use this power when a Monster hits another Hero within 1 tile of you. The attack misses instead, and you swap positions with the Hero that was attacked.",
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "defense_bonus",
+        "value": 0,
+        "target": "single"
+      }
+    ]
+  },
+  {
+    "id": "fighter_get_over_there",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "fighter",
+    "powerType": "utility",
+    "name": "Get Over There",
+    "description": "Use this power during your Hero Phase instead of moving. Choose a Monster within 2 tiles of you. Place your Hero adjacent to that Monster.",
+    "range": 2,
+    "target": "self",
+    "effects": [
+      {
+        "type": "move",
+        "value": 2,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "fighter_unstoppable",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "fighter",
+    "powerType": "utility",
+    "name": "Unstoppable",
+    "description": "Use this power at the start of your Hero Phase. You regain 2 Hit Points.",
+    "range": 0,
+    "target": "self",
+    "effects": [
+      {
+        "type": "heal",
+        "value": 2,
+        "target": "self",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "ranger_careful_attack",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "ranger",
+    "powerType": "at-will",
+    "name": "Careful Attack",
+    "description": "One adjacent Monster takes 1 damage. No attack roll needed.",
+    "damage": 1,
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "single",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "ranger_hit_and_run",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "ranger",
+    "powerType": "at-will",
+    "name": "Hit and Run",
+    "description": "Attack one adjacent Monster. Hit or miss, you can place your Hero on any square on your tile.",
+    "attackBonus": 6,
+    "damage": 2,
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 2,
+        "target": "single",
+        "when": "always"
+      },
+      {
+        "type": "move",
+        "value": 0,
+        "target": "self",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "ranger_hunters_shot",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "ranger",
+    "powerType": "at-will",
+    "name": "Hunter's Shot",
+    "description": "Attack one Monster within 2 tiles of you. If you miss and the Monster is more than 1 tile away from you, place it 1 tile closer to you.",
+    "attackBonus": 6,
+    "damage": 1,
+    "range": 2,
+    "target": "single",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "single",
+        "when": "always"
+      },
+      {
+        "type": "move",
+        "value": 1,
+        "target": "single",
+        "when": "miss"
+      }
+    ]
+  },
+  {
+    "id": "ranger_twin_shot",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "ranger",
+    "powerType": "at-will",
+    "name": "Twin Shot",
+    "description": "Attack two Monsters within 1 tile of you.",
+    "attackBonus": 4,
+    "damage": 1,
+    "range": 1,
+    "target": "area",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "area",
+        "when": "always"
+      },
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "area",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "ranger_attacks_on_the_run",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "ranger",
+    "powerType": "daily",
+    "name": "Attacks on the Run",
+    "description": "Move your speed. Attack two Monsters that you were adjacent to during the movement. Miss: 1 Damage.",
+    "attackBonus": 4,
+    "damage": 2,
+    "range": 1,
+    "target": "area",
+    "effects": [
+      {
+        "type": "move",
+        "value": 0,
+        "target": "self",
+        "when": "always"
+      },
+      {
+        "type": "attack",
+        "value": 2,
+        "target": "area",
+        "when": "always"
+      },
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "area",
+        "when": "miss"
+      }
+    ]
+  },
+  {
+    "id": "ranger_bounding_attack",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "ranger",
+    "powerType": "daily",
+    "name": "Bounding Attack",
+    "description": "Place your Hero on a tile within 1 tile of you. Attack one adjacent Monster. Miss: 1 Damage.",
+    "attackBonus": 6,
+    "damage": 3,
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "move",
+        "value": 1,
+        "target": "self",
+        "when": "always"
+      },
+      {
+        "type": "attack",
+        "value": 3,
+        "target": "single",
+        "when": "always"
+      },
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "single",
+        "when": "miss"
+      }
+    ]
+  },
+  {
+    "id": "ranger_split_the_tree",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "ranger",
+    "powerType": "daily",
+    "name": "Split the Tree",
+    "description": "Choose a tile within 2 tiles of you. Attack two Monsters on that tile. Miss: 1 Damage.",
+    "attackBonus": 6,
+    "damage": 2,
+    "range": 2,
+    "target": "area",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 2,
+        "target": "area",
+        "when": "always"
+      },
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "area",
+        "when": "miss"
+      }
+    ]
+  },
+  {
+    "id": "ranger_crucial_aid",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "ranger",
+    "powerType": "utility",
+    "name": "Crucial Aid",
+    "description": "Use this power after another Hero rolls the die. That Hero gains a +4 bonus to the die roll.",
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 4,
+        "target": "single",
+        "duration": 0
+      }
+    ]
+  },
+  {
+    "id": "ranger_unbalancing_parry",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "ranger",
+    "powerType": "utility",
+    "name": "Unbalancing Parry",
+    "description": "Use this power when an adjacent Monster hits you. The attack misses instead. Place that Monster on a tile within 1 tile of you.",
+    "range": 1,
+    "target": "self",
+    "effects": [
+      {
+        "type": "defense_bonus",
+        "value": 0,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "ranger_yield_ground",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "ranger",
+    "powerType": "utility",
+    "name": "Yield Ground",
+    "description": "Use this power when a Monster damages you. You move your speed.",
+    "range": 0,
+    "target": "self",
+    "effects": [
+      {
+        "type": "move",
+        "value": 0,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "rogue_sneak_attack",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "rogue",
+    "powerType": "utility",
+    "name": "Sneak Attack",
+    "description": "Use this power at the start of your Hero Phase. You gain a +4 bonus to attack rolls and deal +1 damage until the end of your next Hero Phase.",
+    "range": 0,
+    "target": "self",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 4,
+        "target": "self",
+        "duration": 2
+      },
+      {
+        "type": "damage_bonus",
+        "value": 1,
+        "target": "self",
+        "duration": 2
+      }
+    ]
+  },
+  {
+    "id": "rogue_backstab",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "rogue",
+    "powerType": "at-will",
+    "name": "Backstab",
+    "description": "Attack one adjacent Monster. Deal +1 damage if the Monster is adjacent to another Hero.",
+    "attackBonus": 7,
+    "damage": 1,
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "single",
+        "when": "always"
+      },
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "single",
+        "when": "hit"
+      }
+    ]
+  },
+  {
+    "id": "rogue_deft_strike",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "rogue",
+    "powerType": "at-will",
+    "name": "Deft Strike",
+    "description": "Before the attack, you can move 2 squares. Attack one adjacent Monster.",
+    "attackBonus": 7,
+    "damage": 1,
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "move",
+        "value": 2,
+        "target": "self",
+        "when": "always"
+      },
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "single",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "rogue_snipe_shot",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "rogue",
+    "powerType": "at-will",
+    "name": "Snipe Shot",
+    "description": "Attack one Monster within 1 tile of you. You gain a +2 bonus to the attack roll if the Monster is 1 tile away from you.",
+    "attackBonus": 7,
+    "damage": 1,
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "single",
+        "when": "always"
+      },
+      {
+        "type": "attack_bonus",
+        "value": 2,
+        "target": "single",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "rogue_dagger_barrage",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "rogue",
+    "powerType": "daily",
+    "name": "Dagger Barrage",
+    "description": "Choose a tile within 1 tile of you. Attack each Monster on that tile. Miss: 1 Damage.",
+    "attackBonus": 7,
+    "damage": 2,
+    "range": 1,
+    "target": "area",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 2,
+        "target": "area",
+        "when": "always"
+      },
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "area",
+        "when": "miss"
+      }
+    ]
+  },
+  {
+    "id": "rogue_deep_cut",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "rogue",
+    "powerType": "daily",
+    "name": "Deep Cut",
+    "description": "Attack one adjacent Monster. Hit or miss, if the Monster is adjacent to another Hero, it takes 2 damage.",
+    "attackBonus": 7,
+    "damage": 2,
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 2,
+        "target": "single",
+        "when": "always"
+      },
+      {
+        "type": "damage",
+        "value": 2,
+        "target": "single",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "rogue_riposte_strike",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "rogue",
+    "powerType": "daily",
+    "name": "Riposte Strike",
+    "description": "Use this power immediately after an adjacent Monster attacks you. Attack that Monster. If you miss, do not flip this card over.",
+    "attackBonus": 7,
+    "damage": 2,
+    "range": 1,
+    "target": "single",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 2,
+        "target": "single",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "rogue_great_leap",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "rogue",
+    "powerType": "utility",
+    "name": "Great Leap",
+    "description": "Use this power during your Hero Phase instead of moving. Place your Hero on a tile within 2 tiles of you.",
+    "range": 2,
+    "target": "self",
+    "effects": [
+      {
+        "type": "move",
+        "value": 2,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "rogue_spring_away",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "rogue",
+    "powerType": "utility",
+    "name": "Spring Away",
+    "description": "Use this power when another Hero draws an Encounter Card. Place your Hero on a tile 2 tiles away from you before the Encounter Card triggers.",
+    "range": 2,
+    "target": "self",
+    "effects": [
+      {
+        "type": "move",
+        "value": 2,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "rogue_stealth",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "rogue",
+    "powerType": "utility",
+    "name": "Stealth",
+    "description": "Use this power immediately after you draw a Monster Card. Discard the Monster Card instead of placing it.",
+    "range": 0,
+    "target": "self",
+    "effects": [
+      {
+        "type": "draw_card",
+        "value": "discard",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "wizard_fey_step",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "wizard",
+    "powerType": "utility",
+    "name": "Fey Step",
+    "description": "Use this power during your Hero Phase. Place your Hero on a tile within 1 tile of you.",
+    "range": 1,
+    "target": "self",
+    "effects": [
+      {
+        "type": "move",
+        "value": 1,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "wizard_magic_missile",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "wizard",
+    "powerType": "at-will",
+    "name": "Magic Missile",
+    "description": "Attack one Monster within 3 tiles of you. If you miss and the Monster is more than 1 tile away, place it 1 tile closer to you.",
+    "attackBonus": 8,
+    "damage": 1,
+    "range": 3,
+    "target": "single",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "single",
+        "when": "always"
+      },
+      {
+        "type": "move",
+        "value": 1,
+        "target": "single",
+        "when": "miss"
+      }
+    ]
+  },
+  {
+    "id": "wizard_thunderwave",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "wizard",
+    "powerType": "at-will",
+    "name": "Thunderwave",
+    "description": "Attack each Monster on your tile. After the attack, choose a tile within 1 tile of you. Place each Monster on your tile on the chosen tile.",
+    "attackBonus": 7,
+    "damage": 1,
+    "range": 0,
+    "target": "all_monsters",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "all_monsters",
+        "when": "always"
+      },
+      {
+        "type": "move",
+        "value": 0,
+        "target": "all_monsters",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "wizard_scorching_burst",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "wizard",
+    "powerType": "at-will",
+    "name": "Scorching Burst",
+    "description": "Choose a tile 1 tile away from you. Attack each Monster on that tile.",
+    "attackBonus": 7,
+    "damage": 1,
+    "range": 1,
+    "target": "area",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "area",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "wizard_fireball",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "wizard",
+    "powerType": "daily",
+    "name": "Fireball",
+    "description": "Choose a tile 1 tile away from you. Attack each Monster on that tile. Miss: 1 Damage.",
+    "attackBonus": 7,
+    "damage": 3,
+    "range": 1,
+    "target": "area",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 3,
+        "target": "area",
+        "when": "always"
+      },
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "area",
+        "when": "miss"
+      }
+    ]
+  },
+  {
+    "id": "wizard_lightning_bolt",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "wizard",
+    "powerType": "daily",
+    "name": "Lightning Bolt",
+    "description": "Choose a tile within 2 tiles of you. Attack each Monster on that tile. Miss: 1 Damage.",
+    "attackBonus": 7,
+    "damage": 3,
+    "range": 2,
+    "target": "area",
+    "effects": [
+      {
+        "type": "attack",
+        "value": 3,
+        "target": "area",
+        "when": "always"
+      },
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "area",
+        "when": "miss"
+      }
+    ]
+  },
+  {
+    "id": "wizard_freezing_cloud",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "wizard",
+    "powerType": "daily",
+    "name": "Freezing Cloud",
+    "description": "Choose a tile within 1 tile of you. Place Freezing Cloud tokens on that tile. Monsters entering or on that tile at the start of your turn take 1 damage.",
+    "attackBonus": 6,
+    "damage": 1,
+    "range": 1,
+    "target": "area",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "area",
+        "when": "always"
+      }
+    ]
+  },
+  {
+    "id": "wizard_dispel_magic",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "wizard",
+    "powerType": "utility",
+    "name": "Dispel Magic",
+    "description": "Cancel an Encounter Card just drawn. Discard it and do not resolve its effects.",
+    "range": 0,
+    "target": "self",
+    "effects": [
+      {
+        "type": "draw_card",
+        "value": "cancel",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "wizard_illusionary_crowd",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "wizard",
+    "powerType": "utility",
+    "name": "Illusionary Crowd",
+    "description": "Use this power during your Hero Phase. Place the Illusionary Crowd marker on a tile without a marker. Place each Monster on a tile 1 tile away from the Illusionary Crowd tile. The Crowd counts as a Hero (AC 14, 1 HP) when Monsters choose targets.",
+    "range": 1,
+    "target": "area",
+    "effects": [
+      {
+        "type": "spawn_ally",
+        "value": "illusionary_crowd",
+        "target": "tile"
+      },
+      {
+        "type": "move",
+        "value": 0,
+        "target": "all_monsters"
+      }
+    ]
+  },
+  {
+    "id": "wizard_shield",
+    "type": "ability",
+    "phase": "hero",
+    "heroClass": "wizard",
+    "powerType": "utility",
+    "name": "Shield",
+    "description": "Use this power when a Monster hits you. The Monster's attack misses instead. You gain a +2 bonus to AC until the end of your next Hero Phase.",
+    "range": 0,
+    "target": "self",
+    "effects": [
+      {
+        "type": "defense_bonus",
+        "value": 0,
+        "target": "self"
+      },
+      {
+        "type": "ac_bonus",
+        "value": 2,
+        "target": "self",
+        "duration": 2
+      }
+    ]
+  }
+]

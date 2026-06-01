@@ -1,0 +1,56 @@
+{
+  "id": "adventure_13",
+  "name": "The Hunt for Strahd, Part 2",
+  "difficulty": "Hard",
+  "description": "Find Strahd's crypt and destroy the vampire lord once and for all.",
+  "objectives": [
+    {
+      "id": "defeat_strahd",
+      "type": "defeat_villains",
+      "count": 1,
+      "currentCount": 0,
+      "targetIds": ["monster_strahd"],
+      "description": "Defeat Count Strahd.",
+      "isCompleted": false
+    },
+    {
+      "id": "destroy_all_coffins",
+      "type": "interact",
+      "count": 10,
+      "currentCount": 0,
+      "targetAttribute": "coffin",
+      "description": "Destroy all Coffin tokens in the dungeon.",
+      "isCompleted": false
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "coffin_tokens",
+      "description": "Whenever a Hero explores and draws a new dungeon tile, place a face-down Coffin token on that tile."
+    },
+    {
+      "id": "coffin_investigation",
+      "description": "A Hero ending Hero Phase adjacent to a Coffin token may investigate it. If it reveals Strahd, place Strahd on that tile."
+    },
+    {
+      "id": "coffin_healing",
+      "description": "If Strahd moves to a tile with an undestroyed coffin, he regains 2 HP at the start of each Villain Phase while the coffin remains."
+    },
+    {
+      "id": "crypt_reveal_strahd",
+      "description": "When Strahd's Crypt is revealed, if Strahd is not in play, place him there instead of drawing a Monster. If he is in play, move him there at full HP."
+    }
+  ],
+  "startTileId": "start-tile",
+  "setAsideTileIds": ["crypt_strahd"],
+  "specialTilePlacements": [
+    {
+      "tileId": "crypt_strahd",
+      "insertAfterIndex": 8
+    }
+  ],
+  "maxSurges": 2,
+  "introText": "The Heroes follow the mist into Strahd's hidden crypts for the final battle.",
+  "victoryText": "Strahd falls to dust! Peace finally returns to Castle Ravenloft. Barovia is free!",
+  "defeatText": "Strahd proves too powerful. The vampire lord's reign of terror continues unchecked."
+}

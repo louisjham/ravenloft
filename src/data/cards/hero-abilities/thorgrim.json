@@ -1,0 +1,30 @@
+[
+  {
+    "id": "thorgrim_power_1",
+    "type": "ability",
+    "name": "Healing Word",
+    "description": "Heal yourself or one adjacent Hero for 1 HP.",
+    "effects": [
+      { "type": "heal", "value": 1, "target": "adjacent", "range": 1, "when": "always" }
+    ],
+    "phase": "hero",
+    "heroClass": "cleric",
+    "powerType": "utility"
+  },
+  {
+    "id": "thorgrim_power_2",
+    "type": "ability",
+    "name": "Holy Smite",
+    "description": "Attack one adjacent Undead monster. +7 to hit, 2 damage.",
+    "attackBonus": 7,
+    "damage": 2,
+    "range": 0,
+    "target": "single",
+    "effects": [
+      { "type": "attack", "value": 2, "target": "single", "when": "always" }
+    ],
+    "phase": "hero",
+    "heroClass": "cleric",
+    "powerType": "daily"
+  }
+]

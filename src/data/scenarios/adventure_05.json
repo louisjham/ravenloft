@@ -1,0 +1,36 @@
+{
+  "id": "adventure_05",
+  "name": "The Final Transformation",
+  "difficulty": "Hard",
+  "description": "Find the Dark Fountain and escort Kavan to it. Keep Kavan on the Dark Fountain tile for 5 turns to cure him before Strahd claims his soul.",
+  "objectives": [
+    {
+      "id": "cure_kavan",
+      "type": "cure_kavan",
+      "description": "Escort Kavan to the Dark Fountain and cure him (0 fountain tokens remaining).",
+      "isCompleted": false
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "kavan_escort",
+      "description": "At the start of your turn, if you are adjacent to Kavan, you lead him. At the end of your turn, Kavan is placed on your tile."
+    },
+    {
+      "id": "kavan_transformation",
+      "description": "If there is a monster on Kavan's tile or no hero on Kavan's tile at the start of a Villain Phase, Kavan transforms into the Young Vampire. Revert him by ending a turn on his tile with a hero and no monsters."
+    }
+  ],
+  "startTileId": "start-tile",
+  "setAsideTileIds": ["named_dark_fountain"],
+  "specialTilePlacements": [
+    {
+      "tileId": "named_dark_fountain",
+      "insertAfterIndex": 8
+    }
+  ],
+  "maxSurges": 2,
+  "introText": "Strahd has bitten Kavan, and the transformation has begun! You must find the Dark Fountain and use its waters to cure Kavan before he becomes a creature of the night.",
+  "victoryText": "Kavan is cured! The dark waters of the fountain wash away the vampiric curse, and Kavan stands once more as a free human. You have saved a soul from Strahd's grasp!",
+  "defeatText": "Kavan has succumbed to the transformation, or the party was defeated by the horrors of the crypts. Another soul belongs to Strahd."
+}

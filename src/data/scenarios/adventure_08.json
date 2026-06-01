@@ -1,0 +1,46 @@
+{
+  "id": "adventure_08",
+  "name": "Horror of the Howling Hag",
+  "difficulty": "Hard",
+  "description": "Find your companions, defeat the Howling Hag, and end her ritual.",
+  "objectives": [
+    {
+      "id": "defeat_howling_hag",
+      "type": "defeat_villains",
+      "count": 1,
+      "currentCount": 0,
+      "description": "Defeat the Howling Hag.",
+      "isCompleted": false
+    },
+    {
+      "id": "remove_time_tokens",
+      "type": "interact",
+      "count": 5,
+      "currentCount": 0,
+      "targetAttribute": "time_token",
+      "description": "Remove all 5 Time tokens from the Arcane Circle.",
+      "isCompleted": false
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "no_start_tile",
+      "description": "This adventure has no Start tile. The Arcane Circle serves as the starting location. Encounter Cards referring to a Start tile are discarded and replaced."
+    },
+    {
+      "id": "hag_teleport",
+      "description": "When the Howling Hag would be placed by a Monster draw and she is already in play, teleport her to the newly revealed tile instead."
+    },
+    {
+      "id": "arcane_circle_time_tokens",
+      "description": "When the Arcane Circle is revealed, place 5 Time tokens there. A Hero starting and ending their Hero Phase on the Arcane Circle removes 1 Time token."
+    }
+  ],
+  "startTileId": "named_arcane_circle",
+  "setAsideTileIds": [],
+  "specialTilePlacements": [],
+  "maxSurges": 2,
+  "introText": "The Howling Hag has scattered the Heroes through the crypts while she completes a ritual.",
+  "victoryText": "The Howling Hag is defeated and the ritual is broken! The crypts fall silent once more.",
+  "defeatText": "The Howling Hag's ritual completes, and Castle Ravenloft grows darker still. The Heroes are lost to the crypts."
+}

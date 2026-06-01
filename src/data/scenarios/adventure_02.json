@@ -1,0 +1,38 @@
+{
+  "id": "adventure_02",
+  "name": "Find the Icon of Ravenloft",
+  "difficulty": "Medium",
+  "description": "Find the hidden Chapel, defeat its guardians, and recover the lost Icon of Ravenloft.",
+  "objectives": [
+    {
+      "id": "possess_icon",
+      "type": "possess_icon",
+      "description": "Possess the Icon of Ravenloft.",
+      "isCompleted": false
+    },
+    {
+      "id": "clear_chapel_monsters",
+      "type": "clear_chapel_monsters",
+      "description": "Defeat all monsters guarding the Chapel.",
+      "isCompleted": false
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "chapel_threat",
+      "description": "Once the Chapel is revealed, each player draws an Encounter Card at the start of their Villain Phase."
+    }
+  ],
+  "startTileId": "start-tile",
+  "setAsideTileIds": ["named_chapel"],
+  "specialTilePlacements": [
+    {
+      "tileId": "named_chapel",
+      "insertAfterIndex": 8
+    }
+  ],
+  "maxSurges": 2,
+  "introText": "The Heroes descend into the crypts to find the hidden Chapel and recover the Icon of Ravenloft.",
+  "victoryText": "The Chapel glows with goodness, and with the Icon of Ravenloft in hand, you escape the terrors of the crypts!",
+  "defeatText": "The darkness consumes you. The Chapel remains hidden, and the Icon of Ravenloft is lost forever."
+}

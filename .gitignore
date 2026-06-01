@@ -1,0 +1,32 @@
+node_modules/
+dist/
+.vite/
+
+# Logs
+*.log
+dev.log
+nul
+
+# Temp / generated / backup files
+oldGameStore.ts
+originalGameStore.ts
+scratch/
+runtime_data_pack/
+*.xlsx
+*.csv
+fix*.cjs
+fix*.js
+generateSlices.cjs
+extract.cjs
+extracted.json
+recoveredHelpers.json
+inventory_results.json
+helpers.ts
+
+# Temp docs
+Can you verify these files are correct and identi.md
+TILE_PLACEMENT_ISSUE_SUMMARY.md
+
+# OS
+.DS_Store
+Thumbs.db

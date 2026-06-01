@@ -1,0 +1,31 @@
+{
+  "music": {
+    "main_theme": {
+      "id": "main_theme",
+      "src": "/audio/music/main_theme.mp3",
+      "layers": ["base", "tension", "combat"],
+      "loop": true
+    },
+    "boss_theme": {
+      "id": "boss_theme",
+      "src": "/audio/music/boss_theme.mp3",
+      "layers": ["base", "frenzy"],
+      "loop": true
+    }
+  },
+  "sfx": {
+    "tile_place": { "id": "tile_place", "src": "/audio/sfx/tile_place.mp3", "volume": 0.8 },
+    "dice_roll": { "id": "dice_roll", "src": "/audio/sfx/dice_roll.mp3", "volume": 0.9 },
+    "card_draw": { "id": "card_draw", "src": "/audio/sfx/card_draw.mp3", "volume": 0.5 },
+    "card_play": { "id": "card_play", "src": "/audio/sfx/card_play.mp3", "volume": 0.6 },
+    "monster_die": { "id": "monster_die", "src": "/audio/sfx/monster_die.mp3", "volume": 0.7 },
+    "hero_hurt": { "id": "hero_hurt", "src": "/audio/sfx/hero_hurt.mp3", "volume": 0.7 },
+    "sword_hit": { "id": "sword_hit", "src": "/audio/sfx/sword_hit.mp3", "volume": 0.6 },
+    "spell_cast": { "id": "spell_cast", "src": "/audio/sfx/spell_cast.mp3", "volume": 0.6 },
+    "click": { "id": "click", "src": "/audio/sfx/click.mp3", "volume": 0.4 },
+    "hover": { "id": "hover", "src": "/audio/sfx/hover.mp3", "volume": 0.2 }
+  },
+  "ambient": {
+    "dungeon_loop": { "id": "dungeon_loop", "src": "/audio/ambient/dungeon_loop.mp3", "volume": 0.3 }
+  }
+}

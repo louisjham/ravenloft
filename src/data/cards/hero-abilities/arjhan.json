@@ -1,0 +1,30 @@
+[
+  {
+    "id": "arjhan_power_1",
+    "type": "ability",
+    "name": "Valiant Strike",
+    "description": "Attack one adjacent Monster. +7 to hit, 1 damage.",
+    "attackBonus": 7,
+    "damage": 1,
+    "range": 0,
+    "target": "single",
+    "effects": [
+      { "type": "attack", "value": 1, "target": "single", "when": "always" }
+    ],
+    "phase": "hero",
+    "heroClass": "fighter",
+    "powerType": "at-will"
+  },
+  {
+    "id": "arjhan_power_2",
+    "type": "ability",
+    "name": "Lay on Hands",
+    "description": "Heal yourself or one adjacent Hero for 1 HP.",
+    "effects": [
+      { "type": "heal", "value": 1, "target": "adjacent", "range": 1, "when": "always" }
+    ],
+    "phase": "hero",
+    "heroClass": "fighter",
+    "powerType": "utility"
+  }
+]

@@ -1,0 +1,2540 @@
+[
+  {
+    "id": "monster_skeleton",
+    "name": "Skeleton",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 7,
+    "damage": 1,
+    "experienceValue": 1,
+    "moveRange": 1,
+    "abilities": [
+      "undying"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "lowest_hp"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Skeleton is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: undying"
+  },
+  {
+    "id": "monster_zombie",
+    "name": "Zombie",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 11,
+    "speed": 1,
+    "attackBonus": 5,
+    "damage": 1,
+    "experienceValue": 1,
+    "moveRange": 1,
+    "abilities": [
+      "undying"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Zombie is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: undying"
+  },
+  {
+    "id": "monster_ghoul",
+    "name": "Ghoul",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 2,
+    "maxHp": 2,
+    "ac": 12,
+    "speed": 2,
+    "attackBonus": 6,
+    "damage": 1,
+    "experienceValue": 2,
+    "moveRange": 1,
+    "abilities": [
+      "paralyzing_claws"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Ghoul is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: paralyzing_claws"
+  },
+  {
+    "id": "monster_wolf",
+    "name": "Wolf",
+    "type": "monster",
+    "monsterType": "Animal",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 13,
+    "speed": 2,
+    "attackBonus": 6,
+    "damage": 1,
+    "experienceValue": 1,
+    "moveRange": 2,
+    "abilities": [
+      "pack_hunter"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Wolf is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero."
+  },
+  {
+    "id": "monster_kobold",
+    "name": "Kobold",
+    "type": "monster",
+    "monsterType": "Reptile",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 13,
+    "speed": 2,
+    "attackBonus": 5,
+    "damage": 1,
+    "experienceValue": 2,
+    "moveRange": 2,
+    "abilities": [
+      "shifty"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Kobold is adjacent to a hero, it attacks with a shifty strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: shifty"
+  },
+  {
+    "id": "monster_gargoyle",
+    "name": "Gargoyle",
+    "type": "monster",
+    "monsterType": "Elemental",
+    "hp": 2,
+    "maxHp": 2,
+    "ac": 15,
+    "speed": 1,
+    "attackBonus": 7,
+    "damage": 1,
+    "experienceValue": 2,
+    "moveRange": 1,
+    "abilities": [
+      "stone_form"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Gargoyle is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: stone_form"
+  },
+  {
+    "id": "monster_vampire",
+    "name": "Vampire",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 3,
+    "maxHp": 3,
+    "ac": 15,
+    "speed": 2,
+    "attackBonus": 8,
+    "damage": 2,
+    "experienceValue": 3,
+    "moveRange": 2,
+    "abilities": [
+      "vampiric_bite",
+      "mist_form",
+      "regeneration",
+      "drain_life"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Vampire is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: vampiric_bite, mist_form, regeneration, drain_life"
+  },
+  {
+    "id": "monster_troll",
+    "name": "Troll",
+    "type": "monster",
+    "monsterType": "Giant",
+    "hp": 4,
+    "maxHp": 4,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 7,
+    "damage": 2,
+    "experienceValue": 4,
+    "moveRange": 1,
+    "abilities": [
+      "regeneration"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Troll is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: regeneration"
+  },
+  {
+    "id": "monster_dragon",
+    "name": "Dragon",
+    "type": "monster",
+    "monsterType": "Dragon",
+    "hp": 5,
+    "maxHp": 5,
+    "ac": 16,
+    "speed": 1,
+    "attackBonus": 9,
+    "damage": 3,
+    "experienceValue": 5,
+    "moveRange": 1,
+    "abilities": [
+      "fire_breath",
+      "fear_aura"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Dragon is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: fire_breath, fear_aura"
+  },
+  {
+    "id": "monster_necromancer",
+    "name": "Necromancer",
+    "type": "monster",
+    "monsterType": "Human",
+    "hp": 6,
+    "maxHp": 6,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 5,
+    "damage": 2,
+    "experienceValue": 2,
+    "moveRange": 1,
+    "abilities": [
+      "summon"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If there are 1 XP monsters in discard pile: cast reanimate. If on the start tile: attack each hero with entropic mist. Otherwise: attack each hero on same tile with necrotic blast and move 1 tile towards triangle.",
+    "specialAbilityText": "Special Ability: Reanimate — Randomly pick a 1 XP monster from the discard pile and place it adjacent to Necromancer. The reanimated monster is considered an Undead.",
+    "isBoss": true,
+    "passLeft": 0
+  },
+  {
+    "id": "monster_werewolf",
+    "name": "Werewolf",
+    "type": "monster",
+    "monsterType": "Beast",
+    "hp": 3,
+    "maxHp": 3,
+    "ac": 14,
+    "speed": 2,
+    "attackBonus": 7,
+    "damage": 2,
+    "experienceValue": 3,
+    "moveRange": 2,
+    "abilities": [
+      "howl"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Werewolf is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: howl"
+  },
+  {
+    "id": "monster_spider",
+    "name": "Spider",
+    "type": "monster",
+    "monsterType": "Vermin",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 12,
+    "speed": 1,
+    "attackBonus": 6,
+    "damage": 1,
+    "experienceValue": 1,
+    "moveRange": 1,
+    "abilities": [
+      "web"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Spider is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: web"
+  },
+  {
+    "id": "monster_strahd",
+    "name": "Strahd",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 10,
+    "maxHp": 10,
+    "ac": 18,
+    "speed": 2,
+    "attackBonus": 10,
+    "damage": 3,
+    "experienceValue": 10,
+    "moveRange": 2,
+    "isBoss": true,
+    "currentPhase": null,
+    "abilities": [
+      "fireball",
+      "summon_skeletons",
+      "vampiric_bite",
+      "mist_form",
+      "multiattack"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Strahd is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: fireball, summon_skeletons, vampiric_bite, mist_form, multiattack"
+  },
+  {
+    "id": "monster_vampire_lord",
+    "name": "Vampire Lord",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 8,
+    "maxHp": 8,
+    "ac": 17,
+    "speed": 2,
+    "attackBonus": 9,
+    "damage": 3,
+    "experienceValue": 8,
+    "moveRange": 2,
+    "isBoss": true,
+    "currentPhase": null,
+    "abilities": [
+      "drain_life",
+      "summon",
+      "vampiric_bite",
+      "regeneration"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Vampire Lord is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: drain_life, summon, vampiric_bite, regeneration"
+  },
+  {
+    "id": "monster_young_red_dragon",
+    "name": "Young Red Dragon",
+    "type": "monster",
+    "monsterType": "Dragon",
+    "hp": 6,
+    "maxHp": 6,
+    "ac": 16,
+    "speed": 1,
+    "attackBonus": 9,
+    "damage": 3,
+    "experienceValue": 6,
+    "moveRange": 1,
+    "isBoss": true,
+    "currentPhase": null,
+    "abilities": [
+      "fire_breath",
+      "fear_aura"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Young Red Dragon is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: fire_breath, fear_aura"
+  },
+  {
+    "id": "monster_klak",
+    "name": "Klak",
+    "type": "monster",
+    "monsterType": "Kobold",
+    "hp": 6,
+    "maxHp": 6,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 8,
+    "damage": 1,
+    "experienceValue": 0,
+    "moveRange": 1,
+    "isBoss": true,
+    "currentPhase": null,
+    "abilities": [
+      "fire_burst",
+      "teleport",
+      "summon"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Klak is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: fire_burst, teleport, summon"
+  },
+  {
+    "id": "monster_klaks_artifact",
+    "name": "Klak's Artifact",
+    "type": "monster",
+    "monsterType": "Artifact",
+    "hp": 5,
+    "maxHp": 5,
+    "ac": 15,
+    "speed": 0,
+    "attackBonus": 0,
+    "damage": 0,
+    "experienceValue": 0,
+    "moveRange": 0,
+    "isBoss": false,
+    "currentPhase": null,
+    "abilities": [],
+    "behavior": {
+      "conditions": [],
+      "priorityTargets": [],
+      "actions": []
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Klak's Artifact is within 1 tile of a hero, it attacks. Otherwise, it moves towards the closest hero."
+  },
+  {
+    "id": "monster_young_vampire",
+    "name": "Young Vampire",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 8,
+    "maxHp": 8,
+    "ac": 16,
+    "speed": 1,
+    "attackBonus": 8,
+    "damage": 2,
+    "experienceValue": 5,
+    "moveRange": 1,
+    "isBoss": true,
+    "currentPhase": null,
+    "abilities": [
+      "claws_and_fangs",
+      "hypnotic_gaze"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Young Vampire is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: claws_and_fangs, hypnotic_gaze"
+  },
+  {
+    "id": "monster_gravestorm",
+    "name": "Gravestorm",
+    "type": "monster",
+    "monsterType": "Dracolich",
+    "hp": 20,
+    "maxHp": 20,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 8,
+    "damage": 3,
+    "experienceValue": 6,
+    "moveRange": 1,
+    "isBoss": true,
+    "currentPhase": null,
+    "abilities": [
+      "blast_of_lightning",
+      "gravestorms_bite",
+      "burst_of_lightning"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile",
+        "within_3_tiles"
+      ],
+      "priorityTargets": [
+        "most_hp",
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Gravestorm is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: blast_of_lightning, gravestorms_bite, burst_of_lightning"
+  },
+  {
+    "id": "monster_gravestorms_phylactery",
+    "name": "Gravestorm's Phylactery",
+    "type": "monster",
+    "monsterType": "Construct",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 10,
+    "speed": 0,
+    "attackBonus": 0,
+    "damage": 0,
+    "experienceValue": 0,
+    "moveRange": 0,
+    "isBoss": false,
+    "currentPhase": null,
+    "abilities": [],
+    "behavior": {
+      "conditions": [],
+      "priorityTargets": [],
+      "actions": [
+        "idle"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Gravestorm's Phylactery is within 1 tile of a hero, it attacks. Otherwise, it moves towards the closest hero."
+  },
+  {
+    "id": "monster_howling_hag",
+    "name": "Howling Hag",
+    "type": "monster",
+    "monsterType": "Hag",
+    "hp": 14,
+    "maxHp": 14,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 8,
+    "damage": 3,
+    "experienceValue": 3,
+    "moveRange": 1,
+    "isBoss": true,
+    "currentPhase": null,
+    "abilities": [
+      "howl",
+      "shriek"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_2_tiles"
+      ],
+      "priorityTargets": [
+        "lowest_hp"
+      ],
+      "actions": [
+        "attack",
+        "special",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Howling Hag is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: howl, shriek"
+  },
+  {
+    "id": "monster_zombie_dragon",
+    "name": "Zombie Dragon",
+    "type": "monster",
+    "monsterType": "Dragon",
+    "hp": 20,
+    "maxHp": 20,
+    "ac": 15,
+    "speed": 1,
+    "attackBonus": 9,
+    "damage": 4,
+    "experienceValue": 4,
+    "moveRange": 1,
+    "isBoss": true,
+    "currentPhase": null,
+    "abilities": [
+      "death_breath",
+      "undying"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_2_tiles"
+      ],
+      "priorityTargets": [
+        "lowest_hp"
+      ],
+      "actions": [
+        "attack",
+        "special",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Zombie Dragon is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: death_breath, undying"
+  },
+  {
+    "id": "monster_flesh_golem",
+    "name": "Flesh Golem",
+    "type": "monster",
+    "monsterType": "Construct",
+    "hp": 18,
+    "maxHp": 18,
+    "ac": 16,
+    "speed": 1,
+    "attackBonus": 9,
+    "damage": 4,
+    "experienceValue": 4,
+    "moveRange": 1,
+    "isBoss": true,
+    "currentPhase": null,
+    "abilities": [
+      "rage",
+      "berserk"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_2_tiles"
+      ],
+      "priorityTargets": [
+        "lowest_hp"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Flesh Golem is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: rage, berserk"
+  },
+  {
+    "id": "monster_gravehound",
+    "name": "Gravehound",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 9,
+    "damage": 1,
+    "experienceValue": 1,
+    "moveRange": 1,
+    "abilities": [],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If within 2 tiles of hero with lowest HP, move adjacent and attack with bite. Otherwise, move 2 tiles towards hero with lowest HP.",
+    "specialAbilityText": "",
+    "passLeft": 0
+  },
+  {
+    "id": "monster_dark_acolyte",
+    "name": "Dark Acolyte",
+    "type": "monster",
+    "monsterType": "Human",
+    "hp": 3,
+    "maxHp": 3,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 7,
+    "damage": 1,
+    "experienceValue": 4,
+    "moveRange": 1,
+    "abilities": [
+      "dark_chant"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If a hero is on the same tile, teleport to furthest tile with unexplored edge (pass left). Otherwise, attack closest hero within 2 tiles with necrotic blast (pass left).",
+    "specialAbilityText": "Special Ability: Dark chant — If Dark Acolyte did not attack, the closest wounded Undead regains 1 HP.",
+    "passLeft": 1
+  },
+  {
+    "id": "monster_skeletal_archer",
+    "name": "Skeletal Archer",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 7,
+    "damage": 1,
+    "experienceValue": 1,
+    "moveRange": 1,
+    "abilities": [],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If adjacent to a hero, attack with sword. If within 1 tile, shoot with bow. Otherwise, move 1 tile towards closest hero.",
+    "specialAbilityText": "",
+    "passLeft": 0
+  },
+  {
+    "id": "monster_mummy",
+    "name": "Mummy",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 4,
+    "maxHp": 4,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 6,
+    "damage": 1,
+    "experienceValue": 4,
+    "moveRange": 1,
+    "abilities": [
+      "mummy_rot"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If within 1 tile of a hero, move adjacent to closest hero and attack with rotting touch (pass left). Otherwise, move 1 tile towards closest hero (pass left).",
+    "specialAbilityText": "Special Ability: Mummy rot — Damage inflicted by Mummy cannot be healed (turn the wound token face down).",
+    "passLeft": 1
+  },
+  {
+    "id": "monster_vampire_bat",
+    "name": "Vampire Bat",
+    "type": "monster",
+    "monsterType": "Animal",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 16,
+    "speed": 2,
+    "attackBonus": 5,
+    "damage": 1,
+    "experienceValue": 1,
+    "moveRange": 2,
+    "abilities": [],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If adjacent to a hero, attack with bite. If on a tile with unexplored edge and no heroes, reveal a tile from the bottom of the stack on all unexplored edges (no Encounter cards). Otherwise, move 1 tile towards closest hero.",
+    "specialAbilityText": "",
+    "passLeft": 0
+  },
+  {
+    "id": "monster_skull_lord",
+    "name": "Skull Lord",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 3,
+    "maxHp": 3,
+    "ac": 15,
+    "speed": 1,
+    "attackBonus": 7,
+    "damage": 1,
+    "experienceValue": 4,
+    "moveRange": 1,
+    "abilities": [
+      "cackling_skulls"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If within 1 tile of a hero, attack a hero within 1 tile for each remaining HP on Skull Lord (pass left). Otherwise, move 1 tile towards nearest hero (pass left).",
+    "specialAbilityText": "Special Ability: Cackling skulls — Any hero that attacks and misses Skull Lord from within 1 tile must flip a daily/utility power or take 1 damage.",
+    "passLeft": 1
+  },
+  {
+    "id": "monster_dread_warrior",
+    "name": "Dread Warrior",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 2,
+    "maxHp": 2,
+    "ac": 16,
+    "speed": 1,
+    "attackBonus": 6,
+    "damage": 2,
+    "experienceValue": 2,
+    "moveRange": 1,
+    "abilities": [
+      "tireless_pursuit"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If within 1 tile of a hero, move adjacent to most heroes possible and attack with axe. Otherwise, move 1 tile towards closest hero.",
+    "specialAbilityText": "Special Ability: Tireless pursuit — If a hero started his turn adjacent to Dread Warrior and moves away, move adjacent to the hero and attack with axe.",
+    "passLeft": 0
+  },
+  {
+    "id": "monster_spectre",
+    "name": "Spectre",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 3,
+    "maxHp": 3,
+    "ac": 14,
+    "speed": 2,
+    "attackBonus": 7,
+    "damage": 2,
+    "experienceValue": 4,
+    "moveRange": 2,
+    "abilities": [
+      "incorporeal"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If within 1 tile of a hero, move adjacent to closest hero and attack with life-draining blade (pass left). Otherwise, move 1 tile towards nearest hero (pass left).",
+    "specialAbilityText": "Special Ability: Incorporeal — +3 AC vs non-adjacent attacks.",
+    "passLeft": 1
+  },
+  {
+    "id": "monster_ghast",
+    "name": "Ghast",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 2,
+    "maxHp": 2,
+    "ac": 16,
+    "speed": 2,
+    "attackBonus": 7,
+    "damage": 2,
+    "experienceValue": 2,
+    "moveRange": 2,
+    "abilities": [
+      "feeding_frenzy"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If within 1 tile of a hero, move adjacent to closest hero and attack with bite. Otherwise, move 1 tile towards closest non-Undead monster.",
+    "specialAbilityText": "Special Ability: Feeding Frenzy — When a hero kills a non-Undead monster within 1 tile, the hero does not draw treasure. Ghast moves onto the monster's square and heals 1 HP.",
+    "passLeft": 0
+  },
+  {
+    "id": "monster_tomb_guardian",
+    "name": "Tomb Guardian",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 3,
+    "maxHp": 3,
+    "ac": 16,
+    "speed": 1,
+    "attackBonus": 7,
+    "damage": 1,
+    "experienceValue": 4,
+    "moveRange": 1,
+    "abilities": [
+      "cascade_of_steel"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If within 1 tile of a hero, move adjacent to closest hero and attack each adjacent hero (pass left). Otherwise, move 1 tile towards closest hero (pass left).",
+    "specialAbilityText": "Special Ability: Cascade of steel — If adjacent to only 1 hero, Tomb Guardian attacks up to 4 times until he misses.",
+    "passLeft": 1
+  },
+  {
+    "id": "monster_battle_wight",
+    "name": "Battle Wight",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 2,
+    "maxHp": 2,
+    "ac": 16,
+    "speed": 2,
+    "attackBonus": 7,
+    "damage": 2,
+    "experienceValue": 3,
+    "moveRange": 2,
+    "abilities": [
+      "vengeful_shriek"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If within 1 tile of a hero, move adjacent to hero with highest AC and attack with soul blade. Otherwise, move 1 tile towards hero with highest AC.",
+    "specialAbilityText": "Special Ability: Vengeful shriek — When Battle Wight is killed, the closest Undead monster within 2 tiles gains an extra activation immediately.",
+    "passLeft": 0
+  },
+  {
+    "id": "monster_wererat",
+    "name": "Wererat",
+    "type": "monster",
+    "monsterType": "Lycanthrope",
+    "hp": 3,
+    "maxHp": 3,
+    "ac": 14,
+    "speed": 2,
+    "attackBonus": 8,
+    "damage": 2,
+    "experienceValue": 4,
+    "moveRange": 2,
+    "abilities": [
+      "regeneration"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If adjacent, heal 1 HP and attack with bite (pass left). If within 1 tile, heal 1 HP, move adjacent and attack with blade (pass left). Otherwise, heal 1 HP and move 1 tile towards closest hero.",
+    "specialAbilityText": "Special Ability: Regeneration — Heals 1 HP at the start of each activation.",
+    "passLeft": 1
+  },
+  {
+    "id": "monster_vargouille",
+    "name": "Vargouille",
+    "type": "monster",
+    "monsterType": "Aberrant",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 16,
+    "speed": 2,
+    "attackBonus": 6,
+    "damage": 1,
+    "experienceValue": 3,
+    "moveRange": 2,
+    "abilities": [],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "When drawn, place all other Vargouilles next to the first. If within 1 tile of Immobilized hero, fly adjacent and attack with kiss. If within 1 tile of a hero, unleash demonic shriek at each hero within 1 tile. Otherwise, move 1 tile towards closest hero.",
+    "specialAbilityText": "Gain XP only if ALL Vargouilles are killed.",
+    "passLeft": 0
+  },
+  {
+    "id": "monster_warforged_minion",
+    "name": "Warforged Minion",
+    "type": "monster",
+    "monsterType": "Construct",
+    "hp": 2,
+    "maxHp": 2,
+    "ac": 16,
+    "speed": 1,
+    "attackBonus": 7,
+    "damage": 2,
+    "experienceValue": 3,
+    "moveRange": 1,
+    "abilities": [
+      "engage"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If within 1 tile of a hero, move adjacent to hero with most adjacent monsters and attack with blade. Otherwise, move 1 tile towards nearest monster.",
+    "specialAbilityText": "Special Ability: Engage — Heroes that start adjacent to Warforged Minion and move away take 1 damage.",
+    "passLeft": 0
+  },
+  {
+    "id": "monster_flameskull",
+    "name": "Flameskull",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 3,
+    "maxHp": 3,
+    "ac": 16,
+    "speed": 1,
+    "attackBonus": 8,
+    "damage": 1,
+    "experienceValue": 4,
+    "moveRange": 1,
+    "abilities": [
+      "magehands"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If within 2 tiles of a hero, attack closest hero with flame ray (pass left). Otherwise, fly 1 tile towards closest hero (pass left).",
+    "specialAbilityText": "Special Ability: Magehands — When any hero within 2 tiles draws an Encounter card, draw 3 cards instead and choose any Trap. Discard all other cards.",
+    "passLeft": 1
+  },
+  {
+    "id": "monster_direguard",
+    "name": "Direguard",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 4,
+    "maxHp": 4,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 8,
+    "damage": 2,
+    "experienceValue": 4,
+    "moveRange": 1,
+    "abilities": [
+      "force_armor"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If a hero is within 1 tile, move adjacent to hero closest to unexplored edge and attack with force weapon (pass left). Otherwise, move 1 tile towards closest hero (pass left).",
+    "specialAbilityText": "Special Ability: Force armor — Direguard gains +1 AC for each wound token on it.",
+    "passLeft": 1
+  },
+  {
+    "id": "monster_great_flameskull",
+    "name": "Great Flameskull",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 6,
+    "maxHp": 6,
+    "ac": 16,
+    "speed": 1,
+    "attackBonus": 8,
+    "damage": 1,
+    "experienceValue": 3,
+    "moveRange": 1,
+    "abilities": [],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If on same tile as a hero: attack each hero within 1 tile with firestorm and fly 1 tile towards nearest tile without a hero. If within 2 tiles of a hero: attack closest hero with flame ray. Otherwise: fly 1 tile towards closest hero.",
+    "specialAbilityText": "",
+    "isBoss": true,
+    "passLeft": 0
+  },
+  {
+    "id": "monster_gargoyle_lord",
+    "name": "Gargoyle Lord",
+    "type": "monster",
+    "monsterType": "Elemental",
+    "hp": 7,
+    "maxHp": 7,
+    "ac": 16,
+    "speed": 1,
+    "attackBonus": 8,
+    "damage": 2,
+    "experienceValue": 3,
+    "moveRange": 1,
+    "abilities": [],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If below 4 HP: move 1 tile towards triangle, gain AC 18 and regain 1 HP. If within 2 tiles of a hero: move to furthest tile with a hero (through hero tiles if possible) and attack one hero on each tile occupied with passing strike. Otherwise: move 2 tiles towards nearest hero.",
+    "specialAbilityText": "Special Ability: Gargoyle Lord — When revealing a new monster, search for a Gargoyle and reshuffle the deck unless no more Gargoyles remain. All Gargoyles move 1 tile towards nearest hero if not attacking. | AC Note: Becomes AC 18 when below 4 HP",
+    "isBoss": true,
+    "passLeft": 0
+  },
+  {
+    "id": "monster_vampire_dire_wolf",
+    "name": "Vampire Dire Wolf",
+    "type": "monster",
+    "monsterType": "Vampire",
+    "hp": 7,
+    "maxHp": 7,
+    "ac": 17,
+    "speed": 1,
+    "attackBonus": 7,
+    "damage": 2,
+    "experienceValue": 3,
+    "moveRange": 1,
+    "abilities": [],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If within 1 tile of hero nearest to Strahd's Crypt: move to that hero's tile and attack a hero with trashing bite. If within 2 tiles of hero nearest to Strahd's Crypt: move to that hero's tile and attack each hero with pouncing strike. Otherwise: move 2 tiles towards hero nearest to Strahd's Crypt.",
+    "specialAbilityText": "Special Ability: Vampire form — When defeated, put Count Strahd on Strahd's Crypt with 7 wound tokens and without the mist token.",
+    "isBoss": true,
+    "passLeft": 0
+  },
+  {
+    "id": "monster_spirit_devourer",
+    "name": "Spirit Devourer",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 8,
+    "maxHp": 8,
+    "ac": 13,
+    "speed": 1,
+    "attackBonus": 10,
+    "damage": 2,
+    "experienceValue": 3,
+    "moveRange": 1,
+    "abilities": [],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If adjacent to an Immobilized hero: attack with absorb spirit. If within 1 tile of a hero: attack each hero within 1 tile with lure spirit. Otherwise: move 1 tile towards nearest hero.",
+    "specialAbilityText": "",
+    "isBoss": true,
+    "passLeft": 0
+  },
+  {
+    "id": "monster_beholder_lich",
+    "name": "Beholder Lich",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 10,
+    "maxHp": 10,
+    "ac": 16,
+    "speed": 1,
+    "attackBonus": 6,
+    "damage": 1,
+    "experienceValue": 3,
+    "moveRange": 1,
+    "abilities": [],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If within 1 tile of a hero: each hero on same tile AND on adjacent tile with most treasure/daily powers is blasted by a random eye ray (roll d20 per target hero). Otherwise: move 1 tile towards hero with most treasure cards and daily/utility powers.",
+    "specialAbilityText": "Special Ability: Unhallowed Aura — All Undead within 2 tiles gain +1 Attack bonus.",
+    "isBoss": true,
+    "passLeft": 0
+  },
+  {
+    "id": "monster_werewolf_lord",
+    "name": "Werewolf Lord",
+    "type": "monster",
+    "monsterType": "Lycanthrope",
+    "hp": 10,
+    "maxHp": 10,
+    "ac": 16,
+    "speed": 1,
+    "attackBonus": 7,
+    "damage": 3,
+    "experienceValue": 3,
+    "moveRange": 1,
+    "abilities": [],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If on Fetid Den with Enrage token: remove token, heal 1 HP, place all remaining Wolves on tile (or gain +2 ATK if all Wolves dead). If HP drops below 5 with Enrage token: heal 1 HP, move 2 tiles towards Fetid Den and attack hero on same tile with swipe. If on same tile as a hero: heal 1 HP and attack 2 different heroes with swipe. If within 1 tile of a hero: heal 1 HP, move adjacent to hero with most HP and attack with bite. Otherwise: move 1 tile towards hero with most treasure cards and daily/utility powers.",
+    "specialAbilityText": "Special Ability: Enrage / Pack Leader — If on Fetid Den with Enrage token: remove token, heal 1 HP and place all Wolves from Monster deck on this tile. If all Wolves killed, gain +2 ATK permanently. Heals 1 HP at the start of every activation. | AC Note: Place ENRAGE token on card at setup",
+    "isBoss": true,
+    "passLeft": 0
+  },
+  {
+    "id": "monster_banshee",
+    "name": "Banshee",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 3,
+    "maxHp": 3,
+    "ac": 17,
+    "speed": 2,
+    "attackBonus": 10,
+    "damage": 1,
+    "experienceValue": 4,
+    "moveRange": 2,
+    "abilities": [
+      "impending_doom"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If within 1 tile of a hero, attack each hero within 2 tiles with wail of doom then move to closest tile without a hero (pass left). Otherwise, move 1 tile towards closest hero (pass left).",
+    "specialAbilityText": "Special Ability: Impending doom — Place a HP token face down on the hero card. Each token causes -1 AC. Discard all tokens when Banshee is defeated.",
+    "passLeft": 1
+  },
+  {
+    "id": "monster_trap_haunt",
+    "name": "Trap Haunt",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 10,
+    "speed": 1,
+    "attackBonus": 10,
+    "damage": 1,
+    "experienceValue": 4,
+    "moveRange": 1,
+    "abilities": [],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "When drawn, find the first Trap card and reshuffle deck, place Trap Haunt with it, and put trap marker on tile with skull token. Trap Haunt attacks closest hero not within trap range with ghostly possession and activates the trap (pass left).",
+    "specialAbilityText": "When the trap is disabled, put this card in the XP pile.",
+    "passLeft": 1
+  },
+  {
+    "id": "monster_death_knight",
+    "name": "Death Knight",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 8,
+    "maxHp": 8,
+    "ac": 17,
+    "speed": 1,
+    "attackBonus": 8,
+    "damage": 2,
+    "experienceValue": 3,
+    "moveRange": 1,
+    "abilities": [],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If >1 hero on same tile: attack each with unholy flame. If within 1 tile of a hero: stride adjacent and attack hero with highest AC with commanding strike. Otherwise: stride 1 tile towards hero with highest AC.",
+    "specialAbilityText": "",
+    "isBoss": true,
+    "passLeft": 0
+  },
+  {
+    "id": "monster_succubus",
+    "name": "Succubus",
+    "type": "monster",
+    "monsterType": "Devil",
+    "hp": 7,
+    "maxHp": 7,
+    "ac": 15,
+    "speed": 1,
+    "attackBonus": 10,
+    "damage": 1,
+    "experienceValue": 3,
+    "moveRange": 1,
+    "abilities": [],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If adjacent to >1 hero: attack 2 adjacent heroes with raking claws and fly 1 tile towards nearest tile without a hero. If within 1 tile of a hero: attack closest hero with dominating gaze. Otherwise: fly 1 tile towards closest hero.",
+    "specialAbilityText": "Special Ability: Domination — If dominated, the hero moves up to 1 tile towards the closest other hero and attacks a hero on the same tile (+9 ATK / 1 DMG).",
+    "isBoss": true,
+    "passLeft": 0
+  },
+  {
+    "id": "monster_bone_naga",
+    "name": "Bone Naga",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 3,
+    "maxHp": 3,
+    "ac": 15,
+    "speed": 1,
+    "attackBonus": 10,
+    "damage": 1,
+    "experienceValue": 4,
+    "moveRange": 1,
+    "abilities": [
+      "death_rattle"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If within 1 tile of a Dazed hero, slither to tile with most Dazed heroes and deal 1 damage to each Dazed hero (pass left). Otherwise, slither 1 tile towards closest hero (pass left).",
+    "specialAbilityText": "Special Ability: Death rattle — At the start of its activation, Bone Naga attacks each hero within 1 tile.",
+    "passLeft": 1
+  },
+  {
+    "id": "monster_blazing_skeleton",
+    "name": "Blazing Skeleton",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 7,
+    "damage": 1,
+    "experienceValue": 3,
+    "moveRange": 1,
+    "abilities": [
+      "explosive"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Blazing Skeleton is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: explosive"
+  },
+  {
+    "id": "monster_rat_swarm",
+    "name": "Rat Swarm",
+    "type": "monster",
+    "monsterType": "Animal",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 12,
+    "speed": 2,
+    "attackBonus": 6,
+    "damage": 1,
+    "experienceValue": 1,
+    "moveRange": 2,
+    "abilities": [
+      "swarm"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Rat Swarm is adjacent to a hero, it attacks with a swarm bite. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: swarm"
+  },
+  {
+    "id": "monster_wraith",
+    "name": "Wraith",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 2,
+    "maxHp": 2,
+    "ac": 14,
+    "speed": 2,
+    "attackBonus": 6,
+    "damage": 1,
+    "experienceValue": 5,
+    "moveRange": 2,
+    "abilities": [
+      "incorporeal",
+      "death_shriek"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Wraith is adjacent to a hero, it attacks with a ghostly touch. Otherwise, it moves 1 tile towards the closest hero.",
+    "specialAbilityText": "Special Ability: incorporeal, death_shriek"
+  },
+  {
+    "id": "monster_bodak",
+    "name": "Bodak",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 8,
+    "damage": 1,
+    "experienceValue": 2,
+    "moveRange": 1,
+    "abilities": [
+      "agonizing_gaze"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If within 1 tile of a hero, each hero on the tile with most heroes is attacked with death gaze. Otherwise, move 1 tile towards closest hero.",
+    "specialAbilityText": "Special Ability: Agonizing gaze — Any hero that attacks Bodak from the same tile takes 1 damage before the attack and suffers -2 to Attack bonus.",
+    "passLeft": 0
+  },
+  {
+    "id": "monster_dire_bat",
+    "name": "Dire Bat",
+    "type": "monster",
+    "monsterType": "Animal",
+    "hp": 3,
+    "maxHp": 3,
+    "ac": 15,
+    "speed": 2,
+    "attackBonus": 8,
+    "damage": 2,
+    "experienceValue": 4,
+    "moveRange": 2,
+    "abilities": [
+      "shriek"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If a hero is within 2 tiles, move adjacent and attack the hero closest to an unexplored edge (pass left). Otherwise, move 1 tile towards closest hero (pass left).",
+    "specialAbilityText": "Special Ability: Shriek — When Dire Bat is hit, reveal a tile from the bottom on the closest unexplored edge. Pass the revealed monster card to the next player.",
+    "passLeft": 1
+  },
+  {
+    "id": "monster_insect_swarm",
+    "name": "Insect Swarm",
+    "type": "monster",
+    "monsterType": "Animal",
+    "hp": 1,
+    "maxHp": 1,
+    "ac": 16,
+    "speed": 1,
+    "attackBonus": 11,
+    "damage": 1,
+    "experienceValue": 4,
+    "moveRange": 1,
+    "abilities": [],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "When drawn, occupies 3 adjacent tiles. If any swarm is on a tile without a hero, move 1 tile towards closest hero not on a swarm tile. Attack each hero on a tile with a swarm (pass left).",
+    "specialAbilityText": "Gain XP only if ALL swarms are killed.",
+    "passLeft": 1
+  },
+  {
+    "id": "monster_zombie_hulk",
+    "name": "Zombie Hulk",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 4,
+    "maxHp": 4,
+    "ac": 12,
+    "speed": 1,
+    "attackBonus": 6,
+    "damage": 1,
+    "experienceValue": 4,
+    "moveRange": 1,
+    "abilities": [
+      "deathless_hunger"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If within 1 tile of a hero, move adjacent to closest hero and attack with rotting fist (pass left). Otherwise, move 1 tile towards closest hero (pass left).",
+    "specialAbilityText": "Special Ability: Deathless hunger — Zombie Hulk may only be reduced to 0 HP by an attack that is a natural hit.",
+    "passLeft": 1
+  },
+  {
+    "id": "monster_boneclaw",
+    "name": "Boneclaw",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 3,
+    "maxHp": 3,
+    "ac": 14,
+    "speed": 2,
+    "attackBonus": 9,
+    "damage": 1,
+    "experienceValue": 4,
+    "moveRange": 2,
+    "abilities": [
+      "threatening_reach"
+    ],
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If within 2 tiles of a hero, attack closest hero with extending claws (pass left). Otherwise, move 1 tile towards closest hero (pass left).",
+    "specialAbilityText": "Special Ability: Threatening reach — Any hero that starts a move action within 2 tiles of Boneclaw is attacked with extending claws.",
+    "passLeft": 1
+  },
+  {
+    "id": "monster_larva_mage",
+    "name": "Larva Mage",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 6,
+    "maxHp": 6,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 10,
+    "damage": 2,
+    "experienceValue": 10,
+    "moveRange": 1,
+    "abilities": [],
+    "isBoss": true,
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If on same tile as a hero: attack each hero on tile with horrific illusion. If within 2 tiles of a hero: attack closest hero with ray of cold (hit or miss, hero is Slowed). Otherwise: slide 1 tile towards closest hero.",
+    "specialAbilityText": "Special Ability: Illusion — Any damage from this condition is placed on the Poison marker. If the hero saves successfully, discard all wound tokens on the Poison marker."
+  },
+  {
+    "id": "monster_nightwalker",
+    "name": "Nightwalker",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 8,
+    "maxHp": 8,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 10,
+    "damage": 1,
+    "experienceValue": 10,
+    "moveRange": 1,
+    "abilities": [],
+    "isBoss": true,
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If adjacent to a hero: attack adjacent hero with chilling gaze; if it hits, each other hero on same tile takes 1 damage. If within 1 tile of a hero: move adjacent and attack closest hero with death touch. Otherwise: move 1 tile towards closest hero.",
+    "specialAbilityText": ""
+  },
+  {
+    "id": "monster_specter",
+    "name": "Specter",
+    "type": "monster",
+    "monsterType": "Undead",
+    "hp": 8,
+    "maxHp": 8,
+    "ac": 14,
+    "speed": 1,
+    "attackBonus": 8,
+    "damage": 2,
+    "experienceValue": 10,
+    "moveRange": 1,
+    "abilities": [],
+    "isBoss": true,
+    "behavior": {
+      "conditions": [
+        "adjacent_to_hero",
+        "within_1_tile"
+      ],
+      "priorityTargets": [
+        "closest"
+      ],
+      "actions": [
+        "attack",
+        "move_toward"
+      ]
+    },
+    "isExhausted": false,
+    "position": {
+      "x": 0,
+      "z": 0,
+      "sqX": 0,
+      "sqZ": 0
+    },
+    "conditions": [],
+    "usedPowers": [],
+    "tacticsText": "If Specter has 3 or fewer HP: attack each hero within 1 tile with life siphon. If within 1 tile of a hero: move adjacent to closest hero and attack with chill touch. Otherwise: move 1 tile towards nearest hero.",
+    "specialAbilityText": "Special Ability: Cold aura — Any hero ending their turn on the same tile as Specter takes 1 damage."
+  }
+]

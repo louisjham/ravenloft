@@ -1,0 +1,704 @@
+[
+  {
+    "id": "treasure_blessing_heroic_stand_151",
+    "name": "Heroic Stand",
+    "type": "consumable",
+    "treasureType": "blessing",
+    "description": "All heroes gain +1 AC until the end of their next turn.",
+    "effects": [
+      {
+        "type": "ac_bonus",
+        "value": 1,
+        "target": "all_heroes"
+      }
+    ]
+  },
+  {
+    "id": "treasure_blessing_guided_strike_152",
+    "name": "Guided Strike",
+    "type": "consumable",
+    "treasureType": "blessing",
+    "description": "All heroes gain +2 attack bonus until the end of their next turn.",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 2,
+        "target": "all_heroes"
+      }
+    ]
+  },
+  {
+    "id": "treasure_blessing_rejuvenating_onslaught_153",
+    "name": "Rejuvenating Onslaught",
+    "type": "consumable",
+    "treasureType": "blessing",
+    "description": "All heroes heal 1 HP and gain +1 damage until the end of their next turn.",
+    "effects": [
+      {
+        "type": "heal",
+        "value": 1,
+        "target": "all_heroes"
+      },
+      {
+        "type": "damage_bonus",
+        "value": 1,
+        "target": "all_heroes"
+      }
+    ]
+  },
+  {
+    "id": "treasure_blessing_run_154",
+    "name": "Run!",
+    "type": "consumable",
+    "treasureType": "blessing",
+    "description": "All heroes gain +2 speed until the end of their next turn.",
+    "effects": [
+      {
+        "type": "speed_bonus",
+        "value": 2,
+        "target": "all_heroes"
+      }
+    ]
+  },
+  {
+    "id": "treasure_blessing_surround_them_155",
+    "name": "Surround Them!",
+    "type": "consumable",
+    "treasureType": "blessing",
+    "description": "All heroes gain +1 damage against monsters until the end of their next turn.",
+    "effects": [
+      {
+        "type": "damage_bonus",
+        "value": 1,
+        "target": "all_heroes"
+      }
+    ]
+  },
+  {
+    "id": "fortune_action_surge",
+    "name": "Action Surge",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "You may immediately take another action this turn.",
+    "effects": []
+  },
+  {
+    "id": "fortune_breath_of_life",
+    "name": "Breath Of Life",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "The most injured hero heals 2 HP.",
+    "effects": [
+      {
+        "type": "heal",
+        "value": 2,
+        "target": "all_heroes"
+      }
+    ]
+  },
+  {
+    "id": "fortune_breath_of_life_2",
+    "name": "Breath Of Life",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "The most injured hero heals 2 HP.",
+    "effects": [
+      {
+        "type": "heal",
+        "value": 2,
+        "target": "all_heroes"
+      }
+    ]
+  },
+  {
+    "id": "fortune_breath_of_life_3",
+    "name": "Breath Of Life",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "The most injured hero heals 2 HP.",
+    "effects": [
+      {
+        "type": "heal",
+        "value": 2,
+        "target": "all_heroes"
+      }
+    ]
+  },
+  {
+    "id": "fortune_burst_of_speed",
+    "name": "Burst Of Speed",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "Gain +2 speed this turn.",
+    "effects": [
+      {
+        "type": "speed_bonus",
+        "value": 2,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "fortune_distant_sounds",
+    "name": "Distant Sounds",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "You hear strange sounds in the distance, but nothing happens.",
+    "effects": []
+  },
+  {
+    "id": "fortune_clear_the_air",
+    "name": "Clear The Air",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "Remove all conditions from all heroes.",
+    "effects": [
+      {
+        "type": "remove_conditions",
+        "target": "all_heroes"
+      }
+    ]
+  },
+  {
+    "id": "fortune_daze",
+    "name": "Daze",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "Target hero is dazed until end of turn.",
+    "effects": [
+      {
+        "type": "status_effect",
+        "statusEffect": "dazed",
+        "duration": 1,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "fortune_eagle_eyes",
+    "name": "Eagle Eyes",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "Gain +3 attack bonus this turn.",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 3,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "fortune_glimpse_of_the_future",
+    "name": "Glimpse Of The Future",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "Draw 1 treasure card.",
+    "effects": [
+      {
+        "type": "draw_treasure",
+        "value": 1,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "fortune_harrowed_experience",
+    "name": "Harrowed Experience",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "Deal 1 damage to yourself, then gain +2 attack bonus this turn.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "self"
+      },
+      {
+        "type": "attack_bonus",
+        "value": 2,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "fortune_harrowed_experience_2",
+    "name": "Harrowed Experience",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "Deal 1 damage to yourself, then gain +2 attack bonus this turn.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "self"
+      },
+      {
+        "type": "attack_bonus",
+        "value": 2,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "fortune_intimidating_bellow",
+    "name": "Intimidating Bellow",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "All monsters on your tile take 1 damage.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_monsters"
+      }
+    ]
+  },
+  {
+    "id": "fortune_level_up",
+    "name": "Level Up",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "You level up immediately without needing a natural 20.",
+    "effects": []
+  },
+  {
+    "id": "fortune_lucky_find",
+    "name": "Lucky Find",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "Draw 1 treasure card.",
+    "effects": [
+      {
+        "type": "draw_treasure",
+        "value": 1,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "fortune_lucky_find_2",
+    "name": "Lucky Find",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "Draw 1 treasure card.",
+    "effects": [
+      {
+        "type": "draw_treasure",
+        "value": 1,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "fortune_moments_respite",
+    "name": "Moments Respite",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "Skip the next encounter draw.",
+    "effects": []
+  },
+  {
+    "id": "fortune_shake_it_off",
+    "name": "Shake It Off",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "Remove all conditions from yourself.",
+    "effects": [
+      {
+        "type": "remove_conditions",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "fortune_short_rest",
+    "name": "Short Rest",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "Refresh one of your used powers.",
+    "effects": []
+  },
+  {
+    "id": "fortune_short_rest_2",
+    "name": "Short Rest",
+    "type": "consumable",
+    "treasureType": "fortune",
+    "description": "Refresh one of your used powers.",
+    "effects": []
+  },
+  {
+    "id": "item_amulet_of_protection",
+    "name": "Amulet Of Protection",
+    "type": "item",
+    "treasureType": "item",
+    "description": "A protective amulet that grants +2 AC.",
+    "effects": [
+      {
+        "type": "ac_bonus",
+        "value": 2,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "item_boots_of_striding",
+    "name": "Boots Of Striding",
+    "type": "item",
+    "treasureType": "item",
+    "description": "Enchanted boots that grant +1 speed.",
+    "effects": [
+      {
+        "type": "speed_bonus",
+        "value": 1,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "item_crystal_ball",
+    "name": "Crystal Ball",
+    "type": "item",
+    "treasureType": "item",
+    "description": "A crystal ball that lets you preview the top 3 cards of any deck.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "crystal_ball",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "item_dragons_breath_elixir",
+    "name": "Dragon's Breath Elixir",
+    "type": "consumable",
+    "treasureType": "item",
+    "description": "Deal 1 damage to all monsters on your tile.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "all_monsters"
+      }
+    ]
+  },
+  {
+    "id": "item_glyph_warding",
+    "name": "Glyph Of Warding",
+    "type": "consumable",
+    "treasureType": "item",
+    "description": "Place this glyph on a tile to block monsters from entering it.",
+    "effects": [
+      {
+        "type": "tile_effect",
+        "value": "warded",
+        "target": "tile"
+      }
+    ]
+  },
+  {
+    "id": "item_holy_water",
+    "name": "Holy Water",
+    "type": "consumable",
+    "treasureType": "item",
+    "description": "+7 to hit, deals 2 damage to an undead target.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 2,
+        "target": "single",
+        "range": 1,
+        "condition": "undead"
+      }
+    ]
+  },
+  {
+    "id": "item_holy_avenger",
+    "name": "Holy Avenger",
+    "type": "weapon",
+    "treasureType": "item",
+    "description": "+2 attack bonus and +2 damage against undead.",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 2,
+        "target": "self",
+        "condition": "undead"
+      },
+      {
+        "type": "damage_bonus",
+        "value": 2,
+        "target": "self",
+        "condition": "undead"
+      }
+    ]
+  },
+  {
+    "id": "item_lucky_charm",
+    "name": "Lucky Charm",
+    "type": "item",
+    "treasureType": "item",
+    "description": "Once per adventure, you may reroll a d20.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "reroll",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "item_lucky_charm_2",
+    "name": "Lucky Charm",
+    "type": "item",
+    "treasureType": "item",
+    "description": "Once per adventure, you may reroll a d20.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "reroll",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "item_lucky_charm_3",
+    "name": "Lucky Charm",
+    "type": "item",
+    "treasureType": "item",
+    "description": "Once per adventure, you may reroll a d20.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "reroll",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "item_magic_sword",
+    "name": "Magic Sword",
+    "type": "weapon",
+    "treasureType": "item",
+    "description": "A magic sword that grants +2 attack bonus.",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 2,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "item_necklace_fireballs",
+    "name": "Necklace Of Fireballs",
+    "type": "item",
+    "treasureType": "item",
+    "description": "A necklace with 3 charges that can unleash area-of-effect fire damage.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "necklace_fireballs",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "item_potion_of_healing",
+    "name": "Potion Of Healing",
+    "type": "consumable",
+    "treasureType": "item",
+    "description": "Drink to restore 2 HP.",
+    "effects": [
+      {
+        "type": "heal",
+        "value": 2,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "item_potion_of_healing_2",
+    "name": "Potion Of Healing",
+    "type": "consumable",
+    "treasureType": "item",
+    "description": "Drink to restore 2 HP.",
+    "effects": [
+      {
+        "type": "heal",
+        "value": 2,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "item_potion_of_rejuvenation",
+    "name": "Potion Of Rejuvenation",
+    "type": "consumable",
+    "treasureType": "item",
+    "description": "Drink to restore 4 HP.",
+    "effects": [
+      {
+        "type": "heal",
+        "value": 4,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "item_ring_of_accuracy",
+    "name": "Ring Of Accuracy",
+    "type": "item",
+    "treasureType": "item",
+    "description": "A ring that grants +1 attack bonus.",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 1,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "item_ring_of_regeneration",
+    "name": "Ring Of Regeneration",
+    "type": "item",
+    "treasureType": "item",
+    "description": "Heal 1 HP at the start of each of your turns.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "regeneration",
+        "value": 1,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "item_scroll_of_teleportation",
+    "name": "Scroll Of Teleportation",
+    "type": "consumable",
+    "treasureType": "item",
+    "description": "Teleport to any explored tile.",
+    "effects": [
+      {
+        "type": "teleport",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "item_thieves_tools",
+    "name": "Thieves' Tools",
+    "type": "item",
+    "treasureType": "item",
+    "description": "Grants +2 to disable trap checks.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "disable_trap",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "item_wand_of_teleportation",
+    "name": "Wand Of Teleportation",
+    "type": "item",
+    "treasureType": "item",
+    "description": "Once per adventure, teleport to any explored tile.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "teleport",
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "id": "treasure_icon_ravenloft",
+    "name": "Icon of Ravenloft",
+    "type": "quest",
+    "description": "A holy icon that can repel the undead. Undead monsters in adjacent tiles cannot target you.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "undead_ward",
+        "target": "self"
+      }
+    ],
+    "treasureType": "item"
+  },
+  {
+    "id": "treasure_healing_potion",
+    "name": "Healing Potion",
+    "type": "consumable",
+    "description": "Drink to restore 2 HP.",
+    "effects": [
+      {
+        "type": "heal",
+        "value": 2,
+        "target": "self"
+      }
+    ],
+    "treasureType": "item"
+  },
+  {
+    "id": "treasure_blessing",
+    "name": "Blessing of the Morninglord",
+    "type": "consumable",
+    "description": "Receive a divine blessing. All heroes gain +2 to hit until end of turn.",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 2,
+        "target": "all_heroes"
+      }
+    ],
+    "treasureType": "blessing"
+  },
+  {
+    "id": "treasure_silver_dagger",
+    "name": "Silver Dagger",
+    "type": "weapon",
+    "description": "A gleaming silver dagger. +1 to hit against undead.",
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 1,
+        "target": "self",
+        "condition": "undead"
+      }
+    ],
+    "treasureType": "item"
+  },
+  {
+    "id": "treasure_skull",
+    "name": "Skull of Kavan",
+    "type": "quest",
+    "description": "A glowing skull that whispers secrets. Once per turn, you may reroll a d20.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "reroll_d20",
+        "target": "self"
+      }
+    ],
+    "treasureType": "item"
+  },
+  {
+    "id": "treasure_portrait",
+    "name": "Portrait of Ravenloft",
+    "type": "quest",
+    "description": "A painting of Strahd's castle. Once per adventure, you can force Strahd to reroll a d20.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "boss_reroll",
+        "target": "self"
+      }
+    ],
+    "treasureType": "item"
+  }
+]

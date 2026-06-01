@@ -1,0 +1,30 @@
+[
+  {
+    "id": "immeril_power_1",
+    "type": "ability",
+    "name": "Fireball",
+    "description": "Attack +6 against all monsters on a target tile. Damage 1.",
+    "attackBonus": 6,
+    "damage": 1,
+    "range": 1,
+    "target": "area",
+    "effects": [
+      { "type": "attack", "value": 1, "target": "area", "when": "always" }
+    ],
+    "phase": "hero",
+    "heroClass": "wizard",
+    "powerType": "daily"
+  },
+  {
+    "id": "immeril_power_2",
+    "type": "ability",
+    "name": "Wizard Shield",
+    "description": "Gain +4 AC until your next turn.",
+    "effects": [
+      { "type": "defense_bonus", "value": 4, "target": "self", "duration": 1, "when": "always" }
+    ],
+    "phase": "hero",
+    "heroClass": "wizard",
+    "powerType": "utility"
+  }
+]

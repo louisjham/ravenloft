@@ -1,0 +1,42 @@
+{
+  "id": "adventure_03",
+  "name": "Klak's Infernal Artifact",
+  "difficulty": "Hard",
+  "description": "Defeat Klak and destroy the infernal artifact.",
+  "objectives": [
+    {
+      "id": "defeat_klak",
+      "type": "defeat_klak",
+      "description": "Defeat Klak, the Kobold Sorcerer.",
+      "isCompleted": false
+    },
+    {
+      "id": "destroy_artifact",
+      "type": "destroy_artifact",
+      "description": "Destroy Klak's Infernal Artifact.",
+      "isCompleted": false
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "xp_cancel_penalty",
+      "description": "Whenever you cancel an Encounter card by spending XP, the active Hero takes 1 damage."
+    },
+    {
+      "id": "gain_powers",
+      "description": "Whenever you explore a new white-arrow tile, you may discard a Treasure card to gain a new power."
+    }
+  ],
+  "startTileId": "start-tile",
+  "setAsideTileIds": ["named_laboratory"],
+  "specialTilePlacements": [
+    {
+      "tileId": "named_laboratory",
+      "insertAfterIndex": 8
+    }
+  ],
+  "maxSurges": 2,
+  "introText": "Chaos magic storms now threaten Barovia, and the Heroes must stop Klak’s experiment.",
+  "victoryText": "Klak is defeated and the infernal artifact is destroyed! The magic storm dissipates, saving Barovia.",
+  "defeatText": "Klak has completed his dark ritual. The infernal artifact's energy consumes you, and all of Barovia falls to his chaos magic."
+}
