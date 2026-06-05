@@ -8,14 +8,16 @@
       "id": "find_captive",
       "type": "find_event",
       "targetTileId": "torture_chamber",
-      "description": "Find the Torture Chamber"
+      "description": "Find the Torture Chamber",
+      "isCompleted": false
     },
     {
       "id": "escort_captive",
       "type": "escort",
       "targetEntityId": "npc_adventurer",
       "targetPositionId": "start-tile",
-      "description": "Escort the prisoner back to the entrance"
+      "description": "Escort the prisoner back to the entrance",
+      "isCompleted": false
     }
   ],
   "specialRules": [

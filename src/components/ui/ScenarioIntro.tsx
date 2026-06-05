@@ -1,5 +1,5 @@
 import React from 'react';
-import { Scenario } from '../../game/types';
+import { Scenario, Objective } from '../../game/types';
 
 interface Props {
   scenario: Scenario;
@@ -18,7 +18,7 @@ export const ScenarioIntro: React.FC<Props> = ({ scenario, onStart }) => {
         <div className="objectives-list">
           <h3 className="gothic-title" style={{ fontSize: '1rem' }}>Objectives:</h3>
           <ul>
-            {scenario.objectives.map((obj: any) => (
+            {scenario.objectives.map((obj: Objective) => (
               <li key={obj.id}>{obj.description}</li>
             ))}
           </ul>

@@ -9,6 +9,17 @@ interface CardFaceProps {
   onClick?: () => void;
 }
 
+const getCardBackImage = (card: Card): string | null => {
+  // Determine which card back image to use based on card type
+  if (card.type === 'treasure' || card.treasureType) {
+    return '/assets/cards/Treasure-back.png';
+  }
+  if (card.type === 'encounter' || card.encounterType) {
+    return '/assets/cards/Encounter-back.png';
+  }
+  return null; // Use default back for other card types
+};
+
 const getCardHeaderConfig = (card: Card) => {
   if (card.encounterType) {
     switch (card.encounterType) {
@@ -99,15 +110,19 @@ const CardFace: React.FC<CardFaceProps> = ({
     border: '1px solid rgba(255,255,255,0.1)',
   };
 
+  const cardBackImage = getCardBackImage(card);
+  
   const backStyle: React.CSSProperties = {
     width: '100%',
     height: '100%',
-    background: 'linear-gradient(135deg, #1a1a2e 0%, #0c0c14 100%)',
+    background: cardBackImage
+      ? `url(${cardBackImage}) center/cover no-repeat`
+      : 'linear-gradient(135deg, #1a1a2e 0%, #0c0c14 100%)',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    border: '4px double #444',
+    border: cardBackImage ? 'none' : '4px double #444',
     boxSizing: 'border-box',
     borderRadius: '12px',
   };
@@ -192,7 +207,7 @@ const CardFace: React.FC<CardFaceProps> = ({
     return (
       <div style={containerStyle} onClick={onClick}>
         <div style={backStyle}>
-          <div style={backLogoStyle}>RL</div>
+          {!cardBackImage && <div style={backLogoStyle}>RL</div>}
         </div>
       </div>
     );

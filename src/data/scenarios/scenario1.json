@@ -1,30 +1,41 @@
 {
   "id": "s1",
-  "name": "Find the Icon of Ravenloft",
+  "name": "Find Strahd's Coffin",
   "difficulty": "Easy",
-  "description": "The Icon of Ravenloft, a powerful holy relic, has been lost within the crypts. You must retrieve it before the darkness consumes you.",
+  "description": "Count Strahd von Zarovich sleeps in one of many coffins hidden throughout the crypts. You must search the coffins to find and destroy him before he awakens.",
   "objectives": [
     {
-      "id": "find_icon",
-      "type": "find_item",
-      "targetId": "item_icon_of_ravenloft",
-      "description": "Find the Icon of Ravenloft in the Treasure deck"
+      "id": "find_strahds_coffin",
+      "type": "find_coffin",
+      "targetId": "coffin_strahd",
+      "description": "Search coffin tokens to find Strahd's resting place",
+      "isCompleted": false
     }
   ],
   "specialRules": [
     {
-      "id": "strahd_appears",
-      "trigger": { "type": "turn_count", "value": 10 },
-      "effect": "Spawn Strahd on the furthest revealed tile"
+      "id": "coffin_tokens",
+      "description": "Each explored tile receives a coffin token face-down. Search to reveal its contents."
+    },
+    {
+      "id": "strahd_awakens",
+      "trigger": {
+        "type": "coffins_searched",
+        "value": 4
+      },
+      "effect": "If Strahd's coffin hasn't been found, he spawns on the nearest unexplored edge"
     }
   ],
   "startTileId": "start-tile",
   "tilePiles": {
     "standard": 10,
-    "special": ["crypt_tile", "laboratory_tile"]
+    "special": [
+      "crypt_tile",
+      "laboratory_tile"
+    ]
   },
   "maxSurges": 2,
-  "introText": "You stand at the threshold of the crypts. The cold damp air smells of ancient dust and rot. Somewhere in these depths lies the Icon of Ravenloft. Find it, and escape.",
-  "victoryText": "The Icon gleams in your hands. Its holy light pushes back the shadows. You have succeeded where many others have fallen.",
+  "introText": "The crypts stretch before you, filled with dusty coffins. Somewhere among them lies Count Strahd himself. Search carefully - for disturbing the wrong coffin may bring dire consequences.",
+  "victoryText": "You have found Strahd's Coffin! With a wooden stake driven through its heart, the vampire lord's reign of terror ends. The crypts grow quiet at last.",
   "defeatText": "The darkness closes in. Your names will be forgotten in the halls of Castle Ravenloft."
 }

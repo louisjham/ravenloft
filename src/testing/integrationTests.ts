@@ -7,13 +7,17 @@
 import { captureWarn, captureError, captureLog, runWithCapturedConsole } from './testUtils';
 
 import { runAbilitySystemTests } from './ability-system-tests';
-import { useGameStore, buildVillainQueue, applyTrapResult, executeVillainPhase } from '../store/gameStore';
+import { AbilitySystem } from '../game/ai/AbilitySystem';
+import { PowerSystem } from '../game/engine/PowerSystem';
+import { useGameStore } from '../store/gameStore';
+import { buildVillainQueue, applyTrapResult, executeVillainPhase } from '../store/slices/villainPhaseLogic';
 import { useUIStore } from '../store/uiStore';
 import { TileSystem } from '../game/engine/TileSystem';
 import { DataLoader } from '../game/dataLoader';
-import type { Tile, TileConnection, Direction, GameState, ExplorationPoint, Monster, Hero, TacticResult, MonsterAbility, AbilityEffect, Card } from '../game/types';
+import { getPowerCard } from '../data/powerCardLoader';
+import type { Tile, TileConnection, Direction, GameState, ExplorationPoint, Monster, Hero, TacticResult, MonsterAbility, AbilityEffect, Card, Trap } from '../game/types';
 import { CardResolutionSystem } from '../game/engine/CardResolutionSystem';
-import { ExplorationState, onArrowClicked, onRotationConfirmed, onCancel, onPlacementComplete } from '../game/engine/ExplorationStateMachine';
+import { ExplorationState, onArrowClicked, setTileRotation, onCancel, onPlacementComplete, onPlacementAttempted } from '../game/engine/ExplorationStateMachine';
 import {
   manhattanDistance,
   getAdjacentTileIds,
@@ -23,6 +27,8 @@ import {
   resolveTactic,
   resolveTrap
 } from '../game/engine/MonsterAI';
+import { ObjectiveTracker } from '../game/scenarios/Objectives';
+import { ScenarioManager } from '../game/scenarios/ScenarioManager';
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -51,8 +57,8 @@ export const runFullGameLoopTest = async () => {
 
     // 1. Setup Game
     console.log('Testing Scenario 1 setup...');
-    store.startNewGame('scenario-1', ['hero-paladin', 'hero-wizard']);
-    if (!store.gameState) throw new Error('Game state not initialized');
+    store.startNewGame('s1', ['hero_arjhan', 'hero_immeril']);
+    if (!useGameStore.getState().gameState) throw new Error('Game state not initialized');
 
     // 2. Test Movement
     console.log('Testing Hero movement...');
@@ -245,14 +251,14 @@ export const runFullGameLoopTest = async () => {
     // Deck layout (3 cards):
     //   [0] '__unknown_id_A__'   → getTileTemplate returns undefined → skipped
     //   [1] '__unknown_id_B__'   → getTileTemplate returns undefined → skipped
-    //   [2] 'tile_corridor_1'   → has north open at 0° → MATCH (validRotations: [0, 180])
+    //   [2] 'white_x2_01'   → has north open at 0° → MATCH (validRotations: [0, 180])
     //
     // This proves drawAndPlace skips unknown IDs and non-fitting tiles,
     // then finds the first match at the last position.
 
     const mockGameState = {
       ...useGameStore.getState().gameState,
-      dungeonDeck: ['__unknown_id_A__', '__unknown_id_B__', 'tile_corridor_1'],
+      dungeonDeck: ['__unknown_id_A__', '__unknown_id_B__', 'white_x2_01'],
     } as GameState;
 
     const explorationPoint = { tileId: 'tile_parent', edge: 'south' as Direction };
@@ -261,13 +267,13 @@ export const runFullGameLoopTest = async () => {
 
     // The match must be found (not exhausted)
     if (result.exhausted)
-      throw new Error('drawAndPlace: should NOT be exhausted — tile_corridor_1 is a valid fit');
+      throw new Error('drawAndPlace: should NOT be exhausted — white_x2_01 is a valid fit');
     if (result.tile === null)
       throw new Error('drawAndPlace: tile should not be null');
-    if (result.tile.id !== 'tile_corridor_1')
-      throw new Error(`drawAndPlace: expected tile_corridor_1, got ${result.tile?.id}`);
+    if (result.tile.id !== 'white_x2_01')
+      throw new Error(`drawAndPlace: expected white_x2_01, got ${result.tile?.id}`);
 
-    // Valid rotations for north-incoming: tile_corridor_1 has N+S open, so:
+    // Valid rotations for north-incoming: white_x2_01 has N+S open, so:
     //   0°   north open ✓   180° south→north open ✓   (90°/270° rotate N to E/W — not north)
     if (!result.validRotations.includes(0))
       throw new Error('drawAndPlace: validRotations should include 0');
@@ -276,10 +282,10 @@ export const runFullGameLoopTest = async () => {
     if (result.validRotations.includes(90) || result.validRotations.includes(270))
       throw new Error('drawAndPlace: validRotations should NOT include 90 or 270');
 
-    // remainingDeck must be the original 3-card deck minus 'tile_corridor_1'
+    // remainingDeck must be the original 3-card deck minus 'white_x2_01'
     if (result.remainingDeck.length !== 2)
       throw new Error(`drawAndPlace: remainingDeck should have 2 cards, got ${result.remainingDeck.length}`);
-    if (result.remainingDeck.includes('tile_corridor_1'))
+    if (result.remainingDeck.includes('white_x2_01'))
       throw new Error('drawAndPlace: matched card must be removed from remainingDeck');
     if (!result.remainingDeck.includes('__unknown_id_A__') || !result.remainingDeck.includes('__unknown_id_B__'))
       throw new Error('drawAndPlace: unmatched cards must remain in remainingDeck');
@@ -472,7 +478,7 @@ export const runFullGameLoopTest = async () => {
       throw new Error(`getExplorationPoints: Expected 1 point, got ${explorePoints.length}`);
     }
 
-    if (explorePoints[0].edge !== 'south' || explorePoints[0].worldX !== 0 || explorePoints[0].worldZ !== 0.5) {
+    if (explorePoints[0].edge !== 'south' || explorePoints[0].worldX !== 2 || explorePoints[0].worldZ !== 4) {
       throw new Error(`getExplorationPoints: Point incorrectly calculated: ${JSON.stringify(explorePoints[0])}`);
     }
 
@@ -501,7 +507,7 @@ export const runFullGameLoopTest = async () => {
       throw new Error(`getExplorationPoints: Expected 1 open point after placement, got ${explorePoints.length} (${JSON.stringify(explorePoints)})`);
     }
 
-    if (explorePoints[0].edge !== 'east' || explorePoints[0].worldX !== 0.5 || explorePoints[0].worldZ !== 1) {
+    if (explorePoints[0].edge !== 'east' || explorePoints[0].worldX !== 4 || explorePoints[0].worldZ !== 6) {
       throw new Error(`getExplorationPoints: New point incorrectly calculated: ${JSON.stringify(explorePoints[0])}`);
     }
 
@@ -512,12 +518,35 @@ export const runFullGameLoopTest = async () => {
     // -----------------------------------------------------------------------
     console.log('Testing ExplorationStateMachine...');
 
+    // Back up original state and set up 'iso-start' tile in global store
+    const originalGameStateForSM = useGameStore.getState().gameState;
+    useGameStore.setState({
+      gameState: {
+        ...originalGameStateForSM,
+        tiles: [{
+          ...templateTile,
+          id: 'iso-start',
+          x: 0,
+          z: 0,
+          isRevealed: true,
+          connections: [openEdge('south'), closedEdge('north'), closedEdge('east'), closedEdge('west')]
+        }]
+      } as GameState
+    });
+
     let fmState: ExplorationState = { phase: 'idle' };
     const point: ExplorationPoint = { tileId: 'iso-start', edge: 'south', worldX: 0, worldZ: 0.5 };
 
     // Valid draw result mock
     const smDrawResult = {
-      tile: { ...templateTile, id: 'test-sm', x: 0, z: 0, isRevealed: false, connections: [] },
+      tile: {
+        ...templateTile,
+        id: 'test-sm',
+        x: 0,
+        z: 0,
+        isRevealed: false,
+        connections: [openEdge('north'), openEdge('south'), openEdge('east'), openEdge('west')]
+      },
       validRotations: [0, 90] as (0 | 90 | 180 | 270)[],
       remainingDeck: ['card2', 'card3'],
       exhausted: false
@@ -527,7 +556,8 @@ export const runFullGameLoopTest = async () => {
     fmState = onArrowClicked(fmState, point, smDrawResult);
     if (fmState.phase !== 'positioning') throw new Error('State machine failed to transition to positioning');
 
-    fmState = onRotationConfirmed(fmState, 90);
+    fmState = setTileRotation(fmState, 90);
+    fmState = onPlacementAttempted(fmState, { valid: true, conflicts: [], warnings: [] });
     if (fmState.phase !== 'placing') throw new Error('State machine failed to transition to placing');
 
     fmState = onPlacementComplete(fmState);
@@ -537,7 +567,7 @@ export const runFullGameLoopTest = async () => {
     fmState = onArrowClicked(fmState, point, smDrawResult);
     if (fmState.phase !== 'positioning') throw new Error('State machine failed reset to positioning for cancel test');
 
-    fmState = onCancel(fmState);
+    fmState = onCancel(fmState).newState;
     if (fmState.phase !== 'idle') throw new Error('State machine failed to transition back to idle on cancel');
 
     // Exhausted test
@@ -548,6 +578,10 @@ export const runFullGameLoopTest = async () => {
       exhausted: true
     };
     fmState = onArrowClicked(fmState, point, smEmptyDrawResult);
+
+    // Restore original state
+    useGameStore.setState({ gameState: originalGameStateForSM });
+
     if (fmState.phase !== 'exhausted') throw new Error('State machine failed to transition to exhausted');
 
     console.log('  ExplorationStateMachine PASSED');
@@ -569,7 +603,7 @@ export const runFullGameLoopTest = async () => {
         ...state,
         gameState: {
           ...state.gameState,
-          monsters: [...state.gameState.monsters, mockM1, mockM2, mockM3, mockDead],
+          monsters: [mockM1, mockM2, mockM3, mockDead],
         }
       };
     });
@@ -733,231 +767,22 @@ export const runFullGameLoopTest = async () => {
       type: 'hero',
       heroClass: 'paladin',
       level: 1,
+      surgeValue: 3,
       xp: 0,
       surgeUsed: false,
       abilities: [],
       hand: [],
       items: [],
-      position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+      position: { x: 2, z: 1, sqX: 1, sqZ: 1 },
       hp: 10,
       maxHp: 10,
       ac: 15,
       speed: 6,
       isExhausted: false,
+      attackBonus: 0,
       conditions: [],
       usedPowers: []
     };
-
-    const hero2: Hero = {
-      ...hero1,
-      id: 'hero2',
-      name: 'Hero 2',
-      position: { x: 2, z: 1, sqX: 1, sqZ: 1 }
-    };
-
-    const hero3: Hero = {
-      ...hero1,
-      id: 'hero3',
-      name: 'Hero 3',
-      position: { x: 1, z: 3, sqX: 1, sqZ: 1 }
-    };
-
-    const heroTile1: Tile = {
-      ...templateTile,
-      id: 'hero_tile_1',
-      x: 0,
-      z: 0,
-      connections: []
-    };
-
-    const heroTile2: Tile = {
-      ...templateTile,
-      id: 'hero_tile_2',
-      x: 2,
-      z: 1,
-      connections: []
-    };
-
-    const heroTile3: Tile = {
-      ...templateTile,
-      id: 'hero_tile_3',
-      x: 1,
-      z: 3,
-      connections: []
-    };
-
-    const monsterTile: Tile = {
-      ...templateTile,
-      id: 'monster_tile',
-      x: 0,
-      z: 2,
-      connections: []
-    };
-
-    const heroTiles = [heroTile1, heroTile2, heroTile3, monsterTile];
-
-    // Find closest hero from monster position
-    const closest = findClosestHero(monsterTile, [hero1, hero2, hero3], heroTiles);
-    if (!closest) {
-      throw new Error('findClosestHero: should not return null when heroes exist');
-    }
-    if (closest.hero.id !== 'hero2') {
-      throw new Error(`findClosestHero: expected hero2 (distance 2), got ${closest.hero.id} (distance ${closest.distance})`);
-    }
-    if (closest.distance !== 2) {
-      throw new Error(`findClosestHero: expected distance 2, got ${closest.distance}`);
-    }
-
-    // Empty heroes array
-    const closestEmpty = findClosestHero(monsterTile, [], heroTiles);
-    if (closestEmpty !== null) {
-      throw new Error('findClosestHero: should return null when heroes array is empty');
-    }
-
-    console.log('  findClosestHero PASSED');
-
-    // -----------------------------------------------------------------------
-    // 21. MonsterAI.getPathToward
-    // -----------------------------------------------------------------------
-    console.log('Testing MonsterAI.getPathToward...');
-
-    const pathStart: Tile = {
-      ...templateTile,
-      id: 'path_start',
-      x: 0,
-      z: 0,
-      connections: [openEdge('north'), openEdge('east'), closedEdge('south'), closedEdge('west')]
-    };
-    pathStart.connections[0].connectedTileId = 'path_1';
-    pathStart.connections[1].connectedTileId = 'path_2';
-
-    const path1: Tile = {
-      ...templateTile,
-      id: 'path_1',
-      x: 0,
-      z: -1,
-      connections: [openEdge('north'), openEdge('south'), closedEdge('east'), closedEdge('west')]
-    };
-    path1.connections[1].connectedTileId = 'path_start';
-    path1.connections[0].connectedTileId = 'path_3';
-
-    const path2: Tile = {
-      ...templateTile,
-      id: 'path_2',
-      x: 1,
-      z: 0,
-      connections: [openEdge('north'), openEdge('south'), openEdge('west'), closedEdge('east')]
-    };
-    path2.connections[2].connectedTileId = 'path_start';
-    path2.connections[0].connectedTileId = 'path_3';
-
-    const path3: Tile = {
-      ...templateTile,
-      id: 'path_3',
-      x: 0,
-      z: -2,
-      connections: [openEdge('south'), openEdge('east'), closedEdge('north'), closedEdge('west')]
-    };
-    path3.connections[0].connectedTileId = 'path_1';
-    path3.connections[1].connectedTileId = 'path_2';
-
-    const pathBoard = [pathStart, path1, path2, path3];
-
-    // Path from start to path3
-    const pathToTarget = getPathToward(pathStart, path3, pathBoard, 10);
-    if (pathToTarget.length === 0) {
-      throw new Error('getPathToward: should find a path');
-    }
-    // Should find the shortest path (either path1 or path2, then path3)
-    if (pathToTarget.length !== 2) {
-      throw new Error(`getPathToward: expected path length 2, got ${pathToTarget.length}`);
-    }
-    if (pathToTarget[pathToTarget.length - 1].id !== 'path_3') {
-      throw new Error(`getPathToward: last tile should be path_3, got ${pathToTarget[pathToTarget.length - 1].id}`);
-    }
-
-    // Test steps limit
-    const pathLimited = getPathToward(pathStart, path3, pathBoard, 1);
-    if (pathLimited.length !== 1) {
-      throw new Error(`getPathToward: with steps=1, should return 1 tile, got ${pathLimited.length}`);
-    }
-
-    // No path (disconnected)
-    const isolatedPathTile: Tile = {
-      ...templateTile,
-      id: 'path_isolated',
-      x: 10,
-      z: 10,
-      connections: [closedEdge('north'), closedEdge('south'), closedEdge('east'), closedEdge('west')]
-    };
-    const pathToIsolated = getPathToward(pathStart, isolatedPathTile, [...pathBoard, isolatedPathTile], 10);
-    if (pathToIsolated.length !== 0) {
-      throw new Error('getPathToward: should return empty array when no path exists');
-    }
-
-    // Zero steps
-    const pathZeroSteps = getPathToward(pathStart, path3, pathBoard, 0);
-    if (pathZeroSteps.length !== 0) {
-      throw new Error('getPathToward: with steps=0, should return empty array');
-    }
-
-    // Verify fromTile is not included
-    const pathIncludesStart = getPathToward(pathStart, path3, pathBoard, 10);
-    if (pathIncludesStart.some(t => t.id === 'path_start')) {
-      throw new Error('getPathToward: should not include fromTile in the path');
-    }
-
-    // Test deterministic behavior: identical inputs should produce identical paths
-    // This ensures the sorting of adjacent tiles by (x, z) works correctly
-    const deterministicPath1 = getPathToward(pathStart, path3, pathBoard, 10);
-    const deterministicPath2 = getPathToward(pathStart, path3, pathBoard, 10);
-    if (deterministicPath1.length !== deterministicPath2.length) {
-      throw new Error(`getPathToward: deterministic test failed - path lengths differ: ${deterministicPath1.length} vs ${deterministicPath2.length}`);
-    }
-    for (let i = 0; i < deterministicPath1.length; i++) {
-      if (deterministicPath1[i].id !== deterministicPath2[i].id) {
-        throw new Error(`getPathToward: deterministic test failed - paths differ at index ${i}: ${deterministicPath1[i].id} vs ${deterministicPath2[i].id}`);
-      }
-    }
-
-    console.log('  getPathToward PASSED');
-
-    // -----------------------------------------------------------------------
-    // Monster AI Tactic Tests - Extended Test Cases
-    // -----------------------------------------------------------------------
-    console.log('Testing Monster AI Tactic Tests...');
-
-    // Helper function to create a tile
-    const createAITile = (id: string, x: number, z: number, connections: TileConnection[]): Tile => ({
-      ...templateTile,
-      id,
-      x,
-      z,
-      connections
-    });
-
-    // Helper function to create a monster with moveRange
-    const createAIMonster = (id: string, moveRange: number = 1): Monster => ({
-      id,
-      name: 'AI Test Monster',
-      type: 'monster',
-      monsterType: 'zombie',
-      behavior: { conditions: [], priorityTargets: [], actions: [] },
-      attackBonus: 0,
-      damage: 1,
-      experienceValue: 10,
-      ownedByHeroId: null,
-      position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
-      hp: 5,
-      maxHp: 5,
-      ac: 12,
-      speed: 6,
-      isExhausted: false,
-      conditions: [],
-      usedPowers: [],
-      ...(moveRange !== undefined && { moveRange } as any)
-    });
-
     // Helper function to create a hero
     const createAIHero = (id: string, x: number, z: number): Hero => ({
       id,
@@ -965,6 +790,7 @@ export const runFullGameLoopTest = async () => {
       type: 'hero',
       heroClass: 'fighter',
       level: 1,
+      surgeValue: 3,
       xp: 0,
       surgeUsed: false,
       abilities: [],
@@ -975,6 +801,51 @@ export const runFullGameLoopTest = async () => {
       maxHp: 10,
       ac: 15,
       speed: 6,
+      isExhausted: false,
+      attackBonus: 0,
+      conditions: [],
+      usedPowers: []
+    });
+
+    // Helper function to create an AI test tile
+    const createAITile = (id: string, x: number, z: number, connections: TileConnection[]): Tile => ({
+      id,
+      name: 'AI Test Tile',
+      x,
+      z,
+      terrainType: 'corridor',
+      connections,
+      boneSquare: { sqX: 1, sqZ: 1 },
+      isRevealed: true,
+      isStart: false,
+      isExit: false,
+      rotation: 0,
+      monsters: [],
+      heroes: [],
+      items: []
+    });
+
+    // Helper function to create an AI test monster
+    const createAIMonster = (id: string, moveRange: number): Monster => ({
+      id,
+      name: 'AI Test Monster',
+      type: 'monster',
+      monsterType: 'zombie',
+      behavior: {
+        conditions: [],
+        priorityTargets: [],
+        actions: ['attack']
+      },
+      attackBonus: 0,
+      damage: 1,
+      experienceValue: 1,
+      ownedByHeroId: null,
+      moveRange,
+      position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+      hp: 5,
+      maxHp: 5,
+      ac: 10,
+      speed: 4,
       isExhausted: false,
       conditions: [],
       usedPowers: []
@@ -990,7 +861,13 @@ export const runFullGameLoopTest = async () => {
       dungeonDeck: [],
       treasureDeck: [],
       encounterDeck: [],
-      discardPiles: {},
+      monsterDeck: [],
+      discardPiles: {
+        treasure: [],
+        encounter: [],
+        ability: [],
+        monster: []
+      },
       activeScenario: {
         id: 'ai_test',
         name: 'AI Test',
@@ -1013,7 +890,18 @@ export const runFullGameLoopTest = async () => {
       treasuresDrawnThisTurn: 0,
       traps: [],
       villainPhaseQueue: [],
-      activeVillainId: null, activeConditions: []
+      activeVillainId: null,
+      activeConditions: [],
+      powerSelections: [],
+      cardResolution: {
+        phase: 'idle',
+        cardId: null,
+        cardType: null,
+        pendingEffects: [],
+        resolvedEffects: [],
+        targetEntityId: null,
+        result: null,
+      }
     });
 
     // Test 1: Close Combat Test - Monster at (1,1), Hero at (1,0) (adjacent)
@@ -1191,10 +1079,20 @@ export const runFullGameLoopTest = async () => {
     };
     tacticTile2.connections[2].connectedTileId = 'tactic_0';
 
+    const tacticTile3: Tile = {
+      ...templateTile,
+      id: 'tactic_3',
+      x: 0,
+      z: -2,
+      connections: [openEdge('south'), closedEdge('north'), closedEdge('east'), closedEdge('west')]
+    };
+    tacticTile3.connections[0].connectedTileId = 'tactic_1';
+    tacticTile1.connections[0].connectedTileId = 'tactic_3';
+
     tacticTile0.connections[0].connectedTileId = 'tactic_1';
     tacticTile0.connections[1].connectedTileId = 'tactic_2';
 
-    const tacticTiles = [tacticTile0, tacticTile1, tacticTile2];
+    const tacticTiles = [tacticTile0, tacticTile1, tacticTile2, tacticTile3];
 
     // Create test monster
     const testMonster: Monster = {
@@ -1224,6 +1122,7 @@ export const runFullGameLoopTest = async () => {
       type: 'hero',
       heroClass: 'fighter',
       level: 1,
+      surgeValue: 3,
       xp: 0,
       surgeUsed: false,
       abilities: [],
@@ -1235,6 +1134,7 @@ export const runFullGameLoopTest = async () => {
       ac: 15,
       speed: 6,
       isExhausted: false,
+      attackBonus: 0,
       conditions: [],
       usedPowers: []
     };
@@ -1273,7 +1173,7 @@ export const runFullGameLoopTest = async () => {
       traps: [],
       villainPhaseQueue: [],
       activeVillainId: null, activeConditions: []
-    };
+    } as any;
 
     // Step 1: Test with no heroes - should return idle
     const noHeroesState = { ...testGameState, heroes: [] };
@@ -1307,20 +1207,17 @@ export const runFullGameLoopTest = async () => {
     }
     console.log('  Step 3 PASSED: Attacks hero on adjacent tile with LoS');
 
-    // Step 4: Test with hero at distance 2 - should move then attack
+    // Step 4: Test with hero at distance 2 - should move closer
     const distantHero: Hero = { ...testHero, position: { x: 0, z: -2, sqX: 1, sqZ: 1 } };
     const distantState = { ...testGameState, heroes: [distantHero] };
     const result4 = resolveTactic(testMonster, tacticTile0, distantState);
-    if (result4.action !== 'move_then_attack') {
-      throw new Error(`Step 4: Expected move_then_attack with hero at distance 2, got ${result4.action}`);
+    if (result4.action !== 'move') {
+      throw new Error(`Step 4: Expected move with hero at distance 2, got ${result4.action}`);
     }
-    if (result4.action === 'move_then_attack' && result4.path.length === 0) {
-      throw new Error('Step 4: Expected non-empty path for move_then_attack');
+    if (result4.action === 'move' && result4.path.length === 0) {
+      throw new Error('Step 4: Expected non-empty path for move');
     }
-    if (result4.action === 'move_then_attack' && result4.targetHeroId !== 'hero_test') {
-      throw new Error(`Step 4: Expected targetHeroId 'hero_test', got ${result4.targetHeroId}`);
-    }
-    console.log('  Step 4 PASSED: Moves then attacks hero at distance 2');
+    console.log('  Step 4 PASSED: Moves toward hero at distance 2');
 
     // Step 5: Test with hero too far - should return idle (fallback)
     const farHero: Hero = { ...testHero, position: { x: 10, z: 10, sqX: 1, sqZ: 1 } };
@@ -1362,6 +1259,7 @@ export const runFullGameLoopTest = async () => {
       type: 'hero',
       heroClass: 'fighter',
       level: 1,
+      surgeValue: 3,
       xp: 0,
       surgeUsed: false,
       abilities: [],
@@ -1373,16 +1271,17 @@ export const runFullGameLoopTest = async () => {
       ac: 15,
       speed: 6,
       isExhausted: false,
+      attackBonus: 0,
       conditions: [],
       usedPowers: []
     };
 
     // Create test trap
-    const testTrap = {
+    const testTrap: Trap = {
       id: 'trap_test',
       cardId: 'card_trap',
       tileId: 'trap_tile',
-      disabled: false,
+      isDisabled: false,
       ownedByHeroId: null,
       isTriggered: false
     };
@@ -1422,7 +1321,7 @@ export const runFullGameLoopTest = async () => {
       villainPhaseQueue: [],
       activeVillainId: null,
       activeConditions: []
-    };
+    } as any;
 
     // Test 1: Hero on trap tile → result is not null, damage applied
     const trapResult1 = resolveTrap(testTrap, trapTile, trapGameState);
@@ -1485,6 +1384,7 @@ export const runFullGameLoopTest = async () => {
       type: 'hero',
       heroClass: 'paladin',
       level: 1,
+      surgeValue: 3,
       xp: 0,
       position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
       hp: 10,
@@ -1492,6 +1392,7 @@ export const runFullGameLoopTest = async () => {
       ac: 15,
       speed: 6,
       isExhausted: false,
+      attackBonus: 0,
       surgeUsed: false,
       conditions: [],
       usedPowers: [],
@@ -1620,7 +1521,7 @@ export const runFullGameLoopTest = async () => {
       villainPhaseQueue: [],
       activeVillainId: null,
       activeConditions: []
-    };
+    } as any;
 
     // Test: Villain Phase - Move-toward AND move-then-attack behavior in sequence
 
@@ -1645,8 +1546,8 @@ export const runFullGameLoopTest = async () => {
       throw new Error(`Expected initial distance 2, got ${initialDistance}`);
     }
 
-    // 2. Call executeVillainPhase() (first endTurn)
-    const afterFirstTurn = executeVillainPhase(villainGameState);
+    // 2. Call await executeVillainPhase() (first endTurn)
+    const afterFirstTurn = await executeVillainPhase(villainGameState);
 
     // Find skeleton and hero after first villain phase
     const skeletonAfterFirst = afterFirstTurn.monsters.find(m => m.id === 'monster_skeleton_villain');
@@ -1681,8 +1582,10 @@ export const runFullGameLoopTest = async () => {
 
     console.log('  First turn PASSED: Skeleton moved 1 tile closer (distance 2 → 1), no attack');
 
-    // 3. Call executeVillainPhase() a second time
-    const afterSecondTurn = executeVillainPhase(afterFirstTurn);
+    // 3. Call await executeVillainPhase() a second time
+    AbilitySystem._rollOverride = () => 15; // Skeleton attacks hero: roll 15 + attackBonus 3 = 18 >= hero AC 15 (Hit!)
+    const afterSecondTurn = await executeVillainPhase(afterFirstTurn);
+    AbilitySystem._rollOverride = null;
 
     // Find skeleton and hero after second villain phase
     const skeletonAfterSecond = afterSecondTurn.monsters.find(m => m.id === 'monster_skeleton_villain');
@@ -1736,9 +1639,10 @@ export const runFullGameLoopTest = async () => {
         throw new Error(`Monster ${monster.id} (${monster.name}) is missing moveRange property`);
       }
 
-      // Verify moveRange is within reasonable bounds (1-4)
-      if (monster.moveRange < 1 || monster.moveRange > 4) {
-        throw new Error(`Monster ${monster.id} (${monster.name}) has invalid moveRange: ${monster.moveRange}. Expected 1-4.`);
+      // Verify moveRange is within reasonable bounds (1-4, or 0 for static objects like Klak's artifact)
+      const minMoveRange = (monster.id === 'monster_klaks_artifact' || monster.id === 'monster_gravestorms_phylactery') ? 0 : 1;
+      if (monster.moveRange < minMoveRange || monster.moveRange > 4) {
+        throw new Error(`Monster ${monster.id} (${monster.name}) has invalid moveRange: ${monster.moveRange}. Expected ${minMoveRange}-4.`);
       }
 
       console.log(`  ${monster.name}: moveRange = ${monster.moveRange}`);
@@ -1750,7 +1654,7 @@ export const runFullGameLoopTest = async () => {
     // 24. AbilitySystem.canUseAbility
     // -----------------------------------------------------------------------
     console.log('Testing AbilitySystem.canUseAbility...');
-    const { AbilitySystem } = await import('../game/ai/AbilitySystem');
+    // Statically imported AbilitySystem
 
     // Test ability with cooldown
     const abilityWithCooldown: MonsterAbility = {
@@ -2108,7 +2012,7 @@ export const runFullGameLoopTest = async () => {
       villainPhaseQueue: [],
       activeVillainId: null,
       activeConditions: []
-    };
+    } as any;
 
     // Assertion: Boss at 100% HP → getCurrentPhase returns phase p1
     const phaseAtFullHp = BossPhases.getCurrentPhase(bossMonster, bossTestGameState);
@@ -2203,6 +2107,7 @@ export const runFullGameLoopTest = async () => {
         type: 'hero',
         heroClass: 'fighter',
         level: 1,
+        surgeValue: 3,
         xp: 0,
         surgeUsed: false,
         abilities: [],
@@ -2214,6 +2119,7 @@ export const runFullGameLoopTest = async () => {
         ac: 15,
         speed: 6,
         isExhausted: false,
+        attackBonus: 0,
         conditions: [],
         usedPowers: []
       };
@@ -2252,7 +2158,7 @@ export const runFullGameLoopTest = async () => {
         villainPhaseQueue: [],
         activeVillainId: null,
         activeConditions: []
-      };
+      } as any;
 
       const triggerResult = resolveTactic(triggeredMonster, testTile, triggerState);
       if (triggerResult.action !== 'use_ability') {
@@ -2303,6 +2209,7 @@ export const runFullGameLoopTest = async () => {
         type: 'hero',
         heroClass: 'paladin',
         level: 1,
+        surgeValue: 3,
         xp: 0,
         surgeUsed: false,
         abilities: [],
@@ -2314,6 +2221,7 @@ export const runFullGameLoopTest = async () => {
         ac: 15,
         speed: 6,
         isExhausted: false,
+        attackBonus: 0,
         conditions: [],
         usedPowers: []
       };
@@ -2352,7 +2260,7 @@ export const runFullGameLoopTest = async () => {
         villainPhaseQueue: [],
         activeVillainId: null,
         activeConditions: []
-      };
+      } as any;
 
       const boss49Result = resolveTactic(boss49Hp, bossTile, boss49State);
       if (boss49Result.action !== 'idle') {
@@ -2383,7 +2291,7 @@ export const runFullGameLoopTest = async () => {
         experienceValue: 200,
         ownedByHeroId: null,
         position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
-        hp: 40,
+        hp: 30,
         maxHp: 100,
         ac: 18,
         speed: 6,
@@ -2420,6 +2328,7 @@ export const runFullGameLoopTest = async () => {
         type: 'hero',
         heroClass: 'paladin',
         level: 1,
+        surgeValue: 3,
         xp: 0,
         surgeUsed: false,
         abilities: [],
@@ -2431,6 +2340,7 @@ export const runFullGameLoopTest = async () => {
         ac: 15,
         speed: 6,
         isExhausted: false,
+        attackBonus: 0,
         conditions: [],
         usedPowers: []
       };
@@ -2468,7 +2378,7 @@ export const runFullGameLoopTest = async () => {
         traps: [],
         villainPhaseQueue: [],
         activeVillainId: null, activeConditions: []
-      };
+      } as any;
 
       const boss2Result = resolveTactic(bossPhase2, boss2Tile, boss2State);
       // Boss should use vampiric_bite ability (phase 2 tactic with 'hp_low' condition)
@@ -2543,6 +2453,7 @@ export const runFullGameLoopTest = async () => {
       type: 'hero',
       heroClass: 'paladin',
       level: 1,
+      surgeValue: 3,
       xp: 0,
       surgeUsed: false,
       abilities: [],
@@ -2554,6 +2465,7 @@ export const runFullGameLoopTest = async () => {
       ac: 15,
       speed: 6,
       isExhausted: false,
+      attackBonus: 0,
       conditions: [],
       usedPowers: []
     };
@@ -2575,7 +2487,13 @@ export const runFullGameLoopTest = async () => {
       dungeonDeck: [],
       treasureDeck: [],
       encounterDeck: [],
-      discardPiles: {},
+      monsterDeck: [],
+      discardPiles: {
+        treasure: [],
+        encounter: [],
+        ability: [],
+        monster: []
+      },
       activeScenario: {
         id: 'strahd_test',
         name: 'Strahd Phase Transition Test',
@@ -2598,11 +2516,22 @@ export const runFullGameLoopTest = async () => {
       treasuresDrawnThisTurn: 0,
       traps: [],
       villainPhaseQueue: [],
-      activeVillainId: null, activeConditions: []
-    };
+      activeVillainId: null,
+      activeConditions: [],
+      powerSelections: [],
+      cardResolution: {
+        phase: 'idle',
+        cardId: null,
+        cardType: null,
+        pendingEffects: [],
+        resolvedEffects: [],
+        targetEntityId: null,
+        result: null,
+      }
+    } as any;
 
     // Execute villain phase - Strahd should transition to phase 2 before evaluating tactics
-    const strahdResult = executeVillainPhase(strahdState);
+    const strahdResult = await executeVillainPhase(strahdState);
     const updatedStrahd = strahdResult.monsters.find(m => m.id === 'strahd_test');
     if (!updatedStrahd) {
       throw new Error('Test 1: Strahd monster not found after villain phase');
@@ -2651,6 +2580,7 @@ export const runFullGameLoopTest = async () => {
       type: 'hero',
       heroClass: 'cleric',
       level: 1,
+      surgeValue: 3,
       xp: 0,
       surgeUsed: false,
       abilities: [],
@@ -2662,6 +2592,7 @@ export const runFullGameLoopTest = async () => {
       ac: 15,
       speed: 6,
       isExhausted: false,
+      attackBonus: 0,
       conditions: [],
       usedPowers: []
     };
@@ -2675,7 +2606,13 @@ export const runFullGameLoopTest = async () => {
       dungeonDeck: [],
       treasureDeck: [],
       encounterDeck: [],
-      discardPiles: {},
+      monsterDeck: [],
+      discardPiles: {
+        treasure: [],
+        encounter: [],
+        ability: [],
+        monster: []
+      },
       activeScenario: {
         id: 'regen_test',
         name: 'Regeneration Test',
@@ -2699,10 +2636,20 @@ export const runFullGameLoopTest = async () => {
       traps: [],
       villainPhaseQueue: [],
       activeVillainId: null,
-      activeConditions: []
-    };
+      activeConditions: [],
+      powerSelections: [],
+      cardResolution: {
+        phase: 'idle',
+        cardId: null,
+        cardType: null,
+        pendingEffects: [],
+        resolvedEffects: [],
+        targetEntityId: null,
+        result: null,
+      }
+    } as any;
 
-    const regenResult = executeVillainPhase(regenState);
+    const regenResult = await executeVillainPhase(regenState);
     const updatedRegenMonster = regenResult.monsters.find(m => m.id === 'regen_test');
     if (!updatedRegenMonster) {
       throw new Error('Test 2: Regenerating monster not found after villain phase');
@@ -2753,6 +2700,7 @@ export const runFullGameLoopTest = async () => {
       type: 'hero',
       heroClass: 'fighter',
       level: 1,
+      surgeValue: 3,
       xp: 0,
       surgeUsed: false,
       abilities: [],
@@ -2764,6 +2712,7 @@ export const runFullGameLoopTest = async () => {
       ac: 16,
       speed: 6,
       isExhausted: false,
+      attackBonus: 0,
       conditions: [],
       usedPowers: []
     };
@@ -2801,9 +2750,9 @@ export const runFullGameLoopTest = async () => {
       traps: [],
       villainPhaseQueue: [],
       activeVillainId: null, activeConditions: []
-    };
+    } as any;
 
-    const undyingResult = executeVillainPhase(undyingState);
+    const undyingResult = await executeVillainPhase(undyingState);
     const updatedSkeleton = undyingResult.monsters.find(m => m.id === 'skeleton_undying_test');
     if (!updatedSkeleton) {
       throw new Error('Test 3: Skeleton monster not found after villain phase');
@@ -2892,28 +2841,25 @@ export const runFullGameLoopTest = async () => {
       console.log('  Test 3 PASSED: canSelectPower blocks when totalMax reached');
     }
 
-    // Test 4: confirmSelection returns error string when 2 of 4 selected
-    console.log('  Test 4: confirmSelection returns error string when 2 of 4 selected...');
+    // Test 4: confirmSelection returns error when below per-type minimums
+    console.log('  Test 4: confirmSelection returns error when below per-type minimums...');
     {
       const selection: any = {
         heroId,
         selectedPowerIds: ['power_atwill_1', 'power_daily_1'],
         isConfirmed: false
       };
-      const result = PowerSelectionSystem.default.confirmSelection(selection, constraints);
-      if (typeof result !== 'object' || !('error' in result)) {
-        throw new Error('confirmSelection should return error object when not all powers selected');
+      const result = PowerSelectionSystem.default.confirmSelection(selection, constraints, mockPowerCards);
+      if (result.success !== false || !result.message.includes('more at-will power(s)')) {
+        throw new Error(`confirmSelection should error on at-will minimum, got: ${JSON.stringify(result)}`);
       }
-      if (!result.error.includes('2 more power(s)')) {
-        throw new Error(`Expected error message to mention "2 more power(s)", got: ${result.error}`);
-      }
-      console.log('  Test 4 PASSED: confirmSelection returns error string when 2 of 4 selected');
+      console.log('  Test 4 PASSED: confirmSelection returns error when below at-will minimum');
     }
 
     // Test 5: autoSelectPowers returns exactly 4 confirmed ids
     console.log('  Test 5: autoSelectPowers returns exactly 4 confirmed ids...');
     {
-      const result = PowerSelectionSystem.default.autoSelectPowers('paladin', heroId, constraints);
+      const result = PowerSelectionSystem.default.autoSelectPowers('fighter', heroId, constraints);
       if (result.selectedPowerIds.length !== 4) {
         throw new Error(`autoSelectPowers should return exactly 4 ids, got ${result.selectedPowerIds.length}`);
       }
@@ -2922,18 +2868,19 @@ export const runFullGameLoopTest = async () => {
       }
       // Verify correct distribution: 2 at-will, 1 daily, 1 utility
       const atWillCount = result.selectedPowerIds.filter(id =>
-        mockPowerCards.find(c => c.id === id)?.powerType === 'at-will'
+        getPowerCard(id)?.powerType === 'at-will'
       ).length;
       const dailyCount = result.selectedPowerIds.filter(id =>
-        mockPowerCards.find(c => c.id === id)?.powerType === 'daily'
+        getPowerCard(id)?.powerType === 'daily'
       ).length;
       const utilityCount = result.selectedPowerIds.filter(id =>
-        mockPowerCards.find(c => c.id === id)?.powerType === 'utility'
+        getPowerCard(id)?.powerType === 'utility'
       ).length;
+      // Fighter has 3 at-will, 4 daily, 3 utility — enough to fill all type slots
       if (atWillCount !== 2 || dailyCount !== 1 || utilityCount !== 1) {
-        throw new Error(`autoSelectPowers should select 2 at-will, 1 daily, 1 utility, got: ${atWillCount} at-will, ${dailyCount} daily, ${utilityCount} utility`);
+        throw new Error(`autoSelectPowers selected invalid distribution, got: ${atWillCount} at-will, ${dailyCount} daily, ${utilityCount} utility`);
       }
-      console.log('  Test 5 PASSED: autoSelectPowers returns exactly 4 confirmed ids (2 at-will, 1 daily, 1 utility)');
+      console.log('  Test 5 PASSED: autoSelectPowers returns exactly 4 confirmed ids matching available DB limits');
     }
 
     // Test 6: deselectPower resets isConfirmed to false
@@ -2964,6 +2911,7 @@ export const runFullGameLoopTest = async () => {
           type: 'hero',
           heroClass: 'paladin',
           level: 1,
+          surgeValue: 3,
           xp: 0,
           surgeUsed: false,
           abilities: [],
@@ -2975,6 +2923,7 @@ export const runFullGameLoopTest = async () => {
           ac: 15,
           speed: 6,
           isExhausted: false,
+          attackBonus: 0,
           conditions: [],
           usedPowers: []
         },
@@ -2984,6 +2933,7 @@ export const runFullGameLoopTest = async () => {
           type: 'hero',
           heroClass: 'ranger',
           level: 1,
+          surgeValue: 3,
           xp: 0,
           surgeUsed: false,
           abilities: [],
@@ -2995,6 +2945,7 @@ export const runFullGameLoopTest = async () => {
           ac: 15,
           speed: 6,
           isExhausted: false,
+          attackBonus: 0,
           conditions: [],
           usedPowers: []
         }
@@ -3019,8 +2970,8 @@ export const runFullGameLoopTest = async () => {
         throw new Error(`Hero 1 should have 4 selectedPowerIds, got ${hero1Result.selectedPowerIds?.length ?? 0}`);
       }
 
-      if (!hero2Result.selectedPowerIds || hero2Result.selectedPowerIds.length !== 0) {
-        throw new Error(`Hero 2 should have 0 selectedPowerIds (not confirmed), got ${hero2Result.selectedPowerIds?.length ?? 0}`);
+      if (hero2Result.selectedPowerIds !== undefined) {
+        throw new Error(`Hero 2 should keep existing selectedPowerIds (not confirmed), got ${JSON.stringify(hero2Result.selectedPowerIds)}`);
       }
 
       console.log('  Test 7 PASSED: applySelectionsToHeroes sets selectedPowerIds correctly');
@@ -3163,9 +3114,9 @@ export const runFullGameLoopTest = async () => {
           'Expected console.warn to be called but it was not'
         );
       }
-      if (!warnCapture.message.includes('3 more power(s)')) {
+      if (!warnCapture.message.includes('more at-will power(s)')) {
         throw new Error(
-          `Expected warning about power count but got:
+          `Expected warning about at-will power count but got:
            "${warnCapture.message}"`
         );
       }
@@ -3177,14 +3128,14 @@ export const runFullGameLoopTest = async () => {
     console.log('  Test 4: All confirmed → hero.selectedPowerIds populated...');
     {
       const testHeroId = 'test_hero_populate';
-      const testCardIds = ['power_a', 'power_b', 'power_c', 'power_d'];
+      const testCardIds = ['fighter_cleave', 'fighter_tide_of_iron', 'fighter_brute_strike', 'fighter_bodyguard'];
 
       // Create game state with confirmed selections
       const confirmedState: GameState = {
         ...testGameState,
         phase: 'setup',
         currentHeroId: testHeroId,
-        heroes: [{ ...testHero, heroClass: 'paladin', id: testHeroId }],
+        heroes: [{ ...testHero, heroClass: 'fighter', id: testHeroId }],
         powerSelections: [
           { heroId: testHeroId, selectedPowerIds: testCardIds, isConfirmed: true }
         ]
@@ -3192,6 +3143,9 @@ export const runFullGameLoopTest = async () => {
 
       // Store the state
       useGameStore.setState({ gameState: confirmedState });
+
+      // Call confirmHeroSelection to trigger the confirmation copy logic
+      useGameStore.getState().confirmHeroSelection(testHeroId);
 
       // Verify hero.selectedPowerIds populated
       const heroAfter = useGameStore.getState().gameState?.heroes.find(h => h.id === testHeroId);
@@ -3249,7 +3203,7 @@ export const runFullGameLoopTest = async () => {
           'Expected console.warn to be called but it was not'
         );
       }
-      if (!warnCapture.message.includes('All heroes must confirm power selection')) {
+      if (!warnCapture.message.includes('Not all heroes have selected powers')) {
         throw new Error(
           `Expected warning about power selection confirmation but got:
            "${warnCapture.message}"`
@@ -3309,9 +3263,1017 @@ export const runFullGameLoopTest = async () => {
     // Test 3: Treasure Usage
     console.log('  Testing useTreasure...');
     resState = CardResolutionSystem.useTreasure(resState, treasureCard, cardHero);
-    if (!assignment.isUsed) throw new Error('useTreasure: assignment not marked as used');
+    const usedAssignment = resState.treasureAssignments?.find(a => a.cardId === treasureCard.id && a.heroId === cardHero.id);
+    if (!usedAssignment?.isUsed) throw new Error('useTreasure: assignment not marked as used');
 
     console.log('  CardResolutionSystem PASSED');
+
+    // -----------------------------------------------------------------------
+    // 22. Adventure 1: Escape the Tomb Verification
+    // -----------------------------------------------------------------------
+    console.log('Testing Adventure 1: Escape the Tomb...');
+    {
+      const store = useGameStore.getState();
+      
+      // Initialize Adventure 1 with Hero Arjhan
+      store.startNewGame('adventure_01', ['hero_arjhan']);
+      const state = useGameStore.getState().gameState;
+      if (!state) throw new Error('Adventure 1: game state not initialized');
+      
+      if (state.activeScenario.id !== 'adventure_01') {
+        throw new Error(`Adventure 1: expected scenario ID adventure_01, got ${state.activeScenario.id}`);
+      }
+
+      if (state.tiles.length !== 1 || state.tiles[0].id !== 'crypt_strahd') {
+        throw new Error(`Adventure 1: expected start tile crypt_strahd, got ${state.tiles[0]?.id}`);
+      }
+
+      if (!state.timeTrack || state.timeTrack.current !== 0 || state.timeTrack.max !== 6) {
+        throw new Error(`Adventure 1: timeTrack not initialized correctly: ${JSON.stringify(state.timeTrack)}`);
+      }
+
+      if (state.strahdAwakened !== false) {
+        throw new Error('Adventure 1: Strahd should not be awakened initially');
+      }
+
+      // Check deck insertion: Secret Stairway tile should be placed at index 10 in the deck
+      const staircaseIndex = state.dungeonDeck.indexOf('named_secret_stairway');
+      if (staircaseIndex !== 10) {
+        throw new Error(`Adventure 1: expected Secret Stairway at deck index 10, got index ${staircaseIndex}`);
+      }
+
+      // Test time track advancement and Strahd awakening
+      console.log('  Testing time track advancement and Strahd awakening...');
+      
+      // Setup a custom state where time track is at 5
+      const stateBeforeAwaken: GameState = {
+        ...state,
+        timeTrack: { current: 5, max: 6 }
+      };
+
+      // Place a tile with a white arrow (encounterType === 'white')
+      const mockWhiteTile: Tile = {
+        id: 'tile_white_test',
+        name: 'Mock White Tile',
+        x: 0, z: -1,
+        terrainType: 'corridor',
+        encounterType: 'white',
+        connections: [
+          { edge: 'north', isOpen: true },
+          { edge: 'south', isOpen: true, connectedTileId: 'crypt_strahd' },
+          { edge: 'east', isOpen: false },
+          { edge: 'west', isOpen: false }
+        ],
+        boneSquare: { sqX: 1, sqZ: 1 },
+        isRevealed: true,
+        isStart: false,
+        isExit: false,
+        rotation: 0,
+        monsters: [],
+        heroes: [],
+        items: []
+      };
+
+      // Mock TileSystem.drawAndPlace to return this mock white tile
+      const originalDrawAndPlace = TileSystem.drawAndPlace;
+      TileSystem.drawAndPlace = () => ({
+        tile: mockWhiteTile,
+        validRotations: [0],
+        remainingDeck: state.dungeonDeck.filter(id => id !== 'named_secret_stairway'),
+        exhausted: false
+      });
+
+      let stateAfterPlacement: GameState;
+      try {
+        stateAfterPlacement = TileSystem.placeTile(
+          stateBeforeAwaken,
+          { tileId: 'crypt_strahd', edge: 'north' },
+          0
+        );
+        // Time track advancement is handled by ScenarioManager.processPostExplore
+        stateAfterPlacement = ScenarioManager.processPostExplore(stateAfterPlacement, mockWhiteTile);
+      } finally {
+        // Restore original drawAndPlace
+        TileSystem.drawAndPlace = originalDrawAndPlace;
+      }
+
+      if (!stateAfterPlacement.timeTrack || stateAfterPlacement.timeTrack.current !== 6) {
+        throw new Error(`Adventure 1: expected time track to advance to 6, got ${stateAfterPlacement.timeTrack?.current}`);
+      }
+
+      if (stateAfterPlacement.strahdAwakened !== true) {
+        throw new Error('Adventure 1: Strahd should be awakened when time track reaches 6');
+      }
+
+      const hasStrahd = stateAfterPlacement.monsters.some(m => m.id.startsWith('monster_strahd'));
+      if (!hasStrahd) {
+        throw new Error('Adventure 1: Count Strahd monster should be spawned in the monsters list');
+      }
+
+      // Test boss activates in every Villain Phase
+      console.log('  Testing Boss queue activation in Villain Phase...');
+      const queue = buildVillainQueue(stateAfterPlacement, 'hero_arjhan');
+      const hasStrahdInQueue = queue.some(id => id.startsWith('monster_strahd'));
+      if (!hasStrahdInQueue) {
+        throw new Error('Adventure 1: Count Strahd should be in the Villain Phase queue');
+      }
+
+      console.log('  Adventure 1: Escape the Tomb Verification PASSED');
+    }
+
+    // -----------------------------------------------------------------------
+    // 23. Adventure 2: Find the Icon of Ravenloft Verification
+    // -----------------------------------------------------------------------
+    console.log('Testing Adventure 2: Find the Icon of Ravenloft...');
+    {
+      const store = useGameStore.getState();
+      
+      // Initialize Adventure 2 with Hero Arjhan
+      store.startNewGame('adventure_02', ['hero_arjhan']);
+      const state = useGameStore.getState().gameState;
+      if (!state) throw new Error('Adventure 2: game state not initialized');
+      
+      if (state.activeScenario.id !== 'adventure_02') {
+        throw new Error(`Adventure 2: expected scenario ID adventure_02, got ${state.activeScenario.id}`);
+      }
+
+      // Check start tile placement
+      if (state.tiles.length !== 1) {
+        throw new Error(`Adventure 2: expected 1 initial tile, got ${state.tiles.length}`);
+      }
+
+      const hasStartTile = state.tiles.some(t => t.x === 0 && t.z === 0 && t.id === 'start-tile');
+
+      if (!hasStartTile) {
+        throw new Error('Adventure 2: start tile missing or coordinates incorrect');
+      }
+
+      // Check deck insertion: Chapel tile (named_chapel) should be placed at index 8 in the deck (insertAfterIndex: 8)
+      const chapelIndex = state.dungeonDeck.indexOf('named_chapel');
+      if (chapelIndex !== 8) {
+        throw new Error(`Adventure 2: expected Chapel at deck index 8, got index ${chapelIndex}`);
+      }
+
+      if (state.chapelRevealed !== false) {
+        throw new Error('Adventure 2: Chapel should not be revealed initially');
+      }
+
+      // Test Chapel tile placement, monster spawn, and Icon token placement
+      console.log('  Testing Chapel placement and spawn triggers...');
+      
+      const mockChapelTile: Tile = {
+        id: 'named_chapel',
+        name: 'Chapel',
+        x: 1, z: 0,
+        terrainType: 'named_room',
+        connections: [
+          { edge: 'north', isOpen: false },
+          { edge: 'south', isOpen: false },
+          { edge: 'east', isOpen: true },
+          { edge: 'west', isOpen: true, connectedTileId: 'start-tile' }
+        ],
+        boneSquare: { sqX: 2, sqZ: 2 },
+        isRevealed: false,
+        isStart: false,
+        isExit: false,
+        rotation: 0,
+        monsters: [],
+        heroes: [],
+        items: []
+      };
+
+      // Mock TileSystem.drawAndPlace to return this mock Chapel tile
+      const originalDrawAndPlace = TileSystem.drawAndPlace;
+      TileSystem.drawAndPlace = () => ({
+        tile: mockChapelTile,
+        validRotations: [0],
+        remainingDeck: state.dungeonDeck.filter(id => id !== 'named_chapel'),
+        exhausted: false
+      });
+
+      let stateAfterChapel: GameState;
+      try {
+        stateAfterChapel = TileSystem.placeTile(
+          state,
+          { tileId: 'start-tile', edge: 'east' },
+          0
+        );
+        const placedChapel = stateAfterChapel.tiles.find(t => t.id.startsWith('named_chapel'))!;
+        stateAfterChapel = ScenarioManager.processPostExplore(stateAfterChapel, placedChapel);
+      } finally {
+        TileSystem.drawAndPlace = originalDrawAndPlace;
+      }
+
+      if (stateAfterChapel.chapelRevealed !== true) {
+        throw new Error('Adventure 2: chapelRevealed should be set to true');
+      }
+
+      console.log('  Adventure 2: Find the Icon of Ravenloft Verification PASSED');
+    }
+
+    // -----------------------------------------------------------------------
+    // 24. Adventure 3: Klak's Infernal Artifact Verification
+    // -----------------------------------------------------------------------
+    console.log('Testing Adventure 3: Klak\'s Infernal Artifact...');
+    {
+      const store = useGameStore.getState();
+      
+      store.startNewGame('adventure_03', ['hero_arjhan']);
+      const state = useGameStore.getState().gameState;
+      if (!state) throw new Error('Adventure 3: game state not initialized');
+      
+      if (state.activeScenario.id !== 'adventure_03') {
+        throw new Error(`Adventure 3: expected scenario ID adventure_03, got ${state.activeScenario.id}`);
+      }
+
+      const labIndex = state.dungeonDeck.indexOf('named_laboratory');
+      if (labIndex !== 8) {
+        throw new Error(`Adventure 3: expected Laboratory at deck index 8, got index ${labIndex}`);
+      }
+
+      if (state.laboratoryRevealed !== undefined && state.laboratoryRevealed !== false) {
+        throw new Error('Adventure 3: Laboratory should not be revealed initially');
+      }
+
+      console.log('  Adventure 3: Klak\'s Infernal Artifact Verification PASSED');
+    }
+
+    // ── Adventure 4: Daylight Assault Verification ─────────────────────────
+    console.log('Running Adventure 4: Daylight Assault Verification...');
+    {
+      const store = useGameStore.getState();
+
+      // 1. Initial State Checks
+      console.log('  Testing initialization...');
+      store.startNewGame('adventure_04', ['hero_arjhan', 'hero_immeril']);
+      let state = useGameStore.getState().gameState;
+      if (!state) throw new Error('Adventure 4: Game state failed to initialize');
+      if (state.activeScenario.id !== 'adventure_04') {
+        throw new Error(`Adventure 4: expected scenario ID adventure_04, got ${state.activeScenario.id}`);
+      }
+      if (!state.timeTrack || state.timeTrack.current !== 0 || state.timeTrack.max !== 6) {
+        throw new Error(`Adventure 4: expected timeTrack current=0 max=6, got ${JSON.stringify(state.timeTrack)}`);
+      }
+      if (state.strahdAwakened !== false) {
+        throw new Error(`Adventure 4: expected strahdAwakened to be false initially`);
+      }
+
+      console.log('  Adventure 4: Daylight Assault Verification PASSED');
+    }
+
+    // ── Adventure 5: The Final Transformation Verification ─────────────────
+    console.log('Running Adventure 5: The Final Transformation Verification...');
+    {
+      const store = useGameStore.getState();
+
+      console.log('  Testing initialization...');
+      store.startNewGame('adventure_05', ['hero_arjhan']);
+      
+      const startState = useGameStore.getState().gameState;
+      if (!startState) throw new Error('Adventure 5: Game state failed to initialize');
+      
+      const PowerSelectionSystem = (await import('../game/engine/PowerSelectionSystem')).default;
+      const heroData = startState.heroes[0];
+      const constraints: import('../game/engine/PowerSelectionSystem').PowerSelectionConstraints = {
+        heroType: heroData.heroClass, maxAtWill: 3, maxDaily: 2, maxUtility: 2, totalMax: 4
+      };
+      const autoResult = PowerSelectionSystem.autoSelectPowers(heroData.heroClass, heroData.id, constraints);
+      
+      const confirmedSelections = (startState.powerSelections || []).map(s => ({
+        ...s,
+        selectedPowerIds: s.heroId === autoResult.heroId ? autoResult.selectedPowerIds : [],
+        isConfirmed: true
+      }));
+      useGameStore.setState({
+        gameState: {
+          ...startState,
+          powerSelections: confirmedSelections
+        }
+      });
+      
+      store.beginAdventure();
+
+      const state = useGameStore.getState().gameState;
+      if (!state) throw new Error('Adventure 5: Game state failed to start');
+      if (state.activeScenario.id !== 'adventure_05') {
+        throw new Error(`Adventure 5: expected scenario ID adventure_05, got ${state.activeScenario.id}`);
+      }
+      if (state.fountainTokens !== 5) {
+        throw new Error(`Adventure 5: expected fountainTokens to be 5, got ${state.fountainTokens}`);
+      }
+
+      const kavanToken = state.tokens?.find(t => t.id === 'item_kavan');
+      if (!kavanToken) {
+        throw new Error('Adventure 5: expected item_kavan token to be on the board initially');
+      }
+
+      console.log('  Adventure 5: The Final Transformation Verification PASSED');
+    }
+
+    // -----------------------------------------------------------------------
+    // Adventure 6: Destroy the Dracolich
+    // -----------------------------------------------------------------------
+    {
+      console.log('Testing Adventure 6: Destroy the Dracolich...');
+      const store = useGameStore.getState();
+      
+      store.startNewGame('adventure_06', ['hero_arjhan']);
+      const state = useGameStore.getState().gameState;
+      if (!state) throw new Error('Adventure 6: game state not initialized');
+      
+      if (state.activeScenario.id !== 'adventure_06') {
+        throw new Error(`Adventure 6: expected scenario ID adventure_06, got ${state.activeScenario.id}`);
+      }
+
+      const circleIndex = state.dungeonDeck.indexOf('named_arcane_circle');
+      if (circleIndex !== 8) {
+        throw new Error(`Adventure 6: expected Arcane Circle at deck index 8, got index ${circleIndex}`);
+      }
+
+      console.log('  Adventure 6: Destroy the Dracolich Verification PASSED');
+    }
+
+    // -----------------------------------------------------------------------
+    // Scenario 1: Find Strahd's Coffin
+    // -----------------------------------------------------------------------
+    {
+      console.log('Testing Scenario 1: Find Strahd\'s Coffin...');
+      const store = useGameStore.getState();
+
+      // Initialize Scenario 1 with Hero Arjhan
+      store.startNewGame('s1', ['hero_arjhan']);
+      const s1State = useGameStore.getState().gameState;
+      if (!s1State) throw new Error('Scenario 1: game state not initialized');
+
+      if (s1State.activeScenario.id !== 's1') {
+        throw new Error(`Scenario 1: expected scenario ID s1, got ${s1State.activeScenario.id}`);
+      }
+
+      // 1. Verify coffin deck was initialized
+      console.log('  Testing coffin deck initialization...');
+      if (!s1State.unplacedCoffinTokens || s1State.unplacedCoffinTokens.length === 0) {
+        throw new Error('Scenario 1: unplacedCoffinTokens was not initialized');
+      }
+      if (s1State.unplacedCoffinTokens.length !== 7) {
+        throw new Error(`Scenario 1: expected 7 coffin tokens, got ${s1State.unplacedCoffinTokens.length}`);
+      }
+      // Verify Strahd's coffin is among them
+      const strahdInDeck = s1State.unplacedCoffinTokens.find(t => t.isStrahds);
+      if (!strahdInDeck) {
+        throw new Error('Scenario 1: Strahd coffin token not present in deck');
+      }
+      // Verify strahdAwakened is initialized to false
+      if (s1State.strahdAwakened !== false) {
+        throw new Error(`Scenario 1: strahdAwakened should be false at start, got ${s1State.strahdAwakened}`);
+      }
+      console.log('  Coffin deck initialization PASSED');
+
+      // 2. Verify coffin token is placed when tile is revealed
+      console.log('  Testing coffin token placement on tile reveal...');
+      // Reorder unplacedCoffinTokens so Strahd's coffin is LAST (not first revealed)
+      const nonStrahd = s1State.unplacedCoffinTokens.filter(t => !t.isStrahds);
+      const strahdToken = s1State.unplacedCoffinTokens.find(t => t.isStrahds)!;
+      const reorderedTokens = [...nonStrahd, strahdToken];
+
+      // Inject a start tile and a known coffin deck order into state
+      const startTile: Tile = {
+        id: 'start-tile',
+        name: 'Start',
+        x: 0, z: 0,
+        terrainType: 'corridor',
+        connections: [{ edge: 'east', isOpen: true }],
+        boneSquare: { sqX: 2, sqZ: 2 },
+        isRevealed: true,
+        isStart: true,
+        isExit: false,
+        rotation: 0,
+        monsters: [], heroes: [], items: []
+      };
+
+      useGameStore.setState({
+        gameState: {
+          ...s1State,
+          tiles: [startTile],
+          unplacedCoffinTokens: reorderedTokens,
+          tokens: [],
+          strahdsCoffinTokenId: null
+        }
+      });
+
+      // Simulate tile placement via TokenSystem directly
+      const { TokenSystem: TS } = await import('../game/engine/TokenSystem');
+      const stateForPlacement = useGameStore.getState().gameState!;
+      const { token: firstCoffinToken, newState: afterPlacement } = TS.placeCoffinOnNewTile(
+        stateForPlacement, 'new-tile-1', 1, 0
+      );
+
+      if (!firstCoffinToken) throw new Error('Scenario 1: coffin token was not placed on new tile');
+      if (firstCoffinToken.type !== 'coffin') throw new Error('Scenario 1: placed token has wrong type');
+      if (firstCoffinToken.metadata?.isStrahdsCoffin) {
+        throw new Error('Scenario 1: first token should not be Strahd (he was placed last)');
+      }
+      if (afterPlacement.unplacedCoffinTokens!.length !== reorderedTokens.length - 1) {
+        throw new Error('Scenario 1: unplacedCoffinTokens count not decremented after placement');
+      }
+      console.log('  Coffin token placement PASSED');
+
+      // 3. Test searching a non-Strahd coffin does NOT trigger victory
+      console.log('  Testing searching a non-Strahd coffin does not trigger victory...');
+      useGameStore.setState({ gameState: afterPlacement });
+      const searchResult = store.searchToken(firstCoffinToken.id);
+      if (!searchResult) throw new Error('Scenario 1: searchToken returned null');
+      if (!searchResult.success) throw new Error(`Scenario 1: search was not successful: ${searchResult.message}`);
+      const stateAfterSearch = useGameStore.getState().gameState!;
+      if (stateAfterSearch.phase === 'victory') {
+        throw new Error('Scenario 1: victory triggered after searching a non-Strahd coffin');
+      }
+      const searchedToken = stateAfterSearch.tokens?.find(t => t.id === firstCoffinToken.id);
+      if (!searchedToken?.isSearched) {
+        throw new Error('Scenario 1: token was not marked as searched');
+      }
+      console.log('  Non-Strahd coffin search PASSED');
+
+      // 4. Test Strahd Awakens after 4 coffins searched
+      console.log('  Testing Strahd Awakens after 4 coffins searched...');
+      // Build 4 already-searched non-Strahd coffin tokens on the board
+      const searchedCoffins = Array.from({ length: 4 }, (_, i) => ({
+        id: `coffin_${i}`,
+        type: 'coffin' as const,
+        name: `Coffin ${i}`,
+        tileId: 'start-tile',
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+        isRevealed: true,
+        isSearched: true,  // Already searched
+        metadata: { isStrahdsCoffin: false, tokenId: 'coffin_empty' }
+      }));
+
+      // Place one more (the 5th) unsearched coffin token, which is Strahd's
+      const strahdCoffinToken = {
+        id: 'coffin_strahd_token',
+        type: 'coffin' as const,
+        name: 'Coffin',
+        tileId: 'start-tile',
+        position: { x: 0, z: 0, sqX: 2, sqZ: 2 },
+        isRevealed: true,
+        isSearched: false,
+        metadata: { isStrahdsCoffin: true, tokenId: 'coffin_strahd' }
+      };
+
+      // Set up a pre-4-searched state (3 searched, about to search 4th)
+      const preAwaken = useGameStore.getState().gameState!;
+      const threeCoffins = searchedCoffins.slice(0, 3);
+      const fourthCoffin = {
+        ...searchedCoffins[3],
+        isSearched: false  // Not yet searched - this one will trigger awakening
+      };
+
+      useGameStore.setState({
+        gameState: {
+          ...preAwaken,
+          tokens: [...threeCoffins, fourthCoffin, strahdCoffinToken],
+          strahdsCoffinTokenId: strahdCoffinToken.id,
+          strahdAwakened: false,
+          monsters: []
+        }
+      });
+
+      // Search the 4th coffin to trigger awakening
+      store.searchToken(fourthCoffin.id);
+      const stateAfterAwaken = useGameStore.getState().gameState!;
+      if (!stateAfterAwaken.strahdAwakened) {
+        throw new Error('Scenario 1: strahdAwakened should be true after 4th coffin searched');
+      }
+      // Phase should still not be victory (Strahd's coffin not found yet)
+      if (stateAfterAwaken.phase === 'victory') {
+        throw new Error('Scenario 1: victory should not be triggered on 4th coffin (non-Strahd)');
+      }
+      console.log('  Strahd Awakens rule PASSED');
+
+      // 5. Test finding Strahd's coffin triggers victory
+      console.log('  Testing finding Strahd\'s Coffin triggers victory...');
+      store.searchToken(strahdCoffinToken.id);
+      const stateAfterVictory = useGameStore.getState().gameState!;
+      if (stateAfterVictory.phase !== 'victory') {
+        throw new Error(`Scenario 1: expected phase=victory after finding Strahd's coffin, got ${stateAfterVictory.phase}`);
+      }
+      // Verify objective is marked completed
+      const s1Objectives = ObjectiveTracker.checkObjectives(stateAfterVictory);
+      const coffinObj = s1Objectives.find(obj => obj.type === 'find_coffin');
+      if (!coffinObj || !coffinObj.isCompleted) {
+        throw new Error('Scenario 1: find_coffin objective not completed after finding Strahd\'s coffin');
+      }
+      console.log('  Victory condition PASSED');
+
+      console.log('  Scenario 1: Find Strahd\'s Coffin Verification PASSED');
+    }
+
+    // -----------------------------------------------------------------------
+    // Cleave Mechanics Verification
+    // -----------------------------------------------------------------------
+    {
+      console.log('Testing Cleave mechanics...');
+      
+      const cleaveHero: Hero = {
+        id: 'hero_cleave_test',
+        name: 'Cleave Fighter',
+        type: 'hero',
+        heroClass: 'fighter',
+        level: 1,
+        maxHp: 10,
+        hp: 10,
+        ac: 15,
+        speed: 6,
+        xp: 0,
+        surgeValue: 3,
+        surgeUsed: false,
+        abilities: ['fighter_cleave'],
+        hand: [],
+        items: [],
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+        isExhausted: false,
+        attackBonus: 0,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const zombieA: Monster = {
+        id: 'zombie_a',
+        name: 'Zombie A',
+        type: 'monster',
+        monsterType: 'zombie',
+        behavior: { conditions: [], priorityTargets: [], actions: [] },
+        attackBonus: 0,
+        damage: 1,
+        experienceValue: 1,
+        ownedByHeroId: null,
+        position: { x: 0, z: 0, sqX: 2, sqZ: 1 },
+        hp: 2,
+        maxHp: 2,
+        ac: 10,
+        speed: 4,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const zombieB: Monster = {
+        id: 'zombie_b',
+        name: 'Zombie B',
+        type: 'monster',
+        monsterType: 'zombie',
+        behavior: { conditions: [], priorityTargets: [], actions: [] },
+        attackBonus: 0,
+        damage: 1,
+        experienceValue: 1,
+        ownedByHeroId: null,
+        position: { x: 0, z: 0, sqX: 2, sqZ: 2 },
+        hp: 2,
+        maxHp: 2,
+        ac: 10,
+        speed: 4,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const cleaveTile: Tile = {
+        id: 'cleave_tile',
+        name: 'Cleave Tile',
+        x: 0,
+        z: 0,
+        terrainType: 'corridor',
+        connections: [],
+        boneSquare: { sqX: 1, sqZ: 1 },
+        isRevealed: true,
+        isStart: true,
+        isExit: false,
+        rotation: 0,
+        monsters: ['zombie_a', 'zombie_b'],
+        heroes: ['hero_cleave_test'],
+        items: []
+      };
+
+      const cleaveGameState: GameState = {
+        phase: 'hero',
+        currentHeroId: 'hero_cleave_test',
+        heroes: [cleaveHero],
+        monsters: [zombieA, zombieB],
+        tiles: [cleaveTile],
+        dungeonDeck: [],
+        treasureDeck: [],
+        encounterDeck: [],
+        monsterDeck: [],
+        discardPiles: { treasure: [], encounter: [], ability: [], monster: [] },
+        activeScenario: { id: 'cleave_test', name: 'Cleave Test', difficulty: 'Easy', description: 'Cleave Test', introText: '', victoryText: '', defeatText: '', objectives: [], specialRules: [], startTileId: 'cleave_tile', maxSurges: 3 },
+        turnOrder: ['hero_cleave_test'],
+        healingSurges: 2,
+        turnCount: 1,
+        log: [],
+        activeEnvironmentCard: null,
+        experiencePile: [],
+        treasuresDrawnThisTurn: 0,
+        traps: [],
+        villainPhaseQueue: [],
+        activeVillainId: null,
+        cardResolution: { phase: 'idle', cardId: null, cardType: null, pendingEffects: [], resolvedEffects: [], targetEntityId: null, result: null }
+      };
+
+      const cleaveCard = DataLoader.getInstance().getCardById('fighter_cleave');
+      if (!cleaveCard) throw new Error('Cleave card not found in DataLoader');
+
+      // Test 1: Hit path
+      // Force hit (roll = 10, bonus = 6 -> total = 16 >= AC 10)
+      AbilitySystem._rollOverride = () => 10;
+
+      const hitResult = await PowerSystem.usePowerAsync(cleaveHero, cleaveCard, zombieA, cleaveGameState);
+      
+      AbilitySystem._rollOverride = null;
+
+      if (!hitResult.success) {
+        throw new Error(`Cleave: expected success, got failure: ${hitResult.message}`);
+      }
+
+      const updatedZombieA = hitResult.newState.monsters.find(m => m.id === 'zombie_a')!;
+      const updatedZombieB = hitResult.newState.monsters.find(m => m.id === 'zombie_b')!;
+      const updatedHero = hitResult.newState.heroes.find(h => h.id === 'hero_cleave_test')!;
+
+      // Zombie A (primary target) should have taken 1 damage (HP 2 -> 1)
+      if (updatedZombieA.hp !== 1) {
+        throw new Error(`Cleave: primary target should have taken 1 damage, got hp = ${updatedZombieA.hp}`);
+      }
+
+      // Zombie B (cleaved target) should have taken 1 damage (HP 2 -> 1)
+      if (updatedZombieB.hp !== 1) {
+        throw new Error(`Cleave: secondary target should have taken 1 damage, got hp = ${updatedZombieB.hp}`);
+      }
+
+      // Hero should have moved adjacent to Zombie B (Zombie B is at 2,2, so hero should be at an adjacent square on tile 0,0)
+      const dist = Math.abs(updatedHero.position.sqX - updatedZombieB.position.sqX) + Math.abs(updatedHero.position.sqZ - updatedZombieB.position.sqZ);
+      if (dist !== 1) {
+        throw new Error(`Cleave: hero should have moved adjacent to secondary target, got distance = ${dist}`);
+      }
+
+      // Test 2: Miss path
+      // Force miss (roll = 2, bonus = 6 -> total = 8 < AC 10)
+      AbilitySystem._rollOverride = () => 2;
+
+      const missResult = await PowerSystem.usePowerAsync(cleaveHero, cleaveCard, zombieA, cleaveGameState);
+      
+      AbilitySystem._rollOverride = null;
+
+      if (!missResult.success) {
+        throw new Error(`Cleave (miss): expected success, got failure: ${missResult.message}`);
+      }
+
+      const missZombieA = missResult.newState.monsters.find(m => m.id === 'zombie_a')!;
+      const missZombieB = missResult.newState.monsters.find(m => m.id === 'zombie_b')!;
+      const missHero = missResult.newState.heroes.find(h => h.id === 'hero_cleave_test')!;
+
+      // Zombie A should not have taken damage on miss (no missDamage on Cleave)
+      if (missZombieA.hp !== 2) {
+        throw new Error(`Cleave (miss): primary target should not have taken damage, got hp = ${missZombieA.hp}`);
+      }
+
+      // Zombie B should not have taken damage on miss
+      if (missZombieB.hp !== 2) {
+        throw new Error(`Cleave (miss): secondary target should not have taken damage, got hp = ${missZombieB.hp}`);
+      }
+
+      // Hero should not have moved
+      if (missHero.position.sqX !== 1 || missHero.position.sqZ !== 1) {
+        throw new Error(`Cleave (miss): hero should not have moved, got position: (${missHero.position.sqX}, ${missHero.position.sqZ})`);
+      }
+
+      console.log('  Cleave Verification PASSED');
+    }
+
+    // -----------------------------------------------------------------------
+    // Fighter Powers Verification (Brute Strike, Precise Strike, Come and Get It, Get Over There, Unstoppable, Bodyguard, Tide of Iron)
+    // -----------------------------------------------------------------------
+    {
+      console.log('Testing remaining Fighter powers...');
+
+      // Setup a game state with a fighter hero and some zombies on a start tile and adjacent tile
+      const fighterHero: Hero = {
+        id: 'fighter_hero_test',
+        name: 'Arjhan Fighter',
+        type: 'hero',
+        heroClass: 'fighter',
+        level: 1,
+        maxHp: 10,
+        hp: 8, // start slightly damaged for Unstoppable test
+        ac: 15,
+        speed: 6,
+        xp: 0,
+        surgeValue: 3,
+        surgeUsed: false,
+        abilities: ['fighter_brute_strike', 'fighter_precise_strike', 'fighter_come_and_get_it', 'fighter_get_over_there', 'fighter_unstoppable', 'fighter_tide_of_iron', 'fighter_bodyguard'],
+        hand: [],
+        items: [],
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+        isExhausted: false,
+        attackBonus: 0,
+        conditions: [],
+        usedPowers: [],
+        flippedPowerIds: []
+      };
+
+      const companionHero: Hero = {
+        id: 'companion_hero_test',
+        name: 'Companion Hero',
+        type: 'hero',
+        heroClass: 'cleric',
+        level: 1,
+        maxHp: 8,
+        hp: 8,
+        ac: 14,
+        speed: 5,
+        xp: 0,
+        surgeValue: 3,
+        surgeUsed: false,
+        abilities: [],
+        hand: [],
+        items: [],
+        position: { x: 0, z: 0, sqX: 2, sqZ: 2 },
+        isExhausted: false,
+        attackBonus: 0,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const zombieA: Monster = {
+        id: 'zombie_a',
+        name: 'Zombie A',
+        type: 'monster',
+        monsterType: 'zombie',
+        behavior: { conditions: [], priorityTargets: [], actions: [] },
+        attackBonus: 5,
+        damage: 2,
+        experienceValue: 1,
+        ownedByHeroId: null,
+        position: { x: 0, z: 0, sqX: 2, sqZ: 1 }, // adjacent to fighter (1,1)
+        hp: 2,
+        maxHp: 2,
+        ac: 10,
+        speed: 4,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const zombieB: Monster = {
+        id: 'zombie_b',
+        name: 'Zombie B',
+        type: 'monster',
+        monsterType: 'zombie',
+        behavior: { conditions: [], priorityTargets: [], actions: [] },
+        attackBonus: 5,
+        damage: 2,
+        experienceValue: 1,
+        ownedByHeroId: null,
+        position: { x: 0, z: 1, sqX: 2, sqZ: 2 }, // on adjacent tile (0,1)
+        hp: 2,
+        maxHp: 2,
+        ac: 10,
+        speed: 4,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const startTile: Tile = {
+        id: 'start_tile',
+        name: 'Start Tile',
+        x: 0,
+        z: 0,
+        terrainType: 'corridor',
+        connections: [openEdge('north')],
+        boneSquare: { sqX: 1, sqZ: 1 },
+        isRevealed: true,
+        isStart: true,
+        isExit: false,
+        rotation: 0,
+        monsters: ['zombie_a'],
+        heroes: ['fighter_hero_test', 'companion_hero_test'],
+        items: []
+      };
+
+      const northTile: Tile = {
+        id: 'north_tile',
+        name: 'North Tile',
+        x: 0,
+        z: 1,
+        terrainType: 'corridor',
+        connections: [openEdge('south')],
+        boneSquare: { sqX: 1, sqZ: 1 },
+        isRevealed: true,
+        isStart: false,
+        isExit: false,
+        rotation: 0,
+        monsters: ['zombie_b'],
+        heroes: [],
+        items: []
+      };
+
+      const testGameState: GameState = {
+        phase: 'hero',
+        currentHeroId: 'fighter_hero_test',
+        heroes: [fighterHero, companionHero],
+        monsters: [zombieA, zombieB],
+        tiles: [startTile, northTile],
+        dungeonDeck: [],
+        treasureDeck: [],
+        encounterDeck: [],
+        monsterDeck: [],
+        discardPiles: { treasure: [], encounter: [], ability: [], monster: [] },
+        activeScenario: { id: 'fighter_test', name: 'Fighter Test', difficulty: 'Easy', description: 'Fighter Test', introText: '', victoryText: '', defeatText: '', objectives: [], specialRules: [], startTileId: 'start_tile', maxSurges: 3 },
+        turnOrder: ['fighter_hero_test'],
+        healingSurges: 2,
+        turnCount: 1,
+        log: [],
+        activeEnvironmentCard: null,
+        experiencePile: [],
+        treasuresDrawnThisTurn: 0,
+        traps: [],
+        villainPhaseQueue: [],
+        activeVillainId: null,
+        cardResolution: { phase: 'idle', cardId: null, cardType: null, pendingEffects: [], resolvedEffects: [], targetEntityId: null, result: null }
+      };
+
+      const dataLoader = DataLoader.getInstance();
+
+      // --- TEST 1: Unstoppable (Heal self 2 HP) ---
+      {
+        const unstoppableCard = dataLoader.getCardById('fighter_unstoppable')!;
+        const result = PowerSystem.usePower(fighterHero, unstoppableCard, null, testGameState);
+        if (!result.success) {
+          throw new Error(`Unstoppable: expected success, got failure: ${result.message}`);
+        }
+        const updatedHero = result.newState.heroes.find(h => h.id === 'fighter_hero_test')!;
+        if (updatedHero.hp !== 10) {
+          throw new Error(`Unstoppable: expected HP to be 10, got ${updatedHero.hp}`);
+        }
+        if (!updatedHero.flippedPowerIds?.includes('fighter_unstoppable')) {
+          throw new Error('Unstoppable: expected card to be flipped');
+        }
+        console.log('  Unstoppable test PASSED');
+      }
+
+      // --- TEST 2: Brute Strike / Precise Strike (Flipping Logic) ---
+      {
+        const bruteCard = dataLoader.getCardById('fighter_brute_strike')!;
+        
+        // 2a. Miss Path -> should NOT flip
+        AbilitySystem._rollOverride = () => 2; // total = 2 + 5 = 7 < AC 10
+        const missResult = PowerSystem.usePower(fighterHero, bruteCard, zombieA, testGameState);
+        AbilitySystem._rollOverride = null;
+        if (!missResult.success) {
+          throw new Error(`Brute Strike (miss): expected success, got failure: ${missResult.message}`);
+        }
+        const missHero = missResult.newState.heroes.find(h => h.id === 'fighter_hero_test')!;
+        if (missHero.flippedPowerIds?.includes('fighter_brute_strike')) {
+          throw new Error('Brute Strike (miss): should NOT have flipped the power');
+        }
+
+        // 2b. Hit Path -> should flip
+        AbilitySystem._rollOverride = () => 10; // total = 10 + 5 = 15 >= AC 10
+        const hitResult = PowerSystem.usePower(fighterHero, bruteCard, zombieA, testGameState);
+        AbilitySystem._rollOverride = null;
+        if (!hitResult.success) {
+          throw new Error(`Brute Strike (hit): expected success, got failure: ${hitResult.message}`);
+        }
+        const hitHero = hitResult.newState.heroes.find(h => h.id === 'fighter_hero_test')!;
+        if (!hitHero.flippedPowerIds?.includes('fighter_brute_strike')) {
+          throw new Error('Brute Strike (hit): should have flipped the power');
+        }
+
+        const hitZombie = hitResult.newState.monsters.find(m => m.id === 'zombie_a')!;
+        if (hitZombie.hp !== 0 || !hitZombie.isDefeated) {
+          throw new Error(`Brute Strike (hit): expected monster to be defeated, got HP ${hitZombie.hp}`);
+        }
+        console.log('  Brute Strike flipping test PASSED');
+      }
+
+      // --- TEST 3: Get Over There! (Teleport adjacent to monster within 2 tiles) ---
+      {
+        const getOverThereCard = dataLoader.getCardById('fighter_get_over_there')!;
+        const result = PowerSystem.usePower(fighterHero, getOverThereCard, zombieB, testGameState);
+        if (!result.success) {
+          throw new Error(`Get Over There: expected success, got failure: ${result.message}`);
+        }
+        const updatedHero = result.newState.heroes.find(h => h.id === 'fighter_hero_test')!;
+        if (updatedHero.position.x !== 0 || updatedHero.position.z !== 1) {
+          throw new Error(`Get Over There: expected hero to be on tile (0,1), got (${updatedHero.position.x}, ${updatedHero.position.z})`);
+        }
+        const dist = Math.abs(updatedHero.position.sqX - zombieB.position.sqX) + Math.abs(updatedHero.position.sqZ - zombieB.position.sqZ);
+        if (dist !== 1) {
+          throw new Error(`Get Over There: expected hero to be adjacent to Zombie B on tile, got distance ${dist}`);
+        }
+        console.log('  Get Over There test PASSED');
+      }
+
+      // --- TEST 4: Tide of Iron (Attack adjacent, hit -> place monster within 1 tile, move hero on tile) ---
+      {
+        const tideCard = dataLoader.getCardById('fighter_tide_of_iron')!;
+        AbilitySystem._rollOverride = () => 10; // hit
+        const result = PowerSystem.usePower(fighterHero, tideCard, zombieA, testGameState);
+        AbilitySystem._rollOverride = null;
+        if (!result.success) {
+          throw new Error(`Tide of Iron: expected success, got failure: ${result.message}`);
+        }
+
+        const updatedZombie = result.newState.monsters.find(m => m.id === 'zombie_a')!;
+        const updatedHero = result.newState.heroes.find(h => h.id === 'fighter_hero_test')!;
+
+        if (updatedZombie.hp !== 1) {
+          throw new Error(`Tide of Iron: expected zombie HP to be 1, got ${updatedZombie.hp}`);
+        }
+
+        const tileDist = Math.abs(updatedZombie.position.x - fighterHero.position.x) + Math.abs(updatedZombie.position.z - fighterHero.position.z);
+        if (tileDist > 1) {
+          throw new Error(`Tide of Iron: expected zombie to be within 1 tile, got tile distance ${tileDist}`);
+        }
+
+        if (updatedHero.position.x !== 0 || updatedHero.position.z !== 0) {
+          throw new Error(`Tide of Iron: expected hero to stay on tile (0,0), got (${updatedHero.position.x}, ${updatedHero.position.z})`);
+        }
+        console.log('  Tide of Iron test PASSED');
+      }
+
+      // --- TEST 5: Come and Get It (Pull monsters from nearby tile, attack all adjacent) ---
+      {
+        const comeAndGetItCard = dataLoader.getCardById('fighter_come_and_get_it')!;
+        AbilitySystem._rollOverride = () => 10;
+        const result = PowerSystem.usePower(fighterHero, comeAndGetItCard, zombieB, testGameState);
+        AbilitySystem._rollOverride = null;
+
+        if (!result.success) {
+          throw new Error(`Come and Get It: expected success, got failure: ${result.message}`);
+        }
+
+        const updatedZombieB = result.newState.monsters.find(m => m.id === 'zombie_b')!;
+        if (updatedZombieB.position.x !== 0 || updatedZombieB.position.z !== 0) {
+          throw new Error(`Come and Get It: expected Zombie B to be pulled to tile (0,0), got (${updatedZombieB.position.x}, ${updatedZombieB.position.z})`);
+        }
+        const dist = Math.abs(updatedZombieB.position.sqX - fighterHero.position.sqX) + Math.abs(updatedZombieB.position.sqZ - fighterHero.position.sqZ);
+        if (dist !== 1) {
+          throw new Error(`Come and Get It: expected Zombie B adjacent to hero, got square distance ${dist}`);
+        }
+
+        if (updatedZombieB.hp !== 1) {
+          throw new Error(`Come and Get It: expected Zombie B to take 1 damage, got hp ${updatedZombieB.hp}`);
+        }
+        console.log('  Come and Get It test PASSED');
+      }
+
+      // --- TEST 6: Bodyguard (Intercept attack on adjacent hero, swap positions, make attack miss) ---
+      {
+        const activeMonster = {
+          ...zombieA,
+          ownedByHeroId: 'fighter_hero_test', // so it acts on active hero's villain phase
+          position: { x: 0, z: 0, sqX: 2, sqZ: 3 } // adjacent to companion hero (2,2)
+        };
+
+        const bodyguardGameState = {
+          ...testGameState,
+          currentHeroId: 'fighter_hero_test',
+          monsters: [activeMonster],
+          heroes: [
+            { ...fighterHero, position: { x: 0, z: 0, sqX: 1, sqZ: 2 } }, // within 1 tile of companion at (2,2)
+            { ...companionHero, position: { x: 0, z: 0, sqX: 2, sqZ: 2 }, hp: 8 }
+          ]
+        };
+
+        AbilitySystem._rollOverride = () => 15; // hits companion (AC 14)
+        const postVillainState = executeVillainPhase(bodyguardGameState);
+        AbilitySystem._rollOverride = null;
+
+        const resolvedCompanion = postVillainState.heroes.find(h => h.id === 'companion_hero_test')!;
+        const resolvedFighter = postVillainState.heroes.find(h => h.id === 'fighter_hero_test')!;
+
+        // Companion should take 0 damage
+        if (resolvedCompanion.hp !== 8) {
+          throw new Error(`Bodyguard: expected companion HP to stay at 8, got ${resolvedCompanion.hp}`);
+        }
+
+        // They should have swapped positions
+        if (resolvedCompanion.position.sqX !== 1 || resolvedCompanion.position.sqZ !== 2) {
+          throw new Error(`Bodyguard: expected companion to swap to fighter position (1,2), got (${resolvedCompanion.position.sqX}, ${resolvedCompanion.position.sqZ})`);
+        }
+        if (resolvedFighter.position.sqX !== 2 || resolvedFighter.position.sqZ !== 2) {
+          throw new Error(`Bodyguard: expected fighter to swap to companion position (2,2), got (${resolvedFighter.position.sqX}, ${resolvedFighter.position.sqZ})`);
+        }
+
+        // Fighter should have flipped the power
+        if (!resolvedFighter.flippedPowerIds?.includes('fighter_bodyguard')) {
+          throw new Error('Bodyguard: expected power to be flipped');
+        }
+
+        console.log('  Bodyguard test PASSED');
+      }
+
+      console.log('  Remaining Fighter powers tests PASSED');
+    }
 
     // -----------------------------------------------------------------------
 

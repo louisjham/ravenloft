@@ -12,7 +12,7 @@ This file provides guidance to agents when working with code in this repository.
 
 ### Data Organization
 - All game content in JSON files under `src/data/`:
-  - `heroes.json` - 5 hero characters (Arjhan, Immeril, Kat, Thorgrim, Vani)
+  - `heroes.json` - 5 hero characters (Arjhan, Immeril, Kat, Thorgrim, Alanni)
   - `monsters.json` - 13 monster types with behaviors
   - `tiles.json` - 42 dungeon tiles (4x4 grid each)
   - `cards/` subdirectory - Attack, Item, Spell, Encounter, Treasure cards

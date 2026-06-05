@@ -45,8 +45,8 @@ export class ActionResolver {
     target: Hero | Monster,
     modifiers: number = 0
   ): AttackResult {
-    const attackBonus = (attacker as any).attackBonus || 0; // Heroes might have dynamic bonuses
-    const damage = (attacker as any).damage || 1;
+    const attackBonus = attacker.attackBonus;
+    const damage = attacker.type === 'monster' ? attacker.damage : 1;
 
     return CombatSystem.resolveAttack(attacker, target, attackBonus, damage, modifiers);
   }

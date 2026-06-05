@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { useSelection } from '../../hooks/useSelection'
 import { useKeyboard } from '../../hooks/useKeyboard'
 import { useThree } from '@react-three/fiber'
+import { useDiceStore } from '../../store/diceStore'
 
 /**
  * GameController is a non-rendering component that manages 
@@ -28,6 +29,33 @@ export const GameController: React.FC = () => {
       gl.domElement.removeEventListener('pointermove', handleMove);
     };
   }, [gl, handleClick, handlePointerMove]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        const store = useDiceStore.getState();
+        if (store.phase === 'announcing') {
+          e.preventDefault();
+          store.finishAnnouncement();
+          if (!store.isAutoRoll) {
+            store.playerRoll();
+          }
+        } else if (store.phase === 'waiting_for_roll') {
+          e.preventDefault();
+          store.playerRoll();
+        } else if (store.phase === 'showing_result') {
+          e.preventDefault();
+          store.dismiss();
+        } else if (store.phase === 'dismissing') {
+          e.preventDefault();
+          store.reset();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return null;
 }

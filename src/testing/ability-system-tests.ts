@@ -36,7 +36,12 @@ function createTestGameState(heroes: Hero[], monsters: Monster[], tiles: Tile[])
         dungeonDeck: [],
         treasureDeck: [],
         encounterDeck: [],
-        discardPiles: {},
+        discardPiles: {
+            treasure: [],
+            encounter: [],
+            ability: [],
+            monster: []
+        },
         activeScenario: {
             id: 'test_scenario',
             name: 'Test Scenario',
@@ -60,7 +65,14 @@ function createTestGameState(heroes: Hero[], monsters: Monster[], tiles: Tile[])
         traps: [],
         villainPhaseQueue: [],
         activeVillainId: null,
-    activeConditions: []
+    powerSelections: [],
+      cardResolution: { phase: 'idle' as const, cardId: null, cardType: null, targetEntityId: null, pendingEffects: [], resolvedEffects: [] },
+      treasureAssignments: [],
+      tokens: [],
+      strahdsCoffinTokenId: null,
+      unplacedCoffinTokens: [],
+      
+      monsterDeck: [], hasExploredThisTurn: false, activeConditions: []
     };
 }
 
@@ -96,6 +108,7 @@ function createTestHero(id: string, hp: number = 10, position: Position = { x: 0
         type: 'hero',
         heroClass: 'fighter',
         level: 1,
+        surgeValue: 3,
         xp: 0,
         surgeUsed: false,
         abilities: [],
@@ -107,6 +120,7 @@ function createTestHero(id: string, hp: number = 10, position: Position = { x: 0
         ac: 16,
         speed: 6,
         isExhausted: false,
+        attackBonus: 0,
         conditions: [],
         usedPowers: []
     };

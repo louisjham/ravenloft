@@ -1,26 +1,34 @@
 [
   {
-    "id": "card-vani-aimed-shot",
-    "name": "Aimed Shot",
+    "id": "vani_power_1",
     "type": "ability",
-    "heroClass": "Ranger",
+    "name": "Aimed Shot",
     "description": "Attack +8 against a monster within 2 tiles. Damage 1.",
+    "attackBonus": 8,
+    "damage": 1,
+    "range": 2,
+    "target": "single",
     "effects": [
-      "attack:range:2,8,1"
+      { "type": "attack", "value": 1, "target": "single", "when": "always" }
     ],
     "phase": "hero",
+    "heroClass": "ranger",
     "powerType": "at-will"
   },
   {
-    "id": "card-vani-twin-strike",
-    "name": "Twin Strike",
+    "id": "vani_power_2",
     "type": "ability",
-    "heroClass": "Ranger",
+    "name": "Twin Strike",
     "description": "Make two attacks (+6) against the same or different monsters within 1 tile. Damage 1 each.",
+    "attackBonus": 6,
+    "damage": 1,
+    "range": 1,
+    "target": "single",
     "effects": [
-      "attack:range:1,6,1,count:2"
+      { "type": "attack", "value": 1, "target": "single", "when": "always" }
     ],
     "phase": "hero",
+    "heroClass": "ranger",
     "powerType": "at-will"
   }
 ]

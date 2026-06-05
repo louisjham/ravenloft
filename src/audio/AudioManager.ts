@@ -103,7 +103,7 @@ export class AudioManager {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
       
-      audio.volume = startVolume + (targetVolume - startVolume) * progress;
+      audio.volume = Math.max(0, Math.min(1, startVolume + (targetVolume - startVolume) * progress));
 
       if (progress < 1) {
         requestAnimationFrame(update);

@@ -1,0 +1,193 @@
+# Castle Ravenloft Digital — Playability Assessment
+**Date:** 2026-03-27 | **Status:** Deep Dive Analysis
+
+---
+
+## 🎯 Executive Summary
+
+The game has **significantly more content than the previous MVP estimate indicated**. The tile count has jumped from the documented "4 tiles" to **41 tiles** — meaning the [tiles.json](file:///c:/antigravity/ravenloft/src/data/tiles.json) P0 blocker is effectively **RESOLVED**. Monster spawn cards grew from 5 to **28 entries**. Item cards expanded from 2 to **15** — now matching the board game exactly.
+
+The game is now very close to a playable MVP. The remaining gaps are primarily:
+1. **Broken/disconnected gameplay paths** (the biggest risk)
+2. **Missing content** in hero abilities and power cards
+3. **Unhandled UI states** that could make a session feel stuck or confusing
+
+---
+
+## 📊 Actual Data Inventory (2026-03-27)
+
+| Category | Previous Estimate | **Actual Count** | Board Game | Gap | Status |
+|---|---|---|---|---|---|
+| **Tiles** | 4 | **41** | ~40 | +1 | ✅ **Complete** |
+| **Monster Spawn Cards** | 5 | **28** | ~30 | -2 | 🟢 Near-Complete |
+| **Encounter Cards** | 35 | 35 | ~44 | -9 | 🟢 Good |
+| **Treasure Cards** | 34 | 34 | ~32 | +2 | ✅ Complete |
+| **Item Cards** | 2 | **15** | ~15 | 0 | ✅ **Complete** |
+| **Hero Abilities** | 10 | **10** | 20 (4x5) | -10 | 🟡 Partial |
+| **Power Cards** | 17 | 17 | ~40-50 | -23 | 🟡 Partial |
+| **Monster Stat Blocks** | 13 | **15** | ~13 | +2 | ✅ **Complete** |
+| **Scenarios** | 5 | 5 | 13 | -8 | 🟢 MVP OK |
+
+> **Key update:** Tiles (41), monster spawn cards (28), items (15), and monster stat blocks (15) were all expanded since the last [mvp-estimate.md](file:///c:/antigravity/ravenloft/plans/mvp-estimate.md) was written. The old document significantly understates current content.
+
+---
+
+## ✅ What Is Working (Verified by Code)
+
+| System | Confidence |
+|---|---|
+| Main Menu → Scenario Select → Hero Select flow | ✅ High |
+| Power Selection Screen (auto + manual) | ✅ High |
+| [beginAdventure()](file:///c:/antigravity/ravenloft/src/store/gameStore.ts#604-620) → transitions to `'hero'` phase | ✅ High |
+| 3D Scene renders (DungeonBoard, Hero3D, Monster3D) | ✅ High |
+| Exploration arrows on open edges | ✅ High |
+| Tile draw + placement FSM (ExplorationStateMachine) | ✅ High |
+| Live 3D tile preview with rotation | ✅ High |
+| RotationPicker UI + keyboard shortcuts | ✅ High |
+| Edge alignment validation (`isPlacementValid`) | ✅ High |
+| Tile graph linking (`connectTiles`) | ✅ High |
+| Encounter card drawn after tile placement | ✅ High |
+| EncounterCardOverlay (drawing → revealing → resolving → complete) | ✅ High |
+| Villain Phase execution ([executeVillainPhase](file:///c:/antigravity/ravenloft/src/store/gameStore.ts#1013-1186)) | ✅ High |
+| Monster AI (move/attack/ability/boss phases) | ✅ High |
+| Combat resolution (d20 + AC check) | ✅ High |
+| Conditions system (Slowed, Stunned, Poisoned, etc.) | ✅ High |
+| Treasure card draw/use | ✅ High |
+| Experience system (cancel card, level-up) | ✅ High |
+| Save/Load (SaveSystem to localStorage) | ✅ High |
+| Deck exhausted handling | ✅ High |
+| CombatLog display | ✅ High |
+
+---
+
+## 🔴 BLOCKERS — Game Cannot Be Completed Without These
+
+### B1: No Win/Loss Condition Enforcement
+**Risk: CRITICAL**
+
+[VictoryScreen.tsx](file:///c:/antigravity/ravenloft/src/components/ui/VictoryScreen.tsx) and `uiStore` have a `victory` modal type, but nothing in [gameStore.ts](file:///c:/antigravity/ravenloft/src/store/gameStore.ts) checks win/loss conditions and exits the `'hero'` phase. A player can never win or lose — the game loops forever.
+
+- **Fix:** After every [endTurn()](file:///c:/antigravity/ravenloft/src/store/gameStore.ts#373-418), check `activeScenario.victoryCondition` against `gameState`. On win → [showModal('victory')](file:///c:/antigravity/ravenloft/src/store/uiStore.ts#80-81); on loss (all heroes HP=0 or healing surges=0) → [showModal('defeat')](file:///c:/antigravity/ravenloft/src/store/uiStore.ts#80-81).
+- **Effort:** 2-4 hours
+
+---
+
+### B2: Hero Movement Is Not Connected to the Tile Graph
+**Risk: HIGH**
+
+[moveHero()](file:///c:/antigravity/ravenloft/src/store/gameStore.ts#263-287) in [gameStore.ts](file:///c:/antigravity/ravenloft/src/store/gameStore.ts) only updates `hero.position` with a raw `{x, z}` coordinate — no validation that the target is reachable, connected, or within speed range. The [ActionBar](file:///c:/antigravity/ravenloft/src/components/ui/ActionBar.tsx#10-89) sets `interactionMode = 'move'`, but there is no click handler that reads this mode and calls [moveHero()](file:///c:/antigravity/ravenloft/src/store/gameStore.ts#263-287) with a valid target. **Heroes cannot actually move on the board.**
+
+- **Fix:** In [GameController](file:///c:/antigravity/ravenloft/src/components/interaction/GameController.tsx#6-34) / `useSelection`, handle `interactionMode === 'move'` → on tile click, validate adjacency + speed, then call [moveHero()](file:///c:/antigravity/ravenloft/src/store/gameStore.ts#263-287).
+- **Effort:** 3-5 hours
+
+---
+
+### B3: Attack Action Is Disconnected from UI
+**Risk: HIGH**
+
+[attackMonster()](file:///c:/antigravity/ravenloft/src/store/gameStore.ts#288-319) exists and is fully functional internally, but `interactionMode === 'attack'` has no 3D-scene click handler wired to monster entities. Players cannot initiate attacks.
+
+- **Fix:** In `Monster3D.tsx` or [GameController](file:///c:/antigravity/ravenloft/src/components/interaction/GameController.tsx#6-34), when `interactionMode === 'attack'` and a monster mesh is clicked, call [attackMonster(monster.id)](file:///c:/antigravity/ravenloft/src/store/gameStore.ts#288-319).
+- **Effort:** 1-2 hours
+
+---
+
+### B4: "Explore" Arrow Phase Gate Missing
+**Risk: HIGH**
+
+The exploration arrows in `ExplorationLayer` are always clickable — even during the villain phase, encounter resolution, etc. There is no phase guard in [App.tsx](file:///c:/antigravity/ravenloft/src/App.tsx) gating `onEdgeSelected`. This can cause tile placements to fire at wrong moments.
+
+- **Fix:** Gate `onEdgeSelected` behind `gameState.phase === 'hero'` in [App.tsx](file:///c:/antigravity/ravenloft/src/App.tsx).
+- **Effort:** 30 minutes
+
+---
+
+## 🟡 P1 — Broken UX That Will Confuse Players
+
+### P1-A: Deck Exhausted Message Is Unstyled
+In [App.tsx](file:///c:/antigravity/ravenloft/src/App.tsx) lines ~225-232, the deck exhausted state renders a plain `<div>` with inline styles. No gothic theme.
+- **Fix:** Wrap in a `.gothic-panel` styled modal.
+- **Effort:** 30 min
+
+### P1-B: RotationPicker Shows All 4 Rotations Always
+[App.tsx](file:///c:/antigravity/ravenloft/src/App.tsx) line ~237: `validRotations={[0, 90, 180, 270]}` is hardcoded. The FSM and `TileSystem.getValidRotations()` already compute valid rotations, but the picker never receives them.
+- **Fix:** Pass `exploration.validRotations` (from FSM state) into `RotationPicker`.
+- **Effort:** 30 min
+
+### P1-C: Hero Ability Cards Cannot Be Used
+[CardHand.tsx](file:///c:/antigravity/ravenloft/src/components/ui/CardHand.tsx) renders power cards, but [usePower()](file:///c:/antigravity/ravenloft/src/store/gameStore.ts#419-447) / `interactionMode === 'ability'` is not wired to any target-selection flow. Heroes cannot use powers mid-session.
+- **Effort:** 2-3 hours
+
+### P1-D: Healing Surge Button Missing
+`gameState.healingSurges` tracks the shared surge pool, but no UI button exists to spend one. [HeroPanel.tsx](file:///c:/antigravity/ravenloft/src/components/ui/HeroPanel.tsx) should expose this.
+- **Effort:** 1-2 hours
+
+### P1-E: Power Cards Still Limited
+With only 17 power cards for 5 heroes, each class feels thin. The engine handles powers correctly — it just needs more data.
+- **Effort:** 3-4 hours (data entry only)
+
+### P1-F: Coffin Token System Not Implemented
+Scenario 1 requires searching coffin tokens for Strahd's coffin. No token interaction system exists for this. Scenario 1 cannot be won even after B1 is fixed.
+- **Effort:** 3-4 hours
+
+---
+
+## 🟢 P2 — Nice-to-Have Polish
+
+| # | Item | Effort |
+|---|---|---|
+| 1 | Wire token PNGs (73 available) to UI via `tokenMap.ts` | 3-4 hrs |
+| 2 | Audio engine (replace `DUMMY_MODE=true`) | 4-6 hrs |
+| 3 | Add remaining 10 hero ability cards | 2-3 hrs |
+| 4 | Add remaining 9 encounter cards | 2 hrs |
+| 5 | Add Scenarios 6-13 | 4-6 hrs |
+| 6 | 3D trap visualization on tile surface | 2-3 hrs |
+| 7 | Line-of-Sight visual feedback for attacks | 2-3 hrs |
+| 8 | Save/Load UI integration (SaveSystem exists, no UI triggers it) | 2-3 hrs |
+| 9 | `treasureAssignments` field missing from [GameState](file:///c:/antigravity/ravenloft/src/store/gameStore.ts#105-107) type | Fix type |
+
+---
+
+## 🔁 Revised Priority Plan
+
+### Phase 1: "Game Loop Closes" (~1 day)
+Before a complete session is possible:
+
+1. **[B2] Wire hero movement** — Tile click in move mode → [moveHero()](file:///c:/antigravity/ravenloft/src/store/gameStore.ts#263-287) with adjacency check
+2. **[B3] Wire monster attacks** — Monster click in attack mode → [attackMonster()](file:///c:/antigravity/ravenloft/src/store/gameStore.ts#288-319)
+3. **[B1] Win/Loss detection** — After [endTurn()](file:///c:/antigravity/ravenloft/src/store/gameStore.ts#373-418), check objective + hero HP/surges
+4. **[B4] Gate exploration arrows** — Only respond during hero phase
+
+### Phase 2: "Session Feels Complete" (~half day)
+5. **[P1-C] Hero ability UI** — Click a card → [usePower()](file:///c:/antigravity/ravenloft/src/store/gameStore.ts#419-447) with targeting
+6. **[P1-D] Healing surge button** — Spend surges from HeroPanel
+7. **[P1-B] Fix RotationPicker** — Pass actual valid rotations from FSM
+8. **[P1-A] Style deck-exhausted modal** — Gothic panel
+
+### Phase 3: "Content Feels Rich" (~1-2 days)
+9. Add ~23 power cards to [powerCards.json](file:///c:/antigravity/ravenloft/src/data/powerCards.json)
+10. Add Coffin Token interaction system
+11. Add remaining hero ability cards
+
+---
+
+## ⏱️ Revised Time Estimate
+
+| Milestone | Effort | Status |
+|---|---|---|
+| Build Passing, Core Systems | — | ✅ Done |
+| Tile / Monster Content | — | ✅ Done |
+| Game Loop Closes (win/loss) | ~1 day | 🔴 NOT DONE |
+| Interactive Actions (move/attack/power) | ~1 day | 🔴 NOT DONE |
+| Content Feels Full | ~1-2 days | 🟡 Partial |
+| Polish | ~2-3 days | 🟢 Optional |
+
+**Total to Playable MVP: ~2 days**
+
+---
+
+## 💡 Key Insight
+
+Previous MVP estimates focused on *content* (tile count, card count) but missed the *interaction wiring* gap. The game engine computes everything correctly — combat math, movement pathing, conditions, deck management — but **the UI buttons do not call those engine functions**. The `interactionMode` state in `uiStore` sets a string, but the 3D scene has no listeners acting on that string to dispatch `gameStore` actions.
+
+**The true remaining MVP gap: connecting the buttons to the engine.**

@@ -3,6 +3,8 @@ import { Entity } from '../../game/types'
 import { useGameStore } from '../../store/gameStore'
 import { useGameActions } from '../../hooks/useGameActions'
 
+import { ThreeEvent } from '@react-three/fiber';
+
 interface EntityInteractionProps {
   entity: Entity;
   children: React.ReactNode;
@@ -15,7 +17,7 @@ export const EntityInteraction: React.FC<EntityInteractionProps> = ({ entity, ch
   const { selectedCard } = useGameStore();
   const { handleSelectEntity, handleAttackMonster } = useGameActions();
 
-  const onEntityClick = (e: any) => {
+  const onEntityClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     
     // If we have an attack card/ability selected and target is a monster
@@ -26,7 +28,7 @@ export const EntityInteraction: React.FC<EntityInteractionProps> = ({ entity, ch
     }
   };
 
-  const onEntityHover = (e: any) => {
+  const onEntityHover = (e: ThreeEvent<MouseEvent>) => {
     // Show stats tooltip logic
   };
 

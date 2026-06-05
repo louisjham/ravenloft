@@ -1,0 +1,36 @@
+{
+  "id": "adventure_06",
+  "name": "Destroy the Dracolich",
+  "difficulty": "Hard",
+  "description": "Find the Arcane Circle and defeat the Dracolich Gravestorm. Destroy Gravestorm's Phylactery in the Laboratory to deal massive damage to him.",
+  "objectives": [
+    {
+      "id": "defeat_gravestorm",
+      "type": "defeat_gravestorm",
+      "description": "Defeat Gravestorm, the Dracolich.",
+      "isCompleted": false
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "arcane_circle_spawns",
+      "description": "When the Arcane Circle is revealed, do not draw a Monster card. Spawn Gravestorm on it. Automatically place the Laboratory tile at least 4 tiles away and spawn Gravestorm's Phylactery on it."
+    },
+    {
+      "id": "destroy_phylactery",
+      "description": "A Hero adjacent to the Laboratory tile can make an attack against the Phylactery. Destroying the Phylactery immediately deals 10 damage to Gravestorm."
+    }
+  ],
+  "startTileId": "start-tile",
+  "setAsideTileIds": ["named_arcane_circle", "named_laboratory"],
+  "specialTilePlacements": [
+    {
+      "tileId": "named_arcane_circle",
+      "insertAfterIndex": 8
+    }
+  ],
+  "maxSurges": 2,
+  "introText": "Count Strahd has raised the dracolich Gravestorm to guard his crypts. You must find the Arcane Circle to challenge Gravestorm, and search out his phylactery in the Laboratory to weaken him.",
+  "victoryText": "Gravestorm explodes into shards of bone and green fire! The dracolich is defeated, and Strahd's most powerful ally is no more.",
+  "defeatText": "Gravestorm's lightning breath consumes you. Your bones will join his hoard in the crypts of Castle Ravenloft."
+}

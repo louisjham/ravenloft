@@ -54,6 +54,20 @@ const BOSS_PHASES: Record<string, BossPhase[]> = {
         { condition: 'hp_low', actions: ['regeneration'] }
       ]
     }
+  ],
+  'dracolich': [
+    {
+      id: 'dracolich_phase',
+      className: 'The Dracolich',
+      hpThreshold: 1.0,
+      triggers: ['start'],
+      abilities: ['blast_of_lightning', 'gravestorms_bite', 'burst_of_lightning'],
+      tactics: [
+        { condition: 'surrounded', actions: ['blast_of_lightning'] },
+        { condition: 'adjacent_to_hero', actions: ['gravestorms_bite'] },
+        { condition: 'default', actions: ['burst_of_lightning'] }
+      ]
+    }
   ]
 };
 

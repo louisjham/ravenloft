@@ -1,227 +1,283 @@
-import { Card, GameState, Hero } from '../types';
+import { GameState, Hero } from '../types';
 import { PowerSystem } from './PowerSystem';
+import { DataLoader } from '../dataLoader';
+
+// Both costs are 5 per rulebook — separate constants in case they ever diverge
+const XP_COST_CANCEL = 5;
+const XP_COST_LEVEL_UP = 5;
 
 /**
- * Experience System - Manages XP spending and leveling up
- * 
- * Rules from BoardGameRulesChecklist.md:
- * - Canceling Encounter Cards: Spend 5 XP to cancel an encounter card
+ * Experience System - Manages XP spending and leveling up.
+ * All methods that change state are pure — they return new GameState objects.
+ *
+ * Rules:
+ * - Canceling Encounter Cards: Spend monster cards whose XP values sum to ≥ 5 XP
  * - Leveling Up: Triggered by natural 20 on attack or disable trap roll, costs 5 XP
- * - Level 2 Benefits: HP +2, AC +1, Surge Value +1, choose new Daily power, gain critical ability
+ * - Level 2 Benefits: Max HP +2, heal 2 HP, AC +1, Surge Value +1, choose new Daily power
+ *
+ * XP values per monster (from the rulebook):
+ *   1 XP: Rat Swarm, Spider
+ *   2 XP: Kobold Skirmisher, Skeleton, Wolf
+ *   3 XP: Blazing Skeleton, Ghoul, Zombie
+ *   5 XP: Gargoyle, Wraith
  */
 export class ExperienceSystem {
-    /**
-     * Calculates total XP available from experience pile
-     */
-    public static getTotalXP(gameState: GameState): number {
-        let totalXP = 0;
-        for (const cardId of gameState.experiencePile) {
-            // In a real implementation, we'd look up the card's XP value
-            // For now, assume 100 XP per card
-            totalXP += 100;
-        }
-        return totalXP;
+
+  // ---------------------------------------------------------------------------
+  // Internal helpers
+  // ---------------------------------------------------------------------------
+
+  private static addToDiscard(
+    piles: GameState['discardPiles'],
+    key: string,
+    cardIds: string[]
+  ): GameState['discardPiles'] {
+    const pile = piles[key] ?? [];
+    return { ...piles, [key]: [...pile, ...cardIds] };
+  }
+
+  /**
+   * Looks up a monster template from DataLoader to get its XP value.
+   * Monster card IDs in the experience pile are template IDs from the monster deck.
+   */
+  private static getXpValue(monsterCardId: string): number {
+    const template = DataLoader.getInstance().getMonsterById(monsterCardId);
+    if (template && template.experienceValue) {
+      return template.experienceValue;
+    }
+    console.warn(`[ExperienceSystem] No monster template found for ID "${monsterCardId}", defaulting to 1 XP`);
+    return 1;
+  }
+
+  /**
+   * Gets the array of actual XP values for each card in the experience pile.
+   */
+  private static getXpValues(gameState: GameState): number[] {
+    return gameState.experiencePile.map(id => ExperienceSystem.getXpValue(id));
+  }
+
+  /**
+   * Finds the indices of cards from the experience pile whose XP values
+   * sum to at least `target`. Uses a greedy approach (largest-first),
+   * which always succeeds for positive values given "sum to ≥ target".
+   */
+  private static findXpSubset(
+    values: number[],
+    target: number
+  ): number[] | null {
+    const indexed = values.map((v, i) => ({ val: v, idx: i }));
+    indexed.sort((a, b) => b.val - a.val);
+
+    let sum = 0;
+    const chosen: number[] = [];
+    for (const entry of indexed) {
+      if (sum >= target) break;
+      sum += entry.val;
+      chosen.push(entry.idx);
     }
 
-    /**
-     * Attempts to cancel an encounter card using XP
-     * Cost: 5 XP total
-     */
-    public static cancelEncounterCard(
-        gameState: GameState,
-        encounterCardId: string
-    ): { success: boolean; message: string; cardsUsed: string[] } {
-        const totalXP = this.getTotalXP(gameState);
-        const requiredXP = 5 * 100; // 5 XP * 100 XP per card
+    return sum >= target ? chosen : null;
+  }
 
-        if (totalXP < requiredXP) {
-            return {
-                success: false,
-                message: `Not enough XP to cancel encounter. Need ${requiredXP} XP, have ${totalXP} XP.`,
-                cardsUsed: []
-            };
-        }
+  // ---------------------------------------------------------------------------
+  // Read-only helpers
+  // ---------------------------------------------------------------------------
 
-        // Select cards to spend (simple approach: take first cards until we have enough XP)
-        const cardsToSpend: string[] = [];
-        let xpSpent = 0;
-        for (const cardId of gameState.experiencePile) {
-            if (xpSpent >= requiredXP) break;
-            cardsToSpend.push(cardId);
-            xpSpent += 100; // Assume 100 XP per card
-        }
+  /**
+   * Calculates total XP available from the experience pile.
+   * Each monster card contributes its actual XP value (1, 2, 3, or 5).
+   */
+  public static getTotalXP(gameState: GameState): number {
+    const values = ExperienceSystem.getXpValues(gameState);
+    return values.reduce((sum, v) => sum + v, 0);
+  }
 
-        // Remove cards from experience pile
-        gameState.experiencePile = gameState.experiencePile.filter(
-            id => !cardsToSpend.includes(id)
-        );
+  /**
+   * Returns the number of monster cards in the experience pile. (Read-only.)
+   */
+  public static getExperienceCardCount(gameState: GameState): number {
+    return gameState.experiencePile.length;
+  }
 
-        // Add spent cards to discard pile
-        if (!gameState.discardPiles['monster']) {
-            gameState.discardPiles['monster'] = [];
-        }
-        gameState.discardPiles['monster'].push(...cardsToSpend);
+  /**
+   * Returns a copy of the experience card IDs. (Read-only.)
+   */
+  public static getExperienceCards(gameState: GameState): string[] {
+    return [...gameState.experiencePile];
+  }
 
-        return {
-            success: true,
-            message: `Encounter card canceled! Spent ${cardsToSpend.length} monster cards (${xpSpent} XP).`,
-            cardsUsed: cardsToSpend
-        };
+  /**
+   * Checks if the experience pile has enough XP to level up. (Read-only.)
+   */
+  public static canLevelUp(gameState: GameState, hero: Hero): boolean {
+    if (hero.level >= 2) return false;
+    return ExperienceSystem.getTotalXP(gameState) >= XP_COST_LEVEL_UP;
+  }
+
+  /**
+   * Checks if a natural 20 was rolled. (Read-only.)
+   */
+  public static isNatural20(roll: number): boolean {
+    return roll === 20;
+  }
+
+  /**
+   * Returns true if the roll triggers a level-up opportunity. (Read-only.)
+   */
+  public static checkLevelUpTrigger(roll: number): boolean {
+    return ExperienceSystem.isNatural20(roll);
+  }
+
+  /**
+   * Checks whether the party can cancel an encounter card (has enough XP). (Read-only.)
+   */
+  public static canCancelEncounter(gameState: GameState): boolean {
+    const values = ExperienceSystem.getXpValues(gameState);
+    return ExperienceSystem.findXpSubset(values, XP_COST_CANCEL) !== null;
+  }
+
+  /**
+   * Gets hero's effective surge value including level-2 bonus. (Read-only.)
+   */
+  public static getSurgeValue(hero: Hero): number {
+    return hero.level >= 2 ? hero.surgeValue + 1 : hero.surgeValue;
+  }
+
+  /**
+   * Returns true if the hero has access to critical hit ability (level 2+). (Read-only.)
+   */
+  public static hasCriticalAbility(hero: Hero): boolean {
+    return hero.level >= 2;
+  }
+
+  // ---------------------------------------------------------------------------
+  // State-modifying methods (return new GameState)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Attempts to cancel an encounter card using XP from the experience pile.
+   * Cost: any combination of monster cards whose XP values sum to ≥ 5.
+   * Returns a new GameState with the spent XP cards removed.
+   */
+  public static cancelEncounterCard(
+    gameState: GameState
+  ): { newState: GameState; success: boolean; message: string; cardsUsed: string[] } {
+    const values = ExperienceSystem.getXpValues(gameState);
+    const indices = ExperienceSystem.findXpSubset(values, XP_COST_CANCEL);
+
+    if (!indices) {
+      return {
+        newState: gameState,
+        success: false,
+        message: `Cannot cancel encounter: not enough XP. Need at least ${XP_COST_CANCEL} XP worth of monster cards.`,
+        cardsUsed: []
+      };
     }
 
-    /**
-     * Checks if a hero can level up
-     * Trigger: Natural 20 on attack roll or disable trap roll
-     * Cost: 5 XP
-     */
-    public static canLevelUp(gameState: GameState, hero: Hero): boolean {
-        const totalXP = this.getTotalXP(gameState);
-        const requiredXP = 5 * 100; // 5 XP * 100 XP per card
+    const sortedIndices = [...indices].sort((a, b) => b - a);
+    const cardsToSpend: string[] = [];
+    const pile = [...gameState.experiencePile];
 
-        if (totalXP < requiredXP) {
-            return false;
-        }
-
-        if (hero.level >= 2) {
-            return false; // Can only level up to 2 in base game
-        }
-
-        return true;
+    for (const idx of sortedIndices) {
+      cardsToSpend.push(pile[idx]);
+      pile.splice(idx, 1);
     }
 
-    /**
-     * Levels up a hero to level 2
-     * Benefits: HP +2, AC +1, Surge Value +1, choose new Daily power
-     */
-    public static levelUpHero(
-        gameState: GameState,
-        hero: Hero,
-        newDailyPowerId?: string
-    ): { success: boolean; message: string; cardsUsed: string[] } {
-        if (!this.canLevelUp(gameState, hero)) {
-            return {
-                success: false,
-                message: 'Cannot level up: Either not enough XP or already at max level.',
-                cardsUsed: []
-            };
-        }
+    const spentXp = indices.reduce((sum, i) => sum + values[i], 0);
 
-        const requiredXP = 5 * 100; // 5 XP * 100 XP per card
+    return {
+      newState: {
+        ...gameState,
+        experiencePile: pile,
+        discardPiles: ExperienceSystem.addToDiscard(gameState.discardPiles, 'monster', cardsToSpend)
+      },
+      success: true,
+      message: `Encounter card canceled! Spent ${cardsToSpend.length} monster cards (${spentXp} XP).`,
+      cardsUsed: cardsToSpend
+    };
+  }
 
-        // Select cards to spend
-        const cardsToSpend: string[] = [];
-        let xpSpent = 0;
-        for (const cardId of gameState.experiencePile) {
-            if (xpSpent >= requiredXP) break;
-            cardsToSpend.push(cardId);
-            xpSpent += 100; // Assume 100 XP per card
-        }
-
-        // Remove cards from experience pile
-        gameState.experiencePile = gameState.experiencePile.filter(
-            id => !cardsToSpend.includes(id)
-        );
-
-        // Add spent cards to discard pile
-        if (!gameState.discardPiles['monster']) {
-            gameState.discardPiles['monster'] = [];
-        }
-        gameState.discardPiles['monster'].push(...cardsToSpend);
-
-        // Apply level up benefits
-        const oldLevel = hero.level;
-        hero.level = 2;
-        hero.maxHp += 2;
-        hero.hp = Math.min(hero.hp + 2, hero.maxHp);
-        hero.ac += 1;
-        // Surge value is stored in hero data, would need to add to Hero type
-
-        // Add new daily power if provided
-        if (newDailyPowerId) {
-            hero.abilities.push(newDailyPowerId);
-        }
-
-        return {
-            success: true,
-            message: `${hero.name} leveled up from ${oldLevel} to 2! HP +2, AC +1, Surge Value +1.`,
-            cardsUsed: cardsToSpend
-        };
+  /**
+   * Levels up a hero to level 2.
+   * Benefits: Max HP +2, heal 2 HP, AC +1, Surge Value +1, optional new Daily power.
+   * Returns a new GameState with the updated hero and spent XP.
+   */
+  public static levelUpHero(
+    gameState: GameState,
+    hero: Hero,
+    newDailyPowerId?: string
+  ): { newState: GameState; success: boolean; message: string; cardsUsed: string[] } {
+    if (hero.level >= 2) {
+      return {
+        newState: gameState,
+        success: false,
+        message: 'Cannot level up: already at max level.',
+        cardsUsed: []
+      };
     }
 
-    /**
-     * Adds a monster card to the experience pile
-     * Called when a monster is defeated
-     */
-    public static addMonsterToExperiencePile(
-        gameState: GameState,
-        monsterCardId: string
-    ): void {
-        gameState.experiencePile.push(monsterCardId);
-        console.log(`[ExperienceSystem] Added monster card ${monsterCardId} to experience pile.`);
+    const values = ExperienceSystem.getXpValues(gameState);
+    const indices = ExperienceSystem.findXpSubset(values, XP_COST_LEVEL_UP);
+
+    if (!indices) {
+      return {
+        newState: gameState,
+        success: false,
+        message: `Cannot level up: not enough XP. Need at least ${XP_COST_LEVEL_UP} XP worth of monster cards.`,
+        cardsUsed: []
+      };
     }
 
-    /**
-     * Gets the number of monster cards in experience pile
-     */
-    public static getExperienceCardCount(gameState: GameState): number {
-        return gameState.experiencePile.length;
+    const sortedIndices = [...indices].sort((a, b) => b - a);
+    const cardsToSpend: string[] = [];
+    const pile = [...gameState.experiencePile];
+
+    for (const idx of sortedIndices) {
+      cardsToSpend.push(pile[idx]);
+      pile.splice(idx, 1);
     }
 
-    /**
-     * Gets experience card IDs from experience pile
-     */
-    public static getExperienceCards(gameState: GameState): string[] {
-        return [...gameState.experiencePile];
-    }
+    const newMaxHp = hero.maxHp + 2;
+    const upgradedHero: Hero = {
+      ...hero,
+      level: 2,
+      maxHp: newMaxHp,
+      hp: Math.min(hero.hp + 2, newMaxHp),
+      ac: hero.ac + 1,
+      abilities: newDailyPowerId ? [...hero.abilities, newDailyPowerId] : hero.abilities
+    };
 
-    /**
-     * Checks if a natural 20 was rolled (for leveling up trigger)
-     */
-    public static isNatural20(roll: number): boolean {
-        return roll === 20;
-    }
+    const updatedHeroes = gameState.heroes.map(h => h.id === hero.id ? upgradedHero : h);
 
-    /**
-     * Processes a roll to check for level up trigger
-     * Returns true if the roll was a natural 20
-     */
-    public static checkLevelUpTrigger(roll: number): boolean {
-        if (this.isNatural20(roll)) {
-            console.log(`[ExperienceSystem] Natural 20 rolled! Level up available.`);
-            return true;
-        }
-        return false;
-    }
+    return {
+      newState: {
+        ...gameState,
+        heroes: updatedHeroes,
+        experiencePile: pile,
+        discardPiles: ExperienceSystem.addToDiscard(gameState.discardPiles, 'monster', cardsToSpend)
+      },
+      success: true,
+      message: `${hero.name} leveled up from ${hero.level} to 2! HP +2, AC +1, Surge Value +1.`,
+      cardsUsed: cardsToSpend
+    };
+  }
 
-    /**
-     * Gets hero's surge value (HP recovered when using Healing Surge)
-     * Level 1: Base surge value from hero data
-     * Level 2: Base surge value + 1
-     */
-    public static getSurgeValue(hero: Hero, baseSurgeValue: number): number {
-        if (hero.level >= 2) {
-            return baseSurgeValue + 1;
-        }
-        return baseSurgeValue;
-    }
+  /**
+   * Adds a monster card to the experience pile.
+   * The card ID should be the monster template ID (from the monster deck),
+   * which has the experienceValue used for XP calculations.
+   */
+  public static addMonsterToExperiencePile(
+    gameState: GameState,
+    monsterCardId: string
+  ): GameState {
+    return { ...gameState, experiencePile: [...gameState.experiencePile, monsterCardId] };
+  }
 
-    /**
-     * Gets hero's critical hit ability (from level 2)
-     * This would be defined in hero data
-     */
-    public static getCriticalAbility(hero: Hero): string | null {
-        if (hero.level < 2) {
-            return null;
-        }
-        // In a real implementation, this would come from hero data
-        // For example: "Critical: Deal +1d6 damage on critical hits"
-        return 'Critical ability active';
-    }
-
-    /**
-     * Resets experience pile (for new game)
-     */
-    public static resetExperiencePile(gameState: GameState): void {
-        gameState.experiencePile = [];
-    }
+  /**
+   * Returns a new GameState with the experience pile reset (for new game).
+   */
+  public static resetExperiencePile(gameState: GameState): GameState {
+    return { ...gameState, experiencePile: [] };
+  }
 }

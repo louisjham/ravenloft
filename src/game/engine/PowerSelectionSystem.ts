@@ -25,17 +25,14 @@ export default class PowerSelectionSystem {
      * MVP returns same values for all hero types.
      */
     public static getConstraints(heroType: string): PowerSelectionConstraints {
-        switch (heroType) {
-            // Per-hero values can be added here later
-            default:
-                return {
-                    heroType,
-                    maxAtWill: 2,
-                    maxDaily: 1,
-                    maxUtility: 1,
-                    totalMax: 4,
-                };
-        }
+        // Per-hero values can be added here later
+        return {
+            heroType,
+            maxAtWill: 2,
+            maxDaily: 1,
+            maxUtility: 1,
+            totalMax: 4,
+        };
     }
 
     /**
@@ -57,25 +54,23 @@ export default class PowerSelectionSystem {
         constraints: PowerSelectionConstraints,
         allPowerCards: Card[]
     ): boolean {
-        // Check if card already selected
         if (selection.selectedPowerIds.includes(card.id)) {
             return false;
         }
 
-        // Count selected cards by powerType
-        const atWillCount = selection.selectedPowerIds
-            .map((id) => allPowerCards.find((c) => c.id === id))
-            .filter((c): c is Card => c !== undefined && c.powerType === 'at-will').length;
+        // Single pass: build Map<PowerType, count>
+        const typeCounts = new Map<PowerType, number>();
+        for (const id of selection.selectedPowerIds) {
+            const c = allPowerCards.find((pc) => pc.id === id);
+            if (c?.powerType) {
+                typeCounts.set(c.powerType, (typeCounts.get(c.powerType) ?? 0) + 1);
+            }
+        }
 
-        const dailyCount = selection.selectedPowerIds
-            .map((id) => allPowerCards.find((c) => c.id === id))
-            .filter((c): c is Card => c !== undefined && c.powerType === 'daily').length;
+        const atWillCount = typeCounts.get('at-will') ?? 0;
+        const dailyCount = typeCounts.get('daily') ?? 0;
+        const utilityCount = typeCounts.get('utility') ?? 0;
 
-        const utilityCount = selection.selectedPowerIds
-            .map((id) => allPowerCards.find((c) => c.id === id))
-            .filter((c): c is Card => c !== undefined && c.powerType === 'utility').length;
-
-        // Check type-specific limits
         if (card.powerType === 'at-will' && atWillCount >= constraints.maxAtWill) {
             return false;
         }
@@ -86,7 +81,6 @@ export default class PowerSelectionSystem {
             return false;
         }
 
-        // Check total limit
         if (selection.selectedPowerIds.length >= constraints.totalMax) {
             return false;
         }
@@ -134,22 +128,61 @@ export default class PowerSelectionSystem {
 
     /**
      * Confirm the current power selection.
-     * Returns error object if not enough powers selected.
+     * Returns { success, message, selection }. Validates per-type minimums and total.
      */
     public static confirmSelection(
         selection: PowerSelection,
-        constraints: PowerSelectionConstraints
-    ): PowerSelection | { error: string } {
+        constraints: PowerSelectionConstraints,
+        allPowerCards: Card[]
+    ): { success: boolean; message: string; selection: PowerSelection } {
+        const counts: Partial<Record<PowerType, number>> = {};
+        for (const id of selection.selectedPowerIds) {
+            const card = allPowerCards.find((c) => c.id === id);
+            if (card?.powerType) {
+                counts[card.powerType] = (counts[card.powerType] ?? 0) + 1;
+            }
+        }
+
+        const atWillCount = counts['at-will'] ?? 0;
+        if (atWillCount < constraints.maxAtWill) {
+            return {
+                success: false,
+                message: `Select ${constraints.maxAtWill - atWillCount} more at-will power(s) before confirming.`,
+                selection,
+            };
+        }
+
+        const dailyCount = counts['daily'] ?? 0;
+        if (dailyCount < constraints.maxDaily) {
+            return {
+                success: false,
+                message: `Select ${constraints.maxDaily - dailyCount} more daily power(s) before confirming.`,
+                selection,
+            };
+        }
+
+        const utilityCount = counts['utility'] ?? 0;
+        if (utilityCount < constraints.maxUtility) {
+            return {
+                success: false,
+                message: `Select ${constraints.maxUtility - utilityCount} more utility power(s) before confirming.`,
+                selection,
+            };
+        }
+
         if (selection.selectedPowerIds.length < constraints.totalMax) {
             const remaining = constraints.totalMax - selection.selectedPowerIds.length;
             return {
-                error: `Select ${remaining} more power(s) before confirming.`,
+                success: false,
+                message: `Select ${remaining} more power(s) before confirming.`,
+                selection,
             };
         }
 
         return {
-            ...selection,
-            isConfirmed: true,
+            success: true,
+            message: 'Selection confirmed.',
+            selection: { ...selection, isConfirmed: true },
         };
     }
 
@@ -172,26 +205,29 @@ export default class PowerSelectionSystem {
 
         const selectedIds: string[] = [];
         const selected = new Set<string>();
+        let atWillCount = 0;
+        let dailyCount = 0;
+        let utilityCount = 0;
 
-        // Helper to add cards by type
         const addByType = (type: PowerType, max: number) => {
             for (const card of shuffled) {
                 if (selectedIds.length >= constraints.totalMax) break;
-                if (!selected.has(card.id) && card.powerType === type && selectedIds.filter(
-                    (id) => shuffled.find((c) => c.id === id)?.powerType === type
-                ).length < max) {
+                if (!selected.has(card.id) && card.powerType === type) {
+                    const typeCount = type === 'at-will' ? atWillCount : type === 'daily' ? dailyCount : utilityCount;
+                    if (typeCount >= max) break;
                     selectedIds.push(card.id);
                     selected.add(card.id);
+                    if (type === 'at-will') atWillCount++;
+                    else if (type === 'daily') dailyCount++;
+                    else utilityCount++;
                 }
             }
         };
 
-        // Select by type
         addByType('at-will', constraints.maxAtWill);
         addByType('daily', constraints.maxDaily);
         addByType('utility', constraints.maxUtility);
 
-        // Fill remaining slots with any unselected cards
         for (const card of shuffled) {
             if (selectedIds.length >= constraints.totalMax) break;
             if (!selected.has(card.id)) {
@@ -227,10 +263,8 @@ export default class PowerSelectionSystem {
                 };
             }
 
-            return {
-                ...hero,
-                selectedPowerIds: [],
-            };
+            // Unconfirmed heroes keep their existing powers
+            return hero;
         });
     }
 }

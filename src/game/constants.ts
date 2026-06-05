@@ -4,8 +4,7 @@
 
 export const GAME_CONSTANTS = {
   // HP & Surges
-  MAX_HEALING_SURGES: 3,
-  TOTAL_SURGE_HEAL_HP: 1, // Restores to 1 HP if Surge is used at 0
+  MAX_HEALING_SURGES: 2, // Base rules default; each scenario can override via maxSurges
   
   // Combat
   D20_SIDES: 20,
@@ -21,7 +20,18 @@ export const GAME_CONSTANTS = {
   MAX_LEVEL: 2,
   
   // Phases
-  PHASES: ['hero', 'exploration', 'monster'] as const,
+  PHASES: ['setup', 'hero', 'exploration', 'villain', 'monster', 'end', 'victory', 'defeat'] as const,
+
+  // Spacing & Math
+  HALF_TILE_OFFSET: 2.0,
+
+  // Encounters
+  DEFAULT_TRAP_ATTACK_BONUS: 7,
+  SPAWN_SQ_X: 2,
+  SPAWN_SQ_Z: 2,
+
+  // Treasure deck — base types plus Chromatic Dragons expansion types
+  TREASURE_CARD_TYPES: ['treasure', 'item', 'consumable', 'weapon', 'summon'] as const,
 };
 
 export type GamePhaseType = typeof GAME_CONSTANTS.PHASES[number];

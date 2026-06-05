@@ -60,11 +60,11 @@ This document maps all rules and mechanics from the Castle Ravenloft Board Game 
 
 ### Hero Selection
 - [x] Five 1st-level Heroes available:
-  - [x] Dragonborn Fighter (Arjhan - Paladin)
+  - [x] Dragonborn Fighter (Arjhan)
   - [x] Human Rogue (Kat)
   - [x] Dwarf Cleric (Thorgrim)
   - [x] Eladrin Wizard (Immeril)
-  - [x] Human Ranger (Vani)
+  - [x] Human Ranger (Alanni)
 - [x] Hero Card shows: Name, Race, Class, Level
 - [~] Power Card selection per Hero Card specifications
 - [~] Treasure Card for each player at start

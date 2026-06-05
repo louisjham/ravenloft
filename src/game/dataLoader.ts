@@ -4,20 +4,40 @@ import { Hero, Monster, Tile, Card, Scenario } from './types';
 import heroesData from '../data/heroes.json';
 import monstersData from '../data/monsters.json';
 import tilesData from '../data/tiles.json';
-import scenariosData from '../data/scenarios.json';
 import encountersData from '../data/cards/encounters.json';
 import treasureData from '../data/cards/treasures.json';
 import arjhanAbilities from '../data/cards/hero-abilities/arjhan.json';
+import thorgrimAbilities from '../data/cards/hero-abilities/thorgrim.json';
+import immerilAbilities from '../data/cards/hero-abilities/immeril.json';
+import katAbilities from '../data/cards/hero-abilities/kat.json';
+import alanniAbilities from '../data/cards/hero-abilities/alanni.json';
+import powerCardsData from '../data/powerCards.json';
 import scenario1 from '../data/scenarios/scenario1.json';
 import scenario2 from '../data/scenarios/scenario2.json';
 import scenario3 from '../data/scenarios/scenario3.json';
 import scenario4 from '../data/scenarios/scenario4.json';
 import scenario5 from '../data/scenarios/scenario5.json';
+import adventure01 from '../data/scenarios/adventure_01.json';
+import adventure02 from '../data/scenarios/adventure_02.json';
+import adventure03 from '../data/scenarios/adventure_03.json';
+import adventure04 from '../data/scenarios/adventure_04.json';
+import adventure05 from '../data/scenarios/adventure_05.json';
+import adventure06 from '../data/scenarios/adventure_06.json';
+import adventure07 from '../data/scenarios/adventure_07.json';
+import adventure08 from '../data/scenarios/adventure_08.json';
+import adventure09 from '../data/scenarios/adventure_09.json';
+import adventure10 from '../data/scenarios/adventure_10.json';
+import adventure11 from '../data/scenarios/adventure_11.json';
+import adventure12 from '../data/scenarios/adventure_12.json';
+import adventure13 from '../data/scenarios/adventure_13.json';
 
 export class DataLoader {
   private static instance: DataLoader;
 
-  private heroes: Hero[] = heroesData as Hero[];
+  private heroes: Hero[] = (heroesData as unknown as Hero[]).map(h => ({
+    ...h,
+    attackBonus: 0,
+  }));
   private monsters: Monster[] = (monstersData as any[]).map(m => ({
     ...m,
     ownedByHeroId: null,
@@ -26,16 +46,34 @@ export class DataLoader {
   }));
   private tiles: Tile[] = tilesData as Tile[];
   private scenarios: Scenario[] = [
-    scenario1 as any,
-    scenario2 as any,
-    scenario3 as any,
-    scenario4 as any,
-    scenario5 as any
+    adventure01 as unknown as Scenario,
+    adventure02 as unknown as Scenario,
+    adventure03 as unknown as Scenario,
+    adventure04 as unknown as Scenario,
+    adventure05 as unknown as Scenario,
+    adventure06 as unknown as Scenario,
+    adventure07 as unknown as Scenario,
+    adventure08 as unknown as Scenario,
+    adventure09 as unknown as Scenario,
+    adventure10 as unknown as Scenario,
+    adventure11 as unknown as Scenario,
+    adventure12 as unknown as Scenario,
+    adventure13 as unknown as Scenario,
+    scenario1 as unknown as Scenario,
+    scenario2 as unknown as Scenario,
+    scenario3 as unknown as Scenario,
+    scenario4 as unknown as Scenario,
+    scenario5 as unknown as Scenario
   ];
   private cards: Card[] = [
     ...(encountersData as Card[]),
     ...(treasureData as Card[]),
-    ...(arjhanAbilities as Card[])
+    ...(arjhanAbilities as Card[]),
+    ...(thorgrimAbilities as Card[]),
+    ...(immerilAbilities as Card[]),
+    ...(katAbilities as Card[]),
+    ...(alanniAbilities as Card[]),
+    ...(powerCardsData as Card[])
   ];
 
   private constructor() { }
@@ -57,6 +95,10 @@ export class DataLoader {
 
   public getMonsters(): Monster[] {
     return this.monsters;
+  }
+
+  public getMonsterById(id: string): Monster | undefined {
+    return this.monsters.find(m => m.id === id);
   }
 
   public getTiles(): Tile[] {

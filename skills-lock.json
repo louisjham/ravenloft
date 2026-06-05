@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "threejs-geometry": {
+      "source": "cloudai-x/threejs-skills",
+      "sourceType": "github",
+      "computedHash": "9312cc4d2a68f408c789ff326904bbc88840605c8f6985d9a7a0a92d64918953"
+    }
+  }
+}

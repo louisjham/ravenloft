@@ -1,0 +1,34 @@
+[
+  {
+    "id": "alanni_power_1",
+    "type": "ability",
+    "name": "Aimed Shot",
+    "description": "Attack +8 against a monster within 2 tiles. Damage 1.",
+    "attackBonus": 8,
+    "damage": 1,
+    "range": 2,
+    "target": "single",
+    "effects": [
+      { "type": "attack", "value": 1, "target": "single", "when": "always" }
+    ],
+    "phase": "hero",
+    "heroClass": "ranger",
+    "powerType": "at-will"
+  },
+  {
+    "id": "alanni_power_2",
+    "type": "ability",
+    "name": "Twin Strike",
+    "description": "Make two attacks (+6) against the same or different monsters within 1 tile. Damage 1 each.",
+    "attackBonus": 6,
+    "damage": 1,
+    "range": 1,
+    "target": "single",
+    "effects": [
+      { "type": "attack", "value": 1, "target": "single", "when": "always" }
+    ],
+    "phase": "hero",
+    "heroClass": "ranger",
+    "powerType": "at-will"
+  }
+]

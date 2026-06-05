@@ -5,7 +5,7 @@
 // Test utilities for console capture, assertions, etc.
 import { captureWarn, captureError, captureLog, runWithCapturedConsole } from './testUtils';
 
-import { executeVillainPhase, buildVillainQueue } from '../store/gameStore';
+import { executeVillainPhase, buildVillainQueue } from '../store/slices/villainPhaseLogic';
 import type { GameState, Hero, Monster, Tile } from '../game/types';
 
 // Create test state: 1 hero, 1 skeleton owned by hero, hero 2 tiles away
@@ -15,6 +15,7 @@ const villainHero: Hero = {
     type: 'hero',
     heroClass: 'paladin',
     level: 1,
+    surgeValue: 3,
     xp: 0,
     position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
     hp: 10,
@@ -23,6 +24,7 @@ const villainHero: Hero = {
     speed: 6,
     isExhausted: false,
     surgeUsed: false,
+    attackBonus: 0,
     conditions: [],
     usedPowers: [],
     abilities: [],
@@ -125,7 +127,12 @@ const villainGameState: GameState = {
     dungeonDeck: [],
     treasureDeck: [],
     encounterDeck: [],
-    discardPiles: {},
+    discardPiles: {
+        treasure: [],
+        encounter: [],
+        ability: [],
+        monster: []
+    },
     activeScenario: {
         id: 'scenario-villain',
         name: 'Villain Test Scenario',
@@ -149,7 +156,14 @@ const villainGameState: GameState = {
     traps: [],
     villainPhaseQueue: [],
     activeVillainId: null,
-activeConditions: []
+powerSelections: [],
+      cardResolution: { phase: 'idle' as const, cardId: null, cardType: null, targetEntityId: null, pendingEffects: [], resolvedEffects: [] },
+      treasureAssignments: [],
+      tokens: [],
+      strahdsCoffinTokenId: null,
+      unplacedCoffinTokens: [],
+      
+      monsterDeck: [], hasExploredThisTurn: false, activeConditions: []
 };
 
 console.log('--- VILLAIN PHASE TEST ---');
@@ -164,7 +178,8 @@ const queue = buildVillainQueue(villainGameState, villainGameState.currentHeroId
 console.log('Direct buildVillainQueue call result:', queue);
 
 // Test: After executeVillainPhase(), skeleton should be 1 tile closer
-const afterVillainPhase = executeVillainPhase(villainGameState);
+const run = async () => {
+const afterVillainPhase = await executeVillainPhase(villainGameState);
 
 console.log('After villain phase monster position:', afterVillainPhase.monsters[0].position);
 console.log('Villain queue after processing:', afterVillainPhase.villainPhaseQueue);
@@ -201,4 +216,6 @@ if (villainGameState.monsters[0].position.x !== 2) {
 
 console.log('  Villain Phase Sequencer PASSED: Skeleton moved 1 tile closer to hero');
 console.log('--- VILLAIN PHASE TEST PASSED ---');
+};
+run().catch(console.error);
 

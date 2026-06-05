@@ -1,26 +1,30 @@
 [
   {
-    "id": "card-thorgrim-heal",
-    "name": "Healing Word",
+    "id": "thorgrim_power_1",
     "type": "ability",
-    "heroClass": "Cleric",
-    "description": "Restore 1 HP to yourself or an adjacent Hero.",
+    "name": "Healing Word",
+    "description": "Heal yourself or one adjacent Hero for 1 HP.",
     "effects": [
-      "heal:1,range:1"
+      { "type": "heal", "value": 1, "target": "adjacent", "range": 1, "when": "always" }
     ],
     "phase": "hero",
-    "powerType": "at-will"
+    "heroClass": "cleric",
+    "powerType": "utility"
   },
   {
-    "id": "card-thorgrim-smite",
-    "name": "Holy Smite",
+    "id": "thorgrim_power_2",
     "type": "ability",
-    "heroClass": "Cleric",
-    "description": "Attack +7 against an adjacent Undead monster. Damage 2.",
+    "name": "Holy Smite",
+    "description": "Attack one adjacent Undead monster. +7 to hit, 2 damage.",
+    "attackBonus": 7,
+    "damage": 2,
+    "range": 0,
+    "target": "single",
     "effects": [
-      "attack:adjacent,7,2,condition:undead"
+      { "type": "attack", "value": 2, "target": "single", "when": "always" }
     ],
     "phase": "hero",
+    "heroClass": "cleric",
     "powerType": "daily"
   }
 ]

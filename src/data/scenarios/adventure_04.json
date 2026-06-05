@@ -1,0 +1,31 @@
+{
+  "id": "adventure_04",
+  "name": "Daylight Assault",
+  "difficulty": "Medium",
+  "description": "Collect 12 Treasure Cards and escape from the dungeon with them.",
+  "objectives": [
+    {
+      "id": "escape_with_12_treasures",
+      "type": "escape_with_treasures",
+      "description": "Escape from the dungeon via the Start tile with a total of 12 Treasure cards.",
+      "count": 12,
+      "currentCount": 0,
+      "isCompleted": false
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "daylight_assault_sunset",
+      "description": "Whenever you explore a white arrow tile, advance the time track. When it reaches 6, the sun sets. After sunset, draw an Encounter card at the start of your Villain Phase."
+    },
+    {
+      "id": "daylight_assault_escape",
+      "description": "A Hero ending their Hero Phase on the Start tile may escape."
+    }
+  ],
+  "startTileId": "start-tile",
+  "maxSurges": 2,
+  "introText": "The Heroes enter during daylight to steal Strahd’s treasures before he awakens.",
+  "victoryText": "You have escaped the dungeon with Strahd's treasures! The daylight fades, but you are already safe.",
+  "defeatText": "You failed to escape with the required treasures before being overwhelmed by the shadows."
+}

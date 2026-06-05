@@ -1,0 +1,32 @@
+{
+  "id": "adventure_01",
+  "name": "Escape the Tomb",
+  "difficulty": "Easy",
+  "description": "Find the Secret Stairway tile that leads out of the dungeon before Strahd defeats you.",
+  "objectives": [
+    {
+      "id": "escape_via_secret_stairway",
+      "type": "escape_via_stairway",
+      "description": "A Hero must start their turn on the Secret Stairway tile.",
+      "isCompleted": false
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "sun_track",
+      "description": "Whenever a white arrow tile is explored, advance the Sun token. At Sunset (6 spaces), Count Strahd awakens on the Crypt bone pile."
+    }
+  ],
+  "startTileId": "crypt_strahd",
+  "setAsideTileIds": ["named_secret_stairway"],
+  "specialTilePlacements": [
+    {
+      "tileId": "named_secret_stairway",
+      "insertAfterIndex": 10
+    }
+  ],
+  "maxSurges": 2,
+  "introText": "You wake up alone in the depths of Castle Ravenloft and must escape before the sun sets and Strahd returns.",
+  "victoryText": "You have found the Secret Stairway and escaped the tomb! With the cool night air in your face, you leave the horrors behind... for now.",
+  "defeatText": "The sun has set, and Strahd's dark power overwhelmed you. The tomb has become your final resting place."
+}

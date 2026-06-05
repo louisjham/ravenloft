@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
+import { TRANSITION_DURATION_MS } from '../../hooks/useGameTransition';
 
 /**
  * Transitions component for smooth scene and phase changes.
@@ -56,7 +57,7 @@ export const PhaseTransition: React.FC<{ phase: string }> = ({ phase }) => {
 
   useEffect(() => {
     setOpacity(1);
-    const timer = setTimeout(() => setOpacity(0), 1500);
+    const timer = setTimeout(() => setOpacity(0), TRANSITION_DURATION_MS);
     return () => clearTimeout(timer);
   }, [phase]);
 

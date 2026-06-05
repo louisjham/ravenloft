@@ -1,26 +1,31 @@
 [
   {
-    "id": "card-kat-backstab",
-    "name": "Backstab",
+    "id": "kat_power_1",
     "type": "ability",
-    "heroClass": "Rogue",
-    "description": "Attack +9 against an adjacent monster. Damage 2. If the monster is already damaged, Damage 3.",
+    "name": "Backstab",
+    "description": "Attack +9 against an adjacent monster. Damage 2. If the monster is already damaged, damage 3 instead.",
+    "attackBonus": 9,
+    "damage": 2,
+    "range": 0,
+    "target": "single",
     "effects": [
-      "attack:adjacent,9,2,conditional-dmg:3,damaged"
+      { "type": "attack", "value": 2, "target": "single", "when": "always" },
+      { "type": "damage", "value": 1, "target": "single", "condition": "damaged", "when": "hit" }
     ],
     "phase": "hero",
+    "heroClass": "rogue",
     "powerType": "at-will"
   },
   {
-    "id": "card-kat-stealth",
-    "name": "Stealth",
+    "id": "kat_power_2",
     "type": "ability",
-    "heroClass": "Rogue",
+    "name": "Stealth",
     "description": "Monsters cannot target you until your next turn unless you are the only Hero.",
     "effects": [
-      "apply:status-stealth,duration:round"
+      { "type": "status_effect", "target": "self", "duration": 1, "when": "always" }
     ],
     "phase": "hero",
+    "heroClass": "rogue",
     "powerType": "utility"
   }
 ]

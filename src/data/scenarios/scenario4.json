@@ -9,7 +9,9 @@
       "type": "collect_items",
       "count": 3,
       "targetAttribute": "crown_shard",
-      "description": "Collect all 3 Crown Shards from defeated Boss Monsters"
+      "currentCount": 0,
+      "description": "Collect all 3 Crown Shards from defeated Boss Monsters",
+      "isCompleted": false
     }
   ],
   "specialRules": [

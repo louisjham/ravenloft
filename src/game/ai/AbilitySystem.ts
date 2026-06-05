@@ -104,7 +104,7 @@ export class AbilitySystem {
                 return gameState.heroes;
 
             case 'adjacent_heroes': {
-                const adjacentTiles = TileSystem.getAdjacentTiles(monsterTile, gameState.tiles);
+                const adjacentTiles = [monsterTile, ...TileSystem.getAdjacentTiles(monsterTile, gameState.tiles)];
                 const adjacentHeroes: Hero[] = [];
                 for (const tile of adjacentTiles) {
                     for (const heroId of tile.heroes) {
@@ -128,10 +128,13 @@ export class AbilitySystem {
                 return gameState.monsters;
 
             case 'adjacent_monsters': {
-                const adjacentTiles = TileSystem.getAdjacentTiles(monsterTile, gameState.tiles);
+                const adjacentTiles = [monsterTile, ...TileSystem.getAdjacentTiles(monsterTile, gameState.tiles)];
                 const adjacentMonsters: Monster[] = [];
                 for (const tile of adjacentTiles) {
                     for (const monsterId of tile.monsters) {
+                        if (monsterId === monster.id) {
+                            continue;
+                        }
                         const m = gameState.monsters.find(mon => mon.id === monsterId);
                         if (m) {
                             adjacentMonsters.push(m);
@@ -141,9 +144,16 @@ export class AbilitySystem {
                 return adjacentMonsters;
             }
 
-            case 'tile':
-                // Tile target - returns empty array for now as it's not a direct entity target
-                return [];
+            case 'tile': {
+                const tileHeroes: Hero[] = [];
+                for (const heroId of monsterTile.heroes) {
+                    const hero = gameState.heroes.find(h => h.id === heroId);
+                    if (hero) {
+                        tileHeroes.push(hero);
+                    }
+                }
+                return tileHeroes;
+            }
 
             default:
                 return [];
@@ -210,9 +220,11 @@ export class AbilitySystem {
                     monsters: gameState.monsters.map(monster => {
                         const target = targets.find(t => t.id === monster.id);
                         if (target) {
+                            const newHp = Math.min(monster.maxHp, monster.hp + healValue);
                             return {
                                 ...monster,
-                                hp: Math.min(monster.maxHp, monster.hp + healValue)
+                                hp: newHp,
+                                isDefeated: newHp > 0 ? false : monster.isDefeated
                             };
                         }
                         return monster;
@@ -318,6 +330,12 @@ export class AbilitySystem {
             if (effect.condition === 'roll_15_plus') {
                 const roll = this.rollD20();
                 if (roll < 15) {
+                    continue; // Skip this effect if roll fails
+                }
+            } else if (effect.condition === 'roll_undying') {
+                const roll = this.rollD20();
+                const threshold = (monster.id.includes('zombie') || monster.name.toLowerCase() === 'zombie') ? 11 : 15;
+                if (roll < threshold) {
                     continue; // Skip this effect if roll fails
                 }
             }

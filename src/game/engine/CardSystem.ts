@@ -2,6 +2,9 @@ import { Card, CardType } from '../types';
 
 /**
  * Handles deck management: drawing, shuffling, and discard piles.
+ *
+ * TODO: integrate or remove — currently unused since all slices manage decks
+ * directly as arrays in GameState.
  */
 export class CardSystem {
   private decks: Record<string, string[]> = {};
@@ -18,7 +21,7 @@ export class CardSystem {
   /**
    * Fisher-Yates shuffle.
    */
-  public shuffle(type: string): void {
+  public shuffle(type: CardType): void {
     const deck = this.decks[type];
     if (!deck) return;
 
@@ -31,25 +34,25 @@ export class CardSystem {
   /**
    * Draws a card of a specific type. If deck is empty, reshuffles discard pile.
    */
-  public drawCard(type: string): string | null {
+  public drawCard(type: CardType): string | null {
     if (!this.decks[type] || this.decks[type].length === 0) {
       this.reshuffleDiscardIntoDeck(type);
     }
 
-    return this.decks[type]?.pop() || null;
+    return this.decks[type]?.shift() || null;
   }
 
   /**
    * Adds a card to the discard pile.
    */
-  public discardCard(type: string, cardId: string): void {
+  public discardCard(type: CardType, cardId: string): void {
     if (!this.discardPiles[type]) {
       this.discardPiles[type] = [];
     }
     this.discardPiles[type].push(cardId);
   }
 
-  private reshuffleDiscardIntoDeck(type: string): void {
+  private reshuffleDiscardIntoDeck(type: CardType): void {
     const discards = this.discardPiles[type];
     if (!discards || discards.length === 0) return;
 
@@ -58,11 +61,11 @@ export class CardSystem {
     this.shuffle(type);
   }
 
-  public getDeck(type: string): string[] {
+  public getDeck(type: CardType): string[] {
     return this.decks[type] || [];
   }
 
-  public getDiscardPile(type: string): string[] {
+  public getDiscardPile(type: CardType): string[] {
     return this.discardPiles[type] || [];
   }
 }

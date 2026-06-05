@@ -21,10 +21,25 @@ export const HeroPanel: React.FC = () => {
     'Immeril': '/ui/immeril.png',
     'Kat': '/ui/kat.png',
     'Thorgrim': '/ui/thorgrim.png',
-    'Vani': '/ui/vani.png',
+    'Alanni': '/ui/alanni.png',
   };
 
   const hpPercentage = (currentHero.hp / currentHero.maxHp) * 100;
+
+  const handleHealingSurge = () => {
+    if (!gameState || gameState.healingSurges <= 0 || currentHero.hp >= currentHero.maxHp) return;
+
+    const newHp = Math.min(currentHero.maxHp, currentHero.hp + 2);
+    const newState = {
+      ...gameState,
+      healingSurges: gameState.healingSurges - 1,
+      heroes: gameState.heroes.map(h => 
+        h.id === currentHero.id ? { ...h, hp: newHp } : h
+      )
+    };
+
+    useGameStore.getState().setGameState(newState);
+  };
 
   return (
     <div className="hero-panel gothic-panel" style={{ alignSelf: 'start', padding: '15px' }}>
@@ -37,10 +52,10 @@ export const HeroPanel: React.FC = () => {
           overflow: 'hidden',
           background: '#1a1a1a'
         }}>
-          <img 
-            src={portraitMap[currentHero.name] || '/ui/arjhan.png'} 
-            alt={currentHero.name} 
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          <img
+            src={portraitMap[currentHero.name] || '/ui/arjhan.png'}
+            alt={currentHero.name}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }}
           />
         </div>
         <div className="hero-info">
@@ -141,6 +156,25 @@ export const HeroPanel: React.FC = () => {
             boxShadow: '0 0 5px #00ff00'
           }} />
         ))}
+        <button 
+          onClick={handleHealingSurge}
+          disabled={(gameState?.healingSurges || 0) <= 0 || currentHero.hp >= currentHero.maxHp}
+          style={{
+             marginLeft: 'auto',
+             fontFamily: 'Cinzel, serif',
+             fontSize: '0.7rem',
+             padding: '2px 8px',
+             background: 'rgba(0, 255, 0, 0.1)',
+             border: '1px solid #00ff00',
+             color: '#00ff00',
+             borderRadius: '4px',
+             cursor: (gameState?.healingSurges || 0) <= 0 || currentHero.hp >= currentHero.maxHp ? 'not-allowed' : 'pointer',
+             opacity: (gameState?.healingSurges || 0) <= 0 || currentHero.hp >= currentHero.maxHp ? 0.5 : 1,
+             transition: 'all 0.2s'
+          }}
+        >
+          Use Surge
+        </button>
       </div>
 
       <div className="ability-minis">

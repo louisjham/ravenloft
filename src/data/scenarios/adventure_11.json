@@ -1,0 +1,43 @@
+{
+  "id": "adventure_11",
+  "name": "Rampaging Golem",
+  "difficulty": "Medium",
+  "description": "Destroy or pacify the Flesh Golem in Strahd's Workshop.",
+  "objectives": [
+    {
+      "id": "defeat_or_pacify_golem",
+      "type": "defeat_villains",
+      "count": 1,
+      "currentCount": 0,
+      "targetIds": ["monster_flesh_golem"],
+      "description": "Defeat the Flesh Golem by reducing it to 0 HP or by placing 3 Calm tokens on it.",
+      "isCompleted": false
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "workshop_boss",
+      "description": "When the Workshop is revealed, place the Flesh Golem instead of drawing a Monster."
+    },
+    {
+      "id": "item_tokens",
+      "description": "When a Hero would draw a Treasure Card, they may instead take a random Item token."
+    },
+    {
+      "id": "golem_calming",
+      "description": "Instead of attacking, a Hero on the Flesh Golem's tile may attempt to pacify it by interacting with its items."
+    }
+  ],
+  "startTileId": "start-tile",
+  "setAsideTileIds": ["named_workshop"],
+  "specialTilePlacements": [
+    {
+      "tileId": "named_workshop",
+      "insertAfterIndex": 8
+    }
+  ],
+  "maxSurges": 2,
+  "introText": "The Heroes descend to Strahd's workshop to calm or destroy a rampaging Flesh Golem.",
+  "victoryText": "The Flesh Golem is defeated! The workshop falls silent, and one of Strahd's greatest weapons is no more.",
+  "defeatText": "The Flesh Golem crushes its opposition. Strahd's workshop claims another victims."
+}

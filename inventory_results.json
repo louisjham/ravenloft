@@ -1,0 +1,571 @@
+{
+  "encounters": [
+    {
+      "name": "Arrow Trap",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_ArrowTrap.png"
+    },
+    {
+      "name": "Dart Trap",
+      "type": "event",
+      "hasToken": true,
+      "expectedToken": "Token_Encounter_DartTrap.png"
+    },
+    {
+      "name": "Fire Trap",
+      "type": "event",
+      "hasToken": true,
+      "expectedToken": "Token_Encounter_FireTrap.png"
+    },
+    {
+      "name": "Pit Trap",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_PitTrap.png"
+    },
+    {
+      "name": "Crushing Walls",
+      "type": "event",
+      "hasToken": true,
+      "expectedToken": "Token_Encounter_CrushingWalls.png"
+    },
+    {
+      "name": "Sliding Walls",
+      "type": "event",
+      "hasToken": true,
+      "expectedToken": "Token_Encounter_SlidingWalls.png"
+    },
+    {
+      "name": "Spear Gauntlet",
+      "type": "event",
+      "hasToken": true,
+      "expectedToken": "Token_Encounter_SpearGauntlet.png"
+    },
+    {
+      "name": "Choking Fog",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_ChokingFog.png"
+    },
+    {
+      "name": "Darkness",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_Darkness.png"
+    },
+    {
+      "name": "Freezing Cloud",
+      "type": "event",
+      "hasToken": true,
+      "expectedToken": "Token_Encounter_FreezingCloud.png"
+    },
+    {
+      "name": "Illusionary Crowd",
+      "type": "event",
+      "hasToken": true,
+      "expectedToken": "Token_Encounter_IllusionaryCrowd.png"
+    },
+    {
+      "name": "Alarm",
+      "type": "event",
+      "hasToken": true,
+      "expectedToken": "Token_Encounter_Alarm.png"
+    },
+    {
+      "name": "Crossbow Turret",
+      "type": "event",
+      "hasToken": true,
+      "expectedToken": "Token_Encounter_CrossbowTurret.png"
+    },
+    {
+      "name": "Consecrated Ground",
+      "type": "event",
+      "hasToken": true,
+      "expectedToken": "Token_Encounter_ConsecratedGround.png"
+    },
+    {
+      "name": "Empty Coffin",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_EmptyCoffin.png"
+    },
+    {
+      "name": "Coffin with Monster",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_CoffinwithMonster.png"
+    },
+    {
+      "name": "Coffin with Treasure",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_CoffinwithTreasure.png"
+    },
+    {
+      "name": "Coffin with Holy Water",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_CoffinwithHolyWater.png"
+    },
+    {
+      "name": "Coffin Trap",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_CoffinTrap.png"
+    },
+    {
+      "name": "Coffin with Wooden Stake",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_CoffinwithWoodenStake.png"
+    },
+    {
+      "name": "Coffin with Strahd",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_CoffinwithStrahd.png"
+    },
+    {
+      "name": "Altar",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_Altar.png"
+    },
+    {
+      "name": "Portal",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_Portal.png"
+    },
+    {
+      "name": "Secret Door",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_SecretDoor.png"
+    },
+    {
+      "name": "Treasure Chest",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_TreasureChest.png"
+    },
+    {
+      "name": "Trapped Chest",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_TrappedChest.png"
+    },
+    {
+      "name": "Glyph of Warding",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_GlyphofWarding.png"
+    },
+    {
+      "name": "Crypt Ambush",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_CryptAmbush.png"
+    },
+    {
+      "name": "Wandering Monster",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_WanderingMonster.png"
+    },
+    {
+      "name": "Vampire Spawn",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_VampireSpawn.png"
+    },
+    {
+      "name": "Wolf Pack",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_WolfPack.png"
+    },
+    {
+      "name": "Awakened Gargoyle",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_AwakenedGargoyle.png"
+    },
+    {
+      "name": "Ghostly Haunt",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_GhostlyHaunt.png"
+    },
+    {
+      "name": "Skeleton Horde",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_SkeletonHorde.png"
+    },
+    {
+      "name": "Zombie Shuffle",
+      "type": "event",
+      "hasToken": false,
+      "expectedToken": "Token_Encounter_ZombieShuffle.png"
+    }
+  ],
+  "namedTiles": [
+    {
+      "name": "Start Tile",
+      "id": "start-tile",
+      "encounterType": "white"
+    },
+    {
+      "name": "Arcane Circle",
+      "id": "named_arcane_circle",
+      "encounterType": "white"
+    },
+    {
+      "name": "Chapel",
+      "id": "named_chapel",
+      "encounterType": "white"
+    },
+    {
+      "name": "Dark Fountain",
+      "id": "named_dark_fountain",
+      "encounterType": "white"
+    },
+    {
+      "name": "Fetid Den",
+      "id": "named_fetid_den",
+      "encounterType": "white"
+    },
+    {
+      "name": "Laboratory",
+      "id": "named_laboratory",
+      "encounterType": "white"
+    },
+    {
+      "name": "Rotting Nook",
+      "id": "named_rotting_nook",
+      "encounterType": "white"
+    },
+    {
+      "name": "Secret Stairway",
+      "id": "named_secret_stairway",
+      "encounterType": "white"
+    },
+    {
+      "name": "Workshop",
+      "id": "named_workshop",
+      "encounterType": "white"
+    },
+    {
+      "name": "Crypt Corner (1-5)",
+      "id": "crypt_corner_1_5",
+      "encounterType": "white"
+    },
+    {
+      "name": "Crypt Corner (6-10)",
+      "id": "crypt_corner_6_10",
+      "encounterType": "white"
+    },
+    {
+      "name": "Crypt Corner (11-15)",
+      "id": "crypt_corner_11_15",
+      "encounterType": "white"
+    },
+    {
+      "name": "Crypt Corner (16-20)",
+      "id": "crypt_corner_16_20",
+      "encounterType": "white"
+    },
+    {
+      "name": "Crypt of Artimus",
+      "id": "crypt_artimus",
+      "encounterType": "white"
+    },
+    {
+      "name": "Crypt of Barov and Ravenovia",
+      "id": "crypt_barov_ravenovia",
+      "encounterType": "white"
+    },
+    {
+      "name": "Crypt of Sergei Von Zarovich",
+      "id": "crypt_sergei",
+      "encounterType": "white"
+    },
+    {
+      "name": "Ireena Kolyana's Crypt",
+      "id": "crypt_ireena",
+      "encounterType": "white"
+    },
+    {
+      "name": "King's Crypt",
+      "id": "crypt_king",
+      "encounterType": "white"
+    },
+    {
+      "name": "Lonely Crypt",
+      "id": "crypt_lonely",
+      "encounterType": "white"
+    },
+    {
+      "name": "Prince Aurel's Crypt",
+      "id": "crypt_prince_aurel",
+      "encounterType": "white"
+    },
+    {
+      "name": "Strahd's Crypt",
+      "id": "crypt_strahd",
+      "encounterType": "white"
+    },
+    {
+      "name": "Dark Corridor",
+      "id": "black_x2_01",
+      "encounterType": "black"
+    },
+    {
+      "name": "Shadow Passage",
+      "id": "black_x2_02",
+      "encounterType": "black"
+    },
+    {
+      "name": "Gloomy Hall",
+      "id": "black_x2_03",
+      "encounterType": "black"
+    },
+    {
+      "name": "Dim Walkway",
+      "id": "black_x2_04",
+      "encounterType": "black"
+    },
+    {
+      "name": "Dark Junction",
+      "id": "black_x3_01",
+      "encounterType": "black"
+    },
+    {
+      "name": "Shadow Fork",
+      "id": "black_x3_02",
+      "encounterType": "black"
+    },
+    {
+      "name": "Vaulted Crossroads",
+      "id": "black_x4_01",
+      "encounterType": "black"
+    },
+    {
+      "name": "Grand Intersection",
+      "id": "black_x4_02",
+      "encounterType": "black"
+    },
+    {
+      "name": "Four-Way Passage",
+      "id": "black_x4_03",
+      "encounterType": "black"
+    },
+    {
+      "name": "Central Hub",
+      "id": "black_x4_04",
+      "encounterType": "black"
+    },
+    {
+      "name": "Dark Nexus",
+      "id": "black_x4_05",
+      "encounterType": "black"
+    },
+    {
+      "name": "Gothic Crossing",
+      "id": "black_x4_06",
+      "encounterType": "black"
+    },
+    {
+      "name": "Stone Corridor",
+      "id": "white_x2_01",
+      "encounterType": "white"
+    },
+    {
+      "name": "Ancient Passage",
+      "id": "white_x2_02",
+      "encounterType": "white"
+    },
+    {
+      "name": "Dusty Hall",
+      "id": "white_x2_03",
+      "encounterType": "white"
+    },
+    {
+      "name": "Stone Junction",
+      "id": "white_x3_01",
+      "encounterType": "white"
+    },
+    {
+      "name": "Ancient Fork",
+      "id": "white_x3_02",
+      "encounterType": "white"
+    },
+    {
+      "name": "Dusty Intersection",
+      "id": "white_x3_03",
+      "encounterType": "white"
+    },
+    {
+      "name": "Weathered Junction",
+      "id": "white_x3_04",
+      "encounterType": "white"
+    },
+    {
+      "name": "Eroded Passage",
+      "id": "white_x3_05",
+      "encounterType": "white"
+    }
+  ],
+  "monsters": [
+    {
+      "name": "Skeleton",
+      "isVillain": false,
+      "hasModel": false,
+      "expectedModel1": "skeleton.glb"
+    },
+    {
+      "name": "Zombie",
+      "isVillain": false,
+      "hasModel": true,
+      "expectedModel1": "zombie.glb"
+    },
+    {
+      "name": "Ghoul",
+      "isVillain": false,
+      "hasModel": true,
+      "expectedModel1": "ghoul.glb"
+    },
+    {
+      "name": "Wolf",
+      "isVillain": false,
+      "hasModel": false,
+      "expectedModel1": "wolf.glb"
+    },
+    {
+      "name": "Goblin",
+      "isVillain": false,
+      "hasModel": true,
+      "expectedModel1": "goblin.glb"
+    },
+    {
+      "name": "Gargoyle",
+      "isVillain": false,
+      "hasModel": true,
+      "expectedModel1": "gargoyle.glb"
+    },
+    {
+      "name": "Vampire",
+      "isVillain": true,
+      "hasModel": false,
+      "expectedModel1": "vampire.glb"
+    },
+    {
+      "name": "Troll",
+      "isVillain": true,
+      "hasModel": true,
+      "expectedModel1": "troll.glb"
+    },
+    {
+      "name": "Dragon",
+      "isVillain": true,
+      "hasModel": false,
+      "expectedModel1": "dragon.glb"
+    },
+    {
+      "name": "Necromancer",
+      "isVillain": false,
+      "hasModel": true,
+      "expectedModel1": "necromancer.glb"
+    },
+    {
+      "name": "Werewolf",
+      "isVillain": true,
+      "hasModel": true,
+      "expectedModel1": "werewolf.glb"
+    },
+    {
+      "name": "Spider",
+      "isVillain": false,
+      "hasModel": false,
+      "expectedModel1": "spider.glb"
+    },
+    {
+      "name": "Strahd",
+      "isVillain": true,
+      "hasModel": true,
+      "expectedModel1": "strahd.glb"
+    },
+    {
+      "name": "Vampire Lord",
+      "isVillain": true,
+      "hasModel": true,
+      "expectedModel1": "vampirelord.glb"
+    },
+    {
+      "name": "Young Red Dragon",
+      "isVillain": true,
+      "hasModel": false,
+      "expectedModel1": "youngreddragon.glb"
+    },
+    {
+      "name": "Klak",
+      "isVillain": true,
+      "hasModel": false,
+      "expectedModel1": "klak.glb"
+    },
+    {
+      "name": "Klak's Artifact",
+      "isVillain": true,
+      "hasModel": false,
+      "expectedModel1": "klak'sartifact.glb"
+    },
+    {
+      "name": "Young Vampire",
+      "isVillain": true,
+      "hasModel": true,
+      "expectedModel1": "youngvampire.glb"
+    },
+    {
+      "name": "Gravestorm",
+      "isVillain": true,
+      "hasModel": false,
+      "expectedModel1": "gravestorm.glb"
+    },
+    {
+      "name": "Gravestorm's Phylactery",
+      "isVillain": false,
+      "hasModel": false,
+      "expectedModel1": "gravestorm'sphylactery.glb"
+    },
+    {
+      "name": "Howling Hag",
+      "isVillain": true,
+      "hasModel": false,
+      "expectedModel1": "howlinghag.glb"
+    },
+    {
+      "name": "Zombie Dragon",
+      "isVillain": true,
+      "hasModel": true,
+      "expectedModel1": "zombiedragon.glb"
+    },
+    {
+      "name": "Flesh Golem",
+      "isVillain": true,
+      "hasModel": true,
+      "expectedModel1": "fleshgolem.glb"
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "Find the Icon of Ravenloft",
+      "description": "The heroes must explore the dungeon to find the lost Icon of Ravenloft and escape with their lives."
+    },
+    {
+      "name": "Reset the Beacon",
+      "description": "Light the four torches in the central chamber to reveal the secret exit."
+    }
+  ]
+}

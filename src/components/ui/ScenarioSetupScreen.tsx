@@ -168,11 +168,11 @@ export const ScenarioSetupScreen: React.FC<ScenarioSetupScreenProps> = ({ onBack
                       transform: isSelected ? 'scale(1.02)' : 'scale(1)'
                     }}
                   >
-                    <div style={{ height: '140px', background: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #333' }}>
+                    <div style={{ height: '236px', background: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #333' }}>
                       <img
                         src={`/ui/${h.name.toLowerCase()}.png`}
                         alt={h.name}
-                        style={{ height: '100%', width: '100%', objectFit: 'cover', opacity: isSelected ? 1 : 0.4 }}
+                        style={{ height: '100%', width: '100%', objectFit: 'cover', objectPosition: 'top', opacity: isSelected ? 1 : 0.4 }}
                         onError={(e) => (e.currentTarget.src = '/ui/arjhan.png')}
                       />
                     </div>

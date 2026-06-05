@@ -13,7 +13,7 @@ class AnimationQueue {
   private onQueueEmpty: (() => void) | null = null;
 
   async enqueue(name: string, run: AnimationCallback, priority: number = 0) {
-    const id = Math.random().toString(36).substr(2, 9);
+    const id = crypto.randomUUID();
     this.queue.push({ id, name, run, priority });
     this.queue.sort((a, b) => b.priority - a.priority);
     

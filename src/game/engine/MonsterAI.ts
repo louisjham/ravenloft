@@ -4,10 +4,12 @@
  * Pure functions with no mutation, no side effects, no UI.
  */
 
-import { Tile, Hero, Monster, GameState, Trap, TacticResult, MonsterAbility, AbilityEffect } from '../types';
+import { Tile, Hero, Monster, GameState, Trap, TacticResult, MonsterAbility, AbilityEffect, Position } from '../types';
 import AbilitySystem from '../ai/AbilitySystem';
 import BossPhases from '../ai/BossPhases';
 import { ABILITY_LIBRARY } from '../ai/behaviors/AbilityLibrary';
+import { DataLoader } from '../dataLoader';
+import { isDev } from '../../utils/devEnv';
 
 /**
  * Calculate Manhattan distance between two positions.
@@ -18,6 +20,49 @@ export function manhattanDistance(
   bx: number, bz: number
 ): number {
   return Math.abs(ax - bx) + Math.abs(az - bz);
+}
+
+/**
+ * Calculate the shortest path distance in the tile connection graph.
+ * Returns the number of edges (steps) in the shortest path using BFS.
+ * Returns 999 if the tiles are not connected.
+ */
+export function getTileGraphDistance(
+  fromTile: Tile,
+  toTile: Tile,
+  allTiles: Tile[]
+): number {
+  if (fromTile.id === toTile.id) return 0;
+
+  const tileMap = new Map<string, Tile>();
+  for (const t of allTiles) {
+    tileMap.set(t.id, t);
+  }
+
+  const visited = new Set<string>();
+  const queue: { tile: Tile; dist: number }[] = [{ tile: fromTile, dist: 0 }];
+  visited.add(fromTile.id);
+
+  while (queue.length > 0) {
+    const { tile: current, dist } = queue.shift()!;
+
+    if (current.id === toTile.id) {
+      return dist;
+    }
+
+    const adjacentIds = getAdjacentTileIds(current, allTiles);
+    for (const adjacentId of adjacentIds) {
+      if (!visited.has(adjacentId)) {
+        const adjacentTile = tileMap.get(adjacentId);
+        if (adjacentTile) {
+          visited.add(adjacentId);
+          queue.push({ tile: adjacentTile, dist: dist + 1 });
+        }
+      }
+    }
+  }
+
+  return 999; // No path found in connection graph
 }
 
 /**
@@ -62,6 +107,7 @@ export function hasLineOfSight(
   }
 
   // BFS to find a path from fromTile to toTile
+  // Tiles that block LoS can be seen (if they are the destination) but cannot be seen through
   const visited = new Set<string>();
   const queue: Tile[] = [fromTile];
   visited.add(fromTile.id);
@@ -69,26 +115,23 @@ export function hasLineOfSight(
   while (queue.length > 0) {
     const current = queue.shift()!;
 
-    // Check if we reached the target
     if (current.id === toTile.id) {
       return true;
     }
 
-    // Check if current tile blocks line of sight
-    if (current.blocksLineOfSight === true) {
-      continue;
-    }
-
-    // Add adjacent tiles to queue
     const adjacentIds = getAdjacentTileIds(current, allTiles);
     for (const adjacentId of adjacentIds) {
-      if (!visited.has(adjacentId)) {
-        const adjacentTile = tileMap.get(adjacentId);
-        if (adjacentTile) {
-          visited.add(adjacentId);
-          queue.push(adjacentTile);
-        }
+      if (visited.has(adjacentId)) continue;
+
+      const adjacentTile = tileMap.get(adjacentId);
+      if (!adjacentTile) continue;
+
+      visited.add(adjacentId);
+      // Skip tiles that block line of sight, UNLESS they are the destination
+      if (adjacentTile.blocksLineOfSight === true && adjacentId !== toTile.id) {
+        continue;
       }
+      queue.push(adjacentTile);
     }
   }
 
@@ -102,38 +145,50 @@ export function hasLineOfSight(
 export function findClosestHero(
   fromTile: Tile,
   heroes: Hero[],
-  allTiles: Tile[]
+  allTiles: Tile[],
+  monsterPosition?: Position
 ): { hero: Hero; distance: number; tile: Tile } | null {
   if (heroes.length === 0) {
     return null;
   }
 
-  // Create a map for O(1) tile lookup by ID
-  const tileMap = new Map<string, Tile>();
-  for (const tile of allTiles) {
-    tileMap.set(tile.id, tile);
-  }
-
   let closest: { hero: Hero; distance: number; tile: Tile } | null = null;
 
   for (const hero of heroes) {
-    const heroTile = tileMap.get(hero.position.x.toString() + ',' + hero.position.z.toString());
     // Find the tile by coordinates since hero.position.x/z are tile coordinates
     const heroTileByCoords = allTiles.find(t => t.x === hero.position.x && t.z === hero.position.z);
 
     if (heroTileByCoords) {
-      const distance = manhattanDistance(
-        fromTile.x, fromTile.z,
-        heroTileByCoords.x, heroTileByCoords.z
+      const distance = getTileGraphDistance(
+        fromTile,
+        heroTileByCoords,
+        allTiles
       );
 
-      if (closest === null || distance < closest.distance) {
+      let isCloser = false;
+      if (closest === null) {
+        isCloser = true;
+      } else if (distance < closest.distance) {
+        isCloser = true;
+      } else if (distance === closest.distance && monsterPosition) {
+        const currentSqDist = Math.abs(hero.position.sqX - monsterPosition.sqX) +
+                             Math.abs(hero.position.sqZ - monsterPosition.sqZ);
+        const closestSqDist = Math.abs(closest.hero.position.sqX - monsterPosition.sqX) +
+                             Math.abs(closest.hero.position.sqZ - monsterPosition.sqZ);
+        if (currentSqDist < closestSqDist) {
+          isCloser = true;
+        }
+      }
+
+      if (isCloser) {
         closest = {
           hero,
           distance,
           tile: heroTileByCoords
         };
       }
+    } else if (isDev()) {
+      console.warn(`[MonsterAI] Hero "${hero.name}" (${hero.id}) has position (${hero.position.x}, ${hero.position.z}) that matches no tile — excluded from targeting`);
     }
   }
 
@@ -165,21 +220,30 @@ export function getPathToward(
     tileMap.set(tile.id, tile);
   }
 
-  // BFS to find shortest path
+  // BFS with parent map — O(n) memory instead of O(n²) per-node path arrays
   const visited = new Set<string>();
-  const queue: { tile: Tile; path: Tile[] }[] = [{ tile: fromTile, path: [] }];
+  const parent = new Map<string, string | null>();
+  const queue: string[] = [fromTile.id];
   visited.add(fromTile.id);
+  parent.set(fromTile.id, null);
 
   while (queue.length > 0) {
-    const { tile: current, path } = queue.shift()!;
+    const currentId = queue.shift()!;
+    const currentTile = tileMap.get(currentId)!;
 
-    // Check if we reached the target
-    if (current.id === toTile.id) {
+    if (currentId === toTile.id) {
+      // Reconstruct path by walking parent map from destination back to source
+      const path: Tile[] = [];
+      let node: string | null = toTile.id;
+      while (node !== null && node !== fromTile.id) {
+        const t = tileMap.get(node);
+        if (t) path.unshift(t);
+        node = parent.get(node) ?? null;
+      }
       return path.slice(0, steps);
     }
 
-    // Add adjacent tiles to queue
-    const adjacentIds = getAdjacentTileIds(current, allTiles);
+    const adjacentIds = getAdjacentTileIds(currentTile, allTiles);
 
     // Sort adjacent tiles by lexicographic order (x, then z) to ensure deterministic behavior.
     // This is critical for test repeatability: when multiple paths of equal length exist,
@@ -197,8 +261,8 @@ export function getPathToward(
     for (const adjacentTile of sortedAdjacentTiles) {
       if (!visited.has(adjacentTile.id)) {
         visited.add(adjacentTile.id);
-        const newPath = [...path, adjacentTile];
-        queue.push({ tile: adjacentTile, path: newPath });
+        parent.set(adjacentTile.id, currentId);
+        queue.push(adjacentTile.id);
       }
     }
   }
@@ -218,20 +282,52 @@ function evaluateCondition(
 ): boolean {
   switch (condition) {
     case 'always':
+    case 'default':
       return true;
+
+    case 'hp_full':
+      return monster.hp === monster.maxHp;
+
+    case 'hp_low':
+      return monster.hp / monster.maxHp < 1 / 3;
 
     case 'adjacent_to_hero':
     case 'within_1_tile_of_hero':
     case 'heroes_adjacent': {
-      const closestHero = findClosestHero(monsterTile, gameState.heroes, gameState.tiles);
+      const closestHero = findClosestHero(monsterTile, gameState.heroes, gameState.tiles, monster.position);
       if (closestHero === null) {
         return false;
       }
-      const distance = manhattanDistance(
-        monsterTile.x, monsterTile.z,
-        closestHero.tile.x, closestHero.tile.z
+      const distance = getTileGraphDistance(
+        monsterTile,
+        closestHero.tile,
+        gameState.tiles
       );
       return distance === 1;
+    }
+
+    case 'heroes_near': {
+      const closestHero = findClosestHero(monsterTile, gameState.heroes, gameState.tiles, monster.position);
+      return closestHero !== null && closestHero.distance <= 2;
+    }
+
+    case 'surrounded': {
+      // NOTE: This runs a full BFS (getTileGraphDistance) per hero, on top of
+      // the findClosestHero call already made in resolveTactic. For a monster
+      // with many heroes nearby, this is several full graph traversals per
+      // activation. Acceptable for MVP dungeon sizes; cache distances if this
+      // becomes a hotspot.
+      let adjacentCount = 0;
+      for (const hero of gameState.heroes) {
+        const heroTile = gameState.tiles.find(t => t.x === hero.position.x && t.z === hero.position.z);
+        if (heroTile) {
+          const dist = getTileGraphDistance(monsterTile, heroTile, gameState.tiles);
+          if (dist <= 1) {
+            adjacentCount++;
+          }
+        }
+      }
+      return adjacentCount >= 2;
     }
 
     case 'hp_below_50_percent':
@@ -331,8 +427,16 @@ export function resolveTactic(
     const tactics = BossPhases.getPhaseTactics(monster, gameState);
     for (const tactic of tactics) {
       if (evaluateCondition(tactic.condition, monster, monsterTile, gameState)) {
-        if (tactic.ability) {
-          const ability = monster.abilities?.find(a => a.id === tactic.ability);
+        let abilityToUse = tactic.ability;
+        if (!abilityToUse && tactic.actions && tactic.actions.length > 0) {
+          const matchingAbility = monster.abilities?.find(a => tactic.actions.includes(a.id));
+          if (matchingAbility) {
+            abilityToUse = matchingAbility.id;
+          }
+        }
+
+        if (abilityToUse) {
+          const ability = monster.abilities?.find(a => a.id === abilityToUse);
           if (ability && AbilitySystem.canUseAbility(ability, monster, gameState)) {
             return {
               action: 'use_ability',
@@ -341,8 +445,17 @@ export function resolveTactic(
             };
           }
         } else if (tactic.actions.includes('move_toward_closest_hero')) {
-          // Fall through to existing move logic below
+          // Fall through: break out of the tactic loop into Steps 5+ (move/attack logic below).
+          // This is the only action that intentionally falls through — all other actions
+          // must produce a result within this loop body.
           break;
+        } else {
+          // If tactic condition matched but no ability or recognized action was found,
+          // this is likely a configuration error in the phase tactics data.
+          // The loop continues to check remaining tactics for this phase.
+          if (isDev()) {
+            console.warn(`[MonsterAI] Boss tactic matched condition "${tactic.condition}" but has no recognized action`, tactic.actions);
+          }
         }
       }
     }
@@ -366,7 +479,7 @@ export function resolveTactic(
 
   // Steps 5+ — Existing move/attack logic (unchanged)
   // 1. Find closest hero
-  const closestHero = findClosestHero(monsterTile, heroes, tiles);
+  const closestHero = findClosestHero(monsterTile, heroes, tiles, monster.position);
   if (closestHero === null) {
     return { action: 'idle' };
   }
@@ -374,10 +487,7 @@ export function resolveTactic(
   const { hero: closest, tile: heroTile } = closestHero;
 
   // 2. Compute distance
-  const distance = manhattanDistance(
-    monsterTile.x, monsterTile.z,
-    heroTile.x, heroTile.z
-  );
+  const distance = getTileGraphDistance(monsterTile, heroTile, tiles);
 
   // 3. If same tile or adjacent, check line of sight and attack
   if (distance === 0 || distance === 1) {
@@ -399,21 +509,28 @@ export function resolveTactic(
       return { action: 'idle' };
     }
 
-    const landingTile = path[path.length - 1];
-    const newDistance = manhattanDistance(
-      landingTile.x, landingTile.z,
-      heroTile.x, heroTile.z
-    );
+    // Stop moving as soon as we become adjacent to the target hero.
+    let slicedPath = [...path];
+    for (let i = 0; i < path.length; i++) {
+      const dist = getTileGraphDistance(path[i], heroTile, tiles);
+      if (dist <= 1) {
+        slicedPath = path.slice(0, i + 1);
+        break;
+      }
+    }
 
-    if (newDistance <= 1) {
+    const landingTile = slicedPath[slicedPath.length - 1];
+    const newDistance = getTileGraphDistance(landingTile, heroTile, tiles);
+
+    if (distance <= moveRange && newDistance <= 1) {
       return {
         action: 'move_then_attack',
-        path,
+        path: slicedPath,
         targetHeroId: closest.id,
         damage: monster.damage ?? 1
       };
     } else {
-      return { action: 'move', path };
+      return { action: 'move', path: slicedPath };
     }
   }
 
@@ -427,7 +544,8 @@ export function resolveTactic(
  * Checks if a trap should trigger based on hero position and trap state.
  *
  * Logic:
- * - Find any Hero whose current tile matches trapTile (hero.tileId === trapTile.id)
+ * - Find any Hero whose tile coordinates (position.x, position.z) match trapTile
+ *   (Hero has no tileId field — coordinate match via position.x/z is used instead)
  * - If no hero on the trap tile → return null
  * - If trap.isTriggered === true → return null (already fired, do not re-trigger)
  * - Return { targetHeroId: hero.id, damage: trap.damage ?? 1 }
@@ -460,9 +578,13 @@ export function resolveTrap(
     return null;
   }
 
-  // Return the target hero and damage
+  // Look up actual trap card damage; guard against non-number values in card data
+  const trapCard = DataLoader.getInstance().getCardById(trap.cardId);
+  const rawDamage = trapCard?.effects?.find(e => e.type === 'damage')?.value;
+  const trapDamage = typeof rawDamage === 'number' ? rawDamage : 1;
+
   return {
     targetHeroId: heroOnTrap.id,
-    damage: 1 // Default damage of 1 (trap.damage is not on Trap type)
+    damage: trapDamage
   };
 }

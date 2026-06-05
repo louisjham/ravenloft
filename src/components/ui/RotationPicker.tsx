@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Rotation } from '../../game/types';
+import { useUIStore } from '../../store/uiStore';
 
 interface RotationPickerProps {
   validRotations: Rotation[];
@@ -15,16 +16,18 @@ export const RotationPicker: React.FC<RotationPickerProps> = ({
   onCancel,
 }) => {
   const [selectedRotation, setSelectedRotation] = useState<Rotation>(validRotations[0] ?? 0);
+  const hasAutoConfirmed = useRef(false);
+  const onConfirmRef = useRef(onConfirm);
+  onConfirmRef.current = onConfirm;
 
   useEffect(() => {
-    // If there's exactly one valid rotation, auto-confirm immediately on mount
-    if (validRotations.length === 1) {
-      onConfirm(validRotations[0]);
+    if (validRotations.length === 1 && !hasAutoConfirmed.current) {
+      hasAutoConfirmed.current = true;
+      onConfirmRef.current(validRotations[0]);
     } else if (validRotations.length > 1 && !validRotations.includes(selectedRotation)) {
-      // Safety update if valid rotations change and current selection is invalid
       setSelectedRotation(validRotations[0]);
     }
-  }, [validRotations, onConfirm, selectedRotation]);
+  }, [validRotations, selectedRotation]);
 
   // If auto-confirming or no valid rotations, don't show the UI
   if (validRotations.length <= 1) {
@@ -88,7 +91,10 @@ export const RotationPicker: React.FC<RotationPickerProps> = ({
         {validRotations.map(rot => (
           <button
             key={rot}
-            onClick={() => setSelectedRotation(rot)}
+            onClick={() => {
+              setSelectedRotation(rot);
+              useUIStore.setState({ pendingTileRotation: rot as 0 | 90 | 180 | 270 });
+            }}
             style={{
               padding: '8px 16px',
               backgroundColor: selectedRotation === rot ? '#444' : '#222',

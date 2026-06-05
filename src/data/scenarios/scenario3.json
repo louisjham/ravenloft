@@ -8,13 +8,15 @@
       "id": "find_exit",
       "type": "find_tile",
       "targetTileId": "exit_tile",
-      "description": "Find the secret exit tile"
+      "description": "Find the secret exit tile",
+      "isCompleted": false
     },
     {
       "id": "all_heroes_exit",
       "type": "all_at_position",
       "targetTileId": "exit_tile",
-      "description": "All heroes must reach the exit tile"
+      "description": "All heroes must reach the exit tile",
+      "isCompleted": false
     }
   ],
   "specialRules": [

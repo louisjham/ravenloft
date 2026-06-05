@@ -3,13 +3,14 @@
     "id": "hero_arjhan",
     "name": "Arjhan",
     "type": "hero",
-    "heroClass": "paladin",
+    "heroClass": "fighter",
     "hp": 10,
     "maxHp": 10,
     "ac": 17,
     "speed": 6,
     "level": 1,
     "xp": 0,
+    "surgeValue": 3,
     "surgeUsed": false,
     "abilities": [
       "arjhan_power_1",
@@ -25,7 +26,8 @@
       "sqZ": 1
     },
     "conditions": [],
-    "usedPowers": []
+    "usedPowers": [],
+    "flippedPowerIds": []
   },
   {
     "id": "hero_immeril",
@@ -38,6 +40,7 @@
     "speed": 6,
     "level": 1,
     "xp": 0,
+    "surgeValue": 3,
     "surgeUsed": false,
     "abilities": [
       "immeril_power_1",
@@ -53,7 +56,8 @@
       "sqZ": 2
     },
     "conditions": [],
-    "usedPowers": []
+    "usedPowers": [],
+    "flippedPowerIds": []
   },
   {
     "id": "hero_kat",
@@ -66,6 +70,7 @@
     "speed": 7,
     "level": 1,
     "xp": 0,
+    "surgeValue": 3,
     "surgeUsed": false,
     "abilities": [
       "kat_power_1",
@@ -81,7 +86,8 @@
       "sqZ": 1
     },
     "conditions": [],
-    "usedPowers": []
+    "usedPowers": [],
+    "flippedPowerIds": []
   },
   {
     "id": "hero_thorgrim",
@@ -94,6 +100,7 @@
     "speed": 5,
     "level": 1,
     "xp": 0,
+    "surgeValue": 4,
     "surgeUsed": false,
     "abilities": [
       "thorgrim_power_1",
@@ -109,11 +116,12 @@
       "sqZ": 2
     },
     "conditions": [],
-    "usedPowers": []
+    "usedPowers": [],
+    "flippedPowerIds": []
   },
   {
-    "id": "hero_vani",
-    "name": "Vani",
+    "id": "hero_alanni",
+    "name": "Alanni",
     "type": "hero",
     "heroClass": "ranger",
     "hp": 10,
@@ -122,10 +130,11 @@
     "speed": 7,
     "level": 1,
     "xp": 0,
+    "surgeValue": 3,
     "surgeUsed": false,
     "abilities": [
-      "vani_power_1",
-      "vani_power_2"
+      "alanni_power_1",
+      "alanni_power_2"
     ],
     "hand": [],
     "items": [],
@@ -137,6 +146,7 @@
       "sqZ": 0
     },
     "conditions": [],
-    "usedPowers": []
+    "usedPowers": [],
+    "flippedPowerIds": []
   }
 ]

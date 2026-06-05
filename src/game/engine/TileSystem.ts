@@ -1,6 +1,7 @@
-import { Tile, Position, TileConnection, Direction, Rotation, GameState, ExplorationPoint, EdgeConflict, ValidationResult, EdgeDirection } from '../types';
+import { Tile, Position, TileConnection, Direction, Rotation, GameState, ExplorationPoint, EdgeConflict, ValidationResult, Monster } from '../types';
 import { GAME_CONSTANTS } from '../constants';
 import { DataLoader } from '../dataLoader';
+import { TokenSystem } from './TokenSystem';
 
 /**
  * Handles tile placement, exploration edge detection, and grid management.
@@ -131,25 +132,28 @@ export class TileSystem {
    *
    * @param currentTileCardId - The card ID of the tile being returned
    * @param deck - Current dungeon deck
-   * @returns Object with new tile (or null if exhausted), card ID, and updated deck
+   * @param edgeDirection - The edge the tile is being placed against (to compute valid rotations)
+   * @returns Object with new tile (or null if exhausted), card ID, updated deck, and valid rotations
    */
   public static returnAndDrawNext(
     currentTileCardId: string,
-    deck: string[]
-  ): { tile: Tile | null; cardId: string | null; remainingDeck: string[] } {
+    deck: string[],
+    edgeDirection: Direction
+  ): { tile: Tile | null; cardId: string | null; remainingDeck: string[]; validRotations: Rotation[] } {
     // Put current tile at the bottom of the deck
     const deckWithReturned = [...deck, currentTileCardId];
 
     // Draw the next tile from the top
     if (deckWithReturned.length === 0) {
-      return { tile: null, cardId: null, remainingDeck: [] };
+      return { tile: null, cardId: null, remainingDeck: [], validRotations: [] };
     }
 
     const nextCardId = deckWithReturned[0];
     const remainingDeck = deckWithReturned.slice(1);
     const tile = TileSystem.getTileTemplate(nextCardId);
+    const validRotations = tile ? TileSystem.getValidRotations(tile, edgeDirection) : [];
 
-    return { tile: tile || null, cardId: nextCardId, remainingDeck };
+    return { tile: tile || null, cardId: nextCardId, remainingDeck, validRotations };
   }
 
   /**
@@ -175,9 +179,13 @@ export class TileSystem {
       return gameState;
     }
 
-    // 3. Assign spatial coords relative to parent edge
+    // 3. Assign spatial coords relative to parent edge AND generate unique ID
+    const baseTile = drawResult.tile;
+    const instanceId = `${baseTile.id}_${Math.random().toString(36).substr(2, 5)}`;
+    const tileWithId = { ...baseTile, id: instanceId };
+
     const tile = TileSystem.assignPlacementCoords(
-      drawResult.tile,
+      tileWithId,
       parentTile,
       explorationPoint.edge
     );
@@ -208,11 +216,66 @@ export class TileSystem {
       explorationPoint.edge
     );
 
-    // 8. Yield functional state payload
-    return {
-      ...gameState,
+    // 8. Place coffin token on the new tile (for Scenario 1)
+    const coffinResult = TokenSystem.placeCoffinOnNewTile(gameState, tile.id, tile.x, tile.z);
+
+    // 9. Yield functional state payload
+    const newState = {
+      ...(coffinResult?.newState ?? gameState),
       tiles: newTiles,
       dungeonDeck: drawResult.remainingDeck
+    };
+
+    // Include tokens if a coffin was placed
+    if (coffinResult?.token) {
+      const currentTokens = newState.tokens || [];
+      return {
+        ...newState,
+        tokens: [...currentTokens, coffinResult.token],
+        strahdsCoffinTokenId: coffinResult.token.metadata?.isStrahdsCoffin
+          ? coffinResult.token.id
+          : newState.strahdsCoffinTokenId
+      };
+    }
+
+    return newState;
+  }
+
+  /**
+   * After a tile is placed during exploration, spawn a monster on it if the
+   * tile has an encounterType. Draws from the monsterDeck and places the
+   * monster on the tile at the standard spawn position.
+   */
+  public static spawnMonsterForExploration(gameState: GameState, tile: Tile): GameState {
+    if (!tile.encounterType) return gameState;
+
+    const deck = [...gameState.monsterDeck];
+    if (deck.length === 0) return gameState;
+
+    const monsterTemplateId = deck.pop()!;
+    const template = DataLoader.getInstance().getMonsterById(monsterTemplateId);
+    if (!template) return { ...gameState, monsterDeck: deck };
+
+    const uniqueId = `monster_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const newMonster: Monster = {
+      ...template,
+      id: uniqueId,
+      position: {
+        x: tile.x,
+        z: tile.z,
+        sqX: 2,
+        sqZ: 2
+      },
+      isExhausted: false,
+      conditions: [],
+      hp: template.hp,
+      maxHp: template.maxHp
+    };
+
+    return {
+      ...gameState,
+      monsterDeck: deck,
+      monsters: [...gameState.monsters, newMonster]
     };
   }
 
@@ -267,7 +330,7 @@ export class TileSystem {
    * Named `getTargetCoords` (not `getTargetPosition`) to avoid colliding with
    * the public method of that name which operates on the full Position type.
    */
-  private static getTargetCoords(
+  public static getTargetCoords(
     parentX: number,
     parentZ: number,
     edge: Direction,
@@ -299,9 +362,15 @@ export class TileSystem {
    */
   public static getExplorationPoints(tiles: Tile[]): ExplorationPoint[] {
     const points: ExplorationPoint[] = [];
+    let revealedTileCount = 0;
+    // console.log(`[TileSystem] getExplorationPoints: checking ${tiles.length} tiles...`);
 
     tiles.forEach(tile => {
-      if (!tile.isRevealed) return;
+      if (!tile.isRevealed) {
+        // console.log(`[TileSystem] Tile ${tile.id} not revealed, skipping`);
+        return;
+      }
+      revealedTileCount++;
 
       tile.connections.forEach(conn => {
         if (conn.isOpen && !conn.connectedTileId) {
@@ -312,14 +381,18 @@ export class TileSystem {
 
           // Only add point if the adjacent space is empty
           if (TileSystem.canPlaceTile(tiles, targetCoords.x, targetCoords.z)) {
-            let worldX = tile.x;
-            let worldZ = tile.z;
+            const TILE_SIZE = 4;
+            const CENTER_OFFSET = 2.0; // TILE_SIZE / 2
+            const EDGE_OFFSET = 2.0;   // TILE_SIZE / 2
+
+            let worldX = tile.x * TILE_SIZE + CENTER_OFFSET;
+            let worldZ = tile.z * TILE_SIZE + CENTER_OFFSET;
 
             switch (edge) {
-              case 'north': worldZ -= 0.5; break;
-              case 'south': worldZ += 0.5; break;
-              case 'east': worldX += 0.5; break;
-              case 'west': worldX -= 0.5; break;
+              case 'north': worldZ -= EDGE_OFFSET; break;
+              case 'south': worldZ += EDGE_OFFSET; break;
+              case 'east': worldX += EDGE_OFFSET; break;
+              case 'west': worldX -= EDGE_OFFSET; break;
             }
 
             points.push({ tileId: tile.id, edge, worldX, worldZ });
@@ -358,6 +431,68 @@ export class TileSystem {
 
     const distance = Math.abs(fromGlobalX - toGlobalX) + Math.abs(fromGlobalZ - toGlobalZ);
     return distance <= speed;
+  }
+
+  /**
+   * BFS from a hero's position to find all squares reachable within `speed` steps.
+   * Returns a Set of "tileId:sqX:sqZ" keys for highlighting movable squares.
+   */
+  public static getReachableSquares(
+    position: Position,
+    tiles: Tile[],
+    speed: number,
+    blockedSquares: Set<string>
+  ): Set<string> {
+    const TS = GAME_CONSTANTS.TILE_SIZE_SQUARES;
+    const tileSet = new Set(tiles.filter(t => t.isRevealed).map(t => `${t.x},${t.z}`));
+    const tileMap = new Map(tiles.filter(t => t.isRevealed).map(t => [`${t.x},${t.z}`, t]));
+    const result = new Set<string>();
+    const visited = new Set<string>();
+
+    const startGX = position.x * TS + position.sqX;
+    const startGZ = position.z * TS + position.sqZ;
+    const startKey = `${startGX},${startGZ}`;
+
+    visited.add(startKey);
+
+    const queue: { gx: number; gz: number; dist: number }[] = [{ gx: startGX, gz: startGZ, dist: 0 }];
+    const directions = [
+      { dx: 1, dz: 0 }, { dx: -1, dz: 0 },
+      { dx: 0, dz: 1 }, { dx: 0, dz: -1 },
+    ];
+
+    while (queue.length > 0) {
+      const { gx, gz, dist } = queue.shift()!;
+
+      if (dist > 0) {
+        const tx = Math.floor(gx / TS);
+        const tz = Math.floor(gz / TS);
+        const tile = tileMap.get(`${tx},${tz}`);
+        if (tile) {
+          result.add(`${tile.id}:${((gx % TS) + TS) % TS}:${((gz % TS) + TS) % TS}`);
+        }
+      }
+
+      if (dist >= speed) continue;
+
+      for (const dir of directions) {
+        const ngx = gx + dir.dx;
+        const ngz = gz + dir.dz;
+        const nKey = `${ngx},${ngz}`;
+
+        if (visited.has(nKey)) continue;
+
+        const ntx = Math.floor(ngx / TS);
+        const ntz = Math.floor(ngz / TS);
+        if (!tileSet.has(`${ntx},${ntz}`)) continue;
+        if (blockedSquares.has(nKey)) continue;
+
+        visited.add(nKey);
+        queue.push({ gx: ngx, gz: ngz, dist: dist + 1 });
+      }
+    }
+
+    return result;
   }
 
   /** Returns tiles directly connected to `tile` via its connection graph. */
@@ -493,6 +628,40 @@ export class TileSystem {
   }
 
   /**
+   * Draws a tile from the bottom of the Dungeon Tile stack (end of the array)
+   * and returns it together with its valid rotations.
+   */
+  public static drawAndPlaceFromBottom(
+    gameState: GameState,
+    explorationPoint: { tileId: string; edge: Direction },
+  ): {
+    tile: Tile | null;
+    validRotations: Rotation[];
+    remainingDeck: string[];
+    exhausted: boolean;
+  } {
+    const deck = [...gameState.dungeonDeck]; // local copy — never mutate gameState
+
+    for (let i = deck.length - 1; i >= 0; i--) {
+      const cardId = deck[i];
+      const candidate = TileSystem.getTileTemplate(cardId);
+
+      // Skip IDs that don't resolve to a known tile (data gap).
+      if (!candidate) continue;
+
+      const validRotations = TileSystem.getValidRotations(candidate, explorationPoint.edge);
+
+      if (validRotations.length > 0) {
+        const remainingDeck = [...deck.slice(0, i), ...deck.slice(i + 1)];
+        return { tile: candidate, validRotations, remainingDeck, exhausted: false };
+      }
+    }
+
+    // No tile in the deck fits this exploration point.
+    return { tile: null, validRotations: [], remainingDeck: deck, exhausted: true };
+  }
+
+  /**
    * Connects a newly placed tile to the existing grid.
    * Modifies copies of the affected tiles and returns an array of all tiles.
    * 
@@ -564,16 +733,16 @@ export class TileSystem {
   }
 }
 
-export const OPPOSITE_EDGE: Record<EdgeDirection, EdgeDirection> = {
+export const OPPOSITE_EDGE: Record<Direction, Direction> = {
   north: 'south',
   south: 'north',
   east: 'west',
   west: 'east'
 };
 
-export const ROTATION_ORDER: EdgeDirection[] = ['north', 'east', 'south', 'west'];
+export const ROTATION_ORDER: Direction[] = ['north', 'east', 'south', 'west'];
 
-export function getEffectiveOpenEdges(openEdges: EdgeDirection[], rotation: number): EdgeDirection[] {
+export function getEffectiveOpenEdges(openEdges: Direction[], rotation: number): Direction[] {
   const steps = rotation / 90;
   return openEdges.map(edge => {
     const currentIndex = ROTATION_ORDER.indexOf(edge);
@@ -583,11 +752,11 @@ export function getEffectiveOpenEdges(openEdges: EdgeDirection[], rotation: numb
 }
 
 export function isPlacementValid(
-  candidateOpenEdges: EdgeDirection[],
+  candidateOpenEdges: Direction[],
   candidateRotation: number,
   targetX: number,
   targetY: number,
-  board: Map<string, { openEdges: EdgeDirection[], rotation: number }>
+  board: Map<string, { openEdges: Direction[], rotation: number }>
 ): { valid: boolean; reason?: string } {
   const key = `${targetX},${targetY}`;
   if (board.has(key)) {
@@ -600,7 +769,7 @@ export function isPlacementValid(
   for (const direction of ROTATION_ORDER) {
     let neighborX = targetX;
     let neighborY = targetY;
-    
+
     if (direction === 'north') neighborY -= 1;
     if (direction === 'south') neighborY += 1;
     if (direction === 'east') neighborX += 1;
@@ -612,7 +781,7 @@ export function isPlacementValid(
     if (neighbor) {
       hasNeighbor = true;
       const neighborEffectiveEdges = getEffectiveOpenEdges(neighbor.openEdges, neighbor.rotation);
-      
+
       const candidateIsOpen = effectiveEdges.includes(direction);
       const oppositeDir = OPPOSITE_EDGE[direction];
       const neighborIsOpen = neighborEffectiveEdges.includes(oppositeDir);

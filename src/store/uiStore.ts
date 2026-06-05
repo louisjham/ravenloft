@@ -1,6 +1,9 @@
 import { create } from 'zustand'
+import type { ExplorationState } from '../game/engine/ExplorationStateMachine';
 
 export type ModalType = 'none' | 'scenario_intro' | 'victory' | 'defeat' | 'settings' | 'tutorial' | 'help' | 'experience';
+
+export type InteractionMode = 'none' | 'move' | 'attack' | 'ability' | 'explore';
 
 interface Notification {
   id: string;
@@ -8,6 +11,13 @@ interface Notification {
   type: 'info' | 'success' | 'warning' | 'error';
   duration?: number;
 }
+
+const DEFAULT_CAMERA = {
+  position: [10, 10, 10] as [number, number, number],
+  target: [0, 0, 0] as [number, number, number],
+  zoom: 1,
+  rotation: 0,
+};
 
 interface UIStore {
   // State
@@ -23,15 +33,21 @@ interface UIStore {
   tilePlacementError: string | null
   pendingTileRotation: 0 | 90 | 180 | 270
   showTilePlacer: boolean
+  interactionMode: InteractionMode
+  selectedPowerId: string | null
+  explorationState: ExplorationState
 
   // Actions
+  setExplorationState: (state: ExplorationState) => void
+  setInteractionMode: (mode: InteractionMode) => void
+  setSelectedPowerId: (id: string | null) => void
   setTilePlacementError: (error: string | null) => void
   rotatePendingTile: () => void
   openTilePlacer: () => void
   closeTilePlacer: () => void
   showModal: (modal: ModalType) => void
   hideModal: () => void
-  addNotification: (message: string, type?: Notification['type']) => void
+  addNotification: (message: string, type?: Notification['type'], duration?: number) => void
   removeNotification: (id: string) => void
 
   updateCamera: (updates: Partial<UIStore['cameraState']>) => void
@@ -43,17 +59,18 @@ interface UIStore {
 export const useUIStore = create<UIStore>()((set) => ({
   activeModal: 'none',
   notifications: [],
-  cameraState: {
-    position: [10, 10, 10],
-    target: [0, 0, 0],
-    zoom: 1,
-    rotation: 0
-  },
+  cameraState: { ...DEFAULT_CAMERA },
   isTransitioning: false,
   tilePlacementError: null,
   pendingTileRotation: 0,
   showTilePlacer: false,
+  interactionMode: 'none',
+  selectedPowerId: null,
+  explorationState: { phase: 'idle' },
 
+  setExplorationState: (state) => set({ explorationState: state }),
+  setInteractionMode: (mode) => set({ interactionMode: mode }),
+  setSelectedPowerId: (id) => set({ selectedPowerId: id }),
   setTilePlacementError: (error) => set({ tilePlacementError: error }),
   
   rotatePendingTile: () => set((state) => ({ 
@@ -76,18 +93,18 @@ export const useUIStore = create<UIStore>()((set) => ({
   showModal: (modal) => set({ activeModal: modal }),
   hideModal: () => set({ activeModal: 'none' }),
 
-  addNotification: (message, type = 'info') => {
-    const id = Math.random().toString(36).substr(2, 9);
+  addNotification: (message, type = 'info', duration) => {
+    const id = crypto.randomUUID();
+    const notification = { id, message, type, duration };
     set((state) => ({
-      notifications: [...state.notifications, { id, message, type }]
+      notifications: [...state.notifications, notification]
     }));
 
-    // Auto remove after 5s
     setTimeout(() => {
       set((state) => ({
         notifications: state.notifications.filter(n => n.id !== id)
       }));
-    }, 5000);
+    }, notification.duration ?? 5000);
   },
 
   removeNotification: (id) => set((state) => ({
@@ -99,12 +116,7 @@ export const useUIStore = create<UIStore>()((set) => ({
   })),
 
   resetCamera: () => set({
-    cameraState: {
-      position: [10, 10, 10],
-      target: [0, 0, 0],
-      zoom: 1,
-      rotation: 0
-    }
+    cameraState: { ...DEFAULT_CAMERA }
   }),
 
   startTransition: () => set({ isTransitioning: true }),

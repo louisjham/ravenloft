@@ -1,153 +1,205 @@
-import { Entity, Condition, ConditionType } from '../types';
+import { Entity, Condition, ConditionType, GameState, Hero } from '../types';
+import { AbilitySystem } from '../ai/AbilitySystem';
 
 /**
- * DEBUG: Condition System - Manages condition application, removal, and effects
- * 
+ * Condition System - Manages condition application, removal, and effects.
+ * All methods are pure functions — input entities are never mutated.
+ *
  * Conditions:
- * - slowed: Movement speed reduced by half (rounded down)
+ * - slowed:      Movement speed reduced by half (rounded down)
  * - immobilized: Cannot move at all
- * - poisoned: Takes damage at start of turn
- * - dazed: Cannot use Daily powers
- * - weakened: Damage dealt is halved
- * - stunned: Cannot take any actions
+ * - poisoned:    Takes damage at start of turn
+ * - dazed:       Cannot use Daily powers
+ * - weakened:    Damage dealt is halved
+ * - stunned:     Cannot take any actions
  */
 export class ConditionSystem {
-    /**
-     * Applies a condition to an entity
-     */
-    public static applyCondition(
-        entity: Entity,
-        conditionType: ConditionType,
-        sourceId?: string,
-        duration: number = 1
-    ): void {
-        console.log(`[DEBUG ConditionSystem] Applying condition '${conditionType}' to ${entity.name} from ${sourceId || 'unknown'}`);
+  /**
+   * Returns a new entity with the condition applied.
+   * If the entity already has the condition, its duration is refreshed.
+   */
+  public static applyCondition<T extends Entity>(
+    entity: T,
+    conditionType: ConditionType,
+    sourceId?: string,
+    duration: number = 1,
+    value?: number
+  ): T {
+    console.log(`[ConditionSystem] Applying condition '${conditionType}' to ${entity.name} from ${sourceId || 'unknown'}`);
 
-        // Check if entity already has this condition
-        const existingCondition = entity.conditions.find(c => c.type === conditionType);
-        if (existingCondition) {
-            // Refresh duration
-            existingCondition.turnsRemaining = duration;
-            console.log(`[DEBUG ConditionSystem] Condition '${conditionType}' refreshed on ${entity.name}, duration: ${duration}`);
-        } else {
-            // Add new condition
-            entity.conditions.push({
-                type: conditionType,
-                sourceId,
-                turnsRemaining: duration
-            });
-            console.log(`[DEBUG ConditionSystem] Condition '${conditionType}' added to ${entity.name}, duration: ${duration}`);
+    const existing = entity.conditions.find(c => c.type === conditionType);
+    let newConditions: Condition[];
+
+    if (existing) {
+      // Refresh duration
+      newConditions = entity.conditions.map(c =>
+        c.type === conditionType ? { ...c, turnsRemaining: duration, value } : c
+      );
+      console.log(`[ConditionSystem] Condition '${conditionType}' refreshed on ${entity.name}, duration: ${duration}`);
+    } else {
+      // Add new condition
+      newConditions = [
+        ...entity.conditions,
+        { type: conditionType, sourceId, turnsRemaining: duration, value }
+      ];
+      console.log(`[ConditionSystem] Condition '${conditionType}' added to ${entity.name}, duration: ${duration}`);
+    }
+
+    return { ...entity, conditions: newConditions };
+  }
+
+  /**
+   * Returns a new entity with the given condition removed.
+   */
+  public static removeCondition<T extends Entity>(entity: T, conditionType: ConditionType): T {
+    const newConditions = entity.conditions.filter(c => c.type !== conditionType);
+    if (newConditions.length < entity.conditions.length) {
+      console.log(`[ConditionSystem] Condition '${conditionType}' removed from ${entity.name}`);
+    }
+    return { ...entity, conditions: newConditions };
+  }
+
+  /**
+   * Returns a new entity with all conditions cleared.
+   */
+  public static clearAllConditions<T extends Entity>(entity: T): T {
+    console.log(`[ConditionSystem] Cleared ${entity.conditions.length} conditions from ${entity.name}`);
+    return { ...entity, conditions: [] };
+  }
+
+  /**
+   * Returns a new entity with condition durations decremented.
+   * Conditions that reach 0 turns are removed.
+   */
+  public static processTurnEnd<T extends Entity>(entity: T): T {
+    console.log(`[ConditionSystem] Processing turn end for ${entity.name}, conditions: ${entity.conditions.map(c => c.type).join(', ') || 'none'}`);
+
+    const newConditions = entity.conditions
+      .map(c => ({ ...c, turnsRemaining: c.turnsRemaining - 1 }))
+      .filter(c => {
+        if (c.turnsRemaining <= 0) {
+          console.log(`[ConditionSystem] Condition '${c.type}' expired on ${entity.name}`);
+          return false;
         }
+        console.log(`[ConditionSystem] Condition '${c.type}' on ${entity.name}, turns remaining: ${c.turnsRemaining}`);
+        return true;
+      });
+
+    return { ...entity, conditions: newConditions };
+  }
+
+  /**
+   * Checks if an entity has a specific condition. (Read-only — no mutation.)
+   */
+  public static hasCondition(entity: Entity, conditionType: ConditionType): boolean {
+    return entity.conditions.some(c => c.type === conditionType);
+  }
+
+  /**
+   * Gets the effective speed of an entity considering conditions. (Read-only.)
+   */
+  public static getEffectiveSpeed(entity: Entity): number {
+    let effectiveSpeed = entity.speed;
+
+    if (this.hasCondition(entity, 'slowed')) {
+      effectiveSpeed = Math.floor(effectiveSpeed / 2);
+      console.log(`[ConditionSystem] ${entity.name} is slowed, speed reduced from ${entity.speed} to ${effectiveSpeed}`);
     }
 
-    /**
-     * Removes a condition from an entity
-     */
-    public static removeCondition(entity: Entity, conditionType: ConditionType): void {
-        const initialCount = entity.conditions.length;
-        entity.conditions = entity.conditions.filter(c => c.type !== conditionType);
-
-        if (entity.conditions.length < initialCount) {
-            console.log(`[DEBUG ConditionSystem] Condition '${conditionType}' removed from ${entity.name}`);
-        }
+    if (this.hasCondition(entity, 'crippling_miasma')) {
+      effectiveSpeed = Math.max(0, effectiveSpeed - 1);
+      console.log(`[ConditionSystem] ${entity.name} has crippling miasma, speed reduced to ${effectiveSpeed}`);
     }
 
-    /**
-     * Removes all conditions from an entity
-     */
-    public static clearAllConditions(entity: Entity): void {
-        const count = entity.conditions.length;
-        entity.conditions = [];
-        console.log(`[DEBUG ConditionSystem] Cleared ${count} conditions from ${entity.name}`);
+    if (this.hasCondition(entity, 'immobilized')) {
+      effectiveSpeed = 0;
+      console.log(`[ConditionSystem] ${entity.name} is immobilized, speed is 0`);
     }
 
-    /**
-     * Decrements turn counters for all conditions and removes expired ones
-     */
-    public static processTurnEnd(entity: Entity): void {
-        console.log(`[DEBUG ConditionSystem] Processing turn end for ${entity.name}, conditions: ${entity.conditions.map(c => c.type).join(', ') || 'none'}`);
+    return effectiveSpeed;
+  }
 
-        entity.conditions = entity.conditions.filter(condition => {
-            condition.turnsRemaining--;
+  /**
+   * Checks if an entity can take actions. (Read-only.)
+   */
+  public static canTakeActions(entity: Entity): boolean {
+    if (this.hasCondition(entity, 'stunned')) {
+      console.log(`[ConditionSystem] ${entity.name} is stunned and cannot take actions`);
+      return false;
+    }
+    return true;
+  }
 
-            if (condition.turnsRemaining <= 0) {
-                console.log(`[DEBUG ConditionSystem] Condition '${condition.type}' expired on ${entity.name}`);
-                return false; // Remove expired condition
-            }
+  /**
+   * Checks if an entity can use Daily powers. (Read-only.)
+   */
+  public static canUseDailyPowers(entity: Entity): boolean {
+    if (this.hasCondition(entity, 'dazed')) {
+      console.log(`[ConditionSystem] ${entity.name} is dazed and cannot use Daily powers`);
+      return false;
+    }
+    return true;
+  }
 
-            console.log(`[DEBUG ConditionSystem] Condition '${condition.type}' on ${entity.name}, turns remaining: ${condition.turnsRemaining}`);
-            return true;
+  /**
+   * Gets damage modifier based on conditions. (Read-only.)
+   */
+  public static getDamageModifier(entity: Entity): number {
+    if (this.hasCondition(entity, 'weakened')) {
+      console.log(`[ConditionSystem] ${entity.name} is weakened, damage will be halved`);
+      return 0.5;
+    }
+    return 1.0;
+  }
+
+  /**
+   * Processes poison damage at start of turn. (Read-only — returns damage amount only.)
+   */
+  public static processPoisonDamage(entity: Entity): number {
+    if (this.hasCondition(entity, 'poisoned')) {
+      const poisonDamage = 1;
+      console.log(`[ConditionSystem] ${entity.name} is poisoned, taking ${poisonDamage} damage`);
+      return poisonDamage;
+    }
+    return 0;
+  }
+
+  /**
+   * Processes saving throws and start-of-turn conditions for a hero.
+   */
+  public static processTurnStart(gameState: GameState, heroId: string): GameState {
+    const hero = gameState.heroes.find(h => h.id === heroId);
+    if (!hero) return gameState;
+
+    let updatedHero = { ...hero };
+    let logs = [...gameState.log];
+
+    const hasMiasma = this.hasCondition(hero, 'crippling_miasma');
+    if (hasMiasma) {
+      // Roll Fortitude save (d20 >= 10)
+      const roll = AbilitySystem._rollOverride ? AbilitySystem._rollOverride() : Math.floor(Math.random() * 20) + 1;
+      if (roll >= 10) {
+        updatedHero = this.removeCondition(updatedHero, 'crippling_miasma');
+        logs.push({
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          message: `${hero.name} rolled a Fortitude save of ${roll} (needed 10+) and cured Crippling Miasma!`,
+          type: 'system' as const
         });
+      } else {
+        logs.push({
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          message: `${hero.name} rolled a Fortitude save of ${roll} (needed 10+) and failed to cure Crippling Miasma.`,
+          type: 'system' as const
+        });
+      }
     }
 
-    /**
-     * Checks if an entity has a specific condition
-     */
-    public static hasCondition(entity: Entity, conditionType: ConditionType): boolean {
-        return entity.conditions.some(c => c.type === conditionType);
-    }
-
-    /**
-     * Gets the effective speed of an entity considering conditions
-     */
-    public static getEffectiveSpeed(entity: Entity): number {
-        let effectiveSpeed = entity.speed;
-
-        if (this.hasCondition(entity, 'slowed')) {
-            effectiveSpeed = Math.floor(effectiveSpeed / 2);
-            console.log(`[DEBUG ConditionSystem] ${entity.name} is slowed, speed reduced from ${entity.speed} to ${effectiveSpeed}`);
-        }
-
-        if (this.hasCondition(entity, 'immobilized')) {
-            effectiveSpeed = 0;
-            console.log(`[DEBUG ConditionSystem] ${entity.name} is immobilized, speed is 0`);
-        }
-
-        return effectiveSpeed;
-    }
-
-    /**
-     * Checks if an entity can take actions
-     */
-    public static canTakeActions(entity: Entity): boolean {
-        if (this.hasCondition(entity, 'stunned')) {
-            console.log(`[DEBUG ConditionSystem] ${entity.name} is stunned and cannot take actions`);
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Checks if an entity can use Daily powers
-     */
-    public static canUseDailyPowers(entity: Entity): boolean {
-        if (this.hasCondition(entity, 'dazed')) {
-            console.log(`[DEBUG ConditionSystem] ${entity.name} is dazed and cannot use Daily powers`);
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Gets damage modifier based on conditions
-     */
-    public static getDamageModifier(entity: Entity): number {
-        if (this.hasCondition(entity, 'weakened')) {
-            console.log(`[DEBUG ConditionSystem] ${entity.name} is weakened, damage will be halved`);
-            return 0.5; // Half damage
-        }
-        return 1.0;
-    }
-
-    /**
-     * Processes poison damage at start of turn
-     */
-    public static processPoisonDamage(entity: Entity): number {
-        if (this.hasCondition(entity, 'poisoned')) {
-            const poisonDamage = 1; // Standard poison damage
-            console.log(`[DEBUG ConditionSystem] ${entity.name} is poisoned, taking ${poisonDamage} damage`);
-            return poisonDamage;
-        }
-        return 0;
-    }
+    return {
+      ...gameState,
+      heroes: gameState.heroes.map(h => h.id === heroId ? updatedHero : h),
+      log: logs
+    };
+  }
 }

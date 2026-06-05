@@ -1,104 +1,110 @@
-import { Card, CardResolutionState, Effect, GameState, Hero } from '../types';
+import { Card, CardResolutionState, ConditionType, Effect, GameState, Hero } from '../types';
 import { EncounterSystem } from './EncounterSystem';
 import { TreasureSystem } from './TreasureSystem';
 
-/**
- * Card Resolution System - Manages the phased resolution of card effects
- * 
- * Phases:
- * 1. drawing -> revealing
- * 2. revealing -> resolving (populates pendingEffects)
- * 3. resolving -> (processes one effect at a time) -> resolving/complete
- * 4. complete -> idle (clears resolution state)
- */
 export class CardResolutionSystem {
-  /**
-   * Initializes the card resolution state for a drawn card
-   */
   public static beginResolution(
     state: GameState,
     card: Card,
     activeHero: Hero
   ): GameState {
-    state.cardResolution = {
-      phase: 'drawing',
-      cardId: card.id,
-      cardType: card.type as 'encounter' | 'treasure',
-      targetEntityId: activeHero.id,
-      result: null,
-      pendingEffects: [],
-      resolvedEffects: []
+    return {
+      ...state,
+      cardResolution: {
+        phase: 'drawing',
+        cardId: card.id,
+        cardType: card.type as 'encounter' | 'treasure',
+        targetEntityId: activeHero.id,
+        result: null,
+        pendingEffects: [],
+        resolvedEffects: []
+      }
     };
-    return state;
   }
 
-  /**
-   * Advances the resolution phase and processes effects
-   */
   public static advanceResolution(state: GameState, activeHero: Hero): GameState {
     const res = state.cardResolution;
     if (!res || res.phase === 'idle') return state;
 
     switch (res.phase) {
       case 'drawing':
-        res.phase = 'revealing';
-        break;
+        return {
+          ...state,
+          cardResolution: { ...res, phase: 'revealing' }
+        };
 
-      case 'revealing':
-        res.phase = 'resolving';
-        // Mock card lookup for effect population
+      case 'revealing': {
+        const pendingEffects: Effect[] = [];
         if (res.cardId === 'encounter-volcanic-smoke') {
-          res.pendingEffects = [{ type: 'status_effect', statusEffect: 'frightened', duration: 1, target: 'single' }];
+          pendingEffects.push({ type: 'status_effect', statusEffect: 'frightened' as ConditionType, duration: 1, target: 'single' });
         } else if (res.cardId === 'event_test') {
-          res.pendingEffects = [{ type: 'damage', value: 2, target: 'single' }];
+          pendingEffects.push({ type: 'damage' as any, value: 2, target: 'single' });
         } else if (res.cardType === 'treasure') {
-          res.pendingEffects = [{ type: 'heal', value: 1, target: 'self' }];
+          pendingEffects.push({ type: 'heal' as any, value: 1, target: 'self' });
         }
-        break;
+        return {
+          ...state,
+          cardResolution: { ...res, phase: 'resolving', pendingEffects }
+        };
+      }
 
-      case 'resolving':
-        if ((res.pendingEffects ?? []).length > 0) {
-          const effect = (res.pendingEffects ?? []).shift()!;
-          this.applyCardEffect(effect, activeHero, state);
-          (res.resolvedEffects ?? []).push(effect);
+      case 'resolving': {
+        const pending = [...(res.pendingEffects ?? [])];
+        const resolved = [...(res.resolvedEffects ?? [])];
 
-          if ((res.pendingEffects ?? []).length === 0) {
-            res.phase = 'complete';
-            res.result = { success: true, message: 'Card resolution complete' };
+        if (pending.length > 0) {
+          const effect = pending.shift()!;
+          const newState = this.applyCardEffect(effect, activeHero, state);
+
+          const currentRes = newState.cardResolution;
+          if (currentRes) {
+            const nextResolved = [...(currentRes.resolvedEffects ?? []), effect];
+            const nextPhase = pending.length === 0 ? 'complete' : 'resolving';
+
+            return {
+              ...newState,
+              cardResolution: {
+                ...currentRes,
+                phase: nextPhase,
+                pendingEffects: pending,
+                resolvedEffects: nextResolved,
+                result: pending.length === 0 ? { success: true, message: 'Card resolution complete' } : currentRes.result
+              }
+            };
           }
-        } else {
-          res.phase = 'complete';
         }
-        break;
+
+        return {
+          ...state,
+          cardResolution: { ...res, phase: 'complete', pendingEffects: pending, resolvedEffects: resolved }
+        };
+      }
 
       case 'complete':
-        this.clearResolution(state);
-        break;
+        return this.clearResolution(state);
+
+      default:
+        return state;
     }
-    return state;
   }
 
-  /**
-   * Clears the card resolution state
-   */
   public static clearResolution(state: GameState): GameState {
-    state.cardResolution = {
-      phase: 'idle',
-      cardId: null,
-      cardType: null,
-      targetEntityId: null,
-      result: null,
-      pendingEffects: [],
-      resolvedEffects: []
+    return {
+      ...state,
+      cardResolution: {
+        phase: 'idle',
+        cardId: null,
+        cardType: null,
+        targetEntityId: null,
+        result: null,
+        pendingEffects: [],
+        resolvedEffects: []
+      }
     };
-    return state;
   }
 
-  /**
-   * Delegates specific card effect application to Encounter or Treasure systems
-   */
-  private static applyCardEffect(effect: Effect, target: Hero, state: GameState): void {
-    if (!state.cardResolution) return;
+  private static applyCardEffect(effect: Effect, target: Hero, state: GameState): GameState {
+    if (!state.cardResolution) return state;
 
     if (state.cardResolution.cardType === 'encounter') {
       const card: Card = {
@@ -110,9 +116,9 @@ export class CardResolutionSystem {
       };
 
       if (effect.type === 'damage') {
-        EncounterSystem.processEventCard(state, card, target);
+        return EncounterSystem.processEventCard(state, card, target).gameState;
       } else if (effect.type === 'status_effect') {
-        EncounterSystem.processEnvironmentCard(state, card);
+        return EncounterSystem.processEnvironmentCard(state, card).gameState;
       }
     } else if (state.cardResolution.cardType === 'treasure') {
       const card: Card = {
@@ -123,42 +129,33 @@ export class CardResolutionSystem {
         effects: [effect],
         treasureType: 'item'
       };
-      TreasureSystem.useFortune(state, card, target);
+      const result = TreasureSystem.useFortune(state, card, target);
+      return result.newState;
     }
+    return state;
   }
 
-  /**
-   * Assigns a treasure card to a hero and tracks it
-   */
   public static assignTreasure(state: GameState, card: Card, hero: Hero): GameState {
-    if (!state.treasureAssignments) {
-      state.treasureAssignments = [];
-    }
-
-    state.treasureAssignments.push({
+    const treasureAssignments = [...(state.treasureAssignments ?? [])];
+    treasureAssignments.push({
       heroId: hero.id,
       cardId: card.id,
       assignedAt: state.turnCount,
       isUsed: false
     });
-    TreasureSystem.assignItem(state, card, hero);
-    return state;
+    const assignResult = TreasureSystem.assignItem({ ...state, treasureAssignments }, card, hero);
+    return assignResult.newState;
   }
 
-  /**
-   * Marks a treasure as used if it was assigned to a hero
-   */
   public static useTreasure(state: GameState, card: Card, hero: Hero, target?: any): GameState {
     if (!state.treasureAssignments) return state;
 
-    const assignment = state.treasureAssignments.find(
-      a => a.heroId === hero.id && a.cardId === card.id && !a.isUsed
+    const treasureAssignments = state.treasureAssignments.map(a =>
+      a.heroId === hero.id && a.cardId === card.id && !a.isUsed
+        ? { ...a, isUsed: true }
+        : a
     );
-
-    if (assignment) {
-      assignment.isUsed = true;
-      TreasureSystem.useItem(state, card, hero, target);
-    }
-    return state;
+    const useResult = TreasureSystem.useItem({ ...state, treasureAssignments }, card, hero, target);
+    return useResult.newState;
   }
 }

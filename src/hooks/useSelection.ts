@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useGameStore } from '../store/gameStore'
+import { useUIStore } from '../store/uiStore'
 import { useGameActions } from './useGameActions'
 import { Entity, Tile } from '../game/types'
 
@@ -9,65 +10,67 @@ export const useSelection = () => {
   const { raycaster, camera, mouse, scene } = useThree()
   const { 
     selectEntity, 
-    hoverTile, 
     selectCard, 
-    selectedEntity, 
-    selectedCard,
-    gameState 
+    hoverTile,
+    gameState,
+    isPaused
   } = useGameStore()
-  const { handleMoveHero, handleAttackMonster } = useGameActions()
+  const { interactionMode, setInteractionMode } = useUIStore()
+  const { handleAttackMonster } = useGameActions()
 
   const performRaycast = useCallback(() => {
     raycaster.setFromCamera(mouse, camera)
-    
+
     // We need to find objects within our nested groups
     const intersects = raycaster.intersectObjects(scene.children, true)
-    
+
     for (const intersect of intersects) {
       let current: THREE.Object3D | null = intersect.object
-      
+
       // Traverse up to find a selectable object
       while (current) {
         if (current.userData.entity) {
-          return { type: 'entity', data: current.userData.entity as Entity }
+          return { type: 'entity', data: current.userData.entity as any, point: intersect.point }
         }
         if (current.userData.tile) {
-          return { type: 'tile', data: current.userData.tile as Tile }
+          return { type: 'tile', data: current.userData.tile as Tile, point: intersect.point }
         }
         current = current.parent
       }
     }
-    
-    return null;
-  }, [raycaster, camera, mouse, scene])
+
+    return null
+  }, [camera, mouse, scene, raycaster])
 
   const handleClick = useCallback(() => {
+    if (isPaused) return
+
     const result = performRaycast()
     const isHeroPhase = gameState?.phase === 'hero'
-    
+
     if (result) {
       if (result.type === 'entity') {
-        const entity = result.data as Entity
-        
-        // If a hero is selected and we click a monster, attack it
-        if (isHeroPhase && selectedEntity?.type === 'hero' && entity.type === 'monster') {
-          handleAttackMonster(entity.id)
-        } else {
-          selectEntity(entity)
-          selectCard(null)
+        const entity = result.data as any
+
+        // Mode-based interactions
+        if (isHeroPhase) {
+          if (interactionMode === 'attack' && entity.type === 'monster') {
+            handleAttackMonster(entity.id)
+            setInteractionMode('none')
+            return
+          }
         }
+        // Selection fallback
+        selectEntity(entity)
+        selectCard(null)
       } else if (result.type === 'tile') {
-        const tile = result.data as Tile
-        
-        // If a hero is selected, move to tile center
-        if (isHeroPhase && selectedEntity?.type === 'hero') {
-          handleMoveHero({ x: tile.x, z: tile.z, sqX: 1, sqZ: 1 })
-        }
+        // Tile clicks are handled by MovementSquare3D in Tile3D.tsx
+        // when in move mode — no action needed here.
       }
     } else {
       selectEntity(null)
     }
-  }, [performRaycast, selectEntity, selectCard, selectedEntity, gameState, handleMoveHero, handleAttackMonster])
+  }, [performRaycast, isPaused, selectEntity, selectCard, gameState, interactionMode, handleAttackMonster, setInteractionMode])
 
   const handlePointerMove = useCallback(() => {
     const result = performRaycast()

@@ -1,11 +1,8 @@
-import { Tile, ExplorationPoint, Rotation, ValidationResult, EdgeConflict, EdgeDirection } from '../types';
-import { TileSystem, isPlacementValid, getEffectiveOpenEdges } from './TileSystem';
-import { useGameStore } from '../../store/gameStore';
-import { useUIStore } from '../../store/uiStore';
+import { Tile, ExplorationPoint, Rotation, ValidationResult, EdgeConflict } from '../types';
+import { TileSystem } from './TileSystem';
 
 export type ExplorationState =
   | { phase: 'idle' }
-  | { phase: 'arrow_selected'; point: ExplorationPoint }
   | {
     phase: 'positioning';
     point: ExplorationPoint;
@@ -14,6 +11,7 @@ export type ExplorationState =
     remainingDeck: string[];
     currentRotation: Rotation;
     pendingRotation?: Rotation;
+    validRotations: Rotation[];
     validationPreview: ValidationResult | null;
   }
   | {
@@ -24,6 +22,7 @@ export type ExplorationState =
     remainingDeck: string[];
     currentRotation: Rotation;
     pendingRotation?: Rotation;
+    validRotations: Rotation[];
     conflicts: EdgeConflict[];
   }
   | {
@@ -35,13 +34,16 @@ export type ExplorationState =
 
 export function setTileRotation(state: ExplorationState, rotation: Rotation): ExplorationState {
   if (state.phase === 'positioning' || state.phase === 'placement_blocked') {
-    return { ...state, pendingRotation: rotation, currentRotation: rotation };
+    return { ...state, pendingRotation: rotation };
   }
   return state;
 }
 
 /**
  * Called when player clicks an exploration arrow.
+ * Only accepts idle phase — arrows should not be visible/clickable during
+ * positioning, placement_blocked, or placing. If UI somehow shows arrows
+ * outside idle, this silently returns state unchanged.
  * Draws the next tile from deck and enters positioning phase.
  */
 export function onArrowClicked(
@@ -58,7 +60,8 @@ export function onArrowClicked(
       drawnTile: drawResult.tile,
       drawnCardId: drawResult.tile.id,
       remainingDeck: drawResult.remainingDeck,
-      currentRotation: 0,
+      currentRotation: drawResult.validRotations.length > 0 ? drawResult.validRotations[0] : 0,
+      validRotations: drawResult.validRotations,
       validationPreview: null, // Will be computed by caller
     };
   }
@@ -67,14 +70,18 @@ export function onArrowClicked(
 }
 
 /**
- * Called when player rotates the tile during positioning.
- * Updates validation preview based on new rotation.
+ * Called when player rotates the tile during positioning or from a blocked state.
+ * Updates current rotation; updates validation preview only in positioning phase.
  */
 export function onRotationChanged(
   state: ExplorationState,
   rotation: Rotation,
   validation: ValidationResult
 ): ExplorationState {
+  if (state.phase === 'placement_blocked') {
+    return { ...state, currentRotation: rotation };
+  }
+
   if (state.phase !== 'positioning') return state;
 
   return {
@@ -84,90 +91,27 @@ export function onRotationChanged(
   };
 }
 
-/**
- * Called when player attempts to place the tile.
- * If valid, transitions to placing phase. If invalid, transitions to placement_blocked.
- */
 export function onPlacementAttempted(
   state: ExplorationState,
   validation: ValidationResult
 ): ExplorationState {
   if (state.phase !== 'positioning') return state;
 
-  const gameStore = useGameStore.getState();
-  const gameState = gameStore.gameState;
+  const chosenRotation = state.pendingRotation ?? state.currentRotation;
 
-  if (gameState) {
-    const board = new Map<string, { openEdges: EdgeDirection[], rotation: number }>();
-    for (const t of gameState.tiles) {
-      const edges = t.connections.filter(c => c.isOpen).map(c => c.edge as EdgeDirection);
-      board.set(`${t.x},${t.z}`, { openEdges: edges, rotation: t.rotation || 0 });
-    }
-
-    const candidateEdges = state.drawnTile.connections
-      .filter(c => c.isOpen)
-      .map(c => c.edge as EdgeDirection);
-    
-    const parentTile = gameState.tiles.find(t => t.id === state.point.tileId);
-    let targetX = 0;
-    let targetZ = 0;
-    if (parentTile) {
-      if (state.point.edge === 'north') { targetX = parentTile.x; targetZ = parentTile.z - 1; }
-      if (state.point.edge === 'south') { targetX = parentTile.x; targetZ = parentTile.z + 1; }
-      if (state.point.edge === 'east') { targetX = parentTile.x + 1; targetZ = parentTile.z; }
-      if (state.point.edge === 'west') { targetX = parentTile.x - 1; targetZ = parentTile.z; }
-    }
-
-    const chosenRotation = state.pendingRotation ?? state.currentRotation;
-    const result = isPlacementValid(candidateEdges, chosenRotation, targetX, targetZ, board);
-
-    if (!result.valid) {
-      // a. Push rejection reason to the game log via gameStore
-      const updatedLog = [
-        ...gameState.log,
-        {
-          id: Math.random().toString(),
-          timestamp: new Date().toLocaleTimeString(),
-          message: `Placement Invalid: ${result.reason}`,
-          type: 'system' as const
-        }
-      ];
-      useGameStore.setState({
-        gameState: {
-          ...gameState,
-          log: updatedLog
-        }
-      });
-
-      // b. Set UI flag in uiStore
-      useUIStore.setState({ tilePlacementError: result.reason } as any);
-
-      // c. Keep exploration state waiting
-      return {
-        ...state,
-        phase: 'positioning',
-        currentRotation: chosenRotation,
-        validationPreview: validation
-      };
-    }
-  }
-
-  if (validation.valid) {
+  if (!validation.valid) {
     return {
-      phase: 'placing',
-      point: state.point,
-      rotation: state.pendingRotation ?? state.currentRotation,
+      ...state,
+      phase: 'placement_blocked',
+      currentRotation: chosenRotation,
+      conflicts: validation.conflicts,
     };
   }
 
   return {
-    phase: 'placement_blocked',
+    phase: 'placing',
     point: state.point,
-    drawnTile: state.drawnTile,
-    drawnCardId: state.drawnCardId,
-    remainingDeck: state.remainingDeck,
-    currentRotation: state.pendingRotation ?? state.currentRotation,
-    conflicts: validation.conflicts,
+    rotation: chosenRotation,
   };
 }
 
@@ -187,6 +131,8 @@ export function onTryAgain(
     drawnCardId: state.drawnCardId,
     remainingDeck: state.remainingDeck,
     currentRotation: state.currentRotation,
+    pendingRotation: state.pendingRotation,
+    validRotations: state.validRotations,
     validationPreview: null,
   };
 }
@@ -206,9 +152,10 @@ export function onDrawDifferentTile(
       phase: 'positioning',
       point: state.point,
       drawnTile: drawResult.tile,
-      drawnCardId: drawResult.cardId || drawResult.tile.id,
+      drawnCardId: drawResult.cardId ?? drawResult.tile.id,
       remainingDeck: drawResult.remainingDeck,
-      currentRotation: 0,
+      currentRotation: drawResult.validRotations.length > 0 ? drawResult.validRotations[0] : 0,
+      validRotations: drawResult.validRotations,
       validationPreview: null,
     };
   }
@@ -217,80 +164,18 @@ export function onDrawDifferentTile(
   return { phase: 'exhausted' };
 }
 
-/**
- * Legacy function for backwards compatibility.
- * Use onPlacementAttempted instead for validation-based flow.
- */
-export function onRotationConfirmed(
-  state: ExplorationState,
-  rotation: Rotation
-): ExplorationState {
-  if (state.phase !== 'positioning') return state;
 
-  const gameStore = useGameStore.getState();
-  const gameState = gameStore.gameState;
 
-  if (gameState) {
-    const board = new Map<string, { openEdges: EdgeDirection[], rotation: number }>();
-    for (const t of gameState.tiles) {
-      const edges = t.connections.filter(c => c.isOpen).map(c => c.edge as EdgeDirection);
-      board.set(`${t.x},${t.z}`, { openEdges: edges, rotation: t.rotation || 0 });
-    }
+export function onCancel(state: ExplorationState): {
+  newState: ExplorationState;
+  tileToReturn: string | null;
+} {
+  const tileToReturn =
+    (state.phase === 'positioning' || state.phase === 'placement_blocked')
+      ? state.drawnCardId
+      : null;
 
-    const candidateEdges = state.drawnTile.connections
-      .filter(c => c.isOpen)
-      .map(c => c.edge as EdgeDirection);
-    
-    const parentTile = gameState.tiles.find(t => t.id === state.point.tileId);
-    let targetX = 0;
-    let targetZ = 0;
-    if (parentTile) {
-      if (state.point.edge === 'north') { targetX = parentTile.x; targetZ = parentTile.z - 1; }
-      if (state.point.edge === 'south') { targetX = parentTile.x; targetZ = parentTile.z + 1; }
-      if (state.point.edge === 'east') { targetX = parentTile.x + 1; targetZ = parentTile.z; }
-      if (state.point.edge === 'west') { targetX = parentTile.x - 1; targetZ = parentTile.z; }
-    }
-
-    const result = isPlacementValid(candidateEdges, rotation, targetX, targetZ, board);
-
-    if (!result.valid) {
-      const updatedLog = [
-        ...gameState.log,
-        {
-          id: Math.random().toString(),
-          timestamp: new Date().toLocaleTimeString(),
-          message: `Placement Invalid: ${result.reason}`,
-          type: 'system' as const
-        }
-      ];
-      useGameStore.setState({
-        gameState: {
-          ...gameState,
-          log: updatedLog
-        }
-      });
-
-      useUIStore.setState({ tilePlacementError: result.reason } as any);
-
-      return {
-        ...state,
-        phase: 'positioning',
-        currentRotation: rotation
-      };
-    }
-  }
-
-  return {
-    phase: 'placing',
-    point: state.point,
-    rotation,
-  };
-}
-
-export function onCancel(state: ExplorationState): ExplorationState {
-  // Cancel path from any phase
-  // The caller handles returning `drawnTile` to `remainingDeck`
-  return { phase: 'idle' };
+  return { newState: { phase: 'idle' }, tileToReturn };
 }
 
 export function onPlacementComplete(state: ExplorationState): ExplorationState {
@@ -298,3 +183,4 @@ export function onPlacementComplete(state: ExplorationState): ExplorationState {
 
   return { phase: 'idle' };
 }
+

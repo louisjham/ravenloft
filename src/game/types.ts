@@ -1,5 +1,7 @@
 // Condition types
-export type ConditionType = 'slowed' | 'immobilized' | 'poisoned' | 'dazed' | 'weakened' | 'stunned';
+export type ConditionType = 'slowed' | 'immobilized' | 'poisoned' | 'dazed' | 'weakened' | 'stunned' | 'crippling_miasma' | 'attack_bonus';
+
+
 
 // Power types
 export type PowerType = 'at-will' | 'daily' | 'utility';
@@ -55,6 +57,7 @@ export interface Condition {
   type: ConditionType;
   sourceId?: string; // Who applied this condition
   turnsRemaining: number; // How many turns until it expires
+  value?: number; // Optional value (e.g. for attack_bonus)
 }
 
 export interface ActiveCondition extends Condition {
@@ -72,10 +75,8 @@ export interface Entity {
   speed: number;
   isExhausted: boolean;
   isDefeated?: boolean;
-  // DEBUG: Conditions array - currently NOT used
   conditions: Condition[];
-  // DEBUG: Used powers tracking - currently NOT used
-  usedPowers: string[]; // IDs of Daily powers used this adventure
+  usedPowers: string[];
 }
 
 export interface Hero extends Entity {
@@ -84,13 +85,22 @@ export interface Hero extends Entity {
   level: number;
   xp: number;
   surgeUsed: boolean;
+  surgeValue: number;
   abilities: string[]; // Ability IDs
   hand: string[]; // Card IDs
   items: string[]; // Item IDs
   selectedPowerIds?: string[]
-  // Card ids confirmed during power selection.
-  // Populated by applySelectionsToHeroes().
-  // Initially empty array — not optional, always present.
+  escaped?: boolean;
+  flippedPowerIds?: string[];
+  attackBonus: number;
+}
+
+export function isMonsterEntity(entity: Entity): entity is Monster {
+  return entity.type === 'monster';
+}
+
+export function isHeroEntity(entity: Entity): entity is Hero {
+  return entity.type === 'hero';
 }
 
 export interface Monster extends Entity {
@@ -99,12 +109,16 @@ export interface Monster extends Entity {
   behavior: MonsterBehavior;
   attackBonus: number;
   damage: number;
+  missDamage?: number;
   experienceValue: number;
   ownedByHeroId: string | null;
+  hasActivated?: boolean;
   moveRange?: number;
   abilities?: MonsterAbility[]
   currentPhase?: string
   isBoss?: boolean
+  tacticsText?: string
+  specialAbilityText?: string
 }
 
 export interface MonsterBehavior {
@@ -120,8 +134,6 @@ export interface TileConnection {
   isOpen: boolean;
   connectedTileId?: string;
 }
-
-export type EdgeDirection = 'north' | 'south' | 'east' | 'west';
 
 export interface Tile {
   id: string;
@@ -140,7 +152,8 @@ export interface Tile {
   items: string[]; // Item/Token IDs
   blocksLineOfSight?: boolean; // If true, this tile blocks line-of-sight
   imageUrl?: string;
-  openEdges?: EdgeDirection[];
+  openEdges?: Direction[];
+  encounterType?: 'white' | 'black';
 }
 
 export type CardType = 'ability' | 'monster' | 'encounter' | 'treasure' | 'item' | 'consumable';
@@ -152,6 +165,7 @@ export interface Card {
   description: string;
   flavorText?: string;
   effects: Effect[];
+  image?: string;
   phase?: 'hero' | 'exploration' | 'monster';
   heroClass?: string;
   powerType?: PowerType;
@@ -162,20 +176,24 @@ export interface Card {
   // Power card specific
   attackBonus?: number;
   damage?: number;
+  missEffect?: string; // e.g. "1 Damage" — text shown for on-miss effects
   range?: number;
-  target?: 'self' | 'single' | 'area' | 'all_heroes' | 'all_monsters' | 'adjacent';
+  target?: 'self' | 'single' | 'area' | 'all_heroes' | 'all_monsters' | 'adjacent' | 'adjacent-monster' | 'all-on-tile';
   // Level up card
   isLevelUp?: boolean;
+  // Charges for multi-use items (e.g. Necklace of Fireballs)
+  charges?: number;
   // Trap card specific
   disableDC?: number; // Difficulty class to disable the trap
 }
 
 export interface Effect {
-  type: 'damage' | 'heal' | 'move' | 'status_effect' | 'attack_bonus' | 'defense_bonus' | 'draw_card' | 'flip_power' | 'passive';
+  type: 'damage' | 'heal' | 'move' | 'status_effect' | 'attack_bonus' | 'defense_bonus' | 'damage_bonus' | 'ac_bonus' | 'speed_bonus' | 'draw_card' | 'flip_power' | 'passive';
   value?: number;
   target: 'self' | 'single' | 'area' | 'all_heroes' | 'all_monsters' | 'adjacent';
   range?: number;
-  statusEffect?: string;
+  statusEffect?: ConditionType;
+  when?: 'hit' | 'miss' | 'always';
   condition?: string; // e.g., 'undead', 'vampire'
   passiveType?: string; // e.g., 'undead_ward'
   duration?: number; // For temporary effects
@@ -188,6 +206,17 @@ export interface Die {
   history: number[];
 }
 
+export interface SpecialTilePlacement {
+  tileId: string;
+  insertAfterIndex: number;
+}
+
+export interface VillainLairPairing {
+  lairTileId: string;
+  villainMonsterId: string;
+  villainName: string;
+}
+
 export interface Scenario {
   id: string;
   name: string;
@@ -196,10 +225,16 @@ export interface Scenario {
   introText: string;
   victoryText: string;
   defeatText: string;
-  objectives: any[]; // Detailed in Objectives.ts
-  specialRules: any[];
+  objectives: Objective[];
+  specialRules: MachineSpecialRule[];
   startTileId: string;
   maxSurges: number;
+  setAsideTileIds?: string[];
+  specialTilePlacements?: SpecialTilePlacement[];
+  tilePiles?: { standard: number; special: string[] };
+  lairPacketSize?: number;
+  lairCount?: number;
+  villainLairPairings?: VillainLairPairing[];
 }
 
 export interface GameLogEntry {
@@ -209,14 +244,14 @@ export interface GameLogEntry {
   type: 'action' | 'combat' | 'event' | 'system';
 }
 
-export type GamePhase = 'setup' | 'hero' | 'exploration' | 'villain' | 'monster' | 'end' | 'victory' | 'defeat';
+export type GamePhase = 'setup' | 'hero' | 'exploration' /* TODO: actively used? */ | 'villain' | 'monster' | 'end' /* TODO: actively used? */ | 'victory' | 'defeat';
 
 export type CardResolutionPhase =
   | 'idle'
   | 'drawing'
   | 'revealing'
   | 'resolving'
-  | 'complete'
+  | 'complete';
 
 export interface CardResolutionState {
   phase: CardResolutionPhase;
@@ -226,6 +261,7 @@ export interface CardResolutionState {
   resolvedEffects?: Effect[];
   targetEntityId: string | null;
   result?: { success: boolean; message: string; results?: any[] } | null;
+  spawnedMonsterId?: string | null;
 }
 
 export interface TreasureAssignment {
@@ -233,6 +269,49 @@ export interface TreasureAssignment {
   heroId: string
   assignedAt: number
   isUsed: boolean
+}
+
+export interface ActiveBlessing {
+  cardId: string
+  heroId: string
+  expiresAfterTurnOf: string
+  effects: Effect[]
+  name: string
+}
+
+export interface TileEffect {
+  id: string
+  tileId: string
+  type: string
+  heroId: string
+  cardId: string
+  isExpended: boolean
+  description: string
+}
+
+export type DeckSentinel = 'sentinel_moments_respite'
+
+export type DeckKey = 'encounterDeck' | 'monsterDeck' | 'treasureDeck' | 'dungeonDeck';
+
+export interface Objective {
+  id: string
+  description: string
+  type: string
+  isCompleted: boolean
+  targetId?: string
+  targetTileId?: string
+  targetIds?: string[]
+  targetAttribute?: string
+  targetType?: string
+  count?: number
+  currentCount?: number
+  [key: string]: unknown
+}
+
+export interface MachineSpecialRule {
+  trigger: { type: 'turn_count' | 'tile_reveal' | 'turn_total'; value?: number }
+  action?: string
+  [key: string]: unknown
 }
 
 export interface GameState {
@@ -244,6 +323,7 @@ export interface GameState {
   dungeonDeck: string[]; // Card IDs
   treasureDeck: string[];
   encounterDeck: string[];
+  monsterDeck: string[];
   discardPiles: Record<CardType | string, string[]>;
   activeScenario: Scenario;
   turnOrder: string[];
@@ -260,10 +340,38 @@ export interface GameState {
   powerSelections?: PowerSelection[]
   // One entry per hero, populated at game initialization.
   // Card resolution (Prompt CUI-1)
-  cardResolution?: CardResolutionState;
+  cardResolution: CardResolutionState;
 
   treasureAssignments?: TreasureAssignment[];
   activeConditions?: ActiveCondition[];
+  // Token system
+  tokens?: GameToken[]; // Tokens placed on tiles
+  strahdsCoffinTokenId?: string | null; // Which token is Strahd's coffin (for Scenario 1)
+  
+  // Turn state
+  hasExploredThisTurn?: boolean;
+  hasAttackedThisTurn?: boolean;
+  lastPlacedTileEncounterType?: string | null;
+
+  // Blessings, items, tile effects
+  activeBlessing?: ActiveBlessing | null;
+  itemCharges?: Record<string, number>;
+  tileEffects?: TileEffect[];
+
+  // Scenario tracking
+  defeatedVillainIds?: string[];
+
+  // Custom Scenario Variables
+  fountainTokens?: number;
+  timeTrack?: { current: number; max: number };
+  strahdAwakened?: boolean;
+  chapelRevealed?: boolean;
+  laboratoryRevealed?: boolean;
+  kavanEscortedBy?: string;
+  unplacedCoffinTokens?: { id: string; name: string; isStrahds: boolean }[];
+
+  // Encounter card in villain phase
+  pendingEncounter?: boolean; // Whether an encounter draw is pending for this villain phase
 }
 
 export interface Trap {
@@ -271,7 +379,7 @@ export interface Trap {
   cardId: string;
   tileId: string;
   position?: Position;
-  disabled: boolean;
+  isDisabled: boolean;
   ownedByHeroId: string | null;
   isTriggered: boolean;
 }
@@ -284,6 +392,7 @@ export interface AttackResult {
   total: number;
   damage: number;
   critical: boolean;
+  wasImmune?: boolean;
 }
 
 export interface GameSettings {
@@ -429,4 +538,57 @@ export type PowerCardRef = Pick<Card,
 > & {
   keywords?: PowerKeyword[]
   maxPerDeck?: number
+}
+
+// ============================================================================
+// Token System Types
+// ============================================================================
+
+export type TokenType =
+  | 'coffin'        // Coffin tokens for Scenario 1 (Find Strahd's Coffin)
+  | 'treasure'      // Treasure tokens
+  | 'trap'          // Trap tokens
+  | 'objective'     // Generic objective tokens
+  | 'monster_spawn' // Monster spawn points
+  | 'item'          // Item tokens
+  | 'encounter'     // Encounter tokens
+  | 'condition'    // Condition tokens
+  | 'hp'           // HP tokens
+  | 'healing_surge' // Healing surge tokens
+  | 'monster'      // Monster tokens
+  | 'reaction'     // Reaction tokens
+  | 'marker'       // Marker tokens
+  | 'adventure'    // Adventure tokens
+  | 'misc'         // Miscellaneous tokens
+  | 'brazier'      // Brazier tokens (Scenario 2)
+
+export interface GameToken {
+  id: string
+  type: TokenType
+  name: string
+  description?: string
+  position: Position
+  tileId: string      // Which tile this token is on
+  isRevealed: boolean // Whether the token has been discovered
+  isSearched: boolean // Whether the token has been searched
+  imageUrl?: string   // Optional image for the token
+  metadata?: {        // Additional data based on token type
+    isStrahdsCoffin?: boolean  // For coffin tokens - is this THE coffin?
+    trapId?: string            // For trap tokens
+    itemId?: string            // For item tokens
+    monsterId?: string         // For monster spawn tokens
+    [key: string]: unknown
+  }
+}
+
+export interface TokenSearchResult {
+  tokenId: string
+  tokenType: TokenType
+  success: boolean
+  message: string
+  revealedData?: {
+    isStrahdsCoffin?: boolean
+    itemId?: string
+    trapId?: string
+  }
 }

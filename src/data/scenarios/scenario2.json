@@ -9,7 +9,8 @@
       "type": "interact",
       "targetType": "brazier",
       "count": 4,
-      "description": "Light 4 braziers found on special tiles"
+      "description": "Light 4 braziers found on special tiles",
+      "isCompleted": false
     }
   ],
   "specialRules": [
