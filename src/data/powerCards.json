@@ -721,6 +721,12 @@
         "value": 1,
         "target": "area",
         "when": "miss"
+      },
+      {
+        "type": "move",
+        "value": 1,
+        "target": "single",
+        "when": "miss"
       }
     ]
   },

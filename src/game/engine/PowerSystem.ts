@@ -219,6 +219,15 @@ export class PowerSystem {
         if (powerCard.id === 'fighter_come_and_get_it') {
             return this.executeComeAndGetItAsync(hero, powerCard, target, gameState);
         }
+        if (powerCard.id === 'ranger_twin_shot') {
+            return this.executeTwinShotAsync(hero, powerCard, target, gameState);
+        }
+        if (powerCard.id === 'ranger_attacks_on_the_run') {
+            return this.executeAttacksOnTheRunAsync(hero, powerCard, target, gameState);
+        }
+        if (powerCard.id === 'ranger_split_the_tree') {
+            return this.executeSplitTheTreeAsync(hero, powerCard, target, gameState);
+        }
 
         let attackResult: { hit: boolean; damage: number } | null = null;
 
@@ -247,6 +256,15 @@ export class PowerSystem {
 
         if (powerCard.id === 'fighter_come_and_get_it') {
             return this.executeComeAndGetIt(hero, powerCard, target, gameState);
+        }
+        if (powerCard.id === 'ranger_twin_shot') {
+            return this.executeTwinShot(hero, powerCard, target, gameState);
+        }
+        if (powerCard.id === 'ranger_attacks_on_the_run') {
+            return this.executeAttacksOnTheRun(hero, powerCard, target, gameState);
+        }
+        if (powerCard.id === 'ranger_split_the_tree') {
+            return this.executeSplitTheTree(hero, powerCard, target, gameState);
         }
 
         let attackResult: { hit: boolean; damage: number } | null = null;
@@ -478,6 +496,431 @@ export class PowerSystem {
         return {
             success: true,
             message: msg,
+            effects,
+            newState
+        };
+    }
+
+    private static async executeTwinShotAsync(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): Promise<{ success: boolean; message: string; effects: any[]; newState: GameState }> {
+        if (!target) {
+            return { success: false, message: 'Twin Shot requires a target', effects: [], newState: gameState };
+        }
+
+        let newState = { ...gameState };
+        const heroTile = newState.tiles.find(t => t.x === hero.position.x && t.z === hero.position.z);
+        
+        const otherMonster = newState.monsters.find(m => {
+            if (m.id === target.id || m.isDefeated || m.hp <= 0) return false;
+            const mTile = newState.tiles.find(t => t.x === m.position.x && t.z === m.position.z);
+            if (!heroTile || !mTile) return false;
+            return getTileGraphDistance(heroTile, mTile, newState.tiles) <= 1;
+        });
+
+        const targets = [target];
+        if (otherMonster) targets.push(otherMonster);
+
+        const effects: any[] = [];
+        const msgParts: string[] = [];
+
+        for (const t of targets) {
+            const resolved = await CombatSystem.resolveAttackAsync(
+                hero,
+                t,
+                powerCard.attackBonus || 4,
+                powerCard.damage || 1,
+                0,
+                newState
+            );
+
+            let updatedMonster = t;
+            if (resolved.hit) {
+                updatedMonster = CombatSystem.applyDamage(t, resolved.damage, newState);
+                newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
+            }
+
+            effects.push({
+                type: 'attack_resolved',
+                targetId: t.id,
+                hit: resolved.hit,
+                roll: resolved.roll,
+                damage: resolved.hit ? resolved.damage : 0
+            });
+            msgParts.push(`${t.name} (${resolved.hit ? 'HIT' : 'MISS'})`);
+        }
+
+        return {
+            success: true,
+            message: `${hero.name} uses Twin Shot: ${msgParts.join(', ')}`,
+            effects,
+            newState
+        };
+    }
+
+    private static executeTwinShot(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): { success: boolean; message: string; effects: any[]; newState: GameState } {
+        if (!target) {
+            return { success: false, message: 'Twin Shot requires a target', effects: [], newState: gameState };
+        }
+
+        let newState = { ...gameState };
+        const heroTile = newState.tiles.find(t => t.x === hero.position.x && t.z === hero.position.z);
+        
+        const otherMonster = newState.monsters.find(m => {
+            if (m.id === target.id || m.isDefeated || m.hp <= 0) return false;
+            const mTile = newState.tiles.find(t => t.x === m.position.x && t.z === m.position.z);
+            if (!heroTile || !mTile) return false;
+            return getTileGraphDistance(heroTile, mTile, newState.tiles) <= 1;
+        });
+
+        const targets = [target];
+        if (otherMonster) targets.push(otherMonster);
+
+        const effects: any[] = [];
+        const msgParts: string[] = [];
+
+        for (const t of targets) {
+            const resolved = CombatSystem.resolveAttack(
+                hero,
+                t,
+                powerCard.attackBonus || 4,
+                powerCard.damage || 1,
+                0,
+                undefined,
+                newState
+            );
+
+            let updatedMonster = t;
+            if (resolved.hit) {
+                updatedMonster = CombatSystem.applyDamage(t, resolved.damage, newState);
+                newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
+            }
+
+            effects.push({
+                type: 'attack_resolved',
+                targetId: t.id,
+                hit: resolved.hit,
+                roll: resolved.roll,
+                damage: resolved.hit ? resolved.damage : 0
+            });
+            msgParts.push(`${t.name} (${resolved.hit ? 'HIT' : 'MISS'})`);
+        }
+
+        return {
+            success: true,
+            message: `${hero.name} uses Twin Shot: ${msgParts.join(', ')}`,
+            effects,
+            newState
+        };
+    }
+
+    private static async executeAttacksOnTheRunAsync(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): Promise<{ success: boolean; message: string; effects: any[]; newState: GameState }> {
+        if (!target) {
+            return { success: false, message: 'Attacks on the Run requires a target', effects: [], newState: gameState };
+        }
+
+        const moveRes = this.processEffect({ type: 'move', value: 6 }, hero, target, gameState, powerCard);
+        let newState = moveRes.newState;
+        let currentHero = moveRes.hero;
+
+        const otherMonster = newState.monsters.find(m => {
+            if (m.id === target.id || m.isDefeated || m.hp <= 0) return false;
+            return m.position.x === currentHero.position.x &&
+                m.position.z === currentHero.position.z &&
+                Math.abs(m.position.sqX - currentHero.position.sqX) + Math.abs(m.position.sqZ - currentHero.position.sqZ) === 1;
+        });
+
+        const targets = [target];
+        if (otherMonster) targets.push(otherMonster);
+
+        const effects: any[] = [];
+        const msgParts: string[] = [];
+
+        for (const t of targets) {
+            const resolved = await CombatSystem.resolveAttackAsync(
+                currentHero,
+                t,
+                powerCard.attackBonus || 4,
+                powerCard.damage || 2,
+                0,
+                newState
+            );
+
+            let damageDealt = resolved.hit ? resolved.damage : 1; // Miss: 1 Damage
+            const updatedMonster = CombatSystem.applyDamage(t, damageDealt, newState);
+            newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
+
+            effects.push({
+                type: 'attack_resolved',
+                targetId: t.id,
+                hit: resolved.hit,
+                roll: resolved.roll,
+                damage: damageDealt
+            });
+            msgParts.push(`${t.name} (${resolved.hit ? 'HIT' : 'MISS'}, damage: ${damageDealt})`);
+        }
+
+        const currentFlipped = currentHero.flippedPowerIds ?? [];
+        if (!currentFlipped.includes(powerCard.id)) {
+            currentHero = {
+                ...currentHero,
+                flippedPowerIds: [...currentFlipped, powerCard.id]
+            };
+            newState = this.updateEntityInState(newState, currentHero);
+            effects.push({ type: 'power_flipped', powerId: powerCard.id, powerType: powerCard.powerType });
+        }
+
+        return {
+            success: true,
+            message: `${currentHero.name} uses Attacks on the Run: ${msgParts.join(', ')}`,
+            effects,
+            newState
+        };
+    }
+
+    private static executeAttacksOnTheRun(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): { success: boolean; message: string; effects: any[]; newState: GameState } {
+        if (!target) {
+            return { success: false, message: 'Attacks on the Run requires a target', effects: [], newState: gameState };
+        }
+
+        const moveRes = this.processEffect({ type: 'move', value: 6 }, hero, target, gameState, powerCard);
+        let newState = moveRes.newState;
+        let currentHero = moveRes.hero;
+
+        const otherMonster = newState.monsters.find(m => {
+            if (m.id === target.id || m.isDefeated || m.hp <= 0) return false;
+            return m.position.x === currentHero.position.x &&
+                m.position.z === currentHero.position.z &&
+                Math.abs(m.position.sqX - currentHero.position.sqX) + Math.abs(m.position.sqZ - currentHero.position.sqZ) === 1;
+        });
+
+        const targets = [target];
+        if (otherMonster) targets.push(otherMonster);
+
+        const effects: any[] = [];
+        const msgParts: string[] = [];
+
+        for (const t of targets) {
+            const resolved = CombatSystem.resolveAttack(
+                currentHero,
+                t,
+                powerCard.attackBonus || 4,
+                powerCard.damage || 2,
+                0,
+                undefined,
+                newState
+            );
+
+            let damageDealt = resolved.hit ? resolved.damage : 1; // Miss: 1 Damage
+            const updatedMonster = CombatSystem.applyDamage(t, damageDealt, newState);
+            newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
+
+            effects.push({
+                type: 'attack_resolved',
+                targetId: t.id,
+                hit: resolved.hit,
+                roll: resolved.roll,
+                damage: damageDealt
+            });
+            msgParts.push(`${t.name} (${resolved.hit ? 'HIT' : 'MISS'}, damage: ${damageDealt})`);
+        }
+
+        const currentFlipped = currentHero.flippedPowerIds ?? [];
+        if (!currentFlipped.includes(powerCard.id)) {
+            currentHero = {
+                ...currentHero,
+                flippedPowerIds: [...currentFlipped, powerCard.id]
+            };
+            newState = this.updateEntityInState(newState, currentHero);
+            effects.push({ type: 'power_flipped', powerId: powerCard.id, powerType: powerCard.powerType });
+        }
+
+        return {
+            success: true,
+            message: `${currentHero.name} uses Attacks on the Run: ${msgParts.join(', ')}`,
+            effects,
+            newState
+        };
+    }
+
+    private static async executeSplitTheTreeAsync(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): Promise<{ success: boolean; message: string; effects: any[]; newState: GameState }> {
+        if (!target) {
+            return { success: false, message: 'Split the Tree requires a target', effects: [], newState: gameState };
+        }
+
+        let newState = { ...gameState };
+        let currentHero = { ...hero };
+
+        const targetTileX = target.position.x;
+        const targetTileZ = target.position.z;
+
+        const otherMonster = newState.monsters.find(m => {
+            return m.id !== target.id &&
+                !m.isDefeated &&
+                m.hp > 0 &&
+                m.position.x === targetTileX &&
+                m.position.z === targetTileZ;
+        });
+
+        const targets = [target];
+        if (otherMonster) targets.push(otherMonster);
+
+        const effects: any[] = [];
+        const msgParts: string[] = [];
+
+        for (const t of targets) {
+            const resolved = await CombatSystem.resolveAttackAsync(
+                currentHero,
+                t,
+                powerCard.attackBonus || 6,
+                powerCard.damage || 2,
+                0,
+                newState
+            );
+
+            let damageDealt = resolved.hit ? resolved.damage : 1; // Miss: 1 Damage
+            let updatedMonster = CombatSystem.applyDamage(t, damageDealt, newState);
+            newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
+
+            effects.push({
+                type: 'attack_resolved',
+                targetId: t.id,
+                hit: resolved.hit,
+                roll: resolved.roll,
+                damage: damageDealt
+            });
+
+            if (!resolved.hit) {
+                const moveRes = this.processEffect({ type: 'move', value: 1 }, currentHero, updatedMonster, newState, powerCard);
+                newState = moveRes.newState;
+                currentHero = moveRes.hero;
+                if (moveRes.target) {
+                    updatedMonster = moveRes.target as Monster;
+                }
+            }
+
+            msgParts.push(`${updatedMonster.name} (${resolved.hit ? 'HIT' : 'MISS'}, damage: ${damageDealt})`);
+        }
+
+        const currentFlipped = currentHero.flippedPowerIds ?? [];
+        if (!currentFlipped.includes(powerCard.id)) {
+            currentHero = {
+                ...currentHero,
+                flippedPowerIds: [...currentFlipped, powerCard.id]
+            };
+            newState = this.updateEntityInState(newState, currentHero);
+            effects.push({ type: 'power_flipped', powerId: powerCard.id, powerType: powerCard.powerType });
+        }
+
+        return {
+            success: true,
+            message: `${currentHero.name} uses Split the Tree: ${msgParts.join(', ')}`,
+            effects,
+            newState
+        };
+    }
+
+    private static executeSplitTheTree(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): { success: boolean; message: string; effects: any[]; newState: GameState } {
+        if (!target) {
+            return { success: false, message: 'Split the Tree requires a target', effects: [], newState: gameState };
+        }
+
+        let newState = { ...gameState };
+        let currentHero = { ...hero };
+
+        const targetTileX = target.position.x;
+        const targetTileZ = target.position.z;
+
+        const otherMonster = newState.monsters.find(m => {
+            return m.id !== target.id &&
+                !m.isDefeated &&
+                m.hp > 0 &&
+                m.position.x === targetTileX &&
+                m.position.z === targetTileZ;
+        });
+
+        const targets = [target];
+        if (otherMonster) targets.push(otherMonster);
+
+        const effects: any[] = [];
+        const msgParts: string[] = [];
+
+        for (const t of targets) {
+            const resolved = CombatSystem.resolveAttack(
+                currentHero,
+                t,
+                powerCard.attackBonus || 6,
+                powerCard.damage || 2,
+                0,
+                undefined,
+                newState
+            );
+
+            let damageDealt = resolved.hit ? resolved.damage : 1; // Miss: 1 Damage
+            let updatedMonster = CombatSystem.applyDamage(t, damageDealt, newState);
+            newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
+
+            effects.push({
+                type: 'attack_resolved',
+                targetId: t.id,
+                hit: resolved.hit,
+                roll: resolved.roll,
+                damage: damageDealt
+            });
+
+            if (!resolved.hit) {
+                const moveRes = this.processEffect({ type: 'move', value: 1 }, currentHero, updatedMonster, newState, powerCard);
+                newState = moveRes.newState;
+                currentHero = moveRes.hero;
+                if (moveRes.target) {
+                    updatedMonster = moveRes.target as Monster;
+                }
+            }
+
+            msgParts.push(`${updatedMonster.name} (${resolved.hit ? 'HIT' : 'MISS'}, damage: ${damageDealt})`);
+        }
+
+        const currentFlipped = currentHero.flippedPowerIds ?? [];
+        if (!currentFlipped.includes(powerCard.id)) {
+            currentHero = {
+                ...currentHero,
+                flippedPowerIds: [...currentFlipped, powerCard.id]
+            };
+            newState = this.updateEntityInState(newState, currentHero);
+            effects.push({ type: 'power_flipped', powerId: powerCard.id, powerType: powerCard.powerType });
+        }
+
+        return {
+            success: true,
+            message: `${currentHero.name} uses Split the Tree: ${msgParts.join(', ')}`,
             effects,
             newState
         };
@@ -899,6 +1342,205 @@ export class PowerSystem {
 
                     return {
                         result: { type: 'get_over_there_resolved', newPosition: currentHero.position },
+                        newState,
+                        hero: currentHero,
+                        target: currentTarget
+                    };
+                }
+
+                const isHitAndRun = powerCard?.id === 'ranger_hit_and_run';
+                if (isHitAndRun) {
+                    let foundHeroPos = null;
+                    for (let sqX = 0; sqX < 4; sqX++) {
+                        for (let sqZ = 0; sqZ < 4; sqZ++) {
+                            const occupied = 
+                                newState.heroes.some(h => h.position.x === currentHero.position.x && h.position.z === currentHero.position.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
+                                newState.monsters.some(m => !m.isDefeated && m.hp > 0 && m.position.x === currentHero.position.x && m.position.z === currentHero.position.z && m.position.sqX === sqX && m.position.sqZ === sqZ);
+
+                            if (!occupied) {
+                                foundHeroPos = { sqX, sqZ };
+                                break;
+                            }
+                        }
+                        if (foundHeroPos) break;
+                    }
+
+                    if (foundHeroPos) {
+                        currentHero = {
+                            ...currentHero,
+                            position: {
+                                ...currentHero.position,
+                                sqX: foundHeroPos.sqX,
+                                sqZ: foundHeroPos.sqZ
+                            }
+                        };
+                        newState = this.updateEntityInState(newState, currentHero);
+                    }
+
+                    return {
+                        result: { type: 'hit_and_run_resolved', newPosition: currentHero.position },
+                        newState,
+                        hero: currentHero,
+                        target: currentTarget
+                    };
+                }
+
+                const isHuntersShot = powerCard?.id === 'ranger_hunters_shot';
+                const isSplitTheTree = powerCard?.id === 'ranger_split_the_tree';
+                if ((isHuntersShot || isSplitTheTree) && currentTarget && !isHeroEntity(currentTarget)) {
+                    const monster = currentTarget as Monster;
+                    if (monster.hp > 0 && !monster.isDefeated) {
+                        const heroTile = newState.tiles.find(t => t.x === currentHero.position.x && t.z === currentHero.position.z);
+                        const monsterTile = newState.tiles.find(t => t.x === monster.position.x && t.z === monster.position.z);
+                        if (heroTile && monsterTile) {
+                            const dist = getTileGraphDistance(heroTile, monsterTile, newState.tiles);
+                            if (dist > 1) {
+                                // Find an adjacent tile to the monster's current tile whose graph distance to hero is less than dist
+                                const adjacentTiles = newState.tiles.filter(t => {
+                                    return getTileGraphDistance(monsterTile, t, newState.tiles) === 1;
+                                });
+
+                                const closerTile = adjacentTiles.find(t => {
+                                    return getTileGraphDistance(heroTile, t, newState.tiles) < dist;
+                                });
+
+                                if (closerTile) {
+                                    // Find unoccupied square on closerTile
+                                    let foundMonsterPos = null;
+                                    for (let sqX = 0; sqX < 4; sqX++) {
+                                        for (let sqZ = 0; sqZ < 4; sqZ++) {
+                                            const occupied = 
+                                                newState.heroes.some(h => h.position.x === closerTile.x && h.position.z === closerTile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
+                                                newState.monsters.some(m => !m.isDefeated && m.hp > 0 && m.position.x === closerTile.x && m.position.z === closerTile.z && m.position.sqX === sqX && m.position.sqZ === sqZ);
+
+                                            if (!occupied) {
+                                                foundMonsterPos = { x: closerTile.x, z: closerTile.z, sqX, sqZ };
+                                                break;
+                                            }
+                                        }
+                                        if (foundMonsterPos) break;
+                                    }
+
+                                    if (foundMonsterPos) {
+                                        const updatedMonster = {
+                                            ...monster,
+                                            position: foundMonsterPos
+                                        };
+                                        newState = this.updateEntityInState(newState, updatedMonster);
+                                        currentTarget = updatedMonster;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    return {
+                        result: { type: 'monster_moved_closer', monsterNewPos: currentTarget.position },
+                        newState,
+                        hero: currentHero,
+                        target: currentTarget
+                    };
+                }
+
+                const isBoundingAttack = powerCard?.id === 'ranger_bounding_attack';
+                if (isBoundingAttack) {
+                    const heroTile = newState.tiles.find(t => t.x === currentHero.position.x && t.z === currentHero.position.z);
+                    const validTiles = newState.tiles.filter(t => {
+                        if (!heroTile) return false;
+                        return getTileGraphDistance(heroTile, t, newState.tiles) <= 1;
+                    });
+
+                    let foundHeroPos = null;
+                    for (const tile of validTiles) {
+                        for (let sqX = 0; sqX < 4; sqX++) {
+                            for (let sqZ = 0; sqZ < 4; sqZ++) {
+                                const occupied = 
+                                    newState.heroes.some(h => h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
+                                    newState.monsters.some(m => !m.isDefeated && m.hp > 0 && m.position.x === tile.x && m.position.z === tile.z && m.position.sqX === sqX && m.position.sqZ === sqZ);
+
+                                if (!occupied) {
+                                    foundHeroPos = { x: tile.x, z: tile.z, sqX, sqZ };
+                                    break;
+                                }
+                            }
+                            if (foundHeroPos) break;
+                        }
+                        if (foundHeroPos) break;
+                    }
+
+                    if (foundHeroPos) {
+                        currentHero = {
+                            ...currentHero,
+                            position: {
+                                ...currentHero.position,
+                                x: foundHeroPos.x,
+                                z: foundHeroPos.z,
+                                sqX: foundHeroPos.sqX,
+                                sqZ: foundHeroPos.sqZ
+                            }
+                        };
+                        newState = this.updateEntityInState(newState, currentHero);
+                    }
+
+                    return {
+                        result: { type: 'bounding_attack_resolved', newPosition: currentHero.position },
+                        newState,
+                        hero: currentHero,
+                        target: currentTarget
+                    };
+                }
+
+                const isAttacksOnTheRun = powerCard?.id === 'ranger_attacks_on_the_run';
+                if (isAttacksOnTheRun) {
+                    const heroTile = newState.tiles.find(t => t.x === currentHero.position.x && t.z === currentHero.position.z);
+                    const validTiles = newState.tiles.filter(t => {
+                        if (!heroTile) return false;
+                        return getTileGraphDistance(heroTile, t, newState.tiles) <= 1;
+                    });
+
+                    let foundHeroPos = null;
+                    for (const tile of validTiles) {
+                        for (let sqX = 0; sqX < 4; sqX++) {
+                            for (let sqZ = 0; sqZ < 4; sqZ++) {
+                                let distance = 0;
+                                if (tile.x === currentHero.position.x && tile.z === currentHero.position.z) {
+                                    distance = Math.abs(sqX - currentHero.position.sqX) + Math.abs(sqZ - currentHero.position.sqZ);
+                                } else {
+                                    distance = 4 + Math.abs(sqX - currentHero.position.sqX) + Math.abs(sqZ - currentHero.position.sqZ);
+                                }
+
+                                if (distance <= 6) {
+                                    const occupied = 
+                                        newState.heroes.some(h => h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
+                                        newState.monsters.some(m => !m.isDefeated && m.hp > 0 && m.position.x === tile.x && m.position.z === tile.z && m.position.sqX === sqX && m.position.sqZ === sqZ);
+
+                                    if (!occupied) {
+                                        foundHeroPos = { x: tile.x, z: tile.z, sqX, sqZ };
+                                        break;
+                                    }
+                                }
+                            }
+                            if (foundHeroPos) break;
+                        }
+                        if (foundHeroPos) break;
+                    }
+
+                    if (foundHeroPos) {
+                        currentHero = {
+                            ...currentHero,
+                            position: {
+                                ...currentHero.position,
+                                x: foundHeroPos.x,
+                                z: foundHeroPos.z,
+                                sqX: foundHeroPos.sqX,
+                                sqZ: foundHeroPos.sqZ
+                            }
+                        };
+                        newState = this.updateEntityInState(newState, currentHero);
+                    }
+
+                    return {
+                        result: { type: 'attacks_on_the_run_resolved', newPosition: currentHero.position },
                         newState,
                         hero: currentHero,
                         target: currentTarget

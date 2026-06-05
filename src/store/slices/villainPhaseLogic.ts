@@ -1,4 +1,4 @@
-import { GameState, GameLogEntry } from '../../game/types';
+import { GameState, GameLogEntry, Monster } from '../../game/types';
 import { BossPhases } from '../../game/ai/BossPhases';
 import { resolveTactic, resolveTrap, getTileGraphDistance } from '../../game/engine/MonsterAI';
 import { AbilitySystem } from '../../game/ai/AbilitySystem';
@@ -71,7 +71,7 @@ export function executeVillainPhase(state: GameState): GameState {
         // so resolveTactic sees the updated currentPhase
         const updatedMonster = newState.monsters.find(m => m.id === monster!.id);
         if (updatedMonster) {
-          monster = updatedMonster;
+          monster = updatedMonster as Monster;
         }
       }
 
@@ -157,6 +157,111 @@ export function executeVillainPhase(state: GameState): GameState {
                   if (h.id === updatedBodyguardHero.id) return updatedBodyguardHero;
                   return h;
                 });
+              }
+
+              // Check for Unbalancing Parry
+              const hasUnbalancingParry = targetHero.abilities.includes('ranger_unbalancing_parry') || targetHero.hand.includes('ranger_unbalancing_parry');
+              const isUnbalancingParryAvailable = !(targetHero.flippedPowerIds ?? []).includes('ranger_unbalancing_parry');
+
+              if (hasUnbalancingParry && isUnbalancingParryAvailable && finalDamage > 0) {
+                finalDamage = 0;
+                logSuffix += ` Deflected by ${targetHero.name}'s Unbalancing Parry! The attack misses instead.`;
+
+                const heroTile = newState.tiles.find(t => t.x === targetHero.position.x && t.z === targetHero.position.z);
+                const validTiles = newState.tiles.filter(t => {
+                  if (!heroTile) return false;
+                  return getTileGraphDistance(heroTile, t, newState.tiles) <= 1;
+                });
+
+                let foundMonsterPos = null;
+                for (const tile of validTiles) {
+                  for (let sqX = 0; sqX < 4; sqX++) {
+                    for (let sqZ = 0; sqZ < 4; sqZ++) {
+                      const occupied = 
+                        updatedHeroesList.some(h => h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
+                        newState.monsters.some(m => !m.isDefeated && m.hp > 0 && m.position.x === tile.x && m.position.z === tile.z && m.position.sqX === sqX && m.position.sqZ === sqZ);
+
+                      if (!occupied) {
+                        foundMonsterPos = { x: tile.x, z: tile.z, sqX, sqZ };
+                        break;
+                      }
+                    }
+                    if (foundMonsterPos) break;
+                  }
+                  if (foundMonsterPos) break;
+                }
+
+                if (foundMonsterPos) {
+                  const updatedMonster = {
+                    ...monster,
+                    position: foundMonsterPos
+                  };
+                  newState = {
+                    ...newState,
+                    monsters: newState.monsters.map(m => m.id === monster!.id ? updatedMonster : m)
+                  };
+                }
+
+                const updatedTargetHero = {
+                  ...targetHero,
+                  flippedPowerIds: [...(targetHero.flippedPowerIds ?? []), 'ranger_unbalancing_parry']
+                };
+                updatedHeroesList = updatedHeroesList.map(h => h.id === updatedTargetHero.id ? updatedTargetHero : h);
+              }
+
+              // Check for Yield Ground
+              const hasYieldGround = targetHero.abilities.includes('ranger_yield_ground') || targetHero.hand.includes('ranger_yield_ground');
+              const isYieldGroundAvailable = !(targetHero.flippedPowerIds ?? []).includes('ranger_yield_ground');
+
+              if (hasYieldGround && isYieldGroundAvailable) {
+                logSuffix += ` ${targetHero.name} triggers Yield Ground and moves their speed!`;
+
+                const heroTile = newState.tiles.find(t => t.x === targetHero.position.x && t.z === targetHero.position.z);
+                const validTiles = newState.tiles.filter(t => {
+                  if (!heroTile) return false;
+                  return getTileGraphDistance(heroTile, t, newState.tiles) <= 1;
+                });
+
+                let foundHeroPos = null;
+                for (const tile of validTiles) {
+                  for (let sqX = 0; sqX < 4; sqX++) {
+                    for (let sqZ = 0; sqZ < 4; sqZ++) {
+                      let distance = 0;
+                      if (tile.x === targetHero.position.x && tile.z === targetHero.position.z) {
+                        distance = Math.abs(sqX - targetHero.position.sqX) + Math.abs(sqZ - targetHero.position.sqZ);
+                      } else {
+                        distance = 4 + Math.abs(sqX - targetHero.position.sqX) + Math.abs(sqZ - targetHero.position.sqZ);
+                      }
+
+                      if (distance <= 6) {
+                        const occupied = 
+                          updatedHeroesList.some(h => h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
+                          newState.monsters.some(m => !m.isDefeated && m.hp > 0 && m.position.x === tile.x && m.position.z === tile.z && m.position.sqX === sqX && m.position.sqZ === sqZ);
+
+                        if (!occupied) {
+                          foundHeroPos = { x: tile.x, z: tile.z, sqX, sqZ };
+                          break;
+                        }
+                      }
+                    }
+                    if (foundHeroPos) break;
+                  }
+                  if (foundHeroPos) break;
+                }
+
+                const resolvedTarget = updatedHeroesList.find(h => h.id === targetHero.id) || targetHero;
+                const updatedTargetHero = {
+                  ...resolvedTarget,
+                  position: foundHeroPos ? {
+                    ...resolvedTarget.position,
+                    x: foundHeroPos.x,
+                    z: foundHeroPos.z,
+                    sqX: foundHeroPos.sqX,
+                    sqZ: foundHeroPos.sqZ
+                  } : resolvedTarget.position,
+                  flippedPowerIds: [...(resolvedTarget.flippedPowerIds ?? []), 'ranger_yield_ground']
+                };
+                updatedHeroesList = updatedHeroesList.map(h => h.id === updatedTargetHero.id ? updatedTargetHero : h);
               }
             }
 

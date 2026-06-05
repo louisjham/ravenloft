@@ -25,7 +25,8 @@ import {
   findClosestHero,
   getPathToward,
   resolveTactic,
-  resolveTrap
+  resolveTrap,
+  getTileGraphDistance
 } from '../game/engine/MonsterAI';
 import { ObjectiveTracker } from '../game/scenarios/Objectives';
 import { ScenarioManager } from '../game/scenarios/ScenarioManager';
@@ -4273,6 +4274,293 @@ export const runFullGameLoopTest = async () => {
       }
 
       console.log('  Remaining Fighter powers tests PASSED');
+    }
+
+    // =======================================================================
+    // Ranger Powers Verification (Careful Attack, Hit and Run, Hunter's Shot, Twin Shot, Attacks on the Run, Bounding Attack, Split the Tree, Crucial Aid, Unbalancing Parry, Yield Ground)
+    // =======================================================================
+    {
+      console.log('Testing Ranger powers...');
+      const rangerHero: Hero = {
+        ...createAIHero('Test Ranger', 0, 0),
+        heroClass: 'ranger',
+        abilities: [
+          'ranger_careful_attack',
+          'ranger_hit_and_run',
+          'ranger_hunters_shot',
+          'ranger_twin_shot',
+          'ranger_attacks_on_the_run',
+          'ranger_bounding_attack',
+          'ranger_split_the_tree',
+          'ranger_crucial_aid',
+          'ranger_unbalancing_parry',
+          'ranger_yield_ground'
+        ],
+        position: { x: 0, z: 0, sqX: 2, sqZ: 2 }
+      };
+
+      const zombieA: Monster = {
+        ...createAIMonster('Zombie A', 1),
+        monsterType: 'Zombie',
+        hp: 3,
+        maxHp: 3,
+        position: { x: 0, z: 0, sqX: 2, sqZ: 3 } // adjacent to ranger
+      };
+
+      const zombieB: Monster = {
+        ...createAIMonster('Zombie B', 1),
+        monsterType: 'Zombie',
+        hp: 2,
+        position: { x: 0, z: 2, sqX: 2, sqZ: 2 } // 2 tiles away
+      };
+
+      const companionHero: Hero = {
+        ...createAIHero('Companion Hero', 0, 0),
+        heroClass: 'cleric',
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 }
+      };
+
+      const tile00 = createAITile('tile_0_0', 0, 0, [openEdge('north'), closedEdge('south'), closedEdge('east'), closedEdge('west')]);
+      const tile01 = createAITile('tile_0_1', 0, 1, [openEdge('south'), openEdge('north'), closedEdge('east'), closedEdge('west')]);
+      const tile02 = createAITile('tile_0_2', 0, 2, [openEdge('south'), closedEdge('north'), closedEdge('east'), closedEdge('west')]);
+
+      tile00.connections[0].connectedTileId = 'tile_0_1';
+      tile01.connections[0].connectedTileId = 'tile_0_0';
+      tile01.connections[1].connectedTileId = 'tile_0_2';
+      tile02.connections[0].connectedTileId = 'tile_0_1';
+
+      const rangerGameState: GameState = {
+        ...createAIState([rangerHero, companionHero], [tile00, tile01, tile02]),
+        monsters: [zombieA, zombieB],
+        currentHeroId: rangerHero.id
+      };
+
+      const dataLoader = DataLoader.getInstance();
+
+      // --- TEST 1: Careful Attack (Automatic 1 damage, no attack roll) ---
+      {
+        const carefulCard = dataLoader.getCardById('ranger_careful_attack')!;
+        const result = PowerSystem.usePower(rangerHero, carefulCard, zombieA, rangerGameState);
+        const resolvedZombie = result.newState.monsters.find(m => m.id === zombieA.id)!;
+        if (resolvedZombie.hp !== 2) {
+          throw new Error(`Careful Attack: expected zombie HP to be 2, got ${resolvedZombie.hp}`);
+        }
+        console.log('  Careful Attack test PASSED');
+      }
+
+      // --- TEST 2: Hit and Run (Attack and move hero to another square on tile) ---
+      {
+        const card = dataLoader.getCardById('ranger_hit_and_run')!;
+        AbilitySystem._rollOverride = () => 10; // hit
+        const result = PowerSystem.usePower(rangerHero, card, zombieA, rangerGameState);
+        AbilitySystem._rollOverride = null;
+        const resolvedHero = result.newState.heroes.find(h => h.id === rangerHero.id)!;
+        if (resolvedHero.position.sqX === 2 && resolvedHero.position.sqZ === 2) {
+          throw new Error('Hit and Run: expected hero to move to a different square on tile');
+        }
+        if (resolvedHero.position.x !== 0 || resolvedHero.position.z !== 0) {
+          throw new Error('Hit and Run: expected hero to stay on same tile (0,0)');
+        }
+        console.log('  Hit and Run test PASSED');
+      }
+
+      // --- TEST 3: Hunter's Shot (Miss moves monster > 1 tile away closer) ---
+      {
+        const card = dataLoader.getCardById('ranger_hunters_shot')!;
+        AbilitySystem._rollOverride = () => 2; // miss
+        const result = PowerSystem.usePower(rangerHero, card, zombieB, rangerGameState);
+        AbilitySystem._rollOverride = null;
+        const resolvedZombie = result.newState.monsters.find(m => m.id === zombieB.id)!;
+        if (resolvedZombie.position.x !== 0 || resolvedZombie.position.z !== 1) {
+          throw new Error(`Hunter's Shot: expected zombie B to move 1 tile closer to (0,1), got tile (${resolvedZombie.position.x}, ${resolvedZombie.position.z})`);
+        }
+        console.log('  Hunter\'s Shot test PASSED');
+      }
+
+      // --- TEST 4: Twin Shot (Attack two monsters within 1 tile) ---
+      {
+        const card = dataLoader.getCardById('ranger_twin_shot')!;
+        
+        const twinState = {
+          ...rangerGameState,
+          monsters: rangerGameState.monsters.map(m =>
+            m.id === zombieB.id ? { ...m, position: { x: 0, z: 0, sqX: 3, sqZ: 2 } } : m
+          )
+        };
+        AbilitySystem._rollOverride = () => 15; // hits both
+        const result = PowerSystem.usePower(rangerHero, card, zombieA, twinState);
+        AbilitySystem._rollOverride = null;
+
+        const resZombieA = result.newState.monsters.find(m => m.id === zombieA.id)!;
+        const resZombieB = result.newState.monsters.find(m => m.id === zombieB.id)!;
+
+        if (resZombieA.hp !== 2) {
+          throw new Error(`Twin Shot: expected target zombie A to take 1 damage (HP 2), got ${resZombieA.hp}`);
+        }
+        if (resZombieB.hp !== 1) {
+          throw new Error(`Twin Shot: expected secondary zombie B to take 1 damage (HP 1), got ${resZombieB.hp}`);
+        }
+        console.log('  Twin Shot test PASSED');
+      }
+
+      // --- TEST 5: Attacks on the Run (Move speed, attack two monsters, miss deals 1 damage) ---
+      {
+        const card = dataLoader.getCardById('ranger_attacks_on_the_run')!;
+        AbilitySystem._rollOverride = () => 2; // miss both
+        const result = PowerSystem.usePower(rangerHero, card, zombieA, rangerGameState);
+        AbilitySystem._rollOverride = null;
+
+        const resHero = result.newState.heroes.find(h => h.id === rangerHero.id)!;
+        if (resHero.position.sqX === 2 && resHero.position.sqZ === 2 && resHero.position.x === 0 && resHero.position.z === 0) {
+          throw new Error('Attacks on the Run: expected hero to move');
+        }
+
+        const resZombieA = result.newState.monsters.find(m => m.id === zombieA.id)!;
+        if (resZombieA.hp !== 2) {
+          throw new Error(`Attacks on the Run: expected miss damage 1 to zombie A, got hp ${resZombieA.hp}`);
+        }
+
+        if (!resHero.flippedPowerIds?.includes('ranger_attacks_on_the_run')) {
+          throw new Error('Attacks on the Run: expected daily power to be flipped');
+        }
+        console.log('  Attacks on the Run test PASSED');
+      }
+
+      // --- TEST 6: Bounding Attack (Move to tile within 1 tile, attack adjacent monster) ---
+      {
+        const card = dataLoader.getCardById('ranger_bounding_attack')!;
+        AbilitySystem._rollOverride = () => 15; // hit
+        const result = PowerSystem.usePower(rangerHero, card, zombieA, rangerGameState);
+        AbilitySystem._rollOverride = null;
+
+        const resHero = result.newState.heroes.find(h => h.id === rangerHero.id)!;
+        const resZombieA = result.newState.monsters.find(m => m.id === zombieA.id)!;
+        if (resZombieA.hp !== 0) {
+          throw new Error(`Bounding Attack: expected target to take 3 damage, got hp ${resZombieA.hp}`);
+        }
+        console.log('  Bounding Attack test PASSED');
+      }
+
+      // --- TEST 7: Split the Tree (Choose tile, attack two monsters, miss moves >1 tile monster closer) ---
+      {
+        const card = dataLoader.getCardById('ranger_split_the_tree')!;
+        
+        const splitState = {
+          ...rangerGameState,
+          monsters: rangerGameState.monsters.map(m => {
+            if (m.id === zombieA.id) {
+              return { ...m, hp: 3, isDefeated: false, position: { x: 0, z: 2, sqX: 1, sqZ: 1 } };
+            }
+            return { ...m, hp: 2, isDefeated: false, position: { x: 0, z: 2, sqX: 2, sqZ: 2 } };
+          })
+        };
+
+        AbilitySystem._rollOverride = () => 2; // miss both
+        const result = PowerSystem.usePower(rangerHero, card, splitState.monsters.find(m => m.id === zombieA.id)!, splitState);
+        AbilitySystem._rollOverride = null;
+
+        const resZombieA = result.newState.monsters.find(m => m.id === zombieA.id)!;
+        const resZombieB = result.newState.monsters.find(m => m.id === zombieB.id)!;
+
+        if (resZombieA.hp !== 2) {
+          throw new Error(`Split the Tree: expected miss damage 1 to zombie A, got hp ${resZombieA.hp}`);
+        }
+        if (resZombieB.hp !== 1) {
+          throw new Error(`Split the Tree: expected miss damage 1 to zombie B, got hp ${resZombieB.hp}`);
+        }
+
+        if (resZombieA.position.x !== 0 || resZombieA.position.z !== 1) {
+          throw new Error(`Split the Tree: expected zombie A to move closer to (0,1), got (${resZombieA.position.x}, ${resZombieA.position.z})`);
+        }
+        if (resZombieB.position.x !== 0 || resZombieB.position.z !== 1) {
+          throw new Error(`Split the Tree: expected zombie B to move closer to (0,1), got (${resZombieB.position.x}, ${resZombieB.position.z})`);
+        }
+        console.log('  Split the Tree test PASSED');
+      }
+
+      // --- TEST 8: Crucial Aid (Utility: grant +4 attack bonus to another hero) ---
+      {
+        const card = dataLoader.getCardById('ranger_crucial_aid')!;
+        const result = PowerSystem.usePower(rangerHero, card, companionHero, rangerGameState);
+        const resCompanion = result.newState.heroes.find(h => h.id === companionHero.id)!;
+        const crucialCond = (resCompanion.conditions ?? []).find(c => c.type === 'attack_bonus');
+        if (!crucialCond || crucialCond.value !== 4) {
+          throw new Error('Crucial Aid: expected companion to gain +4 attack bonus');
+        }
+        console.log('  Crucial Aid test PASSED');
+      }
+
+      // --- TEST 9: Unbalancing Parry (Reactive: monster hit is made a miss, monster moved within 1 tile) ---
+      {
+        const parryState = {
+          ...rangerGameState,
+          currentHeroId: rangerHero.id,
+          heroes: rangerGameState.heroes.map(h =>
+            h.id === rangerHero.id ? { ...h, abilities: ['ranger_unbalancing_parry'], flippedPowerIds: [] } : h
+          ),
+          monsters: rangerGameState.monsters.map(m =>
+            m.id === zombieB.id ? { ...m, ownedByHeroId: rangerHero.id, position: { x: 0, z: 1, sqX: 2, sqZ: 2 } } : m
+          )
+        };
+
+        AbilitySystem._rollOverride = () => 18; // hits ranger
+        const postVillainState = executeVillainPhase(parryState);
+        AbilitySystem._rollOverride = null;
+
+        const resRanger = postVillainState.heroes.find(h => h.id === rangerHero.id)!;
+        const resZombieB = postVillainState.monsters.find(m => m.id === zombieB.id)!;
+
+        if (resRanger.hp !== rangerHero.hp) {
+          throw new Error(`Unbalancing Parry: expected ranger HP to be ${rangerHero.hp}, got ${resRanger.hp}`);
+        }
+
+        if (!resRanger.flippedPowerIds?.includes('ranger_unbalancing_parry')) {
+          throw new Error('Unbalancing Parry: expected power to be flipped');
+        }
+
+        const zBdist = getTileGraphDistance(
+          postVillainState.tiles.find(t => t.x === resRanger.position.x && t.z === resRanger.position.z)!,
+          postVillainState.tiles.find(t => t.x === resZombieB.position.x && t.z === resZombieB.position.z)!,
+          postVillainState.tiles
+        );
+        if (zBdist > 1) {
+          throw new Error(`Unbalancing Parry: expected monster to be placed within 1 tile, got distance ${zBdist}`);
+        }
+        console.log('  Unbalancing Parry test PASSED');
+      }
+
+      // --- TEST 10: Yield Ground (Reactive: monster hit applies damage, but moves ranger speed) ---
+      {
+        const yieldState = {
+          ...rangerGameState,
+          currentHeroId: rangerHero.id,
+          heroes: rangerGameState.heroes.map(h =>
+            h.id === rangerHero.id ? { ...h, abilities: ['ranger_yield_ground'], flippedPowerIds: [], hp: 8, maxHp: 8 } : h
+          ),
+          monsters: rangerGameState.monsters.map(m =>
+            m.id === zombieB.id ? { ...m, ownedByHeroId: rangerHero.id, position: { x: 0, z: 0, sqX: 2, sqZ: 3 } } : m
+          )
+        };
+
+        AbilitySystem._rollOverride = () => 18; // hits
+        const postVillainState = executeVillainPhase(yieldState);
+        AbilitySystem._rollOverride = null;
+
+        const resRanger = postVillainState.heroes.find(h => h.id === rangerHero.id)!;
+
+        if (resRanger.hp !== 7) {
+          throw new Error(`Yield Ground: expected ranger HP to be 7, got ${resRanger.hp}`);
+        }
+
+        if (resRanger.position.sqX === 2 && resRanger.position.sqZ === 2 && resRanger.position.x === 0 && resRanger.position.z === 0) {
+          throw new Error('Yield Ground: expected ranger to move');
+        }
+
+        if (!resRanger.flippedPowerIds?.includes('ranger_yield_ground')) {
+          throw new Error('Yield Ground: expected power to be flipped');
+        }
+        console.log('  Yield Ground test PASSED');
+      }
     }
 
     // -----------------------------------------------------------------------
