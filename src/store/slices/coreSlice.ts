@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
 import { GameStore, CoreSlice } from '../storeTypes';
-import { GameState, Entity, Tile, Card, GameSettings, Hero } from '../../game/types';
+import { GameState, Entity, Tile, Card, GameSettings, Hero, GameLogEntry } from '../../game/types';
 import { SaveSystem } from '../../game/progression/SaveSystem';
 import { DataLoader } from '../../game/dataLoader';
 import { ConditionSystem } from '../../game/engine/ConditionSystem';
@@ -253,9 +253,59 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     const state = get().gameState;
     if (!state) return;
 
-    const currentEntity = [...state.heroes, ...state.monsters].find(e => e.id === state.currentHeroId);
-    let updatedHeroes = [...state.heroes];
-    let updatedMonsters = [...state.monsters];
+    // Process Freezing Cloud tokens at the end of the Hero Phase
+    let stateForFreezingCloud = { ...state };
+    const freezingCloudTokens = (stateForFreezingCloud.tokens || []).filter(t => t.name === 'Freezing Cloud');
+    if (freezingCloudTokens.length > 0) {
+      let updatedTokens = [...(stateForFreezingCloud.tokens || [])];
+      let updatedMonsters = [...stateForFreezingCloud.monsters];
+      let logsAdded: GameLogEntry[] = [];
+
+      for (const fcToken of freezingCloudTokens) {
+        const fcTile = stateForFreezingCloud.tiles.find(t => t.id === fcToken.tileId);
+        if (fcTile) {
+          const monstersOnTile = updatedMonsters.filter(m =>
+            !m.isDefeated && m.hp > 0 && m.position.x === fcTile.x && m.position.z === fcTile.z
+          );
+
+          for (const m of monstersOnTile) {
+            const damagedMonster = CombatSystem.applyDamage(m, 1);
+            updatedMonsters = updatedMonsters.map(mon => mon.id === m.id ? (damagedMonster.hp <= 0 ? { ...damagedMonster, isDefeated: true } : damagedMonster) : mon);
+            logsAdded.push({
+              id: crypto.randomUUID(),
+              timestamp: new Date().toISOString(),
+              message: `Freezing Cloud deals 1 damage to ${m.name} on tile (${fcTile.x}, ${fcTile.z}).`,
+              type: 'system' as const
+            });
+          }
+        }
+
+        const currentTokensCount = (fcToken.metadata?.cloudTokens as number) || 1;
+        const newTokensCount = currentTokensCount - 1;
+        if (newTokensCount <= 0) {
+          updatedTokens = updatedTokens.filter(t => t.id !== fcToken.id);
+          logsAdded.push({
+            id: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            message: `Freezing Cloud dispersed (no cloud tokens remain).`,
+            type: 'system' as const
+          });
+        } else {
+          updatedTokens = updatedTokens.map(t => t.id === fcToken.id ? { ...t, metadata: { ...t.metadata, cloudTokens: newTokensCount } } : t);
+        }
+      }
+
+      stateForFreezingCloud = {
+        ...stateForFreezingCloud,
+        tokens: updatedTokens,
+        monsters: updatedMonsters,
+        log: [...stateForFreezingCloud.log, ...logsAdded].slice(-100)
+      };
+    }
+
+    const currentEntity = [...stateForFreezingCloud.heroes, ...stateForFreezingCloud.monsters].find(e => e.id === stateForFreezingCloud.currentHeroId);
+    let updatedHeroes = [...stateForFreezingCloud.heroes];
+    let updatedMonsters = [...stateForFreezingCloud.monsters];
 
     if (currentEntity) {
       const poisonDamage = ConditionSystem.processPoisonDamage(currentEntity);
@@ -267,7 +317,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
       }
     }
 
-    const treasuresClearedState = TreasureSystem.resetTreasuresDrawn({ ...state, heroes: updatedHeroes, monsters: updatedMonsters });
+    const treasuresClearedState = TreasureSystem.resetTreasuresDrawn({ ...stateForFreezingCloud, heroes: updatedHeroes, monsters: updatedMonsters });
     // Cross-slice call: depends on conditionSlice.decrementConditions
     get().decrementConditions();
 
@@ -347,6 +397,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
         currentHeroId: nextId,
         phase: 'hero',
         hasExploredThisTurn: false,
+        lastPlacedTileEncounterType: null,
         turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0)
       } as any
     });

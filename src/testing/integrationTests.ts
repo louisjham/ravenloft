@@ -15,7 +15,7 @@ import { useUIStore } from '../store/uiStore';
 import { TileSystem } from '../game/engine/TileSystem';
 import { DataLoader } from '../game/dataLoader';
 import { getPowerCard } from '../data/powerCardLoader';
-import type { Tile, TileConnection, Direction, GameState, ExplorationPoint, Monster, Hero, TacticResult, MonsterAbility, AbilityEffect, Card, Trap } from '../game/types';
+import type { Tile, TileConnection, Direction, GameState, ExplorationPoint, Monster, Hero, TacticResult, MonsterAbility, AbilityEffect, Card, Trap, Entity } from '../game/types';
 import { CardResolutionSystem } from '../game/engine/CardResolutionSystem';
 import { ExplorationState, onArrowClicked, setTileRotation, onCancel, onPlacementComplete, onPlacementAttempted } from '../game/engine/ExplorationStateMachine';
 import {
@@ -4927,6 +4927,569 @@ export const runFullGameLoopTest = async () => {
         }
 
         console.log('  Stealth test PASSED');
+      }
+    }
+
+    // =======================================================================
+    // Wizard Powers Verification
+    // =======================================================================
+    {
+      console.log('Testing Wizard powers...');
+      const wizardHero: Hero = {
+        ...createAIHero('Test Wizard', 0, 0),
+        id: 'wizard_hero_test',
+        heroClass: 'wizard',
+        abilities: [
+          'wizard_fey_step',
+          'wizard_magic_missile',
+          'wizard_thunderwave',
+          'wizard_scorching_burst',
+          'wizard_fireball',
+          'wizard_lightning_bolt',
+          'wizard_freezing_cloud',
+          'wizard_dispel_magic',
+          'wizard_illusionary_crowd'
+        ],
+        hp: 8,
+        maxHp: 8,
+        ac: 14,
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+        flippedPowerIds: []
+      };
+
+      const companionHero: Hero = {
+        ...createAIHero('Companion Hero', 0, 0),
+        id: 'companion_hero_test',
+        heroClass: 'fighter',
+        hp: 10,
+        maxHp: 10,
+        ac: 16,
+        position: { x: 0, z: 0, sqX: 2, sqZ: 2 },
+        flippedPowerIds: []
+      };
+
+      const monsterA: Monster = {
+        id: 'monster_a',
+        name: 'Zombie A',
+        type: 'monster',
+        monsterType: 'zombie',
+        behavior: { conditions: [], priorityTargets: [], actions: [] },
+        attackBonus: 5,
+        damage: 2,
+        experienceValue: 1,
+        ownedByHeroId: null,
+        position: { x: 0, z: 0, sqX: 2, sqZ: 1 },
+        hp: 4,
+        maxHp: 4,
+        ac: 10,
+        speed: 4,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const monsterB: Monster = {
+        id: 'monster_b',
+        name: 'Zombie B',
+        type: 'monster',
+        monsterType: 'zombie',
+        behavior: { conditions: [], priorityTargets: [], actions: [] },
+        attackBonus: 5,
+        damage: 2,
+        experienceValue: 1,
+        ownedByHeroId: null,
+        position: { x: 0, z: 0, sqX: 1, sqZ: 2 },
+        hp: 4,
+        maxHp: 4,
+        ac: 10,
+        speed: 4,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const tile00: Tile = {
+        id: 'tile_00',
+        name: 'Start Tile',
+        x: 0,
+        z: 0,
+        terrainType: 'corridor',
+        connections: [openEdge('north'), openEdge('east')],
+        boneSquare: { sqX: 1, sqZ: 1 },
+        isRevealed: true,
+        isStart: true,
+        isExit: false,
+        rotation: 0,
+        monsters: ['monster_a', 'monster_b'],
+        heroes: ['wizard_hero_test', 'companion_hero_test'],
+        items: []
+      };
+
+      const tile01: Tile = {
+        id: 'tile_01',
+        name: 'North Tile',
+        x: 0,
+        z: 1,
+        terrainType: 'corridor',
+        connections: [openEdge('south'), openEdge('north')],
+        boneSquare: { sqX: 1, sqZ: 1 },
+        isRevealed: true,
+        isStart: false,
+        isExit: false,
+        rotation: 0,
+        monsters: [],
+        heroes: [],
+        items: []
+      };
+
+      const tile02: Tile = {
+        id: 'tile_02',
+        name: 'Far Tile',
+        x: 0,
+        z: 2,
+        terrainType: 'corridor',
+        connections: [openEdge('south')],
+        boneSquare: { sqX: 1, sqZ: 1 },
+        isRevealed: true,
+        isStart: false,
+        isExit: false,
+        rotation: 0,
+        monsters: [],
+        heroes: [],
+        items: []
+      };
+
+      const tile10: Tile = {
+        id: 'tile_10',
+        name: 'East Tile',
+        x: 1,
+        z: 0,
+        terrainType: 'corridor',
+        connections: [openEdge('west')],
+        boneSquare: { sqX: 1, sqZ: 1 },
+        isRevealed: true,
+        isStart: false,
+        isExit: false,
+        rotation: 0,
+        monsters: [],
+        heroes: [],
+        items: []
+      };
+
+      tile00.connections[0].connectedTileId = 'tile_01';
+      tile01.connections[0].connectedTileId = 'tile_00';
+      tile01.connections[1].connectedTileId = 'tile_02';
+      tile02.connections[0].connectedTileId = 'tile_01';
+      tile00.connections[1].connectedTileId = 'tile_10';
+      tile10.connections[0].connectedTileId = 'tile_00';
+
+      const wizardGameState: GameState = {
+        phase: 'hero',
+        currentHeroId: 'wizard_hero_test',
+        heroes: [wizardHero, companionHero],
+        monsters: [monsterA, monsterB],
+        tiles: [tile00, tile01, tile02, tile10],
+        dungeonDeck: [],
+        treasureDeck: [],
+        encounterDeck: [],
+        monsterDeck: [],
+        discardPiles: { treasure: [], encounter: [], ability: [], monster: [] },
+        activeScenario: { id: 'wizard_test', name: 'Wizard Test', difficulty: 'Easy', description: 'Wizard Test', introText: '', victoryText: '', defeatText: '', objectives: [], specialRules: [], startTileId: 'tile_00', maxSurges: 3 },
+        turnOrder: ['wizard_hero_test', 'companion_hero_test'],
+        healingSurges: 2,
+        turnCount: 1,
+        log: [],
+        activeEnvironmentCard: null,
+        experiencePile: [],
+        treasuresDrawnThisTurn: 0,
+        traps: [],
+        villainPhaseQueue: [],
+        activeVillainId: null,
+        cardResolution: { phase: 'idle', cardId: null, cardType: null, pendingEffects: [], resolvedEffects: [], targetEntityId: null, result: null }
+      };
+
+      const dataLoader = DataLoader.getInstance();
+
+      // --- TEST 1: Fey Step (Teleport 1 tile away) ---
+      {
+        const card = dataLoader.getCardById('wizard_fey_step')!;
+        const result = PowerSystem.usePower(wizardHero, card, null, wizardGameState);
+        if (!result.success) {
+          throw new Error(`Fey Step: expected success, got failure: ${result.message}`);
+        }
+        const resWizard = result.newState.heroes.find(h => h.id === 'wizard_hero_test')!;
+        if (resWizard.position.x === 0 && resWizard.position.z === 0) {
+          throw new Error('Fey Step: expected hero to move to a different tile');
+        }
+        const dist = getTileGraphDistance(
+          tile00,
+          result.newState.tiles.find(t => t.x === resWizard.position.x && t.z === resWizard.position.z)!,
+          result.newState.tiles
+        );
+        if (dist !== 1) {
+          throw new Error(`Fey Step: expected teleport distance 1, got ${dist}`);
+        }
+        console.log('  Fey Step test PASSED');
+      }
+
+      // --- TEST 2: Magic Missile (Attack range 3, pull on miss) ---
+      {
+        const monsterFar = {
+          ...monsterA,
+          id: 'monster_far',
+          position: { x: 0, z: 2, sqX: 2, sqZ: 2 }
+        };
+        const magicMissileState = {
+          ...wizardGameState,
+          monsters: [monsterFar]
+        };
+
+        const card = dataLoader.getCardById('wizard_magic_missile')!;
+        
+        // 2a. Hit path
+        AbilitySystem._rollOverride = () => 15; // Hit
+        const resultHit = PowerSystem.usePower(wizardHero, card, monsterFar, magicMissileState);
+        AbilitySystem._rollOverride = null;
+        if (!resultHit.success) {
+          throw new Error(`Magic Missile (hit): expected success, got failure: ${resultHit.message}`);
+        }
+        const resMonsterHit = resultHit.newState.monsters.find(m => m.id === 'monster_far')!;
+        if (resMonsterHit.hp !== 3) {
+          throw new Error(`Magic Missile (hit): expected monster HP to be 3, got ${resMonsterHit.hp}`);
+        }
+        if (resMonsterHit.position.x !== 0 || resMonsterHit.position.z !== 2) {
+          throw new Error('Magic Missile (hit): monster position should not have changed');
+        }
+
+        // 2b. Miss path & pull
+        AbilitySystem._rollOverride = () => 1; // Miss
+        const resultMiss = PowerSystem.usePower(wizardHero, card, monsterFar, magicMissileState);
+        AbilitySystem._rollOverride = null;
+        if (!resultMiss.success) {
+          throw new Error(`Magic Missile (miss): expected success, got failure: ${resultMiss.message}`);
+        }
+        const resMonsterMiss = resultMiss.newState.monsters.find(m => m.id === 'monster_far')!;
+        if (resMonsterMiss.hp !== 4) {
+          throw new Error(`Magic Missile (miss): expected monster HP to be 4, got ${resMonsterMiss.hp}`);
+        }
+        if (resMonsterMiss.position.x !== 0 || resMonsterMiss.position.z !== 1) {
+          throw new Error(`Magic Missile (miss): expected monster to pull to tile (0,1), got (${resMonsterMiss.position.x}, ${resMonsterMiss.position.z})`);
+        }
+        console.log('  Magic Missile tests PASSED');
+      }
+
+      // --- TEST 3: Thunderwave (Attack on hero's tile, push to adjacent tile) ---
+      {
+        const card = dataLoader.getCardById('wizard_thunderwave')!;
+        const targetEntity = {
+          id: 'dummy_dest',
+          position: { x: 0, z: 1, sqX: 2, sqZ: 2 }
+        } as Entity;
+
+        AbilitySystem._rollOverride = () => 15; // Hit both
+        const result = PowerSystem.usePower(wizardHero, card, targetEntity, wizardGameState);
+        AbilitySystem._rollOverride = null;
+        if (!result.success) {
+          throw new Error(`Thunderwave: expected success, got failure: ${result.message}`);
+        }
+
+        const resMonsterA = result.newState.monsters.find(m => m.id === 'monster_a')!;
+        const resMonsterB = result.newState.monsters.find(m => m.id === 'monster_b')!;
+
+        if (resMonsterA.hp !== 3 || resMonsterB.hp !== 3) {
+          throw new Error(`Thunderwave: expected monsters to take damage, got HP ${resMonsterA.hp} and ${resMonsterB.hp}`);
+        }
+        if (resMonsterA.position.x !== 0 || resMonsterA.position.z !== 1) {
+          throw new Error(`Thunderwave: expected monster A to be pushed to (0,1), got (${resMonsterA.position.x}, ${resMonsterA.position.z})`);
+        }
+        if (resMonsterB.position.x !== 0 || resMonsterB.position.z !== 1) {
+          throw new Error(`Thunderwave: expected monster B to be pushed to (0,1), got (${resMonsterB.position.x}, ${resMonsterB.position.z})`);
+        }
+        console.log('  Thunderwave test PASSED');
+      }
+
+      // --- TEST 4: Scorching Burst (Attack all monsters on target tile, At-Will) ---
+      {
+        const card = dataLoader.getCardById('wizard_scorching_burst')!;
+        const monsterAOnTile01 = { ...monsterA, position: { x: 0, z: 1, sqX: 1, sqZ: 1 } };
+        const monsterBOnTile01 = { ...monsterB, position: { x: 0, z: 1, sqX: 2, sqZ: 2 } };
+        const state = {
+          ...wizardGameState,
+          monsters: [monsterAOnTile01, monsterBOnTile01]
+        };
+
+        AbilitySystem._rollOverride = () => 15; // Hit
+        const result = PowerSystem.usePower(wizardHero, card, monsterAOnTile01, state);
+        AbilitySystem._rollOverride = null;
+
+        if (!result.success) {
+          throw new Error(`Scorching Burst: expected success, got failure: ${result.message}`);
+        }
+        const resA = result.newState.monsters.find(m => m.id === 'monster_a')!;
+        const resB = result.newState.monsters.find(m => m.id === 'monster_b')!;
+        if (resA.hp !== 3 || resB.hp !== 3) {
+          throw new Error(`Scorching Burst: expected both monsters to take 1 damage, got hp ${resA.hp} and ${resB.hp}`);
+        }
+        const resWizard = result.newState.heroes.find(h => h.id === 'wizard_hero_test')!;
+        if (resWizard.flippedPowerIds?.includes('wizard_scorching_burst')) {
+          throw new Error('Scorching Burst: at-will power should not be flipped');
+        }
+        console.log('  Scorching Burst test PASSED');
+      }
+
+      // --- TEST 5: Fireball (Attack all monsters on target tile, Miss: 1 Damage, Daily) ---
+      {
+        const card = dataLoader.getCardById('wizard_fireball')!;
+        const monsterAOnTile01 = { ...monsterA, position: { x: 0, z: 1, sqX: 1, sqZ: 1 } };
+        const monsterBOnTile01 = { ...monsterB, position: { x: 0, z: 1, sqX: 2, sqZ: 2 } };
+        const state = {
+          ...wizardGameState,
+          monsters: [monsterAOnTile01, monsterBOnTile01]
+        };
+
+        // Hit path
+        AbilitySystem._rollOverride = () => 15; // Hit
+        const resultHit = PowerSystem.usePower(wizardHero, card, monsterAOnTile01, state);
+        AbilitySystem._rollOverride = null;
+
+        const resAHit = resultHit.newState.monsters.find(m => m.id === 'monster_a')!;
+        const resBHit = resultHit.newState.monsters.find(m => m.id === 'monster_b')!;
+        if (resAHit.hp !== 1 || resBHit.hp !== 1) {
+          throw new Error(`Fireball (hit): expected both monsters to take 3 damage, got hp ${resAHit.hp} and ${resBHit.hp}`);
+        }
+        const resWizardHit = resultHit.newState.heroes.find(h => h.id === 'wizard_hero_test')!;
+        if (!resWizardHit.flippedPowerIds?.includes('wizard_fireball')) {
+          throw new Error('Fireball: expected daily power to be flipped');
+        }
+
+        // Miss path
+        AbilitySystem._rollOverride = () => 1; // Miss
+        const resultMiss = PowerSystem.usePower(wizardHero, card, monsterAOnTile01, state);
+        AbilitySystem._rollOverride = null;
+
+        const resAMiss = resultMiss.newState.monsters.find(m => m.id === 'monster_a')!;
+        const resBMiss = resultMiss.newState.monsters.find(m => m.id === 'monster_b')!;
+        if (resAMiss.hp !== 3 || resBMiss.hp !== 3) {
+          throw new Error(`Fireball (miss): expected both monsters to take 1 damage, got hp ${resAMiss.hp} and ${resBMiss.hp}`);
+        }
+        console.log('  Fireball tests PASSED');
+      }
+
+      // --- TEST 6: Lightning Bolt (Attack up to 3 monsters within 1 tile, Miss: 1 Damage, Daily) ---
+      {
+        const card = dataLoader.getCardById('wizard_lightning_bolt')!;
+        const monsterAOnTile01 = { ...monsterA, position: { x: 0, z: 1, sqX: 1, sqZ: 1 } };
+        const monsterBOnTile00 = { ...monsterB, position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
+        const monsterCOnTile10: Monster = {
+          ...monsterA,
+          id: 'monster_c',
+          position: { x: 1, z: 0, sqX: 1, sqZ: 1 }
+        };
+        const state = {
+          ...wizardGameState,
+          monsters: [monsterAOnTile01, monsterBOnTile00, monsterCOnTile10]
+        };
+
+        // Hit path
+        AbilitySystem._rollOverride = () => 15; // Hit
+        const resultHit = PowerSystem.usePower(wizardHero, card, monsterAOnTile01, state);
+        AbilitySystem._rollOverride = null;
+
+        const resAHit = resultHit.newState.monsters.find(m => m.id === 'monster_a')!;
+        const resBHit = resultHit.newState.monsters.find(m => m.id === 'monster_b')!;
+        const resCHit = resultHit.newState.monsters.find(m => m.id === 'monster_c')!;
+
+        if (resAHit.hp !== 2 || resBHit.hp !== 2 || resCHit.hp !== 2) {
+          throw new Error(`Lightning Bolt (hit): expected 3 monsters to take 2 damage, got hp ${resAHit.hp}, ${resBHit.hp}, ${resCHit.hp}`);
+        }
+        const resWizardHit = resultHit.newState.heroes.find(h => h.id === 'wizard_hero_test')!;
+        if (!resWizardHit.flippedPowerIds?.includes('wizard_lightning_bolt')) {
+          throw new Error('Lightning Bolt: expected daily power to be flipped');
+        }
+
+        // Miss path
+        AbilitySystem._rollOverride = () => 1; // Miss
+        const resultMiss = PowerSystem.usePower(wizardHero, card, monsterAOnTile01, state);
+        AbilitySystem._rollOverride = null;
+
+        const resAMiss = resultMiss.newState.monsters.find(m => m.id === 'monster_a')!;
+        const resBMiss = resultMiss.newState.monsters.find(m => m.id === 'monster_b')!;
+        const resCMiss = resultMiss.newState.monsters.find(m => m.id === 'monster_c')!;
+
+        if (resAMiss.hp !== 3 || resBMiss.hp !== 3 || resCMiss.hp !== 3) {
+          throw new Error(`Lightning Bolt (miss): expected all monsters to take 1 damage, got hp ${resAMiss.hp}, ${resBMiss.hp}, ${resCMiss.hp}`);
+        }
+        console.log('  Lightning Bolt tests PASSED');
+      }
+
+      // --- TEST 7: Freezing Cloud (Place token, end-of-turn damage & decrement) ---
+      {
+        const card = dataLoader.getCardById('wizard_freezing_cloud')!;
+        const result = PowerSystem.usePower(wizardHero, card, null, wizardGameState);
+        if (!result.success) {
+          throw new Error(`Freezing Cloud: expected success, got failure: ${result.message}`);
+        }
+
+        const fcToken = result.newState.tokens?.find(t => t.id === 'token_freezing_cloud')!;
+        if (!fcToken) {
+          throw new Error('Freezing Cloud: expected token_freezing_cloud to be placed');
+        }
+        if (fcToken.metadata?.cloudTokens !== 3) {
+          throw new Error(`Freezing Cloud: expected 3 cloud tokens, got ${fcToken.metadata?.cloudTokens}`);
+        }
+
+        // Now test the endTurn logic of coreSlice
+        let finalState = {
+          ...result.newState,
+          monsters: [
+            { ...monsterA, position: { x: 0, z: 0, sqX: 1, sqZ: 1 }, hp: 4 } // on cloud tile (0,0)
+          ]
+        };
+
+        // Temporarily override game store state
+        const originalState = useGameStore.getState().gameState;
+        useGameStore.setState({ gameState: finalState });
+
+        useGameStore.getState().endTurn();
+
+        const postTurnState = useGameStore.getState().gameState!;
+        const resMonster = postTurnState.monsters.find(m => m.id === 'monster_a')!;
+        const resToken = postTurnState.tokens?.find(t => t.id === 'token_freezing_cloud')!;
+
+        if (resMonster.hp !== 3) {
+          throw new Error(`Freezing Cloud (endTurn): expected monster to take 1 damage, got hp ${resMonster.hp}`);
+        }
+        if (resToken.metadata?.cloudTokens !== 2) {
+          throw new Error(`Freezing Cloud (endTurn): expected cloudTokens to be 2, got ${resToken.metadata?.cloudTokens}`);
+        }
+
+        // Fast-forward token count to 1 and trigger again to verify dispersal
+        useGameStore.setState({
+          gameState: {
+            ...postTurnState,
+            tokens: postTurnState.tokens?.map(t => t.id === 'token_freezing_cloud' ? { ...t, metadata: { cloudTokens: 1 } } : t) ?? []
+          }
+        });
+
+        useGameStore.getState().endTurn();
+
+        const finalCloudState = useGameStore.getState().gameState!;
+        if (finalCloudState.tokens?.some(t => t.id === 'token_freezing_cloud')) {
+          throw new Error('Freezing Cloud: expected token to be removed after last token spent');
+        }
+
+        // Restore store state
+        useGameStore.setState({ gameState: originalState });
+
+        console.log('  Freezing Cloud tests PASSED');
+      }
+
+      // --- TEST 8: Illusionary Crowd (Spawn dummy hero, move monsters, cleanup on 0 HP) ---
+      {
+        const card = dataLoader.getCardById('wizard_illusionary_crowd')!;
+        const result = PowerSystem.usePower(wizardHero, card, null, wizardGameState);
+        if (!result.success) {
+          throw new Error(`Illusionary Crowd: expected success, got failure: ${result.message}`);
+        }
+
+        const crowdToken = result.newState.tokens?.find(t => t.id === 'token_illusionary_crowd')!;
+        const crowdHero = result.newState.heroes.find(h => h.id === 'ally_illusionary_crowd')!;
+
+        if (!crowdToken) {
+          throw new Error('Illusionary Crowd: expected token to be placed');
+        }
+        if (!crowdHero) {
+          throw new Error('Illusionary Crowd: expected ally dummy hero to be spawned');
+        }
+
+        // Verify monsters moved to the crowd tile (0,0) or adjacent tiles (0,1), (0,2), (1,0)
+        const resMonsterA = result.newState.monsters.find(m => m.id === 'monster_a')!;
+        const resMonsterB = result.newState.monsters.find(m => m.id === 'monster_b')!;
+
+        const validCoords = [{ x: 0, z: 0 }, { x: 0, z: 1 }, { x: 0, z: 2 }, { x: 1, z: 0 }];
+        const isAValid = validCoords.some(c => c.x === resMonsterA.position.x && c.z === resMonsterA.position.z);
+        const isBValid = validCoords.some(c => c.x === resMonsterB.position.x && c.z === resMonsterB.position.z);
+
+        if (!isAValid || !isBValid) {
+          throw new Error('Illusionary Crowd: expected monsters to be pulled/moved to crowd tile or adjacent');
+        }
+
+        // Cleanup on 0 HP verification via executeVillainPhase
+        const crowdHeroDead = { ...crowdHero, hp: 0 };
+        const activeMonster = {
+          ...monsterA,
+          ownedByHeroId: 'wizard_hero_test',
+          position: { x: 0, z: 0, sqX: 2, sqZ: 3 }
+        };
+
+        const stateWithDeadCrowd: GameState = {
+          ...wizardGameState,
+          heroes: [...wizardGameState.heroes, crowdHeroDead],
+          tokens: [crowdToken],
+          monsters: [activeMonster]
+        };
+
+        const nextState = executeVillainPhase(stateWithDeadCrowd);
+        if (nextState.heroes.some(h => h.id === 'ally_illusionary_crowd')) {
+          throw new Error('Illusionary Crowd: expected ally_illusionary_crowd to be removed from heroes list');
+        }
+        if (nextState.tokens?.some(t => t.id === 'token_illusionary_crowd')) {
+          throw new Error('Illusionary Crowd: expected token_illusionary_crowd to be removed from tokens list');
+        }
+
+        console.log('  Illusionary Crowd tests PASSED');
+      }
+
+      // --- TEST 9: Dispel Magic (Cancel encounter card) ---
+      {
+        const wizardWithDispel = {
+          ...wizardHero,
+          abilities: ['wizard_dispel_magic'],
+          flippedPowerIds: []
+        };
+        const stateWithEncounter: GameState = {
+          ...wizardGameState,
+          heroes: [wizardWithDispel, companionHero],
+          pendingEncounter: true,
+          cardResolution: {
+            phase: 'revealing' as const,
+            cardId: 'enc_cackling_skull',
+            cardType: 'encounter' as const,
+            pendingEffects: [],
+            resolvedEffects: [],
+            targetEntityId: null,
+            result: null
+          }
+        };
+
+        let finalState = stateWithEncounter;
+        const cardSlice = createCardSlice(
+          (update: any) => {
+            const partial = typeof update === 'function' ? update({ gameState: finalState }) : update;
+            if (partial.gameState) {
+              finalState = partial.gameState;
+            }
+          },
+          () => ({ gameState: finalState }) as any,
+          {} as any
+        );
+
+        cardSlice.cancelEncounterWithDispelMagic('enc_cackling_skull');
+
+        const resWizard = finalState.heroes.find(h => h.id === 'wizard_hero_test')!;
+        if (!resWizard.flippedPowerIds?.includes('wizard_dispel_magic')) {
+          throw new Error('Dispel Magic: expected wizard_dispel_magic to be flipped');
+        }
+        if (finalState.cardResolution?.phase !== 'idle') {
+          throw new Error(`Dispel Magic: expected cardResolution phase to be idle, got ${finalState.cardResolution?.phase}`);
+        }
+        if (finalState.pendingEncounter) {
+          throw new Error('Dispel Magic: expected pendingEncounter to be false');
+        }
+        if (!finalState.discardPiles['encounter']?.includes('enc_cackling_skull')) {
+          throw new Error('Dispel Magic: expected enc_cackling_skull to be in encounter discard pile');
+        }
+        console.log('  Dispel Magic test PASSED');
       }
     }
 

@@ -9,6 +9,7 @@ export interface CardSlice {
   playCard: (cardId: string, targetId: string) => void;
   drawEncounterCard: () => void;
   cancelEncounterCard: (cardId: string) => void;
+  cancelEncounterWithDispelMagic: (cardId: string) => void;
   drawTreasureCard: () => void;
   useTreasureCard: (cardId: string, targetId?: string) => void;
   assignItem: (cardId: string, heroId: string) => void;

@@ -364,6 +364,15 @@ export function executeVillainPhase(state: GameState): GameState {
           )
         };
 
+        const hasDeadCrowd = newState.heroes.some(h => h.id === 'ally_illusionary_crowd' && h.hp <= 0);
+        if (hasDeadCrowd) {
+          newState = {
+            ...newState,
+            heroes: newState.heroes.filter(h => h.id !== 'ally_illusionary_crowd'),
+            tokens: newState.tokens?.filter(t => t.id !== 'token_illusionary_crowd') ?? []
+          };
+        }
+
         // Handle undying ability for defeated monsters
         const defeatedMonster = newState.monsters.find(m => m.id === monster!.id && m.isDefeated);
         if (defeatedMonster) {

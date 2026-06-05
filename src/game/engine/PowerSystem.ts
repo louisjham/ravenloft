@@ -1,4 +1,4 @@
-import { Card, Entity, Hero, Monster, PowerType, GameState, isMonsterEntity, isHeroEntity } from '../types';
+import { Card, Entity, Hero, Monster, PowerType, GameState, isMonsterEntity, isHeroEntity, Tile, GameToken } from '../types';
 import { CombatSystem } from './CombatSystem';
 import { ConditionSystem } from './ConditionSystem';
 import { getTileGraphDistance } from './MonsterAI';
@@ -231,6 +231,24 @@ export class PowerSystem {
         if (powerCard.id === 'rogue_dagger_barrage') {
             return this.executeDaggerBarrageAsync(hero, powerCard, target, gameState);
         }
+        if (powerCard.id === 'wizard_scorching_burst') {
+            return this.executeScorchingBurstAsync(hero, powerCard, target, gameState);
+        }
+        if (powerCard.id === 'wizard_fireball') {
+            return this.executeFireballAsync(hero, powerCard, target, gameState);
+        }
+        if (powerCard.id === 'wizard_lightning_bolt') {
+            return this.executeLightningBoltAsync(hero, powerCard, target, gameState);
+        }
+        if (powerCard.id === 'wizard_thunderwave') {
+            return this.executeThunderwaveAsync(hero, powerCard, target, gameState);
+        }
+        if (powerCard.id === 'wizard_freezing_cloud') {
+            return this.executeFreezingCloudAsync(hero, powerCard, target, gameState);
+        }
+        if (powerCard.id === 'wizard_illusionary_crowd') {
+            return this.executeIllusionaryCrowdAsync(hero, powerCard, target, gameState);
+        }
 
         let currentHero = { ...hero };
         let currentGameState = { ...gameState };
@@ -291,6 +309,24 @@ export class PowerSystem {
         }
         if (powerCard.id === 'rogue_dagger_barrage') {
             return this.executeDaggerBarrage(hero, powerCard, target, gameState);
+        }
+        if (powerCard.id === 'wizard_scorching_burst') {
+            return this.executeScorchingBurst(hero, powerCard, target, gameState);
+        }
+        if (powerCard.id === 'wizard_fireball') {
+            return this.executeFireball(hero, powerCard, target, gameState);
+        }
+        if (powerCard.id === 'wizard_lightning_bolt') {
+            return this.executeLightningBolt(hero, powerCard, target, gameState);
+        }
+        if (powerCard.id === 'wizard_thunderwave') {
+            return this.executeThunderwave(hero, powerCard, target, gameState);
+        }
+        if (powerCard.id === 'wizard_freezing_cloud') {
+            return this.executeFreezingCloud(hero, powerCard, target, gameState);
+        }
+        if (powerCard.id === 'wizard_illusionary_crowd') {
+            return this.executeIllusionaryCrowd(hero, powerCard, target, gameState);
         }
 
         let currentHero = { ...hero };
@@ -1620,12 +1656,24 @@ export class PowerSystem {
                     };
                 }
 
+                const isDeftStrike = powerCard?.id === 'rogue_deft_strike';
+                if (isDeftStrike) {
+                    return {
+                        result: { type: 'deft_strike_move_done', newPosition: currentHero.position },
+                        newState,
+                        hero: currentHero,
+                        target: currentTarget
+                    };
+                }
+
                 const isGreatLeap = powerCard?.id === 'rogue_great_leap';
-                if (isGreatLeap) {
+                const isGenericMoveSelf = effect.target === 'self' && effect.type === 'move';
+                if (isGreatLeap || isGenericMoveSelf) {
+                    const rangeVal = effect.value || 0;
                     const heroTile = newState.tiles.find(t => t.x === currentHero.position.x && t.z === currentHero.position.z);
                     const validTiles = newState.tiles.filter(t => {
                         if (!heroTile) return false;
-                        return getTileGraphDistance(heroTile, t, newState.tiles) <= 2;
+                        return getTileGraphDistance(heroTile, t, newState.tiles) <= rangeVal;
                     }).sort((a, b) => {
                         if (!heroTile) return 0;
                         const distA = getTileGraphDistance(heroTile, a, newState.tiles);
@@ -1666,7 +1714,7 @@ export class PowerSystem {
                     }
 
                     return {
-                        result: { type: 'great_leap_resolved', newPosition: currentHero.position },
+                        result: { type: isGreatLeap ? 'great_leap_resolved' : 'move_applied', newPosition: currentHero.position },
                         newState,
                         hero: currentHero,
                         target: currentTarget
@@ -1712,7 +1760,8 @@ export class PowerSystem {
 
                 const isHuntersShot = powerCard?.id === 'ranger_hunters_shot';
                 const isSplitTheTree = powerCard?.id === 'ranger_split_the_tree';
-                if ((isHuntersShot || isSplitTheTree) && currentTarget && !isHeroEntity(currentTarget)) {
+                const isMagicMissile = powerCard?.id === 'wizard_magic_missile';
+                if ((isHuntersShot || isSplitTheTree || isMagicMissile) && currentTarget && !isHeroEntity(currentTarget)) {
                     const monster = currentTarget as Monster;
                     if (monster.hp > 0 && !monster.isDefeated) {
                         const heroTile = newState.tiles.find(t => t.x === currentHero.position.x && t.z === currentHero.position.z);
@@ -1882,6 +1931,631 @@ export class PowerSystem {
             default:
                 return { result: { type: 'unknown_effect', effectType: effect.type }, newState, hero: currentHero, target: currentTarget };
         }
+    }
+
+    private static executeScorchingBurst(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): { success: boolean; message: string; effects: any[]; newState: GameState } {
+        if (!target) {
+            return { success: false, message: 'Scorching Burst requires a target to select the tile', effects: [], newState: gameState };
+        }
+        let newState = { ...gameState };
+        const targetTileX = target.position.x;
+        const targetTileZ = target.position.z;
+        const monstersOnTile = newState.monsters.filter(m =>
+            !m.isDefeated && m.hp > 0 && m.position.x === targetTileX && m.position.z === targetTileZ
+        );
+        const effects: any[] = [];
+        const msgParts: string[] = [];
+        for (const t of monstersOnTile) {
+            const resolved = CombatSystem.resolveAttack(hero, t, powerCard.attackBonus || 7, powerCard.damage || 1, 0, undefined, newState);
+            let updatedMonster = t;
+            if (resolved.hit) {
+                updatedMonster = CombatSystem.applyDamage(t, resolved.damage, newState);
+                newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
+            }
+            effects.push({
+                type: 'attack_resolved',
+                targetId: t.id,
+                hit: resolved.hit,
+                roll: resolved.roll,
+                damage: resolved.hit ? resolved.damage : 0
+            });
+            msgParts.push(`${t.name} (${resolved.hit ? 'HIT' : 'MISS'})`);
+        }
+        return {
+            success: true,
+            message: `${hero.name} uses Scorching Burst on tile (${targetTileX}, ${targetTileZ}): ${msgParts.length > 0 ? msgParts.join(', ') : 'No monsters on tile'}`,
+            effects,
+            newState
+        };
+    }
+
+    private static async executeScorchingBurstAsync(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): Promise<{ success: boolean; message: string; effects: any[]; newState: GameState }> {
+        if (!target) {
+            return { success: false, message: 'Scorching Burst requires a target to select the tile', effects: [], newState: gameState };
+        }
+        let newState = { ...gameState };
+        const targetTileX = target.position.x;
+        const targetTileZ = target.position.z;
+        const monstersOnTile = newState.monsters.filter(m =>
+            !m.isDefeated && m.hp > 0 && m.position.x === targetTileX && m.position.z === targetTileZ
+        );
+        const effects: any[] = [];
+        const msgParts: string[] = [];
+        for (const t of monstersOnTile) {
+            const resolved = await CombatSystem.resolveAttackAsync(hero, t, powerCard.attackBonus || 7, powerCard.damage || 1, 0, newState);
+            let updatedMonster = t;
+            if (resolved.hit) {
+                updatedMonster = CombatSystem.applyDamage(t, resolved.damage, newState);
+                newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
+            }
+            effects.push({
+                type: 'attack_resolved',
+                targetId: t.id,
+                hit: resolved.hit,
+                roll: resolved.roll,
+                damage: resolved.hit ? resolved.damage : 0
+            });
+            msgParts.push(`${t.name} (${resolved.hit ? 'HIT' : 'MISS'})`);
+        }
+        return {
+            success: true,
+            message: `${hero.name} uses Scorching Burst on tile (${targetTileX}, ${targetTileZ}): ${msgParts.length > 0 ? msgParts.join(', ') : 'No monsters on tile'}`,
+            effects,
+            newState
+        };
+    }
+
+    private static executeFireball(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): { success: boolean; message: string; effects: any[]; newState: GameState } {
+        if (!target) {
+            return { success: false, message: 'Fireball requires a target to select the tile', effects: [], newState: gameState };
+        }
+        let newState = { ...gameState };
+        let currentHero = { ...hero };
+        const targetTileX = target.position.x;
+        const targetTileZ = target.position.z;
+        const monstersOnTile = newState.monsters.filter(m =>
+            !m.isDefeated && m.hp > 0 && m.position.x === targetTileX && m.position.z === targetTileZ
+        );
+        const effects: any[] = [];
+        const msgParts: string[] = [];
+
+        // Flip daily card
+        const currentFlipped = currentHero.flippedPowerIds ?? [];
+        if (!currentFlipped.includes(powerCard.id)) {
+            currentHero = {
+                ...currentHero,
+                flippedPowerIds: [...currentFlipped, powerCard.id]
+            };
+            newState = this.updateEntityInState(newState, currentHero);
+            effects.push({ type: 'power_flipped', powerId: powerCard.id, powerType: powerCard.powerType });
+        }
+
+        for (const t of monstersOnTile) {
+            const resolved = CombatSystem.resolveAttack(currentHero, t, powerCard.attackBonus || 7, powerCard.damage || 3, 0, undefined, newState);
+            const finalDamage = resolved.hit ? resolved.damage : 1; // Miss: 1 Damage
+            let updatedMonster = CombatSystem.applyDamage(t, finalDamage, newState);
+            newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
+            effects.push({
+                type: 'attack_resolved',
+                targetId: t.id,
+                hit: resolved.hit,
+                roll: resolved.roll,
+                damage: finalDamage
+            });
+            msgParts.push(`${t.name} (${resolved.hit ? 'HIT' : 'MISS'}, Damage: ${finalDamage})`);
+        }
+        return {
+            success: true,
+            message: `${currentHero.name} uses Fireball on tile (${targetTileX}, ${targetTileZ}): ${msgParts.length > 0 ? msgParts.join(', ') : 'No monsters on tile'}`,
+            effects,
+            newState
+        };
+    }
+
+    private static async executeFireballAsync(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): Promise<{ success: boolean; message: string; effects: any[]; newState: GameState }> {
+        if (!target) {
+            return { success: false, message: 'Fireball requires a target to select the tile', effects: [], newState: gameState };
+        }
+        let newState = { ...gameState };
+        let currentHero = { ...hero };
+        const targetTileX = target.position.x;
+        const targetTileZ = target.position.z;
+        const monstersOnTile = newState.monsters.filter(m =>
+            !m.isDefeated && m.hp > 0 && m.position.x === targetTileX && m.position.z === targetTileZ
+        );
+        const effects: any[] = [];
+        const msgParts: string[] = [];
+
+        // Flip daily card
+        const currentFlipped = currentHero.flippedPowerIds ?? [];
+        if (!currentFlipped.includes(powerCard.id)) {
+            currentHero = {
+                ...currentHero,
+                flippedPowerIds: [...currentFlipped, powerCard.id]
+            };
+            newState = this.updateEntityInState(newState, currentHero);
+            effects.push({ type: 'power_flipped', powerId: powerCard.id, powerType: powerCard.powerType });
+        }
+
+        for (const t of monstersOnTile) {
+            const resolved = await CombatSystem.resolveAttackAsync(currentHero, t, powerCard.attackBonus || 7, powerCard.damage || 3, 0, newState);
+            const finalDamage = resolved.hit ? resolved.damage : 1; // Miss: 1 Damage
+            let updatedMonster = CombatSystem.applyDamage(t, finalDamage, newState);
+            newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
+            effects.push({
+                type: 'attack_resolved',
+                targetId: t.id,
+                hit: resolved.hit,
+                roll: resolved.roll,
+                damage: finalDamage
+            });
+            msgParts.push(`${t.name} (${resolved.hit ? 'HIT' : 'MISS'}, Damage: ${finalDamage})`);
+        }
+        return {
+            success: true,
+            message: `${currentHero.name} uses Fireball on tile (${targetTileX}, ${targetTileZ}): ${msgParts.length > 0 ? msgParts.join(', ') : 'No monsters on tile'}`,
+            effects,
+            newState
+        };
+    }
+
+    private static executeLightningBolt(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): { success: boolean; message: string; effects: any[]; newState: GameState } {
+        if (!target) {
+            return { success: false, message: 'Lightning Bolt requires a target', effects: [], newState: gameState };
+        }
+        let newState = { ...gameState };
+        let currentHero = { ...hero };
+        const heroTile = newState.tiles.find(t => t.x === currentHero.position.x && t.z === currentHero.position.z);
+        const otherMonsters = newState.monsters.filter(m => {
+            if (m.id === target.id || m.isDefeated || m.hp <= 0) return false;
+            const mTile = newState.tiles.find(t => t.x === m.position.x && t.z === m.position.z);
+            if (!heroTile || !mTile) return false;
+            return getTileGraphDistance(heroTile, mTile, newState.tiles) <= 1;
+        }).slice(0, 2);
+        const targets = [target, ...otherMonsters];
+        const effects: any[] = [];
+        const msgParts: string[] = [];
+
+        // Flip daily card
+        const currentFlipped = currentHero.flippedPowerIds ?? [];
+        if (!currentFlipped.includes(powerCard.id)) {
+            currentHero = {
+                ...currentHero,
+                flippedPowerIds: [...currentFlipped, powerCard.id]
+            };
+            newState = this.updateEntityInState(newState, currentHero);
+            effects.push({ type: 'power_flipped', powerId: powerCard.id, powerType: powerCard.powerType });
+        }
+
+        for (const t of targets) {
+            const resolved = CombatSystem.resolveAttack(currentHero, t, powerCard.attackBonus || 7, powerCard.damage || 2, 0, undefined, newState);
+            const finalDamage = resolved.hit ? resolved.damage : 1; // Miss: 1 Damage
+            let updatedMonster = CombatSystem.applyDamage(t, finalDamage, newState);
+            newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
+            effects.push({
+                type: 'attack_resolved',
+                targetId: t.id,
+                hit: resolved.hit,
+                roll: resolved.roll,
+                damage: finalDamage
+            });
+            msgParts.push(`${t.name} (${resolved.hit ? 'HIT' : 'MISS'}, Damage: ${finalDamage})`);
+        }
+        return {
+            success: true,
+            message: `${currentHero.name} uses Lightning Bolt: ${msgParts.join(', ')}`,
+            effects,
+            newState
+        };
+    }
+
+    private static async executeLightningBoltAsync(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): Promise<{ success: boolean; message: string; effects: any[]; newState: GameState }> {
+        if (!target) {
+            return { success: false, message: 'Lightning Bolt requires a target', effects: [], newState: gameState };
+        }
+        let newState = { ...gameState };
+        let currentHero = { ...hero };
+        const heroTile = newState.tiles.find(t => t.x === currentHero.position.x && t.z === currentHero.position.z);
+        const otherMonsters = newState.monsters.filter(m => {
+            if (m.id === target.id || m.isDefeated || m.hp <= 0) return false;
+            const mTile = newState.tiles.find(t => t.x === m.position.x && t.z === m.position.z);
+            if (!heroTile || !mTile) return false;
+            return getTileGraphDistance(heroTile, mTile, newState.tiles) <= 1;
+        }).slice(0, 2);
+        const targets = [target, ...otherMonsters];
+        const effects: any[] = [];
+        const msgParts: string[] = [];
+
+        // Flip daily card
+        const currentFlipped = currentHero.flippedPowerIds ?? [];
+        if (!currentFlipped.includes(powerCard.id)) {
+            currentHero = {
+                ...currentHero,
+                flippedPowerIds: [...currentFlipped, powerCard.id]
+            };
+            newState = this.updateEntityInState(newState, currentHero);
+            effects.push({ type: 'power_flipped', powerId: powerCard.id, powerType: powerCard.powerType });
+        }
+
+        for (const t of targets) {
+            const resolved = await CombatSystem.resolveAttackAsync(currentHero, t, powerCard.attackBonus || 7, powerCard.damage || 2, 0, newState);
+            const finalDamage = resolved.hit ? resolved.damage : 1; // Miss: 1 Damage
+            let updatedMonster = CombatSystem.applyDamage(t, finalDamage, newState);
+            newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
+            effects.push({
+                type: 'attack_resolved',
+                targetId: t.id,
+                hit: resolved.hit,
+                roll: resolved.roll,
+                damage: finalDamage
+            });
+            msgParts.push(`${t.name} (${resolved.hit ? 'HIT' : 'MISS'}, Damage: ${finalDamage})`);
+        }
+        return {
+            success: true,
+            message: `${currentHero.name} uses Lightning Bolt: ${msgParts.join(', ')}`,
+            effects,
+            newState
+        };
+    }
+
+    private static executeThunderwave(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): { success: boolean; message: string; effects: any[]; newState: GameState } {
+        let newState = { ...gameState };
+        const heroTile = newState.tiles.find(t => t.x === hero.position.x && t.z === hero.position.z);
+        if (!heroTile) {
+            return { success: false, message: 'Hero tile not found', effects: [], newState: gameState };
+        }
+        const monstersOnTile = newState.monsters.filter(m =>
+            !m.isDefeated && m.hp > 0 && m.position.x === hero.position.x && m.position.z === hero.position.z
+        );
+
+        let destTile = newState.tiles.find(t => {
+            if (t.id === heroTile.id) return false;
+            return getTileGraphDistance(heroTile, t, newState.tiles) === 1;
+        });
+        if (target && (target.position.x !== hero.position.x || target.position.z !== hero.position.z)) {
+            const targetTile = newState.tiles.find(t => t.x === target.position.x && t.z === target.position.z);
+            if (targetTile && getTileGraphDistance(heroTile, targetTile, newState.tiles) === 1) {
+                destTile = targetTile;
+            }
+        }
+
+        const effects: any[] = [];
+        const msgParts: string[] = [];
+
+        for (const t of monstersOnTile) {
+            const resolved = CombatSystem.resolveAttack(hero, t, powerCard.attackBonus || 7, powerCard.damage || 1, 0, undefined, newState);
+            let updatedMonster = t;
+            if (resolved.hit) {
+                updatedMonster = CombatSystem.applyDamage(t, resolved.damage, newState);
+                newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
+            }
+            effects.push({
+                type: 'attack_resolved',
+                targetId: t.id,
+                hit: resolved.hit,
+                roll: resolved.roll,
+                damage: resolved.hit ? resolved.damage : 0
+            });
+            msgParts.push(`${t.name} (${resolved.hit ? 'HIT' : 'MISS'})`);
+        }
+
+        if (destTile) {
+            for (const m of monstersOnTile) {
+                const currentM = newState.monsters.find(mon => mon.id === m.id);
+                if (!currentM || currentM.isDefeated || currentM.hp <= 0) continue;
+
+                let foundPos = null;
+                for (let sqX = 0; sqX < 4; sqX++) {
+                    for (let sqZ = 0; sqZ < 4; sqZ++) {
+                        const occupied = 
+                            newState.heroes.some(h => h.position.x === destTile!.x && h.position.z === destTile!.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
+                            newState.monsters.some(mon => !mon.isDefeated && mon.hp > 0 && mon.position.x === destTile!.x && mon.position.z === destTile!.z && mon.position.sqX === sqX && mon.position.sqZ === sqZ);
+                        if (!occupied) {
+                            foundPos = { x: destTile!.x, z: destTile!.z, sqX, sqZ };
+                            break;
+                        }
+                    }
+                    if (foundPos) break;
+                }
+                if (foundPos) {
+                    const updatedMonster = { ...currentM, position: foundPos };
+                    newState = this.updateEntityInState(newState, updatedMonster);
+                    effects.push({ type: 'monster_moved', targetId: m.id, newPosition: foundPos });
+                }
+            }
+        }
+
+        const destTileCoords = destTile ? `to tile (${destTile.x}, ${destTile.z})` : '';
+        return {
+            success: true,
+            message: `${hero.name} uses Thunderwave and pushes monsters ${destTileCoords}: ${msgParts.length > 0 ? msgParts.join(', ') : 'No monsters affected'}`,
+            effects,
+            newState
+        };
+    }
+
+    private static async executeThunderwaveAsync(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): Promise<{ success: boolean; message: string; effects: any[]; newState: GameState }> {
+        let newState = { ...gameState };
+        const heroTile = newState.tiles.find(t => t.x === hero.position.x && t.z === hero.position.z);
+        if (!heroTile) {
+            return { success: false, message: 'Hero tile not found', effects: [], newState: gameState };
+        }
+        const monstersOnTile = newState.monsters.filter(m =>
+            !m.isDefeated && m.hp > 0 && m.position.x === hero.position.x && m.position.z === hero.position.z
+        );
+
+        let destTile = newState.tiles.find(t => {
+            if (t.id === heroTile.id) return false;
+            return getTileGraphDistance(heroTile, t, newState.tiles) === 1;
+        });
+        if (target && (target.position.x !== hero.position.x || target.position.z !== hero.position.z)) {
+            const targetTile = newState.tiles.find(t => t.x === target.position.x && t.z === target.position.z);
+            if (targetTile && getTileGraphDistance(heroTile, targetTile, newState.tiles) === 1) {
+                destTile = targetTile;
+            }
+        }
+
+        const effects: any[] = [];
+        const msgParts: string[] = [];
+
+        for (const t of monstersOnTile) {
+            const resolved = await CombatSystem.resolveAttackAsync(hero, t, powerCard.attackBonus || 7, powerCard.damage || 1, 0, newState);
+            let updatedMonster = t;
+            if (resolved.hit) {
+                updatedMonster = CombatSystem.applyDamage(t, resolved.damage, newState);
+                newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
+            }
+            effects.push({
+                type: 'attack_resolved',
+                targetId: t.id,
+                hit: resolved.hit,
+                roll: resolved.roll,
+                damage: resolved.hit ? resolved.damage : 0
+            });
+            msgParts.push(`${t.name} (${resolved.hit ? 'HIT' : 'MISS'})`);
+        }
+
+        if (destTile) {
+            for (const m of monstersOnTile) {
+                const currentM = newState.monsters.find(mon => mon.id === m.id);
+                if (!currentM || currentM.isDefeated || currentM.hp <= 0) continue;
+
+                let foundPos = null;
+                for (let sqX = 0; sqX < 4; sqX++) {
+                    for (let sqZ = 0; sqZ < 4; sqZ++) {
+                        const occupied = 
+                            newState.heroes.some(h => h.position.x === destTile!.x && h.position.z === destTile!.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
+                            newState.monsters.some(mon => !mon.isDefeated && mon.hp > 0 && mon.position.x === destTile!.x && mon.position.z === destTile!.z && mon.position.sqX === sqX && mon.position.sqZ === sqZ);
+                        if (!occupied) {
+                            foundPos = { x: destTile!.x, z: destTile!.z, sqX, sqZ };
+                            break;
+                        }
+                    }
+                    if (foundPos) break;
+                }
+                if (foundPos) {
+                    const updatedMonster = { ...currentM, position: foundPos };
+                    newState = this.updateEntityInState(newState, updatedMonster);
+                    effects.push({ type: 'monster_moved', targetId: m.id, newPosition: foundPos });
+                }
+            }
+        }
+
+        const destTileCoords = destTile ? `to tile (${destTile.x}, ${destTile.z})` : '';
+        return {
+            success: true,
+            message: `${hero.name} uses Thunderwave and pushes monsters ${destTileCoords}: ${msgParts.length > 0 ? msgParts.join(', ') : 'No monsters affected'}`,
+            effects,
+            newState
+        };
+    }
+
+    private static executeFreezingCloud(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): { success: boolean; message: string; effects: any[]; newState: GameState } {
+        let newState = { ...gameState };
+        let currentHero = { ...hero };
+        const targetTileX = target ? target.position.x : hero.position.x;
+        const targetTileZ = target ? target.position.z : hero.position.z;
+        const tile = newState.tiles.find(t => t.x === targetTileX && t.z === targetTileZ);
+        const effects: any[] = [];
+
+        // Flip daily card
+        const currentFlipped = currentHero.flippedPowerIds ?? [];
+        if (!currentFlipped.includes(powerCard.id)) {
+            currentHero = {
+                ...currentHero,
+                flippedPowerIds: [...currentFlipped, powerCard.id]
+            };
+            newState = this.updateEntityInState(newState, currentHero);
+            effects.push({ type: 'power_flipped', powerId: powerCard.id, powerType: powerCard.powerType });
+        }
+
+        if (tile) {
+            const newToken = {
+                id: 'token_freezing_cloud',
+                type: 'encounter' as const,
+                name: 'Freezing Cloud',
+                tileId: tile.id,
+                position: { x: tile.x, z: tile.z, sqX: 2, sqZ: 2 },
+                isRevealed: true,
+                isSearched: false,
+                imageUrl: '/assets/tokens/Token_Encounter_FreezingCloud.png',
+                metadata: { cloudTokens: 3 }
+            };
+            newState.tokens = [...(newState.tokens || []).filter(t => t.id !== 'token_freezing_cloud'), newToken];
+            effects.push({ type: 'token_placed', tokenId: newToken.id, tileId: tile.id });
+        }
+
+        return {
+            success: true,
+            message: `${currentHero.name} places Freezing Cloud marker on tile (${targetTileX}, ${targetTileZ})`,
+            effects,
+            newState
+        };
+    }
+
+    private static async executeFreezingCloudAsync(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): Promise<{ success: boolean; message: string; effects: any[]; newState: GameState }> {
+        return this.executeFreezingCloud(hero, powerCard, target, gameState);
+    }
+
+    private static executeIllusionaryCrowd(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): { success: boolean; message: string; effects: any[]; newState: GameState } {
+        let newState = { ...gameState };
+        let currentHero = { ...hero };
+        const targetTileX = target ? target.position.x : hero.position.x;
+        const targetTileZ = target ? target.position.z : hero.position.z;
+        const tile = newState.tiles.find(t => t.x === targetTileX && t.z === targetTileZ);
+        const effects: any[] = [];
+
+        // Flip utility card
+        const currentFlipped = currentHero.flippedPowerIds ?? [];
+        if (!currentFlipped.includes(powerCard.id)) {
+            currentHero = {
+                ...currentHero,
+                flippedPowerIds: [...currentFlipped, powerCard.id]
+            };
+            newState = this.updateEntityInState(newState, currentHero);
+            effects.push({ type: 'power_flipped', powerId: powerCard.id, powerType: powerCard.powerType });
+        }
+
+        if (tile) {
+            const newToken = {
+                id: 'token_illusionary_crowd',
+                type: 'encounter' as const,
+                name: 'Illusionary Crowd',
+                tileId: tile.id,
+                position: { x: tile.x, z: tile.z, sqX: 2, sqZ: 2 },
+                isRevealed: true,
+                isSearched: false,
+                imageUrl: '/assets/tokens/Token_Encounter_IllusionaryCrowd.png'
+            };
+            newState.tokens = [...(newState.tokens || []).filter(t => t.id !== 'token_illusionary_crowd'), newToken];
+
+            const dummyHero: Hero = {
+                id: 'ally_illusionary_crowd',
+                type: 'hero',
+                name: 'Illusionary Crowd',
+                heroClass: 'wizard',
+                level: 1,
+                xp: 0,
+                surgeUsed: false,
+                hp: 1,
+                maxHp: 1,
+                ac: 14,
+                speed: 0,
+                surgeValue: 0,
+                position: { x: tile.x, z: tile.z, sqX: 2, sqZ: 2 },
+                abilities: [],
+                hand: [],
+                flippedPowerIds: [],
+                conditions: [],
+                escaped: false,
+                items: [],
+                isExhausted: false,
+                usedPowers: [],
+                attackBonus: 0
+            };
+            newState.heroes = [...newState.heroes.filter(h => h.id !== 'ally_illusionary_crowd'), dummyHero];
+
+            const activeMonsters = newState.monsters.filter(m => !m.isDefeated && m.hp > 0);
+            const adjacentTiles = newState.tiles.filter(t => {
+                return getTileGraphDistance(tile, t, newState.tiles) <= 1;
+            });
+
+            for (const m of activeMonsters) {
+                let foundPos = null;
+                for (const t of adjacentTiles) {
+                    for (let sqX = 0; sqX < 4; sqX++) {
+                        for (let sqZ = 0; sqZ < 4; sqZ++) {
+                            const occupied = 
+                                newState.heroes.some(h => h.position.x === t.x && h.position.z === t.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
+                                newState.monsters.some(mon => !mon.isDefeated && mon.hp > 0 && mon.position.x === t.x && mon.position.z === t.z && mon.position.sqX === sqX && mon.position.sqZ === sqZ);
+                            if (!occupied) {
+                                foundPos = { x: t.x, z: t.z, sqX, sqZ };
+                                break;
+                            }
+                        }
+                        if (foundPos) break;
+                    }
+                    if (foundPos) break;
+                }
+                if (foundPos) {
+                    const updatedMonster = { ...m, position: foundPos };
+                    newState = this.updateEntityInState(newState, updatedMonster);
+                    effects.push({ type: 'monster_moved', targetId: m.id, newPosition: foundPos });
+                }
+            }
+        }
+
+        return {
+            success: true,
+            message: `${currentHero.name} plays Illusionary Crowd and places the marker on tile (${targetTileX}, ${targetTileZ})`,
+            effects,
+            newState
+        };
+    }
+
+    private static async executeIllusionaryCrowdAsync(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): Promise<{ success: boolean; message: string; effects: any[]; newState: GameState }> {
+        return this.executeIllusionaryCrowd(hero, powerCard, target, gameState);
     }
 
     /**

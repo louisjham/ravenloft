@@ -106,6 +106,8 @@ export function isHeroEntity(entity: Entity): entity is Hero {
 export interface Monster extends Entity {
   type: 'monster';
   monsterType: string;
+  /** The original deck card / data-file ID this instance was created from (e.g. "monster_skeleton"). */
+  templateId?: string;
   behavior: MonsterBehavior;
   attackBonus: number;
   damage: number;

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Master's Archive | Castle Ravenloft</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #C5A059;
+            --obsidian: #0F0F0F;
+            --slate: #1A1A1A;
+        }
+        body {
+            background-color: var(--obsidian);
+            color: #E5E7EB;
+            font-family: 'Inter', sans-serif;
+        }
+        h1, h2, h3 { font-family: 'Cinzel', serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .glass {
+            background: rgba(26, 26, 26, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(197, 160, 89, 0.2);
+        }
+        .border-gold { border-color: var(--gold); }
+        .text-gold { color: var(--gold); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: var(--obsidian); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        .tile-card:hover { border-color: var(--gold); transform: translateY(-2px); }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Header -->
+    <header class="glass fixed top-0 w-full z-50 p-6 flex justify-between items-center border-b border-gold/30">
+        <div class="flex items-center gap-4">
+            <h1 class="text-3xl text-gold tracking-widest uppercase">Castle Ravenloft</h1>
+            <span class="text-sm font-mono opacity-60">CATALOG_v1.0.4</span>
+        </div>
+        <div class="text-sm text-gray-400">Total Tiles: <span class="text-gold font-bold">2</span></div>
+    </header>
+
+    <main class="pt-24 px-4 pb-12 max-w-7xl mx-auto flex flex-col lg:flex-row gap-8 h-screen">
+        
+        <!-- Left Column: Source Reference -->
+        <section class="lg:w-1/3 h-[40vh] lg:h-[85vh] sticky top-28">
+            <div class="glass h-full rounded-xl p-4 flex flex-col shadow-2xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg text-gold uppercase">Source Reference</h2>
+                    <button onclick="toggleFullscreen()" class="text-xs hover:text-gold transition">Full Screen</button>
+                </div>
+                <div id="pdf-viewer" class="flex-grow bg-black rounded-lg overflow-hidden border border-white/5 relative">
+                    <img src="https://opal.google/board/blobs/7ad80ff5-4c59-405a-885f-19687ce1a4a8" alt="Tiles PDF" class="w-full h-full object-contain">
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Catalog -->
+        <section class="lg:w-2/3 flex flex-col gap-6">
+            <!-- Filter Bar -->
+            <div class="glass p-4 rounded-xl flex items-center gap-4">
+                <input type="text" id="search" placeholder="Search dungeon features..." 
+                       class="w-full bg-transparent border-b border-white/20 focus:border-gold outline-none p-2 transition">
+                <button class="px-6 py-2 border border-gold text-gold hover:bg-gold hover:text-black transition uppercase text-sm font-bold">
+                    Filter
+                </button>
+            </div>
+
+            <!-- Tile Grid -->
+            <div class="flex-grow overflow-y-auto custom-scrollbar space-y-6 pr-2">
+                
+                <!-- Tile Card 1 -->
+                <div class="tile-card glass p-6 rounded-xl border border-white/10 transition-all duration-300">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="font-mono text-gold text-xl">#001</span>
+                        <div class="flex gap-2">
+                            <span class="px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded">CORRIDOR</span>
+                            <span class="px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded">DIFFICULT TERRAIN</span>
+                        </div>
+                    </div>
+                    <p class="leading-relaxed text-gray-300 mb-6">Start Tile: A 4x4 room with dark corner squares. There's a single skull in the top-left dark square, and a pile of small bones in the bottom-middle. A small downward-pointing arrow indicates an entrance or direction.</p>
+                    <button onclick="copyToClipboard('Start Tile: 4x4 room with dark corner squares...')" 
+                            class="text-xs text-white/60 hover:text-gold uppercase tracking-wider flex items-center gap-2">
+                        <span>[ Copy Description ]</span>
+                    </button>
+                </div>
+
+                <!-- Tile Card 2 -->
+                <div class="tile-card glass p-6 rounded-xl border border-white/10 transition-all duration-300">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="font-mono text-gold text-xl">#002</span>
+                        <div class="flex gap-2">
+                            <span class="px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded">ENCOUNTER ROOM</span>
+                        </div>
+                    </div>
+                    <p class="leading-relaxed text-gray-300 mb-6">Ossuary Crossroads: A cross-shaped intersection based on a 4x4 grid, with the four 1x1 corners acting as solid, dark walls. The playable floor consists of weathered stone tiles. A scattered pile of skulls and bones occupies one of the lower central squares. A skull icon is printed on the top-left dark corner, and a small triangular marker is centered on the bottom edge.</p>
+                    <button onclick="copyToClipboard('Ossuary Crossroads: Cross-shaped intersection...')" 
+                            class="text-xs text-white/60 hover:text-gold uppercase tracking-wider flex items-center gap-2">
+                        <span>[ Copy Description ]</span>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function toggleFullscreen() {
+            const el = document.getElementById('pdf-viewer');
+            if (!document.fullscreenElement) {
+                el.requestFullscreen().catch(err => alert(`Error: ${err.message}`));
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            alert("Description copied to clipboard!");
+        }
+
+        // Simple Search Filter
+        document.getElementById('search').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll('.tile-card');
+            cards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(query) ? 'block' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>

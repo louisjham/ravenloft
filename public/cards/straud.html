@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Count Strahd Von Zarovich | Digital Compendium</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Cinzel', 'serif'],
+                        body: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        dungeon: {
+                            charcoal: '#1a1a1a',
+                            parchment: '#f4f1ea',
+                            gold: '#d4af37',
+                            crimson: '#8b0000',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0f0f0f; background-image: radial-gradient(#1a1a1a 2px, transparent 2px); background-size: 30px 30px; }
+        .parchment-bg { background-color: #f4f1ea; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .stat-orb { transition: all 0.3s ease; }
+        .stat-orb:hover { transform: translateY(-5px); border-color: #d4af37; }
+        .zoom-img { transition: transform 0.5s ease; cursor: zoom-in; }
+        .zoom-img:hover { transform: scale(1.05); }
+    </style>
+</head>
+<body class="font-body text-slate-800 p-4 md:p-12 min-h-screen flex items-center justify-center">
+
+    <main class="max-w-5xl w-full parchment-bg rounded-xl shadow-2xl overflow-hidden animate-in fade-in duration-1000">
+        <!-- Header -->
+        <header class="p-8 border-b-4 border-dungeon-crimson flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+                <h1 class="font-display text-4xl md:text-6xl font-bold text-dungeon-charcoal tracking-tighter">Count Strahd Von Zarovich</h1>
+                <div class="flex gap-2 mt-2">
+                    <span class="px-3 py-1 bg-dungeon-charcoal text-white text-xs font-bold uppercase tracking-widest rounded-sm">Castle Ravenloft</span>
+                    <span class="px-3 py-1 bg-dungeon-crimson text-white text-xs font-bold uppercase tracking-widest rounded-sm">Villain</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="grid md:grid-cols-12 gap-8 p-8">
+            
+            <!-- Left Column: Visual -->
+            <div class="md:col-span-5">
+                <div class="relative overflow-hidden rounded-lg shadow-xl border-4 border-dungeon-charcoal p-1">
+                    <img src='https://opal.google/board/blobs/2cb42620-1bc4-4955-8218-33741c838134' alt='Count Strahd Von Zarovich' class="w-full h-auto object-cover zoom-img" />
+                </div>
+            </div>
+
+            <!-- Right Column: Data Card -->
+            <div class="md:col-span-7 flex flex-col gap-6">
+                
+                <!-- Core Stats -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="stat-orb border-2 border-dungeon-charcoal p-3 text-center rounded-lg">
+                        <p class="text-[10px] uppercase font-bold text-gray-500">Level</p>
+                        <p class="font-display text-2xl font-bold">6</p>
+                    </div>
+                    <div class="stat-orb border-2 border-dungeon-charcoal p-3 text-center rounded-lg">
+                        <p class="text-[10px] uppercase font-bold text-gray-500">HP</p>
+                        <p class="font-display text-2xl font-bold">12</p>
+                    </div>
+                    <div class="stat-orb border-2 border-dungeon-charcoal p-3 text-center rounded-lg">
+                        <p class="text-[10px] uppercase font-bold text-gray-500">AC</p>
+                        <p class="font-display text-2xl font-bold">19</p>
+                    </div>
+                </div>
+
+                <!-- Combat & Actions -->
+                <section class="bg-white/50 p-4 rounded-lg border-l-4 border-dungeon-crimson">
+                    <h3 class="font-display text-lg font-bold mb-2 uppercase tracking-wide">Combat Actions</h3>
+                    <div class="text-sm space-y-2">
+                        <p><strong class="text-dungeon-crimson">Bite:</strong> +8 (Damage: 2 and Strahd regains 1 Hit Point)</p>
+                        <p><strong class="text-dungeon-crimson">Magical Ball of Fire:</strong> +8 (Damage: 2, Miss: 1 damage)</p>
+                    </div>
+                </section>
+
+                <!-- Keywords -->
+                <section>
+                    <span class="inline-block px-3 py-1 rounded-full border border-dungeon-gold bg-dungeon-gold/10 text-dungeon-charcoal font-bold text-xs uppercase">Vampire</span>
+                </section>
+
+                <!-- Text Content -->
+                <section class="prose prose-sm max-w-none text-gray-700">
+                    <h4 class="font-bold text-dungeon-charcoal uppercase text-xs mb-1">Traits</h4>
+                    <p class="italic text-sm">MIST FORM: Track vampire in mist form. When Count Strahd is encountered: Place the Mist Form token on this card.</p>
+                    
+                    <h4 class="font-bold text-dungeon-charcoal uppercase text-xs mt-4 mb-1">Tactics</h4>
+                    <div class="text-xs leading-relaxed space-y-2 bg-white/30 p-3 rounded">
+                        <p>Strahd activates at the start of each Villain Phase.</p>
+                        <p>✦ If Strahd has 5 Hit Points or fewer remaining and the Mist Form token is on this card, Strahd transforms into a cloud of mist and floats away! Remove the Mist Form token from this card and place Strahd on the Strahd's Crypt tile.</p>
+                        <p>✦ If Strahd is within 1 tile of the Hero with the most Hit Points remaining, he moves adjacent to that Hero and attacks him or her with a blood-draining bite.</p>
+                        <p>✦ If Strahd is within 1 tile of any other Hero, he moves 1 tile toward the Hero with the most Hit Points remaining, and then attacks each Hero on the closest Hero's tile with a magical ball of fire.</p>
+                        <p>✦ Otherwise, Strahd moves 2 tiles toward the Hero with the most Hit Points remaining.</p>
+                    </div>
+
+                    <p class="mt-6 italic text-gray-500 border-t pt-4">"The master of Castle Ravenloft is known as 'the devil' to the villagers of Barovia."</p>
+                </section>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="bg-dungeon-charcoal text-white/50 p-4 text-center text-[10px] uppercase tracking-widest font-body">
+            Digitized Compendium Entry :: Castle Ravenloft Expansion
+        </div>
+    </main>
+
+    <script>
+        // Simple lightbox trigger for image
+        const img = document.querySelector('.zoom-img');
+        img.addEventListener('click', () => {
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.backgroundColor = 'rgba(0,0,0,0.9)';
+            overlay.style.display = 'flex';
+            overlay.style.alignItems = 'center';
+            overlay.style.justifyContent = 'center';
+            overlay.style.zIndex = '9999';
+            overlay.innerHTML = `<img src='${img.src}' style='max-width: 90%; max-height: 90%; border: 2px solid #d4af37;'>`;
+            overlay.onclick = () => overlay.remove();
+            document.body.appendChild(overlay);
+        });
+    </script>
+</body>
+</html>

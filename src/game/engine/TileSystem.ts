@@ -243,51 +243,97 @@ export class TileSystem {
 
   /**
    * After a tile is placed during exploration, spawn a monster on it if the
-   * tile has an encounterType. Draws from the monsterDeck and places the
-   * monster on the tile at the standard spawn position.
+   * tile has an encounterType. Draws from the monsterDeck, skipping (discarding)
+   * any card whose monster type is already active on the board — per Castle
+   * Ravenloft board game rule. Also handles Rogue Stealth.
    */
   public static spawnMonsterForExploration(gameState: GameState, tile: Tile): GameState {
     if (!tile.encounterType) return gameState;
-
-    const deck = [...gameState.monsterDeck];
-    if (deck.length === 0) return gameState;
 
     const activeHero = gameState.heroes.find(h => h.id === gameState.currentHeroId);
     const hasStealth = activeHero && activeHero.heroClass === 'rogue' &&
                       (activeHero.abilities.includes('rogue_stealth') || activeHero.hand.includes('rogue_stealth')) &&
                       !(activeHero.flippedPowerIds ?? []).includes('rogue_stealth');
 
-    if (hasStealth) {
-      const monsterTemplateId = deck.pop()!;
-      const updatedHero = {
-        ...activeHero!,
-        flippedPowerIds: [...(activeHero!.flippedPowerIds ?? []), 'rogue_stealth']
-      };
+    // Build set of template IDs already active on the board.
+    // Uses templateId when available (set by this function); falls back to m.id for
+    // any monsters placed before this field was introduced.
+    const activeTemplateIds = new Set(gameState.monsters.map(m => m.templateId ?? m.id));
 
-      return {
-        ...gameState,
-        monsterDeck: deck,
-        heroes: gameState.heroes.map(h => h.id === updatedHero.id ? updatedHero : h),
-        log: [
+    const deck = [...gameState.monsterDeck];
+    if (deck.length === 0) return gameState;
+
+    const discardedIds: string[] = [];
+    let drawnTemplateId: string | undefined;
+
+    // Loop: discard already-controlled types, draw until we find a unique one
+    while (deck.length > 0) {
+      const candidateId = deck.pop()!;
+      if (!activeTemplateIds.has(candidateId)) {
+        drawnTemplateId = candidateId;
+        break;
+      }
+      discardedIds.push(candidateId);
+    }
+
+    // Build updated discard pile and base log entries for skipped cards
+    const updatedDiscardPiles = discardedIds.length > 0
+      ? { ...gameState.discardPiles, monster: [...gameState.discardPiles.monster, ...discardedIds] }
+      : gameState.discardPiles;
+
+    let log = discardedIds.length > 0
+      ? [
           ...gameState.log,
           {
             id: crypto.randomUUID(),
             timestamp: new Date().toISOString(),
-            message: `${activeHero.name} uses Stealth! Discards the drawn monster card (${monsterTemplateId}) instead of placing it. Stealth flips face-down.`,
+            message: `Monster draw: discarded [${discardedIds.join(', ')}] (already controlled) and redrew.`,
             type: 'system' as const
           }
         ].slice(-100)
+      : [...gameState.log];
+
+    if (!drawnTemplateId) {
+      // Deck exhausted — no eligible type found
+      return { ...gameState, monsterDeck: deck, discardPiles: updatedDiscardPiles, log };
+    }
+
+    // Rogue Stealth: discard the drawn card instead of placing the monster
+    if (hasStealth) {
+      const updatedHero = {
+        ...activeHero!,
+        flippedPowerIds: [...(activeHero!.flippedPowerIds ?? []), 'rogue_stealth']
+      };
+      log = [
+        ...log,
+        {
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          message: `${activeHero!.name} uses Stealth! Discards the drawn monster card (${drawnTemplateId}) instead of placing it. Stealth flips face-down.`,
+          type: 'system' as const
+        }
+      ].slice(-100);
+
+      return {
+        ...gameState,
+        monsterDeck: deck,
+        discardPiles: { ...updatedDiscardPiles, monster: [...updatedDiscardPiles.monster, drawnTemplateId] },
+        heroes: gameState.heroes.map(h => h.id === updatedHero.id ? updatedHero : h),
+        log
       };
     }
 
-    const monsterTemplateId = deck.pop()!;
-    const template = DataLoader.getInstance().getMonsterById(monsterTemplateId);
-    if (!template) return { ...gameState, monsterDeck: deck };
+    const template = DataLoader.getInstance().getMonsterById(drawnTemplateId);
+    if (!template) return { ...gameState, monsterDeck: deck, discardPiles: updatedDiscardPiles, log };
 
-    const uniqueId = `monster_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const uniqueId = `monster_${drawnTemplateId}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const newMonster: Monster = {
       ...template,
       id: uniqueId,
+      templateId: drawnTemplateId,
+      // Per board game rules: the monster card drawn during exploration goes in front
+      // of the active player — they control it and activate it in their Villain Phase.
+      ownedByHeroId: gameState.currentHeroId,
       position: {
         x: tile.x,
         z: tile.z,
@@ -303,7 +349,9 @@ export class TileSystem {
     return {
       ...gameState,
       monsterDeck: deck,
-      monsters: [...gameState.monsters, newMonster]
+      discardPiles: updatedDiscardPiles,
+      monsters: [...gameState.monsters, newMonster],
+      log
     };
   }
 

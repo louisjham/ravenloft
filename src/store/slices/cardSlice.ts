@@ -191,6 +191,97 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
       }
     },
 
+  cancelEncounterWithDispelMagic: (cardId: string) => {
+      const state = get().gameState;
+      if (!state) return;
+
+      const wizard = state.heroes.find(h =>
+          h.heroClass === 'wizard' &&
+          (h.abilities.includes('wizard_dispel_magic') || h.hand.includes('wizard_dispel_magic')) &&
+          !(h.flippedPowerIds ?? []).includes('wizard_dispel_magic')
+      );
+      if (!wizard) return;
+
+      const updatedWizard = {
+          ...wizard,
+          flippedPowerIds: [...(wizard.flippedPowerIds ?? []), 'wizard_dispel_magic']
+      };
+
+      const logEntry: GameLogEntry = {
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          message: `${wizard.name} uses Dispel Magic! The Encounter Card is cancelled.`,
+          type: 'system' as const
+      };
+
+      // Discard the cancelled card
+      const discardPiles = { ...state.discardPiles };
+      if (!discardPiles['encounter']) discardPiles['encounter'] = [];
+      if (!discardPiles['encounter'].includes(cardId)) {
+        discardPiles['encounter'] = [...discardPiles['encounter'], cardId];
+      }
+
+      // If there was a pending encounter trigger, check if we still need villain phase activation.
+      // If we are pendingEncounter from villain phase, we must continue villain phase (monster movement/attack),
+      // just like in dismissCardResolution when pendingEncounter is true.
+      if (state.pendingEncounter) {
+        const stateWithIdleCard = {
+          ...state,
+          heroes: state.heroes.map(h => h.id === wizard.id ? updatedWizard : h),
+          discardPiles,
+          log: [...state.log, logEntry].slice(-100),
+          pendingEncounter: false,
+          cardResolution: { phase: 'idle' as const, cardId: null, cardType: null, targetEntityId: null, pendingEffects: [], resolvedEffects: [], result: null }
+        };
+
+        const villainState = executeVillainPhase(stateWithIdleCard);
+
+        if (villainState.phase !== 'setup') {
+          const isDefeated = ScenarioManager.checkDefeat(villainState);
+          if (isDefeated) {
+            set({
+              gameState: { ...villainState, phase: 'defeat' as const }
+            });
+            useUIStore.getState().showModal('defeat');
+            return;
+          }
+        }
+
+        const currentIndex = villainState.turnOrder.indexOf(villainState.currentHeroId);
+        const nextIndex = (currentIndex + 1) % villainState.turnOrder.length;
+        const nextId = villainState.turnOrder[nextIndex];
+        const stateAfterTurnStart = ConditionSystem.processTurnStart(villainState, nextId);
+
+        set({
+          gameState: {
+            ...stateAfterTurnStart,
+            currentHeroId: nextId,
+            phase: 'hero' as const,
+            hasExploredThisTurn: false,
+            lastPlacedTileEncounterType: null,
+            turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0)
+          }
+        });
+      } else {
+        const newState = {
+            ...state,
+            heroes: state.heroes.map(h => h.id === wizard.id ? updatedWizard : h),
+            discardPiles,
+            cardResolution: {
+                phase: 'idle' as const,
+                cardId: '',
+                cardType: 'encounter' as const,
+                pendingEffects: [],
+                resolvedEffects: [],
+                targetEntityId: null,
+                result: null
+            },
+            log: [...state.log, logEntry].slice(-100)
+        };
+        set({ gameState: newState });
+      }
+    },
+
   drawTreasureCard: () => {
       const state = get().gameState;
       if (!state) return;
@@ -355,6 +446,7 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
             currentHeroId: nextId,
             phase: 'hero' as const,
             hasExploredThisTurn: false,
+            lastPlacedTileEncounterType: null,
             turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0)
           }
         });

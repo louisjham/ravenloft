@@ -101,6 +101,24 @@ const EncounterCardOverlay: React.FC<EncounterCardOverlayProps> = ({
               >
                 Cancel Encounter (Spend 5 XP)
               </button>
+
+              {heroes.some(h =>
+                h.heroClass === 'wizard' &&
+                (h.abilities.includes('wizard_dispel_magic') || h.hand.includes('wizard_dispel_magic')) &&
+                !(h.flippedPowerIds ?? []).includes('wizard_dispel_magic')
+              ) && (
+                <button
+                  className="encounter-button-secondary"
+                  style={{ backgroundColor: '#4a3b8c', borderColor: '#6a5acd', marginTop: '10px' }}
+                  onClick={() => {
+                    if (card.id) {
+                      useGameStore.getState().cancelEncounterWithDispelMagic(card.id);
+                    }
+                  }}
+                >
+                  Cancel Encounter (Use Dispel Magic)
+                </button>
+              )}
             </>
           )}
 
