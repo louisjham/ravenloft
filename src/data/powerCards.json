@@ -843,6 +843,7 @@
         "type": "damage",
         "value": 1,
         "target": "single",
+        "condition": "adjacent_to_hero",
         "when": "hit"
       }
     ]

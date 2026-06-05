@@ -252,6 +252,34 @@ export class TileSystem {
     const deck = [...gameState.monsterDeck];
     if (deck.length === 0) return gameState;
 
+    const activeHero = gameState.heroes.find(h => h.id === gameState.currentHeroId);
+    const hasStealth = activeHero && activeHero.heroClass === 'rogue' &&
+                      (activeHero.abilities.includes('rogue_stealth') || activeHero.hand.includes('rogue_stealth')) &&
+                      !(activeHero.flippedPowerIds ?? []).includes('rogue_stealth');
+
+    if (hasStealth) {
+      const monsterTemplateId = deck.pop()!;
+      const updatedHero = {
+        ...activeHero!,
+        flippedPowerIds: [...(activeHero!.flippedPowerIds ?? []), 'rogue_stealth']
+      };
+
+      return {
+        ...gameState,
+        monsterDeck: deck,
+        heroes: gameState.heroes.map(h => h.id === updatedHero.id ? updatedHero : h),
+        log: [
+          ...gameState.log,
+          {
+            id: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            message: `${activeHero.name} uses Stealth! Discards the drawn monster card (${monsterTemplateId}) instead of placing it. Stealth flips face-down.`,
+            type: 'system' as const
+          }
+        ].slice(-100)
+      };
+    }
+
     const monsterTemplateId = deck.pop()!;
     const template = DataLoader.getInstance().getMonsterById(monsterTemplateId);
     if (!template) return { ...gameState, monsterDeck: deck };

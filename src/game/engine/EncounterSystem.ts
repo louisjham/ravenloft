@@ -546,12 +546,40 @@ export class EncounterSystem {
             if (targetTile) {
                 let currentDeck = gameState.monsterDeck;
                 for (let i = 0; i < (effect.value as number); i++) {
-                    const spawnResult = this.spawnMonsterOnTile({ ...gameState, monsterDeck: currentDeck }, targetTile);
-                    if (spawnResult.monster) {
-                        updatedMonsters.push(spawnResult.monster);
-                        result.spawnedMonsterId = spawnResult.monster.id;
+                    const hasStealth = activeHero && activeHero.heroClass === 'rogue' &&
+                                      (activeHero.abilities.includes('rogue_stealth') || activeHero.hand.includes('rogue_stealth')) &&
+                                      !(activeHero.flippedPowerIds ?? []).includes('rogue_stealth');
+
+                    if (hasStealth) {
+                        const monsterTemplateId = currentDeck[0];
+                        currentDeck = currentDeck.slice(1);
+
+                        const updatedHero = {
+                            ...activeHero,
+                            flippedPowerIds: [...(activeHero.flippedPowerIds ?? []), 'rogue_stealth']
+                        };
+                        updatedHeroes = updatedHeroes.map(h => h.id === updatedHero.id ? updatedHero : h);
+                        activeHero = updatedHero;
+
+                        const stealthLog = {
+                            id: crypto.randomUUID(),
+                            timestamp: new Date().toISOString(),
+                            message: `${activeHero.name} uses Stealth! Discards the drawn monster card (${monsterTemplateId || 'unknown'}) instead of spawning it. Stealth flips face-down.`,
+                            type: 'system' as const
+                        };
+                        const baseState = result.gameState ?? gameState;
+                        result.gameState = {
+                            ...baseState,
+                            log: [...baseState.log, stealthLog].slice(-100)
+                        };
+                    } else {
+                        const spawnResult = this.spawnMonsterOnTile({ ...gameState, monsterDeck: currentDeck }, targetTile);
+                        if (spawnResult.monster) {
+                            updatedMonsters.push(spawnResult.monster);
+                            result.spawnedMonsterId = spawnResult.monster.id;
+                        }
+                        currentDeck = spawnResult.monsterDeck;
                     }
-                    currentDeck = spawnResult.monsterDeck;
                 }
                 result.monsterDeck = currentDeck;
             }
@@ -679,11 +707,11 @@ export class EncounterSystem {
                         const updatedDiscardPiles = effectResult.discardPiles ?? gameState.discardPiles;
 
                         return {
-                            ...gameState,
+                            ...(effectResult.gameState ?? gameState),
                             heroes: updatedHeroes,
                             monsters: updatedMonsters,
                             discardPiles: updatedDiscardPiles,
-                            monsterDeck: effectResult.monsterDeck ?? gameState.monsterDeck,
+                            monsterDeck: effectResult.monsterDeck ?? (effectResult.gameState ?? gameState).monsterDeck,
                             cardResolution: {
                                 ...resolution,
                                 phase: nextPhase,

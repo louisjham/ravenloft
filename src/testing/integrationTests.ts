@@ -30,6 +30,8 @@ import {
 } from '../game/engine/MonsterAI';
 import { ObjectiveTracker } from '../game/scenarios/Objectives';
 import { ScenarioManager } from '../game/scenarios/ScenarioManager';
+import { createCardSlice } from '../store/slices/cardSlice';
+import { EncounterSystem } from '../game/engine/EncounterSystem';
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -4560,6 +4562,371 @@ export const runFullGameLoopTest = async () => {
           throw new Error('Yield Ground: expected power to be flipped');
         }
         console.log('  Yield Ground test PASSED');
+      }
+    }
+
+    // Rogue Powers Verification (Sneak Attack, Backstab, Deft Strike, Snipe Shot, Dagger Barrage, Deep Cut, Riposte Strike, Great Leap, Spring Away, Stealth)
+    // =======================================================================
+    {
+      console.log('Testing Rogue powers...');
+      const rogueHero: Hero = {
+        ...createAIHero('Test Rogue', 0, 0),
+        heroClass: 'rogue',
+        abilities: [
+          'rogue_sneak_attack',
+          'rogue_backstab',
+          'rogue_deft_strike',
+          'rogue_snipe_shot',
+          'rogue_dagger_barrage',
+          'rogue_deep_cut',
+          'rogue_riposte_strike',
+          'rogue_great_leap',
+          'rogue_spring_away',
+          'rogue_stealth'
+        ],
+        position: { x: 0, z: 0, sqX: 2, sqZ: 2 }
+      };
+
+      const monsterA: Monster = {
+        ...createAIMonster('Zombie A', 1),
+        monsterType: 'Zombie',
+        hp: 4,
+        maxHp: 4,
+        position: { x: 0, z: 0, sqX: 2, sqZ: 3 } // adjacent to rogue
+      };
+
+      const monsterB: Monster = {
+        ...createAIMonster('Zombie B', 1),
+        monsterType: 'Zombie',
+        hp: 3,
+        position: { x: 0, z: 1, sqX: 2, sqZ: 2 } // 1 tile away
+      };
+
+      const companionHero: Hero = {
+        ...createAIHero('Companion Hero', 0, 0),
+        heroClass: 'cleric',
+        position: { x: 0, z: 0, sqX: 1, sqZ: 3 } // adjacent to monsterA
+      };
+
+      const tile00 = createAITile('tile_0_0', 0, 0, [openEdge('north'), closedEdge('south'), closedEdge('east'), closedEdge('west')]);
+      const tile01 = createAITile('tile_0_1', 0, 1, [openEdge('south'), openEdge('north'), closedEdge('east'), closedEdge('west')]);
+      const tile02 = createAITile('tile_0_2', 0, 2, [openEdge('south'), closedEdge('north'), closedEdge('east'), closedEdge('west')]);
+
+      tile00.connections[0].connectedTileId = 'tile_0_1';
+      tile01.connections[0].connectedTileId = 'tile_0_0';
+      tile01.connections[1].connectedTileId = 'tile_0_2';
+      tile02.connections[0].connectedTileId = 'tile_0_1';
+
+      const rogueGameState: GameState = {
+        ...createAIState([rogueHero, companionHero], [tile00, tile01, tile02]),
+        monsters: [monsterA, monsterB],
+        currentHeroId: rogueHero.id
+      };
+
+      const dataLoader = DataLoader.getInstance();
+
+      // --- TEST 1: Sneak Attack (Utility: gain +4 attack bonus and +1 damage for duration) ---
+      {
+        const card = dataLoader.getCardById('rogue_sneak_attack')!;
+        const result = PowerSystem.usePower(rogueHero, card, null, rogueGameState);
+        const resRogue = result.newState.heroes.find(h => h.id === rogueHero.id)!;
+        const attackBonusCond = (resRogue.conditions ?? []).find(c => c.type === 'attack_bonus');
+        const damageBonusCond = (resRogue.conditions ?? []).find(c => c.type === 'damage_bonus');
+
+        if (!attackBonusCond || attackBonusCond.value !== 4) {
+          throw new Error('Sneak Attack: expected +4 attack_bonus condition');
+        }
+        if (!damageBonusCond || damageBonusCond.value !== 1) {
+          throw new Error('Sneak Attack: expected +1 damage_bonus condition');
+        }
+        console.log('  Sneak Attack test PASSED');
+      }
+
+      // --- TEST 2: Backstab (+1 damage if target is adjacent to another hero) ---
+      {
+        const card = dataLoader.getCardById('rogue_backstab')!;
+        
+        // Scenario A: adjacent to another hero -> deals 2 damage (1 base + 1 conditional)
+        AbilitySystem._rollOverride = () => 15; // hit
+        const resultA = PowerSystem.usePower(rogueHero, card, monsterA, rogueGameState);
+        AbilitySystem._rollOverride = null;
+        const resMonsterA = resultA.newState.monsters.find(m => m.id === monsterA.id)!;
+        if (resMonsterA.hp !== 2) {
+          throw new Error(`Backstab (adjacent to companion): expected HP to be 2, got ${resMonsterA.hp}`);
+        }
+
+        // Scenario B: not adjacent to another hero -> deals 1 damage
+        const isolatedState = {
+          ...rogueGameState,
+          heroes: rogueGameState.heroes.map(h =>
+            h.id === companionHero.id ? { ...h, position: { x: 0, z: 2, sqX: 2, sqZ: 2 } } : h
+          )
+        };
+        AbilitySystem._rollOverride = () => 15; // hit
+        const resultB = PowerSystem.usePower(rogueHero, card, monsterA, isolatedState);
+        AbilitySystem._rollOverride = null;
+        const resMonsterB = resultB.newState.monsters.find(m => m.id === monsterA.id)!;
+        if (resMonsterB.hp !== 3) {
+          throw new Error(`Backstab (isolated): expected HP to be 3, got ${resMonsterB.hp}`);
+        }
+
+        console.log('  Backstab test PASSED');
+      }
+
+      // --- TEST 3: Deft Strike (Move up to 2 squares before attack) ---
+      {
+        const card = dataLoader.getCardById('rogue_deft_strike')!;
+        
+        const distantState = {
+          ...rogueGameState,
+          heroes: rogueGameState.heroes.map(h =>
+            h.id === rogueHero.id ? { ...h, position: { x: 0, z: 0, sqX: 2, sqZ: 1 } } : h
+          )
+        };
+        const distantRogue = distantState.heroes.find(h => h.id === rogueHero.id)!;
+
+        AbilitySystem._rollOverride = () => 15; // hit
+        const result = PowerSystem.usePower(distantRogue, card, monsterA, distantState);
+        AbilitySystem._rollOverride = null;
+
+        const resRogue = result.newState.heroes.find(h => h.id === rogueHero.id)!;
+        const absXDiff = Math.abs((resRogue.position.x * 4 + resRogue.position.sqX) - (monsterA.position.x * 4 + monsterA.position.sqX));
+        const absZDiff = Math.abs((resRogue.position.z * 4 + resRogue.position.sqZ) - (monsterA.position.z * 4 + monsterA.position.sqZ));
+        if (absXDiff + absZDiff !== 1) {
+          throw new Error(`Deft Strike: expected hero to move adjacent to monster, got distance ${absXDiff + absZDiff}`);
+        }
+        console.log('  Deft Strike test PASSED');
+      }
+
+      // --- TEST 4: Snipe Shot (+2 attack bonus if target is 1 tile away) ---
+      {
+        const card = dataLoader.getCardById('rogue_snipe_shot')!;
+        
+        AbilitySystem._rollOverride = () => 5;
+        const result = PowerSystem.usePower(rogueHero, card, monsterB, rogueGameState);
+        AbilitySystem._rollOverride = null;
+
+        const resMonster = result.newState.monsters.find(m => m.id === monsterB.id)!;
+        if (resMonster.hp !== 2) {
+          throw new Error(`Snipe Shot: expected hit on roll of 5 due to tile-away bonus (+2), monster HP is ${resMonster.hp}`);
+        }
+        console.log('  Snipe Shot test PASSED');
+      }
+
+      // --- TEST 5: Dagger Barrage (Attacks all monsters on target's tile, miss deals 1 damage) ---
+      {
+        const card = dataLoader.getCardById('rogue_dagger_barrage')!;
+        
+        const barrageState = {
+          ...rogueGameState,
+          monsters: rogueGameState.monsters.map(m =>
+            m.id === monsterA.id ? { ...m, hp: 4, position: { x: 0, z: 1, sqX: 1, sqZ: 1 } } :
+            m.id === monsterB.id ? { ...m, hp: 3, position: { x: 0, z: 1, sqX: 2, sqZ: 2 } } : m
+          )
+        };
+
+        AbilitySystem._rollOverride = () => 2; // miss all
+        const result = PowerSystem.usePower(rogueHero, card, barrageState.monsters.find(m => m.id === monsterA.id)!, barrageState);
+        AbilitySystem._rollOverride = null;
+
+        const resMonsterA = result.newState.monsters.find(m => m.id === monsterA.id)!;
+        const resMonsterB = result.newState.monsters.find(m => m.id === monsterB.id)!;
+
+        if (resMonsterA.hp !== 3) {
+          throw new Error(`Dagger Barrage: expected monster A to take 1 miss damage (HP 3), got ${resMonsterA.hp}`);
+        }
+        if (resMonsterB.hp !== 2) {
+          throw new Error(`Dagger Barrage: expected monster B to take 1 miss damage (HP 2), got ${resMonsterB.hp}`);
+        }
+        console.log('  Dagger Barrage test PASSED');
+      }
+
+      // --- TEST 6: Deep Cut (Deals 3 damage if target is adjacent to another hero, even on a miss) ---
+      {
+        const card = dataLoader.getCardById('rogue_deep_cut')!;
+        
+        // Scenario A: Miss on target adjacent to another hero -> deals 3 damage
+        AbilitySystem._rollOverride = () => 2; // miss
+        const resultMiss = PowerSystem.usePower(rogueHero, card, monsterA, rogueGameState);
+        AbilitySystem._rollOverride = null;
+        const resMonsterMiss = resultMiss.newState.monsters.find(m => m.id === monsterA.id)!;
+        if (resMonsterMiss.hp !== 1) {
+          throw new Error(`Deep Cut (miss, adjacent to companion): expected HP to be 1 (4 - 3), got ${resMonsterMiss.hp}`);
+        }
+
+        // Scenario B: Hit on target adjacent to another hero -> deals 5 damage (2 base + 3 conditional)
+        AbilitySystem._rollOverride = () => 15; // hit
+        const resultHit = PowerSystem.usePower(rogueHero, card, monsterA, rogueGameState);
+        AbilitySystem._rollOverride = null;
+        const resMonsterHit = resultHit.newState.monsters.find(m => m.id === monsterA.id)!;
+        if (resMonsterHit.hp !== 0) {
+          throw new Error(`Deep Cut (hit, adjacent to companion): expected HP to be 0 (4 - 5), got ${resMonsterHit.hp}`);
+        }
+
+        console.log('  Deep Cut test PASSED');
+      }
+
+      // --- TEST 7: Riposte Strike (Reactive: attacks adjacent monster after being attacked) ---
+      {
+        const riposteState = {
+          ...rogueGameState,
+          currentHeroId: rogueHero.id,
+          heroes: rogueGameState.heroes.map(h =>
+            h.id === rogueHero.id ? { ...h, abilities: ['rogue_riposte_strike'], flippedPowerIds: [], hp: 8, maxHp: 8 } : h
+          ),
+          monsters: rogueGameState.monsters.map(m =>
+            m.id === monsterA.id ? { ...m, ownedByHeroId: rogueHero.id, hp: 4 } : m
+          )
+        };
+
+        // Scenario A: Riposte hits -> deals 2 damage and card flips
+        AbilitySystem._rollOverride = () => 15; // both monster and riposte hit
+        const postVillainStateHit = executeVillainPhase(riposteState);
+        AbilitySystem._rollOverride = null;
+
+        const resRogueHit = postVillainStateHit.heroes.find(h => h.id === rogueHero.id)!;
+        const resMonsterHit = postVillainStateHit.monsters.find(m => m.id === monsterA.id)!;
+
+        if (resMonsterHit.hp !== 2) {
+          throw new Error(`Riposte Strike (hit): expected monster to take 2 damage (HP 2), got ${resMonsterHit.hp}`);
+        }
+        if (!resRogueHit.flippedPowerIds?.includes('rogue_riposte_strike')) {
+          throw new Error('Riposte Strike (hit): expected power card to flip face-down');
+        }
+
+        // Scenario B: Riposte misses -> deals 0 damage and card does not flip
+        AbilitySystem._rollOverride = () => 2; // riposte misses, monster attacks
+        const postVillainStateMiss = executeVillainPhase(riposteState);
+        AbilitySystem._rollOverride = null;
+
+        const resRogueMiss = postVillainStateMiss.heroes.find(h => h.id === rogueHero.id)!;
+        const resMonsterMiss = postVillainStateMiss.monsters.find(m => m.id === monsterA.id)!;
+
+        if (resMonsterMiss.hp !== 4) {
+          throw new Error(`Riposte Strike (miss): expected monster to take 0 damage, got hp ${resMonsterMiss.hp}`);
+        }
+        if (resRogueMiss.flippedPowerIds?.includes('rogue_riposte_strike')) {
+          throw new Error('Riposte Strike (miss): expected power card NOT to flip face-down');
+        }
+
+        console.log('  Riposte Strike test PASSED');
+      }
+
+      // --- TEST 8: Great Leap (Place hero on any tile within 2 tiles) ---
+      {
+        const card = dataLoader.getCardById('rogue_great_leap')!;
+        const result = PowerSystem.usePower(rogueHero, card, null, rogueGameState);
+        const resRogue = result.newState.heroes.find(h => h.id === rogueHero.id)!;
+        if (resRogue.position.x === 0 && resRogue.position.z === 0) {
+          throw new Error('Great Leap: expected hero to leap to a different tile');
+        }
+        const dist = getTileGraphDistance(
+          tile00,
+          result.newState.tiles.find(t => t.x === resRogue.position.x && t.z === resRogue.position.z)!,
+          result.newState.tiles
+        );
+        if (dist > 2) {
+          throw new Error(`Great Leap: expected leap distance <= 2, got ${dist}`);
+        }
+        console.log('  Great Leap test PASSED');
+      }
+
+      // --- TEST 9: Spring Away (Teleport 2 tiles away when another hero draws Encounter card) ---
+      {
+        const springAwayState = {
+          ...rogueGameState,
+          currentHeroId: companionHero.id,
+          heroes: rogueGameState.heroes.map(h =>
+            h.id === rogueHero.id ? { ...h, abilities: ['rogue_spring_away'], flippedPowerIds: [], position: { x: 0, z: 0, sqX: 2, sqZ: 2 } } : h
+          ),
+          encounterDeck: ['enc_cackling_skull']
+        };
+
+        let finalState = springAwayState;
+        const cardSlice = createCardSlice(
+          (update: any) => {
+            const partial = typeof update === 'function' ? update({ gameState: finalState }) : update;
+            if (partial.gameState) {
+              finalState = partial.gameState;
+            }
+          },
+          () => ({ gameState: finalState }) as any,
+          {} as any
+        );
+
+        cardSlice.drawEncounterCard();
+        const resRogue = finalState.heroes.find(h => h.id === rogueHero.id)!;
+
+        if (resRogue.position.x !== 0 || resRogue.position.z !== 2) {
+          throw new Error(`Spring Away: expected Rogue to teleport to tile (0,2), got (${resRogue.position.x}, ${resRogue.position.z})`);
+        }
+        if (!resRogue.flippedPowerIds?.includes('rogue_spring_away')) {
+          throw new Error('Spring Away: expected card to flip face-down');
+        }
+
+        console.log('  Spring Away test PASSED');
+      }
+
+      // --- TEST 10: Stealth (Discard drawn monster card instead of spawning it) ---
+      {
+        const stealthState = {
+          ...rogueGameState,
+          currentHeroId: rogueHero.id,
+          heroes: rogueGameState.heroes.map(h =>
+            h.id === rogueHero.id ? { ...h, abilities: ['rogue_stealth'], flippedPowerIds: [] } : h
+          ),
+          monsterDeck: ['mon_skeleton']
+        };
+
+        const finalState = TileSystem.spawnMonsterForExploration(stealthState, {
+          ...tile01,
+          encounterType: 'white'
+        });
+
+        const resRogue = finalState.heroes.find(h => h.id === rogueHero.id)!;
+        if (finalState.monsters.length !== rogueGameState.monsters.length) {
+          throw new Error('Stealth (Exploration): expected monster to be discarded (not spawned)');
+        }
+        if (!resRogue.flippedPowerIds?.includes('rogue_stealth')) {
+          throw new Error('Stealth (Exploration): expected power card to flip face-down');
+        }
+
+        const encounterStealthState = {
+          ...rogueGameState,
+          currentHeroId: rogueHero.id,
+          heroes: rogueGameState.heroes.map(h =>
+            h.id === rogueHero.id ? { ...h, abilities: ['rogue_stealth'], flippedPowerIds: [] } : h
+          ),
+          monsterDeck: ['mon_skeleton'],
+          cardResolution: {
+            phase: 'revealing' as const,
+            cardId: 'enc_cackling_skull',
+            cardType: 'encounter' as const,
+            pendingEffects: [],
+            resolvedEffects: [],
+            targetEntityId: null,
+            result: null
+          }
+        };
+
+        const postEncounterState = EncounterSystem.advanceCardResolution(encounterStealthState);
+        const finalEncounterState = EncounterSystem.advanceCardResolution({
+          ...postEncounterState,
+          cardResolution: {
+            ...postEncounterState.cardResolution!,
+            pendingEffects: [{ type: 'spawn_monster', value: 1, target: 'single' }]
+          }
+        });
+
+        const resRogueEncounter = finalEncounterState.heroes.find(h => h.id === rogueHero.id)!;
+        if (finalEncounterState.monsters.length !== rogueGameState.monsters.length) {
+          throw new Error('Stealth (Encounter): expected monster to be discarded (not spawned)');
+        }
+        if (!resRogueEncounter.flippedPowerIds?.includes('rogue_stealth')) {
+          throw new Error('Stealth (Encounter): expected power card to flip face-down');
+        }
+
+        console.log('  Stealth test PASSED');
       }
     }
 

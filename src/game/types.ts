@@ -1,5 +1,5 @@
 // Condition types
-export type ConditionType = 'slowed' | 'immobilized' | 'poisoned' | 'dazed' | 'weakened' | 'stunned' | 'crippling_miasma' | 'attack_bonus';
+export type ConditionType = 'slowed' | 'immobilized' | 'poisoned' | 'dazed' | 'weakened' | 'stunned' | 'crippling_miasma' | 'attack_bonus' | 'damage_bonus';
 
 
 
@@ -188,7 +188,7 @@ export interface Card {
 }
 
 export interface Effect {
-  type: 'damage' | 'heal' | 'move' | 'status_effect' | 'attack_bonus' | 'defense_bonus' | 'damage_bonus' | 'ac_bonus' | 'speed_bonus' | 'draw_card' | 'flip_power' | 'passive';
+  type: 'damage' | 'heal' | 'move' | 'status_effect' | 'attack_bonus' | 'defense_bonus' | 'damage_bonus' | 'ac_bonus' | 'speed_bonus' | 'draw_card' | 'flip_power' | 'passive' | 'spawn_monster' | 'draw_treasure';
   value?: number;
   target: 'self' | 'single' | 'area' | 'all_heroes' | 'all_monsters' | 'adjacent';
   range?: number;

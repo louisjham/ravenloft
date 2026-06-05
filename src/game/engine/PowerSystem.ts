@@ -228,16 +228,39 @@ export class PowerSystem {
         if (powerCard.id === 'ranger_split_the_tree') {
             return this.executeSplitTheTreeAsync(hero, powerCard, target, gameState);
         }
+        if (powerCard.id === 'rogue_dagger_barrage') {
+            return this.executeDaggerBarrageAsync(hero, powerCard, target, gameState);
+        }
+
+        let currentHero = { ...hero };
+        let currentGameState = { ...gameState };
+        let currentTarget = target ? { ...target } : null;
+
+        if (powerCard.id === 'rogue_deft_strike' && target) {
+            const newPos = this.getDeftStrikeSquare(hero, target, gameState);
+            if (newPos) {
+                currentHero.position = newPos;
+                currentGameState = this.updateEntityInState(currentGameState, currentHero);
+            }
+        }
+
+        let currentAttackBonus = powerCard.attackBonus;
+        if (powerCard.id === 'rogue_snipe_shot' && target) {
+            const tileDist = Math.abs(currentHero.position.x - target.position.x) + Math.abs(currentHero.position.z - target.position.z);
+            if (tileDist === 1) {
+                currentAttackBonus = (currentAttackBonus ?? 7) + 2;
+            }
+        }
 
         let attackResult: { hit: boolean; damage: number } | null = null;
 
-        if (powerCard.attackBonus !== undefined && target) {
+        if (currentAttackBonus !== undefined && currentTarget) {
             const damage = powerCard.damage || 0;
-            const resolved = await CombatSystem.resolveAttackAsync(hero, target, powerCard.attackBonus, damage);
+            const resolved = await CombatSystem.resolveAttackAsync(currentHero, currentTarget, currentAttackBonus, damage);
             attackResult = resolved;
         }
 
-        return this.executePower(hero, powerCard, target, gameState, attackResult);
+        return this.executePower(currentHero, powerCard, currentTarget, currentGameState, attackResult);
     }
 
     /**
@@ -266,16 +289,222 @@ export class PowerSystem {
         if (powerCard.id === 'ranger_split_the_tree') {
             return this.executeSplitTheTree(hero, powerCard, target, gameState);
         }
+        if (powerCard.id === 'rogue_dagger_barrage') {
+            return this.executeDaggerBarrage(hero, powerCard, target, gameState);
+        }
+
+        let currentHero = { ...hero };
+        let currentGameState = { ...gameState };
+        let currentTarget = target ? { ...target } : null;
+
+        if (powerCard.id === 'rogue_deft_strike' && target) {
+            const newPos = this.getDeftStrikeSquare(hero, target, gameState);
+            if (newPos) {
+                currentHero.position = newPos;
+                currentGameState = this.updateEntityInState(currentGameState, currentHero);
+            }
+        }
+
+        let currentAttackBonus = powerCard.attackBonus;
+        if (powerCard.id === 'rogue_snipe_shot' && target) {
+            const tileDist = Math.abs(currentHero.position.x - target.position.x) + Math.abs(currentHero.position.z - target.position.z);
+            if (tileDist === 1) {
+                currentAttackBonus = (currentAttackBonus ?? 7) + 2;
+            }
+        }
 
         let attackResult: { hit: boolean; damage: number } | null = null;
 
-        if (powerCard.attackBonus !== undefined && target) {
+        if (currentAttackBonus !== undefined && currentTarget) {
             const damage = powerCard.damage || 0;
-            const resolved = CombatSystem.resolveAttack(hero, target, powerCard.attackBonus, damage);
+            const resolved = CombatSystem.resolveAttack(currentHero, currentTarget, currentAttackBonus, damage);
             attackResult = resolved;
         }
 
-        return this.executePower(hero, powerCard, target, gameState, attackResult);
+        return this.executePower(currentHero, powerCard, currentTarget, currentGameState, attackResult);
+    }
+
+    private static getDeftStrikeSquare(
+        hero: Hero,
+        target: Entity,
+        gameState: GameState
+    ): { x: number; z: number; sqX: number; sqZ: number } | null {
+        const heroAbsX = hero.position.x * 4 + hero.position.sqX;
+        const heroAbsZ = hero.position.z * 4 + hero.position.sqZ;
+        const targetAbsX = target.position.x * 4 + target.position.sqX;
+        const targetAbsZ = target.position.z * 4 + target.position.sqZ;
+
+        // If already adjacent to target, no need to move
+        if (Math.abs(heroAbsX - targetAbsX) + Math.abs(heroAbsZ - targetAbsZ) === 1) {
+            return hero.position;
+        }
+
+        let bestSquare: { x: number; z: number; sqX: number; sqZ: number } | null = null;
+        let minDistance = 999;
+
+        for (const tile of gameState.tiles) {
+            for (let sqX = 0; sqX < 4; sqX++) {
+                for (let sqZ = 0; sqZ < 4; sqZ++) {
+                    const absX = tile.x * 4 + sqX;
+                    const absZ = tile.z * 4 + sqZ;
+                    
+                    const distToHero = Math.abs(absX - heroAbsX) + Math.abs(absZ - heroAbsZ);
+                    const distToTarget = Math.abs(absX - targetAbsX) + Math.abs(absZ - targetAbsZ);
+
+                    if (distToHero <= 2 && distToTarget === 1) {
+                        const occupied = 
+                            gameState.heroes.some(h => h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
+                            gameState.monsters.some(m => !m.isDefeated && m.hp > 0 && m.position.x === tile.x && m.position.z === tile.z && m.position.sqX === sqX && m.position.sqZ === sqZ);
+
+                        if (!occupied) {
+                            if (distToHero < minDistance) {
+                                minDistance = distToHero;
+                                bestSquare = { x: tile.x, z: tile.z, sqX, sqZ };
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return bestSquare;
+    }
+
+    private static async executeDaggerBarrageAsync(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): Promise<{ success: boolean; message: string; effects: any[]; newState: GameState }> {
+        if (!target) {
+            return { success: false, message: 'Dagger Barrage requires a target', effects: [], newState: gameState };
+        }
+
+        let newState = { ...gameState };
+        let currentHero = { ...hero };
+
+        const targetTileX = target.position.x;
+        const targetTileZ = target.position.z;
+
+        const monstersOnTile = newState.monsters.filter(m =>
+            !m.isDefeated &&
+            m.hp > 0 &&
+            m.position.x === targetTileX &&
+            m.position.z === targetTileZ
+        );
+
+        const effects: any[] = [];
+
+        // Flip power card
+        const currentFlipped = currentHero.flippedPowerIds ?? [];
+        if (!currentFlipped.includes(powerCard.id)) {
+            const updatedHero = {
+                ...currentHero,
+                flippedPowerIds: [...currentFlipped, powerCard.id]
+            };
+            newState = this.updateEntityInState(newState, updatedHero);
+            currentHero = updatedHero;
+            effects.push({ type: 'power_flipped', powerId: powerCard.id, powerType: powerCard.powerType });
+        }
+
+        for (const t of monstersOnTile) {
+            const resolved = await CombatSystem.resolveAttackAsync(
+                currentHero,
+                t,
+                powerCard.attackBonus || 7,
+                powerCard.damage || 2,
+                0,
+                newState
+            );
+
+            let damageDealt = resolved.hit ? resolved.damage : 1; // Miss: 1 Damage
+            let updatedMonster = CombatSystem.applyDamage(t, damageDealt, newState);
+            newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
+
+            effects.push({
+                type: 'attack_resolved',
+                targetId: t.id,
+                hit: resolved.hit,
+                roll: resolved.roll,
+                damage: damageDealt
+            });
+        }
+
+        return {
+            success: true,
+            message: `${hero.name} uses Dagger Barrage on tile (${targetTileX}, ${targetTileZ})`,
+            effects,
+            newState
+        };
+    }
+
+    private static executeDaggerBarrage(
+        hero: Hero,
+        powerCard: Card,
+        target: Entity | null,
+        gameState: GameState
+    ): { success: boolean; message: string; effects: any[]; newState: GameState } {
+        if (!target) {
+            return { success: false, message: 'Dagger Barrage requires a target', effects: [], newState: gameState };
+        }
+
+        let newState = { ...gameState };
+        let currentHero = { ...hero };
+
+        const targetTileX = target.position.x;
+        const targetTileZ = target.position.z;
+
+        const monstersOnTile = newState.monsters.filter(m =>
+            !m.isDefeated &&
+            m.hp > 0 &&
+            m.position.x === targetTileX &&
+            m.position.z === targetTileZ
+        );
+
+        const effects: any[] = [];
+
+        // Flip power card
+        const currentFlipped = currentHero.flippedPowerIds ?? [];
+        if (!currentFlipped.includes(powerCard.id)) {
+            const updatedHero = {
+                ...currentHero,
+                flippedPowerIds: [...currentFlipped, powerCard.id]
+            };
+            newState = this.updateEntityInState(newState, updatedHero);
+            currentHero = updatedHero;
+            effects.push({ type: 'power_flipped', powerId: powerCard.id, powerType: powerCard.powerType });
+        }
+
+        for (const t of monstersOnTile) {
+            const resolved = CombatSystem.resolveAttack(
+                currentHero,
+                t,
+                powerCard.attackBonus || 7,
+                powerCard.damage || 2,
+                0,
+                undefined,
+                newState
+            );
+
+            let damageDealt = resolved.hit ? resolved.damage : 1; // Miss: 1 Damage
+            let updatedMonster = CombatSystem.applyDamage(t, damageDealt, newState);
+            newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
+
+            effects.push({
+                type: 'attack_resolved',
+                targetId: t.id,
+                hit: resolved.hit,
+                roll: resolved.roll,
+                damage: damageDealt
+            });
+        }
+
+        return {
+            success: true,
+            message: `${hero.name} uses Dagger Barrage on tile (${targetTileX}, ${targetTileZ})`,
+            effects,
+            newState
+        };
     }
 
     private static pullMonstersForComeAndGetIt(
@@ -1048,6 +1277,12 @@ export class PowerSystem {
                             case 'undead':
                                 conditionMet = isUndead;
                                 break;
+                            case 'adjacent_to_hero':
+                                conditionMet = newState.heroes.some(h =>
+                                    h.id !== currentHero.id &&
+                                    Math.abs(h.position.x - currentTarget!.position.x) + Math.abs(h.position.z - currentTarget!.position.z) <= 1
+                                );
+                                break;
                             default:
                                 if (isDev()) console.warn(`[PowerSystem] Unknown damage condition: ${effect.condition}`);
                                 conditionMet = false;
@@ -1202,6 +1437,43 @@ export class PowerSystem {
                 };
             }
 
+            case 'damage_bonus': {
+                const bonusVal = effect.value || 0;
+                const duration = effect.duration || 1;
+                
+                let targetHeroes: Hero[] = [];
+                if (effect.target === 'self') {
+                    targetHeroes = [currentHero];
+                } else if (effect.target === 'all_heroes') {
+                    const heroTile = newState.tiles.find(t => t.x === currentHero.position.x && t.z === currentHero.position.z);
+                    targetHeroes = newState.heroes.filter(h => {
+                        const hTile = newState.tiles.find(t => t.x === h.position.x && t.z === h.position.z);
+                        if (!heroTile || !hTile) return false;
+                        return getTileGraphDistance(heroTile, hTile, newState.tiles) <= 1;
+                    });
+                } else if (currentTarget && !isMonsterEntity(currentTarget)) {
+                    targetHeroes = [currentTarget as Hero];
+                }
+
+                for (const th of targetHeroes) {
+                    const updated = ConditionSystem.applyCondition(th, 'damage_bonus', currentHero.id, duration, bonusVal);
+                    newState = this.updateEntityInState(newState, updated);
+                    if (updated.id === currentHero.id) {
+                        currentHero = updated as Hero;
+                    }
+                    if (currentTarget && updated.id === currentTarget.id) {
+                        currentTarget = updated;
+                    }
+                }
+
+                return {
+                    result: { type: 'damage_bonus_applied', value: bonusVal, duration },
+                    newState,
+                    hero: currentHero,
+                    target: currentTarget
+                };
+            }
+
             case 'defense_bonus':
                 // TODO: implement temporary defense bonus (needs effects layer on hero with expiry)
                 return { result: { type: 'defense_bonus_applied', value: effect.value, duration: effect.duration }, newState, hero: currentHero, target: currentTarget };
@@ -1342,6 +1614,59 @@ export class PowerSystem {
 
                     return {
                         result: { type: 'get_over_there_resolved', newPosition: currentHero.position },
+                        newState,
+                        hero: currentHero,
+                        target: currentTarget
+                    };
+                }
+
+                const isGreatLeap = powerCard?.id === 'rogue_great_leap';
+                if (isGreatLeap) {
+                    const heroTile = newState.tiles.find(t => t.x === currentHero.position.x && t.z === currentHero.position.z);
+                    const validTiles = newState.tiles.filter(t => {
+                        if (!heroTile) return false;
+                        return getTileGraphDistance(heroTile, t, newState.tiles) <= 2;
+                    }).sort((a, b) => {
+                        if (!heroTile) return 0;
+                        const distA = getTileGraphDistance(heroTile, a, newState.tiles);
+                        const distB = getTileGraphDistance(heroTile, b, newState.tiles);
+                        return distB - distA;
+                    });
+
+                    let foundHeroPos = null;
+                    for (const tile of validTiles) {
+                        for (let sqX = 0; sqX < 4; sqX++) {
+                            for (let sqZ = 0; sqZ < 4; sqZ++) {
+                                const occupied = 
+                                    newState.heroes.some(h => h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
+                                    newState.monsters.some(m => !m.isDefeated && m.hp > 0 && m.position.x === tile.x && m.position.z === tile.z && m.position.sqX === sqX && m.position.sqZ === sqZ);
+
+                                if (!occupied) {
+                                    foundHeroPos = { x: tile.x, z: tile.z, sqX, sqZ };
+                                    break;
+                                }
+                            }
+                            if (foundHeroPos) break;
+                        }
+                        if (foundHeroPos) break;
+                    }
+
+                    if (foundHeroPos) {
+                        currentHero = {
+                            ...currentHero,
+                            position: {
+                                ...currentHero.position,
+                                x: foundHeroPos.x,
+                                z: foundHeroPos.z,
+                                sqX: foundHeroPos.sqX,
+                                sqZ: foundHeroPos.sqZ
+                            }
+                        };
+                        newState = this.updateEntityInState(newState, currentHero);
+                    }
+
+                    return {
+                        result: { type: 'great_leap_resolved', newPosition: currentHero.position },
                         newState,
                         hero: currentHero,
                         target: currentTarget

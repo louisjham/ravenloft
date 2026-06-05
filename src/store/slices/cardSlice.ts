@@ -11,6 +11,7 @@ import { ScenarioManager } from '../../game/scenarios/ScenarioManager';
 import { useUIStore } from '../uiStore';
 import { isDev } from '../../utils/devEnv';
 import { ConditionSystem } from '../../game/engine/ConditionSystem';
+import { getTileGraphDistance } from '../../game/engine/MonsterAI';
 
 export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set, get) => ({
   playCard: (cardId: string, targetId: string) => {
@@ -85,6 +86,63 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
         return;
       }
 
+      let drawState = result.newState;
+      const activeHeroId = drawState.currentHeroId;
+      const otherRogue = drawState.heroes.find(h =>
+        h.id !== activeHeroId &&
+        h.heroClass === 'rogue' &&
+        (h.abilities.includes('rogue_spring_away') || h.hand.includes('rogue_spring_away')) &&
+        !(h.flippedPowerIds ?? []).includes('rogue_spring_away')
+      );
+
+      if (otherRogue) {
+        const rogueTile = drawState.tiles.find(t => t.x === otherRogue.position.x && t.z === otherRogue.position.z);
+        if (rogueTile) {
+          const validTiles = drawState.tiles.filter(t => {
+            return getTileGraphDistance(rogueTile, t, drawState.tiles) === 2;
+          });
+
+          let foundPos = null;
+          for (const tile of validTiles) {
+            for (let sqX = 0; sqX < 4; sqX++) {
+              for (let sqZ = 0; sqZ < 4; sqZ++) {
+                const occupied =
+                  drawState.heroes.some(h => h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
+                  drawState.monsters.some(m => !m.isDefeated && m.hp > 0 && m.position.x === tile.x && m.position.z === tile.z && m.position.sqX === sqX && m.position.sqZ === sqZ);
+
+                if (!occupied) {
+                  foundPos = { x: tile.x, z: tile.z, sqX, sqZ };
+                  break;
+                }
+              }
+              if (foundPos) break;
+            }
+            if (foundPos) break;
+          }
+
+          if (foundPos) {
+            const updatedRogue = {
+              ...otherRogue,
+              position: foundPos,
+              flippedPowerIds: [...(otherRogue.flippedPowerIds ?? []), 'rogue_spring_away']
+            };
+
+            const springAwayLog: GameLogEntry = {
+              id: crypto.randomUUID(),
+              timestamp: new Date().toISOString(),
+              message: `${otherRogue.name} uses Spring Away! Teleports to tile (${foundPos.x}, ${foundPos.z}) before the Encounter triggers. Card flips face-down.`,
+              type: 'system' as const
+            };
+
+            drawState = {
+              ...drawState,
+              heroes: drawState.heroes.map(h => h.id === updatedRogue.id ? updatedRogue : h),
+              log: [...drawState.log, springAwayLog].slice(-100)
+            };
+          }
+        }
+      }
+
       const cardResolution: CardResolutionState = {
         phase: 'revealing',
         cardId: result.card.id,
@@ -97,7 +155,7 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
 
       set({
         gameState: {
-          ...result.newState,
+          ...drawState,
           cardResolution
         }
       });

@@ -119,6 +119,14 @@ export class CombatSystem {
       const damageModifier = ConditionSystem.getDamageModifier(attacker);
       actualDamage = Math.floor(finalDamage * damageModifier);
 
+      // Add damage_bonus conditions
+      if (attacker.conditions) {
+        const damageBonusConditions = attacker.conditions.filter(c => c.type === 'damage_bonus');
+        for (const c of damageBonusConditions) {
+          actualDamage += (c.value ?? 0);
+        }
+      }
+
       // Holy Avenger damage bonus (+2 vs Undead)
       if (attacker.type === 'hero' && target.type === 'monster' && (attacker as Hero).items?.includes('item_holy_avenger')) {
         const isUndead = (target as Monster).monsterType?.toLowerCase().includes('undead') ||

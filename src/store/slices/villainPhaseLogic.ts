@@ -274,7 +274,7 @@ export function executeVillainPhase(state: GameState): GameState {
               ? `${monster.name} attacks ${targetHero.name} (+${attackBonus} vs AC ${targetHero.ac}) and HITS (Roll: ${attackResult.roll}, Total: ${attackResult.total}) for ${attackResult.damage} damage.${logSuffix}`
               : `${monster.name} attacks ${targetHero.name} (+${attackBonus} vs AC ${targetHero.ac}) and MISSES (Roll: ${attackResult.roll}, Total: ${attackResult.total}).${attackResult.damage > 0 ? ` Deals ${attackResult.damage} miss damage.` : ''}`;
 
-            const updatedLog: GameLogEntry[] = [
+            let updatedLog: GameLogEntry[] = [
               ...newState.log,
               {
                 id: crypto.randomUUID(),
@@ -283,6 +283,54 @@ export function executeVillainPhase(state: GameState): GameState {
                 type: 'combat' as const
               }
             ].slice(-100);
+
+            // Check for Riposte Strike
+            const hasRiposte = (updatedHero.abilities.includes('rogue_riposte_strike') || updatedHero.hand.includes('rogue_riposte_strike')) &&
+                               !(updatedHero.flippedPowerIds ?? []).includes('rogue_riposte_strike');
+            
+            const hAbsX = updatedHero.position.x * 4 + updatedHero.position.sqX;
+            const hAbsZ = updatedHero.position.z * 4 + updatedHero.position.sqZ;
+            const mAbsX = monster.position.x * 4 + monster.position.sqX;
+            const mAbsZ = monster.position.z * 4 + monster.position.sqZ;
+            const isAdjacent = Math.abs(hAbsX - mAbsX) + Math.abs(hAbsZ - mAbsZ) === 1;
+
+            if (hasRiposte && isAdjacent && monster.hp > 0 && !monster.isDefeated) {
+              const riposteResult = CombatSystem.resolveAttack(
+                updatedHero,
+                monster,
+                7, // attackBonus
+                2, // damage
+                0,
+                undefined,
+                newState
+              );
+
+              let riposteLog = '';
+              let updatedHeroAfterRiposte = updatedHero;
+
+              if (riposteResult.hit) {
+                const updatedMonster = CombatSystem.applyDamage(monster, riposteResult.damage, newState);
+                newState = {
+                  ...newState,
+                  monsters: newState.monsters.map(m => m.id === monster!.id ? updatedMonster : m)
+                };
+                updatedHeroAfterRiposte = {
+                  ...updatedHero,
+                  flippedPowerIds: [...(updatedHero.flippedPowerIds ?? []), 'rogue_riposte_strike']
+                };
+                updatedHeroesList = updatedHeroesList.map(h => h.id === updatedHeroAfterRiposte.id ? updatedHeroAfterRiposte : h);
+                riposteLog = `${updatedHero.name} triggers Riposte Strike, counterattacking ${monster.name} and HITS (Roll: ${riposteResult.roll}, Total: ${riposteResult.total}) for ${riposteResult.damage} damage. Riposte Strike flips face-down.`;
+              } else {
+                riposteLog = `${updatedHero.name} triggers Riposte Strike, counterattacking ${monster.name} and MISSES (Roll: ${riposteResult.roll}, Total: ${riposteResult.total}). Card does not flip.`;
+              }
+
+              updatedLog.push({
+                id: crypto.randomUUID(),
+                timestamp: new Date().toISOString(),
+                message: riposteLog,
+                type: 'combat' as const
+              });
+            }
 
             newState = {
               ...newState,
