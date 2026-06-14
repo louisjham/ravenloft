@@ -104,9 +104,7 @@ export const createTokenSlice: StateCreator<GameStore, [], [], TokenSlice> = (se
 
       const result = EncounterSystem.attemptDisableTrap(state, hero, trap, card);
       if (isDev()) console.log('[DEBUG gameStore] Disable trap:', result.message);
-      if (result.success) {
-        set({ gameState: result.gameState });
-      }
+      set({ gameState: result.gameState });
     },
 
 });

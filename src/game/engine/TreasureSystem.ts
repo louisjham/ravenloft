@@ -1,4 +1,4 @@
-import { Card, Effect, Entity, GameState, Hero, ActiveBlessing, TileEffect, DeckSentinel, Monster, DeckKey } from '../types';
+import { Card, Effect, Entity, GameState, Hero, ActiveBlessing, TileEffect, DeckSentinel, Monster, DeckKey, FortuneXpEntry, PendingFortune } from '../types';
 import { CombatSystem } from './CombatSystem';
 import { ConditionSystem } from './ConditionSystem';
 import { ExperienceSystem } from './ExperienceSystem';
@@ -67,6 +67,10 @@ export class TreasureSystem {
         }
         return { updatedHero: hero, updatedTarget: target };
 
+      case 'remove_conditions':
+        // Handled in processGenericFortune for both 'self' and 'all_heroes' targets
+        return { updatedHero: hero, updatedTarget: target };
+
       case 'draw_card':
         // TODO: draw_card effect is intentionally deferred to caller for now
         return { updatedHero: hero, updatedTarget: target };
@@ -106,7 +110,7 @@ export class TreasureSystem {
     }
 
     const deck = [...gameState.treasureDeck];
-    const cardId = deck.pop();
+    const cardId = deck.shift();
     if (!cardId) {
       return { card: null, newState: gameState, message: 'Failed to draw treasure card' };
     }
@@ -152,21 +156,10 @@ export class TreasureSystem {
       return { newState: gameState, message: 'Not a blessing card', success: false };
     }
 
-    let updatedHeroes = [...gameState.heroes];
-    let currentState = gameState;
-
-    for (const effect of card.effects) {
-      updatedHeroes = updatedHeroes.map(h => {
-        const { updatedHero } = TreasureSystem.applyEffect(effect, h, null, currentState);
-        return updatedHero;
-      });
-      currentState = { ...currentState, heroes: updatedHeroes };
-    }
-
     const blessing: ActiveBlessing = {
       cardId: card.id,
       heroId: hero.id,
-      expiresAfterTurnOf: hero.id,
+      drawnOnTurnCount: gameState.turnCount,
       effects: card.effects,
       name: card.name,
     };
@@ -174,8 +167,7 @@ export class TreasureSystem {
     return {
       newState: {
         ...gameState,
-        heroes: updatedHeroes,
-        activeBlessing: blessing,
+        activeBlessings: [...(gameState.activeBlessings ?? []), blessing],
         discardPiles: TreasureSystem.addToDiscard(gameState.discardPiles, 'treasure', card.id)
       },
       message: `Blessing ${card.name} activated! Effects apply to all heroes until the end of ${hero.name}'s next turn.`,
@@ -184,41 +176,55 @@ export class TreasureSystem {
   }
 
   /**
-   * Expires the active blessing — called at the START of the drawing hero's next turn.
-   * Returns a new GameState with activeBlessing cleared.
+   * Expires active blessings — called at the END of a hero's turn.
+   * Returns a new GameState with expired blessings cleared.
    */
-  public static expireBlessing(gameState: GameState): { newState: GameState; message: string } {
-    const blessing = gameState.activeBlessing;
-    if (!blessing) {
+  public static expireBlessing(gameState: GameState, expiredBlessings: ActiveBlessing[]): { newState: GameState; message: string } {
+    if (!expiredBlessings || expiredBlessings.length === 0) {
       return { newState: gameState, message: 'No active blessing to expire.' };
     }
+
+    const remainingBlessings = (gameState.activeBlessings ?? []).filter(b => !expiredBlessings.some(eb => eb.cardId === b.cardId && eb.heroId === b.heroId));
 
     return {
       newState: {
         ...gameState,
-        activeBlessing: null,
+        activeBlessings: remainingBlessings,
       },
-      message: `Blessing ${blessing.name} has expired.`,
+      message: `Blessing(s) expired: ${expiredBlessings.map(b => b.name).join(', ')}.`,
     };
   }
 
   /**
-   * Checks if the active blessing should expire for the given hero turn start.
-   * Returns a new GameState (possibly with blessing expired).
+   * Checks if any active blessings should expire for the given hero turn end.
+   * Returns a new GameState (possibly with blessings expired).
    */
   public static checkBlessingExpiry(
     gameState: GameState,
     heroId: string
   ): { newState: GameState; expired: boolean; message: string } {
-    const blessing = gameState.activeBlessing;
-    if (!blessing) {
+    const blessings = gameState.activeBlessings ?? [];
+    if (blessings.length === 0) {
       return { newState: gameState, expired: false, message: '' };
     }
 
-    if (blessing.expiresAfterTurnOf === heroId) {
+    // A blessing expires if:
+    // 1. The hero whose turn is ending is the one who drew it (heroId === b.heroId)
+    // 2. AND the game has progressed past the turn it was drawn (gameState.turnCount > b.drawnOnTurnCount)
+    // OR: The hero who drew it is dead. (Cleanup)
+    const deadHeroIds = new Set(gameState.heroes.filter(h => h.hp <= 0).map(h => h.id));
+
+    const expiredBlessings = blessings.filter(b => {
+      if (deadHeroIds.has(b.heroId)) return true; // Purge dead hero blessings
+      return b.heroId === heroId && gameState.turnCount > b.drawnOnTurnCount;
+    });
+
+    if (expiredBlessings.length > 0) {
+      const expireResult = TreasureSystem.expireBlessing(gameState, expiredBlessings);
       return {
-        ...TreasureSystem.expireBlessing(gameState),
+        newState: expireResult.newState,
         expired: true,
+        message: expireResult.message,
       };
     }
 
@@ -246,15 +252,39 @@ export class TreasureSystem {
       case 'fortune_action_surge':
         return TreasureSystem.processActionSurge(gameState, card, hero);
       case 'fortune_breath_of_life':
+      case 'fortune_breath_of_life_2':
+      case 'fortune_breath_of_life_3':
         return TreasureSystem.processBreathOfLife(gameState, card, hero);
       case 'fortune_level_up':
         return TreasureSystem.processFortuneLevelUp(gameState, card, hero);
       case 'fortune_short_rest':
+      case 'fortune_short_rest_2':
         return TreasureSystem.processShortRest(gameState, card, hero);
+      case 'fortune_moments_respite':
+        return TreasureSystem.processMomentsRespitePending(gameState, card, hero);
+      // Legacy two-ID hack — kept for backward compatibility with saved states
       case 'fortune_moments_respite_encounter':
         return TreasureSystem.processMomentsRespite(gameState, card, hero, 'encounterDeck');
       case 'fortune_moments_respite_monster':
         return TreasureSystem.processMomentsRespite(gameState, card, hero, 'monsterDeck');
+      case 'fortune_daze':
+        return TreasureSystem.processDaze(gameState, card, hero);
+      case 'fortune_distant_sounds':
+        return TreasureSystem.processDistantSounds(gameState, card, hero);
+      case 'fortune_eagle_eyes':
+        return TreasureSystem.processEagleEyes(gameState, card, hero);
+      case 'fortune_glimpse_of_the_future':
+        return TreasureSystem.processGlimpseOfFuture(gameState, card, hero);
+      case 'fortune_harrowed_experience':
+      case 'fortune_harrowed_experience_2':
+        return TreasureSystem.processHarrowedExperience(gameState, card, hero);
+      case 'fortune_intimidating_bellow':
+        return TreasureSystem.processIntimidatingBellow(gameState, card, hero);
+      case 'fortune_lucky_find':
+      case 'fortune_lucky_find_2':
+        return TreasureSystem.processLuckyFind(gameState, card, hero);
+      case 'fortune_shake_it_off':
+        return TreasureSystem.processShakeItOff(gameState, card, hero);
       default:
         return TreasureSystem.processGenericFortune(gameState, card, hero);
     }
@@ -270,14 +300,30 @@ export class TreasureSystem {
   ): { newState: GameState; message: string; success: boolean } {
     let updatedHero = hero;
     let hasEffect = false;
+    let updatedHeroes = gameState.heroes;
 
     for (const effect of card.effects) {
+      if (effect.type === 'remove_conditions') {
+        if (effect.target === 'all_heroes') {
+          // Clear The Air: remove all conditions from ALL heroes
+          updatedHeroes = updatedHeroes.map(h => ConditionSystem.clearAllConditions(h));
+          updatedHero = updatedHeroes.find(h => h.id === hero.id) ?? updatedHero;
+          hasEffect = true;
+        } else {
+          // self: clear conditions from just the drawing hero
+          updatedHero = ConditionSystem.clearAllConditions(updatedHero);
+          hasEffect = true;
+        }
+        continue;
+      }
+
       const { updatedHero: newHero } = TreasureSystem.applyEffect(effect, updatedHero, null, gameState);
       if (newHero !== updatedHero) hasEffect = true;
       updatedHero = newHero;
     }
 
-    const updatedHeroes = gameState.heroes.map(h => h.id === hero.id ? updatedHero : h);
+    // Merge any per-loop hero changes back into the heroes array
+    updatedHeroes = updatedHeroes.map(h => h.id === hero.id ? updatedHero : h);
 
     return {
       newState: {
@@ -300,13 +346,18 @@ export class TreasureSystem {
     card: Card,
     hero: Hero
   ): { newState: GameState; message: string; success: boolean } {
+    const updatedHero: Hero = {
+      ...hero,
+      extraActionsThisTurn: (hero.extraActionsThisTurn ?? 0) + 1,
+    };
+    const updatedHeroes = gameState.heroes.map(h => h.id === hero.id ? updatedHero : h);
     return {
       newState: {
         ...gameState,
-        hasAttackedThisTurn: false,
+        heroes: updatedHeroes,
         discardPiles: TreasureSystem.addToDiscard(gameState.discardPiles, 'treasure', card.id)
       },
-      message: `${hero.name} uses Action Surge and may act again!`,
+      message: `${hero.name} uses Action Surge! They may move their speed or make one additional attack.`,
       success: true,
     };
   }
@@ -320,15 +371,10 @@ export class TreasureSystem {
     card: Card,
     hero: Hero
   ): { newState: GameState; message: string; success: boolean } {
-    const downedHero = gameState.heroes.find(h => h.hp <= 0 && !h.escaped);
-    const target = downedHero ?? gameState.heroes.reduce((a, b) => a.hp < b.hp ? a : b);
-
-    const healEffect = card.effects.find(e => e.type === 'heal');
-    const healAmount = typeof healEffect?.value === 'number' ? healEffect.value : 2;
-    const healedHero = CombatSystem.applyHealing(target, healAmount);
-    const updatedHeroes = gameState.heroes.map(h =>
-      h.id === healedHero.id ? healedHero : h
-    );
+    // Per card text: "Your Hero regains one hit point" — heals the drawing hero exactly 1 HP.
+    const healAmount = 1;
+    const healedHero = CombatSystem.applyHealing(hero, healAmount);
+    const updatedHeroes = gameState.heroes.map(h => h.id === hero.id ? healedHero : h);
 
     return {
       newState: {
@@ -336,7 +382,7 @@ export class TreasureSystem {
         heroes: updatedHeroes,
         discardPiles: TreasureSystem.addToDiscard(gameState.discardPiles, 'treasure', card.id)
       },
-      message: `Breath of Life restores ${healAmount} HP to ${healedHero.name}!`,
+      message: `Breath of Life! ${hero.name} regains 1 HP.`,
       success: true,
     };
   }
@@ -441,6 +487,30 @@ export class TreasureSystem {
    * Moment's Respite: Places a sentinel at the top of the specified deck,
    * nullifying the next draw from that deck.
    */
+  /**
+   * Moment's Respite (new single-card, player-choice version):
+   * Sets pendingFortune so the UI can ask which deck to protect.
+   * Resolution applies the sentinel via resolvePendingFortune.
+   */
+  private static processMomentsRespitePending(
+    gameState: GameState,
+    card: Card,
+    _hero: Hero
+  ): { newState: GameState; message: string; success: boolean } {
+    const pending: PendingFortune = {
+      kind: 'deckSentinelChoice',
+      fortuneCardId: card.id,
+    };
+    return {
+      newState: { ...gameState, pendingFortune: pending },
+      message: `Moment's Respite! Choose which deck to protect: Encounter Deck or Monster Deck.`,
+      success: true,
+    };
+  }
+
+  /**
+   * Moment's Respite (legacy two-ID handler — kept for backward compat).
+   */
   private static processMomentsRespite(
     gameState: GameState,
     card: Card,
@@ -463,8 +533,580 @@ export class TreasureSystem {
     };
   }
 
+  // ---------------------------------------------------------------------------
+  // Fortune handlers: new implementations
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Daze: Sets pendingFortune so the player can choose which monster to daze.
+   * When resolved, the monster gains skipActivations +1.
+   */
+  private static processDaze(
+    gameState: GameState,
+    card: Card,
+    hero: Hero
+  ): { newState: GameState; message: string; success: boolean } {
+    const eligible = gameState.monsters
+      .filter(m => m.hp > 0 && !m.isDefeated)
+      .map(m => m.id);
+
+    if (eligible.length === 0) {
+      return {
+        newState: {
+          ...gameState,
+          discardPiles: TreasureSystem.addToDiscard(gameState.discardPiles, 'treasure', card.id)
+        },
+        message: `Daze: no living monsters to target. Card discarded.`,
+        success: true,
+      };
+    }
+
+    // Auto-resolve if only one eligible monster
+    if (eligible.length === 1) {
+      const targetMonster = gameState.monsters.find(m => m.id === eligible[0])!;
+      const updatedMonster: Monster = {
+        ...targetMonster,
+        skipActivations: (targetMonster.skipActivations ?? 0) + 1,
+      };
+      return {
+        newState: {
+          ...gameState,
+          monsters: gameState.monsters.map(m => m.id === eligible[0] ? updatedMonster : m),
+          discardPiles: TreasureSystem.addToDiscard(gameState.discardPiles, 'treasure', card.id)
+        },
+        message: `Daze! ${updatedMonster.name} will skip its next activation.`,
+        success: true,
+      };
+    }
+
+    const pending: PendingFortune = {
+      kind: 'monsterPick',
+      purpose: 'daze',
+      eligible,
+      fortuneCardId: card.id,
+    };
+    return {
+      newState: { ...gameState, pendingFortune: pending },
+      message: `Daze! Choose a monster to daze (it will skip its next activation).`,
+      success: true,
+    };
+  }
+
+  /**
+   * Distant Sounds: Sets pendingFortune so the player can reorder the top 3
+   * cards of the Monster Deck.
+   */
+  private static processDistantSounds(
+    gameState: GameState,
+    card: Card,
+    _hero: Hero
+  ): { newState: GameState; message: string; success: boolean } {
+    const topCards = gameState.monsterDeck.slice(0, 3);
+
+    if (topCards.length === 0) {
+      return {
+        newState: {
+          ...gameState,
+          discardPiles: TreasureSystem.addToDiscard(gameState.discardPiles, 'treasure', card.id)
+        },
+        message: `Distant Sounds: Monster Deck is empty. Card discarded.`,
+        success: true,
+      };
+    }
+
+    const pending: PendingFortune = {
+      kind: 'deckReorder',
+      deck: 'monster',
+      topCards,
+      fortuneCardId: card.id,
+    };
+    return {
+      newState: { ...gameState, pendingFortune: pending },
+      message: `Distant Sounds! Reorder the top ${topCards.length} cards of the Monster Deck.`,
+      success: true,
+    };
+  }
+
+  /**
+   * Eagle Eyes: Gathers all unexplored edges and sets pendingFortune so the
+   * player can choose where to reveal a tile (without drawing an encounter).
+   */
+  private static processEagleEyes(
+    gameState: GameState,
+    card: Card,
+    _hero: Hero
+  ): { newState: GameState; message: string; success: boolean } {
+    const revealedTiles = gameState.tiles.filter(t => t.isRevealed);
+    type EdgeInfo = { tileId: string; edge: 'north' | 'south' | 'east' | 'west' };
+    const unexploredEdges: EdgeInfo[] = [];
+
+    for (const tile of revealedTiles) {
+      for (const conn of tile.connections) {
+        if (conn.isOpen && !conn.connectedTileId) {
+          unexploredEdges.push({ tileId: tile.id, edge: conn.edge });
+        }
+      }
+    }
+
+    if (unexploredEdges.length === 0 || gameState.dungeonDeck.length === 0) {
+      return {
+        newState: {
+          ...gameState,
+          discardPiles: TreasureSystem.addToDiscard(gameState.discardPiles, 'treasure', card.id)
+        },
+        message: `Eagle Eyes: no unexplored edges available. Card discarded.`,
+        success: true,
+      };
+    }
+
+    const pending: PendingFortune = {
+      kind: 'tileEdgePick',
+      edges: unexploredEdges,
+      fortuneCardId: card.id,
+    };
+    return {
+      newState: { ...gameState, pendingFortune: pending },
+      message: `Eagle Eyes! Choose an unexplored edge to reveal a new tile (no encounter draw).`,
+      success: true,
+    };
+  }
+
+  /**
+   * Glimpse Of The Future: Sets pendingFortune so the player can reorder the
+   * top 3 cards of the Encounter Deck.
+   */
+  private static processGlimpseOfFuture(
+    gameState: GameState,
+    card: Card,
+    _hero: Hero
+  ): { newState: GameState; message: string; success: boolean } {
+    const topCards = gameState.encounterDeck.slice(0, 3);
+
+    if (topCards.length === 0) {
+      return {
+        newState: {
+          ...gameState,
+          discardPiles: TreasureSystem.addToDiscard(gameState.discardPiles, 'treasure', card.id)
+        },
+        message: `Glimpse Of The Future: Encounter Deck is empty. Card discarded.`,
+        success: true,
+      };
+    }
+
+    const pending: PendingFortune = {
+      kind: 'deckReorder',
+      deck: 'encounter',
+      topCards,
+      fortuneCardId: card.id,
+    };
+    return {
+      newState: { ...gameState, pendingFortune: pending },
+      message: `Glimpse Of The Future! Reorder the top ${topCards.length} cards of the Encounter Deck.`,
+      success: true,
+    };
+  }
+
+  /**
+   * Harrowed Experience: Adds the card to fortuneXpEntries as 1 XP,
+   * then discards it. The XP entry is spent alongside monster XP.
+   */
+  private static processHarrowedExperience(
+    gameState: GameState,
+    card: Card,
+    hero: Hero
+  ): { newState: GameState; message: string; success: boolean } {
+    const entry: FortuneXpEntry = {
+      cardId: card.id,
+      source: 'fortune',
+      amount: 1,
+    };
+    const fortuneXpEntries = [...(gameState.fortuneXpEntries ?? []), entry];
+    return {
+      newState: {
+        ...gameState,
+        fortuneXpEntries,
+        discardPiles: TreasureSystem.addToDiscard(gameState.discardPiles, 'treasure', card.id)
+      },
+      message: `${hero.name} gains 1 XP from Harrowed Experience!`,
+      success: true,
+    };
+  }
+
+  /**
+   * Intimidating Bellow: Sets pendingFortune so the player can choose which
+   * monster to move at least 2 tiles away.
+   */
+  private static processIntimidatingBellow(
+    gameState: GameState,
+    card: Card,
+    _hero: Hero
+  ): { newState: GameState; message: string; success: boolean } {
+    const eligible = gameState.monsters
+      .filter(m => m.hp > 0 && !m.isDefeated && !m.isBoss)
+      .map(m => m.id);
+
+    if (eligible.length === 0) {
+      return {
+        newState: {
+          ...gameState,
+          discardPiles: TreasureSystem.addToDiscard(gameState.discardPiles, 'treasure', card.id)
+        },
+        message: `Intimidating Bellow: no eligible monsters. Card discarded.`,
+        success: true,
+      };
+    }
+
+    const pending: PendingFortune = {
+      kind: 'monsterPick',
+      purpose: 'move',
+      eligible,
+      fortuneCardId: card.id,
+    };
+    return {
+      newState: { ...gameState, pendingFortune: pending },
+      message: `Intimidating Bellow! Choose a monster to move at least 2 tiles away.`,
+      success: true,
+    };
+  }
+
+  /**
+   * Lucky Find: Draws up to 3 treasure cards (bypassing the 1-per-turn limit
+   * for the unchosen cards), then sets pendingFortune so the player picks one
+   * to keep. The chosen card resolves normally; the others are discarded.
+   * The kept card does NOT count against the per-turn treasure quota if the
+   * quota was already consumed by the original Fortune draw.
+   */
+  private static processLuckyFind(
+    gameState: GameState,
+    card: Card,
+    _hero: Hero
+  ): { newState: GameState; message: string; success: boolean } {
+    const drawCount = Math.min(3, gameState.treasureDeck.length);
+
+    if (drawCount === 0) {
+      return {
+        newState: {
+          ...gameState,
+          discardPiles: TreasureSystem.addToDiscard(gameState.discardPiles, 'treasure', card.id)
+        },
+        message: `Lucky Find: Treasure Deck is empty. Card discarded.`,
+        success: true,
+      };
+    }
+
+    // Pull cards off the top of the treasure deck (no per-turn increment yet)
+    const deck = [...gameState.treasureDeck];
+    const drawn = deck.splice(0, drawCount);
+
+    const pending: PendingFortune = {
+      kind: 'treasureChoose',
+      drawn,
+      fortuneCardId: card.id,
+    };
+    return {
+      newState: {
+        ...gameState,
+        treasureDeck: deck,
+        pendingFortune: pending,
+      },
+      message: `Lucky Find! You drew ${drawCount} treasure cards. Choose one to keep; the rest are discarded.`,
+      success: true,
+    };
+  }
+
+  /**
+   * Shake It Off: Lets one chosen hero remove one condition.
+   * Auto-resolves if there is exactly one eligible hero with one condition.
+   */
+  private static processShakeItOff(
+    gameState: GameState,
+    card: Card,
+    hero: Hero
+  ): { newState: GameState; message: string; success: boolean } {
+    const eligibleHeroes = gameState.heroes.filter(
+      h => h.conditions.length > 0 && !h.escaped
+    );
+
+    if (eligibleHeroes.length === 0) {
+      return {
+        newState: {
+          ...gameState,
+          discardPiles: TreasureSystem.addToDiscard(gameState.discardPiles, 'treasure', card.id)
+        },
+        message: `Shake It Off: no heroes have conditions to remove. Card discarded.`,
+        success: true,
+      };
+    }
+
+    // Auto-resolve: exactly one hero with exactly one condition
+    if (eligibleHeroes.length === 1 && eligibleHeroes[0].conditions.length === 1) {
+      const target = eligibleHeroes[0];
+      const conditionName = target.conditions[0].type;
+      const clearedHero = ConditionSystem.removeCondition(target, conditionName as import('../types').ConditionType);
+      return {
+        newState: {
+          ...gameState,
+          heroes: gameState.heroes.map(h => h.id === target.id ? clearedHero : h),
+          discardPiles: TreasureSystem.addToDiscard(gameState.discardPiles, 'treasure', card.id)
+        },
+        message: `Shake It Off! ${target.name} removes ${conditionName}.`,
+        success: true,
+      };
+    }
+
+    const pending: PendingFortune = {
+      kind: 'heroConditionPick',
+      heroIds: eligibleHeroes.map(h => h.id),
+      fortuneCardId: card.id,
+    };
+    return {
+      newState: { ...gameState, pendingFortune: pending },
+      message: `Shake It Off! Choose a hero and a condition to remove.`,
+      success: true,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Public: resolve player choices for pending Fortunes (Step 18)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Resolves a player's choice for a pending Fortune.
+   * Called from the store action after the FortuneResolutionModal commits a decision.
+   *
+   * The `choice` parameter is a discriminated object whose shape matches the
+   * `PendingFortune.kind` in the current `gameState.pendingFortune`.
+   */
+  public static async resolvePendingFortuneAsync(
+    gameState: GameState,
+    choice:
+      | { kind: 'deckReorder'; newOrder: string[] }
+      | { kind: 'monsterPick'; monsterId: string; destinationTileId?: string }
+      | { kind: 'heroConditionPick'; heroId: string; conditionType: string }
+      | { kind: 'treasureChoose'; keptCardId: string; drawingHeroId: string }
+      | { kind: 'tileEdgePick'; tileId: string; edge: string }
+      | { kind: 'deckSentinelChoice'; deck: 'monster' | 'encounter' }
+      | { kind: 'tileRelocatePick'; destinationTileId: string }
+      | { kind: 'atWillPowerPick'; powerCardId: string }
+  ): Promise<{ newState: GameState; message: string }> {
+    const pending = gameState.pendingFortune;
+    if (!pending) {
+      return { newState: gameState, message: 'No pending fortune to resolve.' };
+    }
+
+    // Clear pending up front; each branch will discard the card if appropriate
+    const base: GameState = { ...gameState, pendingFortune: undefined };
+
+    const card = DataLoader.getInstance().getCardById(pending.fortuneCardId);
+    const discardKey = card?.type === 'encounter' ? 'encounter' : 'treasure';
+
+    switch (choice.kind) {
+      case 'deckReorder': {
+        if (pending.kind !== 'deckReorder') break;
+        const deckKey = pending.deck === 'monster' ? 'monsterDeck' : 'encounterDeck';
+        const rest = base[deckKey].slice(pending.topCards.length);
+        return {
+          newState: {
+            ...base,
+            [deckKey]: [...choice.newOrder, ...rest],
+            discardPiles: TreasureSystem.addToDiscard(base.discardPiles, discardKey, pending.fortuneCardId)
+          },
+          message: `${pending.deck === 'monster' ? 'Distant Sounds' : 'Glimpse Of The Future'}: deck reordered.`
+        };
+      }
+
+      case 'monsterPick': {
+        if (pending.kind !== 'monsterPick') break;
+        const targetMonster = base.monsters.find(m => m.id === choice.monsterId);
+        if (!targetMonster) break;
+
+        if (pending.purpose === 'daze') {
+          const updatedMonster: Monster = {
+            ...targetMonster,
+            skipActivations: (targetMonster.skipActivations ?? 0) + 1,
+          };
+          return {
+            newState: {
+              ...base,
+              monsters: base.monsters.map(m => m.id === choice.monsterId ? updatedMonster : m),
+              discardPiles: TreasureSystem.addToDiscard(base.discardPiles, discardKey, pending.fortuneCardId)
+            },
+            message: `Daze! ${targetMonster.name} will skip its next activation.`
+          };
+        }
+
+        if (pending.purpose === 'move') {
+          // Move the monster to a tile ≥2 tile-graph-distance away.
+          // The destinationTileId is provided by the UI (FortuneResolutionModal validates distance).
+          const destTile = base.tiles.find(t => t.id === choice.destinationTileId);
+          if (!destTile) break;
+          const updatedMonster: Monster = {
+            ...targetMonster,
+            position: { x: destTile.x, z: destTile.z, sqX: 1, sqZ: 1 }
+          };
+          return {
+            newState: {
+              ...base,
+              monsters: base.monsters.map(m => m.id === choice.monsterId ? updatedMonster : m),
+              discardPiles: TreasureSystem.addToDiscard(base.discardPiles, discardKey, pending.fortuneCardId)
+            },
+            message: `Intimidating Bellow! ${targetMonster.name} moves to tile (${destTile.x}, ${destTile.z}).`
+          };
+        }
+        break;
+      }
+
+      case 'heroConditionPick': {
+        if (pending.kind !== 'heroConditionPick') break;
+        const targetHero = base.heroes.find(h => h.id === choice.heroId);
+        if (!targetHero) break;
+        const clearedHero = ConditionSystem.removeCondition(targetHero, choice.conditionType as import('../types').ConditionType);
+        return {
+          newState: {
+            ...base,
+            heroes: base.heroes.map(h => h.id === choice.heroId ? clearedHero : h),
+            discardPiles: TreasureSystem.addToDiscard(base.discardPiles, discardKey, pending.fortuneCardId)
+          },
+          message: `Shake It Off! ${targetHero.name} removes ${choice.conditionType}.`
+        };
+      }
+
+      case 'treasureChoose': {
+        if (pending.kind !== 'treasureChoose') break;
+        const { keptCardId, drawingHeroId } = choice;
+        // Discard the unchosen cards
+        let discardPiles = base.discardPiles;
+        for (const drawnId of pending.drawn) {
+          if (drawnId !== keptCardId) {
+            discardPiles = TreasureSystem.addToDiscard(discardPiles, 'treasure', drawnId);
+          }
+        }
+        // Also discard the Lucky Find card itself
+        discardPiles = TreasureSystem.addToDiscard(discardPiles, discardKey, pending.fortuneCardId);
+
+        // Resolve the kept card — don't increment treasuresDrawnThisTurn for Lucky Find's bonus
+        const dataLoader = DataLoader.getInstance();
+        const keptCard = dataLoader.getCardById(keptCardId) as Card | undefined;
+        const drawingHero = base.heroes.find(h => h.id === drawingHeroId);
+        let stateAfterKeep: GameState = { ...base, discardPiles };
+
+        if (keptCard && drawingHero) {
+          if (keptCard.treasureType === 'blessing') {
+            const blessingResult = TreasureSystem.useBlessing(stateAfterKeep, keptCard, drawingHero);
+            stateAfterKeep = blessingResult.newState;
+          } else if (keptCard.treasureType === 'fortune') {
+            const fortuneResult = TreasureSystem.useFortune(stateAfterKeep, keptCard, drawingHero);
+            stateAfterKeep = fortuneResult.newState;
+          } else {
+            // Item: assign to hero
+            const updatedHero = { ...drawingHero, items: [...drawingHero.items, keptCard.id] };
+            stateAfterKeep = {
+              ...stateAfterKeep,
+              heroes: stateAfterKeep.heroes.map(h => h.id === drawingHeroId ? updatedHero : h)
+            };
+          }
+        }
+
+        return {
+          newState: stateAfterKeep,
+          message: `Lucky Find! ${drawingHero?.name ?? 'Hero'} keeps ${keptCard?.name ?? keptCardId}.`
+        };
+      }
+
+      case 'tileEdgePick': {
+        if (pending.kind !== 'tileEdgePick') break;
+        // Eagle Eyes: discard fortune card and clear pending.
+        // The tile placement is triggered by the caller (store action) after this returns,
+        // passing skipEncounterDraw=true and the chosen edge from the UI's choice payload.
+        return {
+          newState: {
+            ...base,
+            discardPiles: TreasureSystem.addToDiscard(base.discardPiles, discardKey, pending.fortuneCardId)
+          },
+          message: `Eagle Eyes! Placing a tile at ${choice.tileId} ${choice.edge} edge (no encounter draw).`
+        };
+      }
+
+      case 'deckSentinelChoice': {
+        if (pending.kind !== 'deckSentinelChoice') break;
+        const deckKey = choice.deck === 'monster' ? 'monsterDeck' : 'encounterDeck';
+        const currentDeck = [...(base[deckKey] as string[])];
+        currentDeck.unshift(SENTINEL_MOMENTS_RESPITE);
+        return {
+          newState: {
+            ...base,
+            [deckKey]: currentDeck,
+            discardPiles: TreasureSystem.addToDiscard(base.discardPiles, discardKey, pending.fortuneCardId)
+          },
+          message: `Moment's Respite! The next ${choice.deck === 'monster' ? 'Monster' : 'Encounter'} draw is skipped.`
+        };
+      }
+
+      case 'tileRelocatePick': {
+        if (pending.kind !== 'tileRelocatePick') break;
+        const targetTile = base.tiles.find(t => t.id === (choice as any).destinationTileId);
+        const hero = base.heroes.find(h => h.id === pending.heroId);
+        if (!targetTile || !hero) break;
+
+        const heroTile = base.tiles.find(t => t.x === hero.position.x && t.z === hero.position.z);
+        const updatedHeroes = base.heroes.map(h =>
+          h.id === hero.id ? { ...h, position: { ...h.position, x: targetTile.x, z: targetTile.z, sqX: 2, sqZ: 2 } } : h
+        );
+
+        let updatedTiles = base.tiles.map(t => {
+          let heroes = [...t.heroes];
+          if (heroTile && t.id === heroTile.id) {
+            heroes = heroes.filter(id => id !== hero.id);
+          }
+          if (t.id === targetTile.id) {
+            heroes = [...new Set([...heroes, hero.id])];
+          }
+          return { ...t, heroes };
+        });
+
+        return {
+          newState: {
+            ...base,
+            heroes: updatedHeroes,
+            tiles: updatedTiles,
+            discardPiles: TreasureSystem.addToDiscard(base.discardPiles, discardKey, pending.fortuneCardId)
+          },
+          message: `Relocated ${hero.name} to tile ${targetTile.name || targetTile.id} (${targetTile.x}, ${targetTile.z}).`
+        };
+      }
+
+      case 'atWillPowerPick': {
+        if (pending.kind !== 'atWillPowerPick') break;
+        const attacker = base.heroes.find(h => h.id === pending.attackerHeroId);
+        const target = base.heroes.find(h => h.id === pending.targetHeroId);
+        if (!attacker || !target) break;
+
+        const powerCard = DataLoader.getInstance().getCardById((choice as any).powerCardId);
+        if (!powerCard) break;
+
+        // Execute power asynchronously
+        const powerResult = await PowerSystem.usePowerAsync(attacker, powerCard, target, base);
+
+        return {
+          newState: {
+            ...powerResult.newState,
+            discardPiles: TreasureSystem.addToDiscard(powerResult.newState.discardPiles, discardKey, pending.fortuneCardId)
+          },
+          message: `${attacker.name} attacks ${target.name} with ${powerCard.name}! ${powerResult.message}`
+        };
+      }
+    }
+
+    // Fallback: clear pending without effect
+    return {
+      newState: base,
+      message: `Fortune resolution: no matching handler for ${choice.kind}.`
+    };
+  }
+
   /**
    * Checks if the top card of a deck is a Moment's Respite sentinel.
+
    * If so, removes and discards it, returning true (indicating the draw should be skipped).
    * Note: SENTINEL_MOMENTS_RESPITE is a deck marker string, not a real card ID.
    * It should never be passed to addToDiscard.
@@ -560,9 +1202,7 @@ export class TreasureSystem {
       if (!target || target.type !== 'monster') {
         return { newState: gameState, message: 'Wooden Stake must target a monster.', success: false };
       }
-      const isVampire = (target as Monster).monsterType?.toLowerCase().includes('vampire') ||
-                        target.name?.toLowerCase().includes('vampire') ||
-                        target.name?.toLowerCase().includes('strahd');
+      const isVampire = (target as Monster).monsterType?.toLowerCase() === 'vampire';
       if (!isVampire) {
         return { newState: gameState, message: 'Wooden Stake can only target Vampire-type monsters.', success: false };
       }
@@ -656,13 +1296,7 @@ export class TreasureSystem {
         if (m.hp <= 0 || m.isDefeated) return false;
         const mTile = gameState.tiles.find(t => t.monsters.includes(m.id) || (t.x === m.position.x && t.z === m.position.z));
         if (!mTile || !affectedTileIds.has(mTile.id)) return false;
-        const isUndead = m.monsterType?.toLowerCase().includes('undead') ||
-                         m.name?.toLowerCase().includes('undead') ||
-                         m.name?.toLowerCase().includes('zombie') ||
-                         m.name?.toLowerCase().includes('skeleton') ||
-                         m.name?.toLowerCase().includes('ghoul') ||
-                         m.name?.toLowerCase().includes('wraith') ||
-                         m.name?.toLowerCase().includes('vampire');
+        const isUndead = m.isUndead === true;
         return isUndead;
       });
 
@@ -820,8 +1454,12 @@ export class TreasureSystem {
       return { newState: gameState, message: 'Hero must be on a tile to place a glyph.', success: false };
     }
 
+    let newState = { ...gameState };
+    const glyphId = `glyph_${newState.logIdCounter}`;
+    newState.logIdCounter = (newState.logIdCounter ?? 0) + 1;
+
     const glyph: TileEffect = {
-      id: `glyph_${crypto.randomUUID()}`,
+      id: glyphId,
       tileId: heroTile.id,
       type: 'glyph_warding',
       heroId: hero.id,
@@ -830,13 +1468,13 @@ export class TreasureSystem {
       description: 'Monsters cannot enter this tile (Glyph of Warding).',
     };
 
-    const tileEffects = [...(gameState.tileEffects ?? []), glyph];
+    const tileEffects = [...(newState.tileEffects ?? []), glyph];
     const updatedHero = { ...hero, items: hero.items.filter(id => id !== card.id) };
-    const updatedHeroes = gameState.heroes.map(h => h.id === hero.id ? updatedHero : h);
+    const updatedHeroes = newState.heroes.map(h => h.id === hero.id ? updatedHero : h);
 
     return {
       newState: {
-        ...gameState,
+        ...newState,
         heroes: updatedHeroes,
         tileEffects,
       },
@@ -895,7 +1533,7 @@ export class TreasureSystem {
     return {
       ac: hero.ac + bonuses.defenseBonus,
       attackBonus: (hero.attackBonus ?? 0) + bonuses.attackBonus,
-      damage: bonuses.damageBonus,
+      damage: (hero.damage ?? 1) + bonuses.damageBonus,
       speed: hero.speed + bonuses.speedBonus,
     };
   }
@@ -1000,16 +1638,20 @@ export class TreasureSystem {
     }
 
     if (effect.type === 'glyph_warding') {
+      let tempState = { ...gameState };
+      const logId = String(tempState.logIdCounter);
+      tempState.logIdCounter = (tempState.logIdCounter ?? 0) + 1;
+
       return {
         newState: {
-          ...gameState,
+          ...tempState,
           tileEffects: tileEffects.map(te =>
             te.id === effect.id ? { ...te, isExpended: true } : te
           ),
           log: [
-            ...gameState.log,
+            ...tempState.log,
             {
-              id: crypto.randomUUID(),
+              id: logId,
               timestamp: new Date().toISOString(),
               message: `🌀 Glyph of Warding blocks ${monster.name} from entering the tile!`,
               type: 'event' as const,
@@ -1021,6 +1663,107 @@ export class TreasureSystem {
     }
 
     return { newState: gameState, blocked: false };
+  }
+
+  /**
+   * Scans for any newly defeated monsters (HP <= 0, but not yet marked as defeated or still owned by a hero).
+   * Moves them to the experience pile, resets ownership, and awards a treasure card if it's the first defeat of the turn.
+   */
+  public static processDefeatedMonsters(gameState: GameState): GameState {
+    let newState = { ...gameState };
+    
+    // Find monsters whose HP <= 0, but are not yet marked isDefeated OR still have an owner
+    const defeatedMonsters = newState.monsters.filter(m => m.hp <= 0 && (!m.isDefeated || m.ownedByHeroId !== null));
+    
+    if (defeatedMonsters.length === 0) {
+      return newState;
+    }
+
+    const currentHero = newState.heroes.find(h => h.id === newState.currentHeroId);
+    let updatedMonsters = [...newState.monsters];
+    let updatedExperiencePile = [...newState.experiencePile];
+    let logs = [...newState.log];
+    let currentCounter = newState.logIdCounter ?? 0;
+
+    for (const m of defeatedMonsters) {
+      // Mark as defeated and unowned
+      updatedMonsters = updatedMonsters.map(mon => 
+        mon.id === m.id ? { ...mon, isDefeated: true, ownedByHeroId: null } : mon
+      );
+
+      // Determine template ID (e.g. monster_skeleton_1 -> monster_skeleton)
+      const parts = m.id.split('_');
+      const xpCardId = m.templateId || (parts.length >= 2 ? `${parts[0]}_${parts[1]}` : m.id);
+      const cleanXpCardId = xpCardId.startsWith('monster_') ? xpCardId : `monster_${m.monsterType.toLowerCase()}`;
+      
+      updatedExperiencePile.push(cleanXpCardId);
+      
+      logs.push({
+        id: String(currentCounter),
+        timestamp: new Date().toISOString(),
+        message: `💀 ${m.name} is defeated! Added ${cleanXpCardId} to the experience pile (+${m.experienceValue || 1} XP).`,
+        type: 'system' as const
+      });
+      currentCounter++;
+
+      // Draw treasure card if it's the first monster defeated this turn and a hero did it
+      // Only draw treasure for the first defeated monster per turn (rulebook: one treasure per turn)
+      if (newState.treasuresDrawnThisTurn === 0 && currentHero) {
+        // Run Moment's Respite check first
+        const respiteResult = TreasureSystem.checkAndDiscardRespite({
+          ...newState,
+          monsters: updatedMonsters,
+          experiencePile: updatedExperiencePile,
+          logIdCounter: currentCounter
+        }, 'treasureDeck');
+        
+        const drawResult = TreasureSystem.drawTreasureCard(respiteResult.gameState, currentHero);
+        if (drawResult.card) {
+          let tempState = drawResult.newState;
+          if (drawResult.card.treasureType === 'blessing') {
+            const blessingResult = TreasureSystem.useBlessing(tempState, drawResult.card, currentHero);
+            tempState = blessingResult.newState;
+          } else if (drawResult.card.treasureType === 'fortune') {
+            const fortuneResult = TreasureSystem.useFortune(tempState, drawResult.card, currentHero);
+            tempState = fortuneResult.newState;
+          } else {
+            const assignResult = TreasureSystem.assignItem(tempState, drawResult.card, currentHero);
+            tempState = assignResult.newState;
+          }
+          
+          updatedMonsters = tempState.monsters;
+          updatedExperiencePile = tempState.experiencePile;
+          
+          newState = {
+            ...newState,
+            treasureDeck: tempState.treasureDeck,
+            treasuresDrawnThisTurn: tempState.treasuresDrawnThisTurn,
+            heroes: tempState.heroes,
+            discardPiles: tempState.discardPiles,
+            activeBlessings: tempState.activeBlessings,
+            logIdCounter: tempState.logIdCounter ?? currentCounter,
+          };
+          
+          currentCounter = tempState.logIdCounter ?? currentCounter;
+
+          logs.push({
+            id: String(currentCounter),
+            timestamp: new Date().toISOString(),
+            message: `🎁 First monster defeated this turn! ${drawResult.message}`,
+            type: 'system' as const
+          });
+          currentCounter++;
+        }
+      }
+    }
+
+    return {
+      ...newState,
+      monsters: updatedMonsters,
+      experiencePile: updatedExperiencePile,
+      log: logs.slice(-100),
+      logIdCounter: currentCounter
+    };
   }
 
   /**

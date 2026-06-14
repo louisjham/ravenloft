@@ -1,5 +1,6 @@
-import { Card, Entity, Hero, Monster, PowerType, GameState, isMonsterEntity, isHeroEntity, Tile, GameToken } from '../types';
+import { Card, Entity, Hero, Monster, PowerType, GameState, isMonsterEntity, isHeroEntity, Tile, GameToken, AttackResult } from '../types';
 import { CombatSystem } from './CombatSystem';
+import { CombatAdapter } from './CombatAdapter';
 import { ConditionSystem } from './ConditionSystem';
 import { getTileGraphDistance } from './MonsterAI';
 import { isDev } from '../../utils/devEnv';
@@ -121,13 +122,18 @@ export class PowerSystem {
         powerCard: Card,
         target: Entity | null,
         gameState: GameState,
-        attackResult: { hit: boolean; damage: number } | null
+        attackResult: import('../types').AttackResult | null
     ): { success: boolean; message: string; effects: any[]; newState: GameState } {
         const effects: any[] = [];
         const hitTarget = attackResult ? attackResult.hit : true;
         let currentState = { ...gameState };
         let currentHero = { ...hero };
         let currentTarget = target ? { ...target } : null;
+
+        if (attackResult) {
+            currentHero = CombatSystem.applyAttackResultEffects(currentHero, attackResult);
+            currentState = this.updateEntityInState(currentState, currentHero);
+        }
 
         // Apply attack damage if it hit
         if (attackResult && hitTarget && attackResult.damage > 0 && currentTarget) {
@@ -270,11 +276,11 @@ export class PowerSystem {
             }
         }
 
-        let attackResult: { hit: boolean; damage: number } | null = null;
+        let attackResult: AttackResult | null = null;
 
         if (currentAttackBonus !== undefined && currentTarget) {
             const damage = powerCard.damage || 0;
-            const resolved = await CombatSystem.resolveAttackAsync(currentHero, currentTarget, currentAttackBonus, damage);
+            const resolved = await CombatAdapter.resolveAttackAsync(currentHero, currentTarget, currentAttackBonus, damage);
             attackResult = resolved;
         }
 
@@ -349,11 +355,13 @@ export class PowerSystem {
             }
         }
 
-        let attackResult: { hit: boolean; damage: number } | null = null;
+        let attackResult: AttackResult | null = null;
 
         if (currentAttackBonus !== undefined && currentTarget) {
             const damage = powerCard.damage || 0;
-            const resolved = CombatSystem.resolveAttack(currentHero, currentTarget, currentAttackBonus, damage);
+            const resolved = CombatSystem.resolveAttack(currentHero,  currentTarget, currentAttackBonus, damage);
+            currentHero = CombatSystem.applyAttackResultEffects(currentHero, resolved);
+            currentGameState = this.updateEntityInState(currentGameState, currentHero);
             attackResult = resolved;
         }
 
@@ -444,7 +452,7 @@ export class PowerSystem {
         }
 
         for (const t of monstersOnTile) {
-            const resolved = await CombatSystem.resolveAttackAsync(
+            const resolved = await CombatAdapter.resolveAttackAsync(
                 currentHero,
                 t,
                 powerCard.attackBonus || 7,
@@ -512,8 +520,7 @@ export class PowerSystem {
         }
 
         for (const t of monstersOnTile) {
-            const resolved = CombatSystem.resolveAttack(
-                currentHero,
+            const resolved = CombatSystem.resolveAttack(currentHero, 
                 t,
                 powerCard.attackBonus || 7,
                 powerCard.damage || 2,
@@ -521,6 +528,8 @@ export class PowerSystem {
                 undefined,
                 newState
             );
+            currentHero = CombatSystem.applyAttackResultEffects(currentHero, resolved);
+            newState = this.updateEntityInState(newState, currentHero);
 
             let damageDealt = resolved.hit ? resolved.damage : 1; // Miss: 1 Damage
             let updatedMonster = CombatSystem.applyDamage(t, damageDealt, newState);
@@ -652,7 +661,7 @@ export class PowerSystem {
 
         // 3. Attack each adjacent monster
         for (const m of adjacentMonsters) {
-            const resolved = await CombatSystem.resolveAttackAsync(
+            const resolved = await CombatAdapter.resolveAttackAsync(
                 currentHero,
                 m,
                 powerCard.attackBonus || 6,
@@ -723,8 +732,7 @@ export class PowerSystem {
 
         // 3. Attack each adjacent monster
         for (const m of adjacentMonsters) {
-            const resolved = CombatSystem.resolveAttack(
-                currentHero,
+            const resolved = CombatSystem.resolveAttack(currentHero, 
                 m,
                 powerCard.attackBonus || 6,
                 powerCard.damage || 1,
@@ -732,6 +740,8 @@ export class PowerSystem {
                 undefined,
                 newState
             );
+            currentHero = CombatSystem.applyAttackResultEffects(currentHero, resolved);
+            newState = this.updateEntityInState(newState, currentHero);
 
             const updatedMonster = CombatSystem.applyDamage(m, resolved.damage, newState);
             newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
@@ -793,7 +803,7 @@ export class PowerSystem {
         const msgParts: string[] = [];
 
         for (const t of targets) {
-            const resolved = await CombatSystem.resolveAttackAsync(
+            const resolved = await CombatAdapter.resolveAttackAsync(
                 hero,
                 t,
                 powerCard.attackBonus || 4,
@@ -853,8 +863,7 @@ export class PowerSystem {
         const msgParts: string[] = [];
 
         for (const t of targets) {
-            const resolved = CombatSystem.resolveAttack(
-                hero,
+            const resolved = CombatSystem.resolveAttack(hero, 
                 t,
                 powerCard.attackBonus || 4,
                 powerCard.damage || 1,
@@ -862,6 +871,8 @@ export class PowerSystem {
                 undefined,
                 newState
             );
+            hero = CombatSystem.applyAttackResultEffects(hero, resolved);
+            newState = this.updateEntityInState(newState, hero);
 
             let updatedMonster = t;
             if (resolved.hit) {
@@ -915,7 +926,7 @@ export class PowerSystem {
         const msgParts: string[] = [];
 
         for (const t of targets) {
-            const resolved = await CombatSystem.resolveAttackAsync(
+            const resolved = await CombatAdapter.resolveAttackAsync(
                 currentHero,
                 t,
                 powerCard.attackBonus || 4,
@@ -984,8 +995,7 @@ export class PowerSystem {
         const msgParts: string[] = [];
 
         for (const t of targets) {
-            const resolved = CombatSystem.resolveAttack(
-                currentHero,
+            const resolved = CombatSystem.resolveAttack(currentHero, 
                 t,
                 powerCard.attackBonus || 4,
                 powerCard.damage || 2,
@@ -993,6 +1003,8 @@ export class PowerSystem {
                 undefined,
                 newState
             );
+            currentHero = CombatSystem.applyAttackResultEffects(currentHero, resolved);
+            newState = this.updateEntityInState(newState, currentHero);
 
             let damageDealt = resolved.hit ? resolved.damage : 1; // Miss: 1 Damage
             const updatedMonster = CombatSystem.applyDamage(t, damageDealt, newState);
@@ -1057,7 +1069,7 @@ export class PowerSystem {
         const msgParts: string[] = [];
 
         for (const t of targets) {
-            const resolved = await CombatSystem.resolveAttackAsync(
+            const resolved = await CombatAdapter.resolveAttackAsync(
                 currentHero,
                 t,
                 powerCard.attackBonus || 6,
@@ -1139,8 +1151,7 @@ export class PowerSystem {
         const msgParts: string[] = [];
 
         for (const t of targets) {
-            const resolved = CombatSystem.resolveAttack(
-                currentHero,
+            const resolved = CombatSystem.resolveAttack(currentHero, 
                 t,
                 powerCard.attackBonus || 6,
                 powerCard.damage || 2,
@@ -1148,6 +1159,8 @@ export class PowerSystem {
                 undefined,
                 newState
             );
+            currentHero = CombatSystem.applyAttackResultEffects(currentHero, resolved);
+            newState = this.updateEntityInState(newState, currentHero);
 
             let damageDealt = resolved.hit ? resolved.damage : 1; // Miss: 1 Damage
             let updatedMonster = CombatSystem.applyDamage(t, damageDealt, newState);
@@ -1951,7 +1964,9 @@ export class PowerSystem {
         const effects: any[] = [];
         const msgParts: string[] = [];
         for (const t of monstersOnTile) {
-            const resolved = CombatSystem.resolveAttack(hero, t, powerCard.attackBonus || 7, powerCard.damage || 1, 0, undefined, newState);
+            const resolved = CombatSystem.resolveAttack(hero,  t, powerCard.attackBonus || 7, powerCard.damage || 1, 0, undefined, newState);
+            hero = CombatSystem.applyAttackResultEffects(hero, resolved);
+            newState = this.updateEntityInState(newState, hero);
             let updatedMonster = t;
             if (resolved.hit) {
                 updatedMonster = CombatSystem.applyDamage(t, resolved.damage, newState);
@@ -1992,7 +2007,7 @@ export class PowerSystem {
         const effects: any[] = [];
         const msgParts: string[] = [];
         for (const t of monstersOnTile) {
-            const resolved = await CombatSystem.resolveAttackAsync(hero, t, powerCard.attackBonus || 7, powerCard.damage || 1, 0, newState);
+            const resolved = await CombatAdapter.resolveAttackAsync(hero, t, powerCard.attackBonus || 7, powerCard.damage || 1, 0, newState);
             let updatedMonster = t;
             if (resolved.hit) {
                 updatedMonster = CombatSystem.applyDamage(t, resolved.damage, newState);
@@ -2046,7 +2061,9 @@ export class PowerSystem {
         }
 
         for (const t of monstersOnTile) {
-            const resolved = CombatSystem.resolveAttack(currentHero, t, powerCard.attackBonus || 7, powerCard.damage || 3, 0, undefined, newState);
+            const resolved = CombatSystem.resolveAttack(currentHero,  t, powerCard.attackBonus || 7, powerCard.damage || 3, 0, undefined, newState);
+            currentHero = CombatSystem.applyAttackResultEffects(currentHero, resolved);
+            newState = this.updateEntityInState(newState, currentHero);
             const finalDamage = resolved.hit ? resolved.damage : 1; // Miss: 1 Damage
             let updatedMonster = CombatSystem.applyDamage(t, finalDamage, newState);
             newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
@@ -2098,7 +2115,7 @@ export class PowerSystem {
         }
 
         for (const t of monstersOnTile) {
-            const resolved = await CombatSystem.resolveAttackAsync(currentHero, t, powerCard.attackBonus || 7, powerCard.damage || 3, 0, newState);
+            const resolved = await CombatAdapter.resolveAttackAsync(currentHero, t, powerCard.attackBonus || 7, powerCard.damage || 3, 0, newState);
             const finalDamage = resolved.hit ? resolved.damage : 1; // Miss: 1 Damage
             let updatedMonster = CombatSystem.applyDamage(t, finalDamage, newState);
             newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
@@ -2153,7 +2170,9 @@ export class PowerSystem {
         }
 
         for (const t of targets) {
-            const resolved = CombatSystem.resolveAttack(currentHero, t, powerCard.attackBonus || 7, powerCard.damage || 2, 0, undefined, newState);
+            const resolved = CombatSystem.resolveAttack(currentHero,  t, powerCard.attackBonus || 7, powerCard.damage || 2, 0, undefined, newState);
+            currentHero = CombatSystem.applyAttackResultEffects(currentHero, resolved);
+            newState = this.updateEntityInState(newState, currentHero);
             const finalDamage = resolved.hit ? resolved.damage : 1; // Miss: 1 Damage
             let updatedMonster = CombatSystem.applyDamage(t, finalDamage, newState);
             newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
@@ -2208,7 +2227,7 @@ export class PowerSystem {
         }
 
         for (const t of targets) {
-            const resolved = await CombatSystem.resolveAttackAsync(currentHero, t, powerCard.attackBonus || 7, powerCard.damage || 2, 0, newState);
+            const resolved = await CombatAdapter.resolveAttackAsync(currentHero, t, powerCard.attackBonus || 7, powerCard.damage || 2, 0, newState);
             const finalDamage = resolved.hit ? resolved.damage : 1; // Miss: 1 Damage
             let updatedMonster = CombatSystem.applyDamage(t, finalDamage, newState);
             newState = this.updateEntityInState(newState, updatedMonster.hp <= 0 ? { ...updatedMonster, isDefeated: true } : updatedMonster);
@@ -2259,7 +2278,9 @@ export class PowerSystem {
         const msgParts: string[] = [];
 
         for (const t of monstersOnTile) {
-            const resolved = CombatSystem.resolveAttack(hero, t, powerCard.attackBonus || 7, powerCard.damage || 1, 0, undefined, newState);
+            const resolved = CombatSystem.resolveAttack(hero,  t, powerCard.attackBonus || 7, powerCard.damage || 1, 0, undefined, newState);
+            hero = CombatSystem.applyAttackResultEffects(hero, resolved);
+            newState = this.updateEntityInState(newState, hero);
             let updatedMonster = t;
             if (resolved.hit) {
                 updatedMonster = CombatSystem.applyDamage(t, resolved.damage, newState);
@@ -2340,7 +2361,7 @@ export class PowerSystem {
         const msgParts: string[] = [];
 
         for (const t of monstersOnTile) {
-            const resolved = await CombatSystem.resolveAttackAsync(hero, t, powerCard.attackBonus || 7, powerCard.damage || 1, 0, newState);
+            const resolved = await CombatAdapter.resolveAttackAsync(hero, t, powerCard.attackBonus || 7, powerCard.damage || 1, 0, newState);
             let updatedMonster = t;
             if (resolved.hit) {
                 updatedMonster = CombatSystem.applyDamage(t, resolved.damage, newState);

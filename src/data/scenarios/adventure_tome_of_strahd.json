@@ -1,0 +1,39 @@
+{
+  "id": "adventure_tome_of_strahd",
+  "name": "The Tome of Strahd",
+  "difficulty": "Hard",
+  "description": "Find the Tome of Strahd treasure card.",
+  "objectives": [
+    {
+      "id": "defeat_the_guardian",
+      "type": "defeat_specific_monster",
+      "description": "Defeat the guardian of the Tome of Strahd to retrieve it.",
+      "isCompleted": false
+    }
+  ],
+  "specialRules": [
+    {
+      "id": "tome_of_strahd_setup",
+      "description": "Setup: Place the Crypt of Barov and Ravenovia aside. Shuffle all other tiles. Take the top 3, mix in the Crypt of Barov and Ravenovia, and place those 4 tiles after the 12th tile in the stack."
+    },
+    {
+      "id": "tome_of_strahd_special_items",
+      "description": "When placing a tile with a black triangle, drop a facedown item token. End a turn adjacent to it to uncover it and gain the respective treasure."
+    },
+    {
+      "id": "tome_of_strahd_scouting",
+      "description": "Scouting: You may spend 5 XP to place the top tile of the stack at the bottom (cannot be used if top tile is Crypt of Barov and Ravenovia)."
+    },
+    {
+      "id": "tome_of_strahd_guardian",
+      "description": "When revealing Crypt of Barov and Ravenovia, spawn a random Villain as the guardian."
+    }
+  ],
+  "startTileId": "start",
+  "setAsideTileIds": ["crypt_barov_ravenovia"],
+  "specialTilePlacements": [],
+  "maxSurges": 2,
+  "introText": "The legends say that there is a book hidden by Strahd in the tomb of his parents. This book is named the Tome of Strahd. If you discover it, it will provide you valuable information about the vampire lord. But the way there is long and the Tome must be guarded...",
+  "victoryText": "You found the Tome and you read Strahd's story. Now you hope that you are more likely to destroy the evil Count.",
+  "defeatText": "The Heroes fall before the darkness of Castle Ravenloft. The secrets of the Tome of Strahd remain hidden forever."
+}

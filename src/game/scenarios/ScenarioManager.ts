@@ -16,18 +16,20 @@ export class ScenarioManager {
     const timeTrack = state.timeTrack;
     if (timeTrack && placedTile.encounterType === 'white') {
       const newCurrent = timeTrack.current + 1;
+      const logId = String(state.logIdCounter ?? 0);
       state = {
         ...state,
         timeTrack: { ...timeTrack, current: newCurrent },
         log: [
           ...state.log,
           {
-            id: crypto.randomUUID(),
+            id: logId,
             timestamp: new Date().toISOString(),
             message: `☀️ Time advances: ${newCurrent}/${timeTrack.max} (${placedTile.name} explored)`,
             type: 'system' as const
           }
-        ]
+        ],
+        logIdCounter: (state.logIdCounter ?? 0) + 1
       };
 
       // Check if time track is exhausted
@@ -54,18 +56,20 @@ export class ScenarioManager {
 
     // Check for Chapel reveal (Adventure 2)
     if (placedTile.id.startsWith('named_chapel') && placedTile.isRevealed) {
+      const logId = String(state.logIdCounter ?? 0);
       state = {
         ...state,
         chapelRevealed: true,
         log: [
           ...state.log,
           {
-            id: crypto.randomUUID(),
+            id: logId,
             timestamp: new Date().toISOString(),
             message: '⛪ The Chapel of Ravenloft has been discovered!',
             type: 'system' as const
           }
-        ]
+        ],
+        logIdCounter: (state.logIdCounter ?? 0) + 1
       };
     }
 
@@ -80,9 +84,13 @@ export class ScenarioManager {
       return state;
     }
 
+    let newState = { ...state };
+    const strahdUniqueId = `monster_strahd_${newState.logIdCounter ?? 0}`;
+    newState.logIdCounter = (newState.logIdCounter ?? 0) + 1;
+
     const newMonster = {
       ...strahdMonster,
-      id: `monster_strahd_${crypto.randomUUID().slice(0, 8)}`,
+      id: strahdUniqueId,
       position: { x: 0, z: 0, sqX: 0, sqZ: 0 },
       hp: strahdMonster.maxHp || strahdMonster.hp,
       conditions: [],
@@ -92,7 +100,7 @@ export class ScenarioManager {
     };
 
     // Place Strahd on the start tile's bone pile
-    const startTile = state.tiles.find(t => t.isStart);
+    const startTile = newState.tiles.find(t => t.isStart);
     if (startTile) {
       newMonster.position = {
         x: startTile.x,
@@ -101,15 +109,18 @@ export class ScenarioManager {
         sqZ: startTile.boneSquare?.sqZ ?? 0
       };
 
+      const logId = String(newState.logIdCounter ?? 0);
+      newState.logIdCounter = (newState.logIdCounter ?? 0) + 1;
+
       return {
-        ...state,
-        monsters: [...state.monsters, newMonster as any],
+        ...newState,
+        monsters: [...newState.monsters, newMonster as any],
         strahdAwakened: true,
-        villainPhaseQueue: [...state.villainPhaseQueue, newMonster.id],
+        villainPhaseQueue: [...newState.villainPhaseQueue, newMonster.id],
         log: [
-          ...state.log,
+          ...newState.log,
           {
-            id: crypto.randomUUID(),
+            id: logId,
             timestamp: new Date().toISOString(),
             message: '🧛 Count Strahd has AWAKENED and entered the crypts!',
             type: 'system' as const
@@ -118,7 +129,7 @@ export class ScenarioManager {
       };
     }
 
-    return { ...state, strahdAwakened: true };
+    return { ...newState, strahdAwakened: true };
   }
 
   private static spawnLairVillain(
@@ -131,9 +142,13 @@ export class ScenarioManager {
       return state;
     }
 
+    let newState = { ...state };
+    const villainUniqueId = `villain_${newState.logIdCounter ?? 0}`;
+    newState.logIdCounter = (newState.logIdCounter ?? 0) + 1;
+
     const newVillain = {
       ...villainData,
-      id: `villain_${crypto.randomUUID().slice(0, 8)}`,
+      id: villainUniqueId,
       position: { x: 0, z: 0, sqX: 0, sqZ: 0 },
       hp: villainData.maxHp || villainData.hp,
       conditions: [],
@@ -143,7 +158,7 @@ export class ScenarioManager {
     };
 
     // Place villain on the lair tile's bone pile
-    const lairTile = state.tiles.find(t => t.id === pairing.lairTileId);
+    const lairTile = newState.tiles.find(t => t.id === pairing.lairTileId);
     if (lairTile) {
       newVillain.position = {
         x: lairTile.x,
@@ -153,14 +168,17 @@ export class ScenarioManager {
       };
     }
 
+    const logId = String(newState.logIdCounter ?? 0);
+    newState.logIdCounter = (newState.logIdCounter ?? 0) + 1;
+
     return {
-      ...state,
-      monsters: [...state.monsters, newVillain as any],
-      villainPhaseQueue: [...state.villainPhaseQueue, newVillain.id],
+      ...newState,
+      monsters: [...newState.monsters, newVillain as any],
+      villainPhaseQueue: [...newState.villainPhaseQueue, newVillain.id],
       log: [
-        ...state.log,
+        ...newState.log,
         {
-          id: crypto.randomUUID(),
+          id: logId,
           timestamp: new Date().toLocaleTimeString(),
           message: `👹 ${pairing.villainName} emerges from their lair!`,
           type: 'system' as const
@@ -203,20 +221,26 @@ export class ScenarioManager {
         blocksLineOfSight: false
       };
 
+      let tempState = { ...stateWithGravestorm };
+      const logId1 = String(tempState.logIdCounter ?? 0);
+      tempState.logIdCounter = (tempState.logIdCounter ?? 0) + 1;
+      const logId2 = String(tempState.logIdCounter ?? 0);
+      tempState.logIdCounter = (tempState.logIdCounter ?? 0) + 1;
+
       return {
-        ...stateWithGravestorm,
-        tiles: [...stateWithGravestorm.tiles, labTile],
+        ...tempState,
+        tiles: [...tempState.tiles, labTile],
         laboratoryRevealed: true,
         log: [
-          ...stateWithGravestorm.log,
+          ...tempState.log,
           {
-            id: crypto.randomUUID(),
+            id: logId1,
             timestamp: new Date().toISOString(),
             message: '🔮 The Arcane Circle pulses with energy! Gravestorm has been summoned!',
             type: 'system' as const
           },
           {
-            id: crypto.randomUUID(),
+            id: logId2,
             timestamp: new Date().toISOString(),
             message: '⚗️ The Laboratory manifests nearby, containing Gravestorm\'s Phylactery!',
             type: 'system' as const
@@ -235,7 +259,7 @@ export class ScenarioManager {
 
   public static checkDefeat(gameState: GameState): boolean {
     const allNonEscapedDead = gameState.heroes.every(h => h.escaped || h.hp <= 0);
-    const anyHeroDownNoSurges = gameState.healingSurges <= 0 && gameState.heroes.some(h => !h.escaped && h.hp <= 0);
-    return allNonEscapedDead || anyHeroDownNoSurges;
+    const noSurges = gameState.healingSurges <= 0;
+    return allNonEscapedDead && noSurges;
   }
 }

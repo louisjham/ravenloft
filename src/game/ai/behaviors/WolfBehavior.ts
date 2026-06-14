@@ -1,9 +1,9 @@
-import { Monster, Hero, MonsterAction, Position } from '../../types';
+import { Monster, Hero, MonsterAction, Position, GameState, IBehavior } from '../../types';
 import { Pathfinding } from '../Pathfinding';
 import { ThreatAssessment } from '../ThreatAssessment';
 
-export const WolfBehavior = {
-  decideAction(monster: Monster, heroes: Hero[], gameState: any): MonsterAction {
+export class WolfBehavior implements IBehavior {
+  public decideAction(monster: Monster, heroes: Hero[], gameState: GameState): MonsterAction {
     // Wolves are smart, they target the most vulnerable (already handled by default threat assessment)
     const target = ThreatAssessment.getTopTarget(monster, heroes);
     if (!target) return { type: 'idle' };
@@ -22,7 +22,7 @@ export const WolfBehavior = {
 
     return { type: 'idle' };
   }
-};
+}
 
 function getDistance(p1: Position, p2: Position): number {
   const ts = 4;

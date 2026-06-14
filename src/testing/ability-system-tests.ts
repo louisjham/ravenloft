@@ -26,8 +26,9 @@ import type {
 /**
  * Creates a minimal GameState for testing.
  */
-function createTestGameState(heroes: Hero[], monsters: Monster[], tiles: Tile[]): GameState {
+export function createTestGameState(heroes: Hero[], monsters: Monster[], tiles: Tile[]): GameState {
     return {
+        logIdCounter: 0,
         phase: 'monster',
         currentHeroId: heroes[0]?.id ?? '',
         heroes,
@@ -79,7 +80,7 @@ function createTestGameState(heroes: Hero[], monsters: Monster[], tiles: Tile[])
 /**
  * Creates a test tile.
  */
-function createTestTile(id: string, x: number, z: number, connections: any[] = []): Tile {
+export function createTestTile(id: string, x: number, z: number, connections: any[] = []): Tile {
     return {
         id,
         name: `Tile ${id}`,
@@ -101,7 +102,7 @@ function createTestTile(id: string, x: number, z: number, connections: any[] = [
 /**
  * Creates a test hero.
  */
-function createTestHero(id: string, hp: number = 10, position: Position = { x: 0, z: 0, sqX: 1, sqZ: 1 }): Hero {
+export function createTestHero(id: string, hp: number = 10, position: Position = { x: 0, z: 0, sqX: 1, sqZ: 1 }): Hero {
     return {
         id,
         name: `Hero ${id}`,
@@ -129,7 +130,7 @@ function createTestHero(id: string, hp: number = 10, position: Position = { x: 0
 /**
  * Creates a test monster.
  */
-function createTestMonster(
+export function createTestMonster(
     id: string,
     monsterType: string,
     hp: number = 10,

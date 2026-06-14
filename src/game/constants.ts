@@ -35,3 +35,10 @@ export const GAME_CONSTANTS = {
 };
 
 export type GamePhaseType = typeof GAME_CONSTANTS.PHASES[number];
+
+export const CARD_IDS = {
+  BLESSING_HEROIC_STAND: 'treasure_blessing_heroic_stand_151',
+  BLESSING_REJUVENATING_ONSLAUGHT: 'treasure_blessing_rejuvenating_onslaught_153',
+  BLESSING_RUN: 'treasure_blessing_run_154',
+  BLESSING_SURROUND_THEM: 'treasure_blessing_surround_them_155',
+};

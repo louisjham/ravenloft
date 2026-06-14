@@ -1,9 +1,9 @@
-import { Monster, Hero, MonsterAction, Position } from '../../types';
+import { Monster, Hero, MonsterAction, Position, GameState, IBehavior } from '../../types';
 import { Pathfinding } from '../Pathfinding';
 import { ThreatAssessment } from '../ThreatAssessment';
 
-export const GargoyleBehavior = {
-  decideAction(monster: Monster, heroes: Hero[], gameState: any): MonsterAction {
+export class GargoyleBehavior implements IBehavior {
+  public decideAction(monster: Monster, heroes: Hero[], gameState: GameState): MonsterAction {
     const target = ThreatAssessment.getTopTarget(monster, heroes);
     if (!target) return { type: 'idle' };
 
@@ -30,7 +30,7 @@ export const GargoyleBehavior = {
 
     return { type: 'idle' };
   }
-};
+}
 
 function getDistance(p1: Position, p2: Position): number {
   const g1 = { x: p1.x * 4 + p1.sqX, z: p1.z * 4 + p1.sqZ };

@@ -13,12 +13,19 @@ const mockLocalStorage = (() => {
 (global as any).localStorage = mockLocalStorage;
 
 import { runFullGameLoopTest } from './src/testing/integrationTests';
+import { runBlessingMechanicsTests } from './src/testing/blessing-mechanics-tests';
 
 console.log('Starting integration tests in Node...');
-runFullGameLoopTest().then(success => {
+runFullGameLoopTest().then(async success => {
   if (success) {
-    console.log('ALL TESTS PASSED SUCCESSFULLY!');
-    process.exit(0);
+    try {
+        await runBlessingMechanicsTests();
+        console.log('ALL TESTS PASSED SUCCESSFULLY!');
+        process.exit(0);
+    } catch (e) {
+        console.error('BLESSING TESTS FAILED:', e);
+        process.exit(1);
+    }
   } else {
     console.error('SOME TESTS FAILED!');
     process.exit(1);

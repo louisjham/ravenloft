@@ -5,6 +5,7 @@ import { Tile3D } from './Tile3D';
 import { Token3D } from './Token3D';
 import { useGameActions } from '../../hooks/useGameActions';
 import { TileSystem } from '../../game/engine/TileSystem';
+import { ConditionSystem } from '../../game/engine/ConditionSystem';
 import { GAME_CONSTANTS } from '../../game/constants';
 
 /**
@@ -30,10 +31,7 @@ export const DungeonBoard: React.FC = () => {
     const activeHero = gameState.heroes.find(h => h.id === gameState.currentHeroId);
     if (!activeHero) return new Set<string>();
 
-    const isSlowed = activeHero.conditions.some(c => c.type === 'slowed');
-    const effectiveSpeed = isSlowed
-      ? Math.max(1, Math.floor(activeHero.speed / 2))
-      : activeHero.speed;
+    const effectiveSpeed = ConditionSystem.getEffectiveSpeed(activeHero, gameState);
 
     // Build blocked squares from live monsters (heroes can move through heroes)
     const TS = GAME_CONSTANTS.TILE_SIZE_SQUARES;

@@ -95,7 +95,6 @@ export function getMonsterModelPath(monsterId: string): string {
     'monster_hag': MODELS.MONSTER_HAG,
     'monster_howling_hag': MODELS.MONSTER_HAG,
     'monster_strahd': MODELS.VILLAIN_STRAHD,
-    'monster_vampire': MODELS.MONSTER_VAMPIRE_LORD, // Now has dedicated model!
     'monster_vampire_lord': MODELS.MONSTER_VAMPIRE_LORD,
     'monster_young_vampire': MODELS.MONSTER_YOUNG_VAMPIRE,
     'monster_goblin': MODELS.MONSTER_GOBLIN,

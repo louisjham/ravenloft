@@ -1,5 +1,5 @@
 // Condition types
-export type ConditionType = 'slowed' | 'immobilized' | 'poisoned' | 'dazed' | 'weakened' | 'stunned' | 'crippling_miasma' | 'attack_bonus' | 'damage_bonus';
+export type ConditionType = 'slowed' | 'immobilized' | 'poisoned' | 'dazed' | 'weakened' | 'stunned' | 'crippling_miasma' | 'attack_bonus' | 'damage_bonus' | 'ac_bonus';
 
 
 
@@ -93,6 +93,10 @@ export interface Hero extends Entity {
   escaped?: boolean;
   flippedPowerIds?: string[];
   attackBonus: number;
+  damage?: number;
+  /** Fortune: Action Surge — number of extra actions granted this turn. Reset to 0 at end of turn. */
+  extraActionsThisTurn?: number;
+  removedFromPlay?: boolean;
 }
 
 export function isMonsterEntity(entity: Entity): entity is Monster {
@@ -106,6 +110,7 @@ export function isHeroEntity(entity: Entity): entity is Hero {
 export interface Monster extends Entity {
   type: 'monster';
   monsterType: string;
+  isUndead?: boolean;
   /** The original deck card / data-file ID this instance was created from (e.g. "monster_skeleton"). */
   templateId?: string;
   behavior: MonsterBehavior;
@@ -121,6 +126,8 @@ export interface Monster extends Entity {
   isBoss?: boolean
   tacticsText?: string
   specialAbilityText?: string
+  /** Fortune: Daze — number of activations to skip (decremented by MonsterAI). */
+  skipActivations?: number;
 }
 
 export interface MonsterBehavior {
@@ -190,9 +197,27 @@ export interface Card {
 }
 
 export interface Effect {
-  type: 'damage' | 'heal' | 'move' | 'status_effect' | 'attack_bonus' | 'defense_bonus' | 'damage_bonus' | 'ac_bonus' | 'speed_bonus' | 'draw_card' | 'flip_power' | 'passive' | 'spawn_monster' | 'draw_treasure';
+  type:
+    | 'damage' | 'heal' | 'move' | 'status_effect'
+    | 'attack_bonus' | 'defense_bonus' | 'damage_bonus' | 'ac_bonus' | 'speed_bonus'
+    | 'draw_card' | 'flip_power' | 'passive' | 'spawn_monster' | 'draw_treasure'
+    // Fortune-specific effect types
+    | 'remove_conditions'
+    | 'daze_monster_activation'
+    | 'peek_reorder_deck'
+    | 'reveal_tile_no_encounter'
+    | 'add_xp_to_pile'
+    | 'move_monster_away'
+    | 'draw_treasure_choose'
+    | 'remove_one_condition'
+    | 'deck_sentinel_choice'
+    // Phase 2 event/event-attack effect types
+    | 'event_attack'
+    | 'move_monsters_closer'
+    | 'heal_undead_on_tile'
+    | 'discard_treasure';
   value?: number;
-  target: 'self' | 'single' | 'area' | 'all_heroes' | 'all_monsters' | 'adjacent';
+  target?: 'self' | 'single' | 'area' | 'all_heroes' | 'all_monsters' | 'adjacent' | 'all' | 'single_hero' | 'monsterDeck' | 'encounterDeck' | 'tile' | 'heroes_on_active_tile' | 'active_hero' | 'heroes_within_1_tile' | 'monsters_on_active_tile' | 'monsters_not_on_hero_tile';
   range?: number;
   statusEffect?: ConditionType;
   when?: 'hit' | 'miss' | 'always';
@@ -200,7 +225,16 @@ export interface Effect {
   passiveType?: string; // e.g., 'undead_ward'
   duration?: number; // For temporary effects
   attackBonus?: number; // For event-attack and trap cards
+  targetType?: 'hero' | 'monster' | 'all';
+  // Phase 2 event_attack fields
+  damage?: number;
+  missValue?: number;
+  onHitStatusEffect?: ConditionType;
+  onMissStatusEffect?: ConditionType;
+  onHitEffect?: string;
+  repeatCount?: number;
 }
+
 
 export interface Die {
   sides: 20;
@@ -276,7 +310,7 @@ export interface TreasureAssignment {
 export interface ActiveBlessing {
   cardId: string
   heroId: string
-  expiresAfterTurnOf: string
+  drawnOnTurnCount: number
   effects: Effect[]
   name: string
 }
@@ -294,6 +328,31 @@ export interface TileEffect {
 export type DeckSentinel = 'sentinel_moments_respite'
 
 export type DeckKey = 'encounterDeck' | 'monsterDeck' | 'treasureDeck' | 'dungeonDeck';
+
+// ---------------------------------------------------------------------------
+// Fortune XP entries (Harrowed Experience)
+// Kept separate from experiencePile (string[]) to avoid breaking existing code.
+// ---------------------------------------------------------------------------
+
+export interface FortuneXpEntry {
+  cardId: string;    // The fortune card ID (e.g. 'fortune_harrowed_experience')
+  source: 'fortune';
+  amount: number;    // Always 1 for Harrowed Experience
+}
+
+// ---------------------------------------------------------------------------
+// PendingFortune — discriminated union for player-choice fortune resolution
+// ---------------------------------------------------------------------------
+
+export type PendingFortune =
+  | { kind: 'deckReorder'; deck: 'monster' | 'encounter'; topCards: string[]; fortuneCardId: string }
+  | { kind: 'monsterPick'; purpose: 'daze' | 'move'; eligible: string[]; fortuneCardId: string }
+  | { kind: 'heroConditionPick'; heroIds: string[]; fortuneCardId: string }
+  | { kind: 'treasureChoose'; drawn: string[]; fortuneCardId: string }
+  | { kind: 'tileEdgePick'; edges: { tileId: string; edge: Direction }[]; fortuneCardId: string }
+  | { kind: 'deckSentinelChoice'; fortuneCardId: string }
+  | { kind: 'tileRelocatePick'; heroId: string; eligibleTileIds: string[]; fortuneCardId: string }
+  | { kind: 'atWillPowerPick'; attackerHeroId: string; targetHeroId: string; eligiblePowerIds: string[]; fortuneCardId: string };
 
 export interface Objective {
   id: string
@@ -317,6 +376,7 @@ export interface MachineSpecialRule {
 }
 
 export interface GameState {
+  logIdCounter: number;
   phase: GamePhase;
   currentHeroId: string;
   heroes: Hero[];
@@ -354,11 +414,19 @@ export interface GameState {
   hasExploredThisTurn?: boolean;
   hasAttackedThisTurn?: boolean;
   lastPlacedTileEncounterType?: string | null;
+  exploredThisTurn?: boolean;
+  lastPlacedTileId?: string | null;
 
   // Blessings, items, tile effects
-  activeBlessing?: ActiveBlessing | null;
+  activeBlessings?: ActiveBlessing[];
   itemCharges?: Record<string, number>;
   tileEffects?: TileEffect[];
+
+  // Fortune XP entries (Harrowed Experience) — separate from monster experiencePile
+  fortuneXpEntries?: FortuneXpEntry[];
+
+  // Pending player-choice Fortune resolution
+  pendingFortune?: PendingFortune;
 
   // Scenario tracking
   defeatedVillainIds?: string[];
@@ -371,9 +439,12 @@ export interface GameState {
   laboratoryRevealed?: boolean;
   kavanEscortedBy?: string;
   unplacedCoffinTokens?: { id: string; name: string; isStrahds: boolean }[];
+  tomeOfStrahdItemStack?: string[];
+  tomeOfStrahdVillainStack?: string[];
 
   // Encounter card in villain phase
   pendingEncounter?: boolean; // Whether an encounter draw is pending for this villain phase
+  frenzyActiveThisTurn?: boolean;
 }
 
 export interface Trap {
@@ -395,6 +466,7 @@ export interface AttackResult {
   damage: number;
   critical: boolean;
   wasImmune?: boolean;
+  healAttacker?: number;
 }
 
 export interface GameSettings {
@@ -415,6 +487,10 @@ export interface GameSettings {
 export interface Path {
   points: Position[];
   cost: number;
+}
+
+export interface IBehavior {
+  decideAction(monster: Monster, heroes: Hero[], gameState: GameState): MonsterAction;
 }
 
 export interface MonsterAction {
@@ -489,12 +565,16 @@ export interface BossPhase {
 // TacticResult type moved from MonsterAI.ts and extended
 export type TacticResult =
   | { action: 'move'; path: Tile[] }
-  | { action: 'attack'; targetHeroId: string; damage: number }
+  | { action: 'attack'; targetHeroId: string; damage: number; attackBonus?: number; missDamage?: number; statusEffect?: ConditionType; multiTarget?: boolean }
   | {
     action: 'move_then_attack';
     path: Tile[];
     targetHeroId: string;
-    damage: number
+    damage: number;
+    attackBonus?: number;
+    missDamage?: number;
+    statusEffect?: ConditionType;
+    multiTarget?: boolean;
   }
   | { action: 'idle' }
   | {

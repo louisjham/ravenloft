@@ -1,9 +1,9 @@
-import { Monster, Hero, MonsterAction, Position } from '../../types';
+import { Monster, Hero, MonsterAction, Position, GameState, IBehavior } from '../../types';
 import { Pathfinding } from '../Pathfinding';
 import { ThreatAssessment } from '../ThreatAssessment';
 
-export const GoblinBehavior = {
-  decideAction(monster: Monster, heroes: Hero[], gameState: any): MonsterAction {
+export class GoblinBehavior implements IBehavior {
+  public decideAction(monster: Monster, heroes: Hero[], gameState: GameState): MonsterAction {
     const target = ThreatAssessment.getTopTarget(monster, heroes);
     if (!target) return { type: 'idle' };
 
@@ -30,9 +30,9 @@ export const GoblinBehavior = {
     }
 
     return { type: 'idle' };
-  },
+  }
 
-  calculateFleePosition(monster: Monster, target: Hero, gameState: any): Position {
+  private calculateFleePosition(monster: Monster, target: Hero, gameState: GameState): Position {
     // Simple flee: step in a direction that increases distance from target
     const current = monster.position;
     const targetPos = target.position;
@@ -54,7 +54,7 @@ export const GoblinBehavior = {
       sqZ: Math.abs(fleeGlobal.z % 4)
     };
   }
-};
+}
 
 function getDistance(p1: Position, p2: Position): number {
   const g1 = { x: p1.x * 4 + p1.sqX, z: p1.z * 4 + p1.sqZ };

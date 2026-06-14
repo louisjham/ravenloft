@@ -2,6 +2,7 @@ import { Tile, Position, TileConnection, Direction, Rotation, GameState, Explora
 import { GAME_CONSTANTS } from '../constants';
 import { DataLoader } from '../dataLoader';
 import { TokenSystem } from './TokenSystem';
+import { getTileGraphDistance } from './MonsterAI';
 
 /**
  * Handles tile placement, exploration edge detection, and grid management.
@@ -227,18 +228,39 @@ export class TileSystem {
     };
 
     // Include tokens if a coffin was placed
-    if (coffinResult?.token) {
-      const currentTokens = newState.tokens || [];
-      return {
-        ...newState,
-        tokens: [...currentTokens, coffinResult.token],
-        strahdsCoffinTokenId: coffinResult.token.metadata?.isStrahdsCoffin
-          ? coffinResult.token.id
-          : newState.strahdsCoffinTokenId
-      };
+    let finalTokens = coffinResult?.token ? [...(newState.tokens || []), coffinResult.token] : (newState.tokens || []);
+    let finalState = {
+      ...newState,
+      tokens: finalTokens,
+      strahdsCoffinTokenId: coffinResult?.token?.metadata?.isStrahdsCoffin
+        ? coffinResult.token.id
+        : newState.strahdsCoffinTokenId
+    };
+
+    // Tome of Strahd: drop facedown item token on black triangle tiles
+    if (gameState.activeScenario.id === 'adventure_tome_of_strahd' && tile.encounterType === 'black') {
+      const itemStack = finalState.tomeOfStrahdItemStack ? [...finalState.tomeOfStrahdItemStack] : [];
+      if (itemStack.length > 0) {
+        const poppedItemId = itemStack.shift();
+        const itemToken: import('../types').GameToken = {
+          id: `token_item_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+          type: 'item',
+          name: 'Mysterious Item',
+          position: { x: tile.x, z: tile.z, sqX: 1, sqZ: 1 },
+          tileId: tile.id,
+          isRevealed: false,
+          isSearched: false,
+          metadata: { itemId: poppedItemId }
+        };
+        finalState = {
+          ...finalState,
+          tokens: [...finalState.tokens, itemToken],
+          tomeOfStrahdItemStack: itemStack
+        };
+      }
     }
 
-    return newState;
+    return finalState;
   }
 
   /**
@@ -265,15 +287,49 @@ export class TileSystem {
 
     const discardedIds: string[] = [];
     let drawnTemplateId: string | undefined;
+    let isTomeGuardian = false;
+    let updatedVillainStack = gameState.tomeOfStrahdVillainStack ? [...gameState.tomeOfStrahdVillainStack] : [];
 
-    // Loop: discard already-controlled types, draw until we find a unique one
-    while (deck.length > 0) {
-      const candidateId = deck.pop()!;
-      if (!activeTemplateIds.has(candidateId)) {
-        drawnTemplateId = candidateId;
-        break;
+    if (gameState.activeScenario.id === 'adventure_tome_of_strahd' && tile.id === 'crypt_barov_ravenovia' && updatedVillainStack.length > 0) {
+      drawnTemplateId = updatedVillainStack.shift();
+      isTomeGuardian = true;
+    } else {
+      // Loop: discard already-controlled types, draw until we find a unique one
+      while (deck.length > 0) {
+        const candidateId = deck.pop()!;
+        if (!activeTemplateIds.has(candidateId)) {
+          drawnTemplateId = candidateId;
+          break;
+        }
+        discardedIds.push(candidateId);
       }
-      discardedIds.push(candidateId);
+
+      // Music of the Damned Environment Check
+      if (gameState.activeEnvironmentCard === 'enc_music_of_the_damned' && drawnTemplateId && deck.length > 0) {
+        let secondDrawnTemplateId: string | undefined;
+        while (deck.length > 0) {
+          const candidateId = deck.pop()!;
+          if (!activeTemplateIds.has(candidateId)) {
+            secondDrawnTemplateId = candidateId;
+            break;
+          }
+          discardedIds.push(candidateId);
+        }
+
+        if (secondDrawnTemplateId) {
+          const template1 = DataLoader.getInstance().getMonsterById(drawnTemplateId);
+          const template2 = DataLoader.getInstance().getMonsterById(secondDrawnTemplateId);
+          const xp1 = template1?.experienceValue ?? 1;
+          const xp2 = template2?.experienceValue ?? 1;
+
+          if (xp2 > xp1) {
+            discardedIds.push(drawnTemplateId);
+            drawnTemplateId = secondDrawnTemplateId;
+          } else {
+            discardedIds.push(secondDrawnTemplateId);
+          }
+        }
+      }
     }
 
     // Build updated discard pile and base log entries for skipped cards
@@ -281,50 +337,64 @@ export class TileSystem {
       ? { ...gameState.discardPiles, monster: [...gameState.discardPiles.monster, ...discardedIds] }
       : gameState.discardPiles;
 
-    let log = discardedIds.length > 0
-      ? [
-          ...gameState.log,
-          {
-            id: crypto.randomUUID(),
-            timestamp: new Date().toISOString(),
-            message: `Monster draw: discarded [${discardedIds.join(', ')}] (already controlled) and redrew.`,
-            type: 'system' as const
-          }
-        ].slice(-100)
-      : [...gameState.log];
+    let currentCounter = gameState.logIdCounter ?? 0;
+    let log = [...gameState.log];
+
+    if (discardedIds.length > 0) {
+      log.push({
+        id: String(currentCounter),
+        timestamp: new Date().toISOString(),
+        message: `Monster draw: discarded [${discardedIds.join(', ')}] (already controlled) and redrew.`,
+        type: 'system' as const
+      });
+      currentCounter++;
+    }
 
     if (!drawnTemplateId) {
       // Deck exhausted — no eligible type found
-      return { ...gameState, monsterDeck: deck, discardPiles: updatedDiscardPiles, log };
+      return {
+        ...gameState,
+        monsterDeck: deck,
+        discardPiles: updatedDiscardPiles,
+        log: log.slice(-100),
+        logIdCounter: currentCounter
+      };
     }
 
     // Rogue Stealth: discard the drawn card instead of placing the monster
-    if (hasStealth) {
+    if (hasStealth && !isTomeGuardian) {
       const updatedHero = {
         ...activeHero!,
         flippedPowerIds: [...(activeHero!.flippedPowerIds ?? []), 'rogue_stealth']
       };
-      log = [
-        ...log,
-        {
-          id: crypto.randomUUID(),
-          timestamp: new Date().toISOString(),
-          message: `${activeHero!.name} uses Stealth! Discards the drawn monster card (${drawnTemplateId}) instead of placing it. Stealth flips face-down.`,
-          type: 'system' as const
-        }
-      ].slice(-100);
+      log.push({
+        id: String(currentCounter),
+        timestamp: new Date().toISOString(),
+        message: `${activeHero!.name} uses Stealth! Discards the drawn monster card (${drawnTemplateId}) instead of placing it. Stealth flips face-down.`,
+        type: 'system' as const
+      });
+      currentCounter++;
 
       return {
         ...gameState,
         monsterDeck: deck,
         discardPiles: { ...updatedDiscardPiles, monster: [...updatedDiscardPiles.monster, drawnTemplateId] },
         heroes: gameState.heroes.map(h => h.id === updatedHero.id ? updatedHero : h),
-        log
+        log: log.slice(-100),
+        logIdCounter: currentCounter
       };
     }
 
     const template = DataLoader.getInstance().getMonsterById(drawnTemplateId);
-    if (!template) return { ...gameState, monsterDeck: deck, discardPiles: updatedDiscardPiles, log };
+    if (!template) {
+      return {
+        ...gameState,
+        monsterDeck: deck,
+        discardPiles: updatedDiscardPiles,
+        log: log.slice(-100),
+        logIdCounter: currentCounter
+      };
+    }
 
     const uniqueId = `monster_${drawnTemplateId}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const newMonster: Monster = {
@@ -346,12 +416,24 @@ export class TileSystem {
       maxHp: template.maxHp
     };
 
+    if (isTomeGuardian) {
+      log.push({
+        id: String(currentCounter),
+        timestamp: new Date().toISOString(),
+        message: `The guardian of the Tome of Strahd appears! ${newMonster.name} has been summoned!`,
+        type: 'event' as const
+      });
+      currentCounter++;
+    }
+
     return {
       ...gameState,
       monsterDeck: deck,
+      tomeOfStrahdVillainStack: isTomeGuardian ? updatedVillainStack : gameState.tomeOfStrahdVillainStack,
       discardPiles: updatedDiscardPiles,
       monsters: [...gameState.monsters, newMonster],
-      log
+      log: log.slice(-100),
+      logIdCounter: currentCounter
     };
   }
 
@@ -806,6 +888,37 @@ export class TileSystem {
     }
 
     return resultTiles;
+  }
+
+  /**
+   * Returns the explored tile with maximum graph distance from a given origin tile.
+   * If there is a tie, applies the tiebreaker: highest x, then z coordinate.
+   */
+  public static getFarthestTile(fromTileId: string, gameState: GameState): Tile | null {
+    const originTile = gameState.tiles.find(t => t.id === fromTileId);
+    if (!originTile) return null;
+
+    let bestTile: Tile | null = null;
+    let maxDist = -1;
+
+    for (const t of gameState.tiles) {
+      if (!t.isRevealed) continue;
+      const dist = getTileGraphDistance(originTile, t, gameState.tiles);
+      if (dist === 999) continue; // Unreachable
+
+      if (dist > maxDist) {
+        maxDist = dist;
+        bestTile = t;
+      } else if (dist === maxDist && bestTile) {
+        // Tiebreaker: highest x, then z coordinate
+        if (t.x > bestTile.x) {
+          bestTile = t;
+        } else if (t.x === bestTile.x && t.z > bestTile.z) {
+          bestTile = t;
+        }
+      }
+    }
+    return bestTile;
   }
 }
 

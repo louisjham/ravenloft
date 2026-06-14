@@ -4,6 +4,7 @@ import { animationQueue } from '../utils/animationQueue'
 import { Position, Entity, Tile, TokenSearchResult } from '../game/types'
 import { TokenSystem } from '../game/engine/TokenSystem'
 import { TileSystem } from '../game/engine/TileSystem'
+import { ConditionSystem } from '../game/engine/ConditionSystem'
 
 export const useGameActions = () => {
   const {
@@ -37,10 +38,7 @@ export const useGameActions = () => {
       return;
     }
 
-    // Slowed: speed is halved (minimum 1 square)
-    const effectiveSpeed = isSlowed
-      ? Math.max(1, Math.floor(hero.speed / 2))
-      : hero.speed;
+    const effectiveSpeed = ConditionSystem.getEffectiveSpeed(hero, gameState);
 
     // ── Locate tiles in the placed graph ─────────────────────────────────────
     const sourceTile = gameState.tiles.find(

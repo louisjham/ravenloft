@@ -47,7 +47,12 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
               type: 'event' as const
             }
           ].slice(-100);
-          set({ gameState: { ...result.newState, log: updatedLog } });
+          set({
+            gameState: TreasureSystem.processDefeatedMonsters({
+              ...result.newState,
+              log: updatedLog
+            })
+          });
         } else {
           if (isDev()) console.log('[DEBUG gameStore] Power use failed:', result.message);
         }

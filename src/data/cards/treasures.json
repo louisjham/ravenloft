@@ -11,21 +11,23 @@
         "value": 1,
         "target": "all_heroes"
       }
-    ]
+    ],
+    "image": "/card-images/blessing-heroicstand.png"
   },
   {
-    "id": "treasure_blessing_guided_strike_152",
-    "name": "Guided Strike",
+    "id": "treasure_blessing_guided_strikes_152",
+    "name": "Guided Strikes",
     "type": "consumable",
     "treasureType": "blessing",
-    "description": "All heroes gain +2 attack bonus until the end of their next turn.",
+    "description": "Play this Blessing immediately. Until the end of your next Hero Phase, each Hero gains a +2 bonus to attack rolls. Discard this card at the end of your next Hero phase.",
     "effects": [
       {
         "type": "attack_bonus",
         "value": 2,
         "target": "all_heroes"
       }
-    ]
+    ],
+    "image": "/card-images/blessing-guidedstrikes.png"
   },
   {
     "id": "treasure_blessing_rejuvenating_onslaught_153",
@@ -44,7 +46,8 @@
         "value": 1,
         "target": "all_heroes"
       }
-    ]
+    ],
+    "image": "/card-images/blessing-rejuvenatingonslaught.png"
   },
   {
     "id": "treasure_blessing_run_154",
@@ -58,7 +61,8 @@
         "value": 2,
         "target": "all_heroes"
       }
-    ]
+    ],
+    "image": "/card-images/blessing-run.png"
   },
   {
     "id": "treasure_blessing_surround_them_155",
@@ -72,57 +76,62 @@
         "value": 1,
         "target": "all_heroes"
       }
-    ]
+    ],
+    "image": "/card-images/blessing-surroundthem.png"
   },
   {
     "id": "fortune_action_surge",
     "name": "Action Surge",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "You may immediately take another action this turn.",
-    "effects": []
+    "description": "You can move your speed or make an attack (one extra action this turn).",
+    "effects": [],
+    "image": "/card-images/fortune-actionsurge.png"
   },
   {
     "id": "fortune_breath_of_life",
     "name": "Breath Of Life",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "The most injured hero heals 2 HP.",
+    "description": "Your Hero regains one hit point.",
     "effects": [
       {
         "type": "heal",
-        "value": 2,
-        "target": "all_heroes"
+        "value": 1,
+        "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/fortune-breathoflife.png"
   },
   {
     "id": "fortune_breath_of_life_2",
     "name": "Breath Of Life",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "The most injured hero heals 2 HP.",
+    "description": "Your Hero regains one hit point.",
     "effects": [
       {
         "type": "heal",
-        "value": 2,
-        "target": "all_heroes"
+        "value": 1,
+        "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/fortune-breathoflife.png"
   },
   {
     "id": "fortune_breath_of_life_3",
     "name": "Breath Of Life",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "The most injured hero heals 2 HP.",
+    "description": "Your Hero regains one hit point.",
     "effects": [
       {
         "type": "heal",
-        "value": 2,
-        "target": "all_heroes"
+        "value": 1,
+        "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/fortune-breathoflife.png"
   },
   {
     "id": "fortune_burst_of_speed",
@@ -136,15 +145,22 @@
         "value": 2,
         "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/fortune-burstofspeed.png"
   },
   {
     "id": "fortune_distant_sounds",
     "name": "Distant Sounds",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "You hear strange sounds in the distance, but nothing happens.",
-    "effects": []
+    "description": "Look at the top 3 cards of the monster deck and put them back in any order.",
+    "effects": [
+      {
+        "type": "peek_reorder_deck",
+        "target": "monsterDeck"
+      }
+    ],
+    "image": "/card-images/fortune-distantsounds.png"
   },
   {
     "id": "fortune_clear_the_air",
@@ -157,102 +173,91 @@
         "type": "remove_conditions",
         "target": "all_heroes"
       }
-    ]
+    ],
+    "image": "/card-images/fortune-cleartheair.png"
   },
   {
     "id": "fortune_daze",
     "name": "Daze",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "Target hero is dazed until end of turn.",
+    "description": "Put this card face-up on a monster card. The next time that monster would activate, discard this card instead.",
     "effects": [
       {
-        "type": "status_effect",
-        "statusEffect": "dazed",
-        "duration": 1,
-        "target": "self"
+        "type": "daze_monster_activation",
+        "target": "single"
       }
-    ]
+    ],
+    "image": "/card-images/fortune-daze.png"
   },
   {
     "id": "fortune_eagle_eyes",
     "name": "Eagle Eyes",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "Gain +3 attack bonus this turn.",
+    "description": "Place one tile from the top of the Dungeon Tile stack adjacent to any unexplored edge. Place any new monsters on that tile as normal but do not draw an encounter card.",
     "effects": [
       {
-        "type": "attack_bonus",
-        "value": 3,
-        "target": "self"
+        "type": "reveal_tile_no_encounter"
       }
-    ]
+    ],
+    "image": "/card-images/fortune-eagleeyes.png"
   },
   {
     "id": "fortune_glimpse_of_the_future",
     "name": "Glimpse Of The Future",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "Draw 1 treasure card.",
+    "description": "Look at the top 3 cards of the Encounter Deck and put them back on the top of the deck in any order.",
     "effects": [
       {
-        "type": "draw_treasure",
-        "value": 1,
-        "target": "self"
+        "type": "peek_reorder_deck",
+        "target": "encounterDeck"
       }
-    ]
+    ],
+    "image": "/card-images/fortune-glimpseofthefuture.png"
   },
   {
     "id": "fortune_harrowed_experience",
     "name": "Harrowed Experience",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "Deal 1 damage to yourself, then gain +2 attack bonus this turn.",
+    "description": "This card counts as 1 experience point. Put in the XP pile, and discard this card when the party uses it for experience.",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "self"
-      },
-      {
-        "type": "attack_bonus",
-        "value": 2,
-        "target": "self"
+        "type": "add_xp_to_pile",
+        "value": 1
       }
-    ]
+    ],
+    "image": "/card-images/fortune-harrowedexperience.png"
   },
   {
     "id": "fortune_harrowed_experience_2",
     "name": "Harrowed Experience",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "Deal 1 damage to yourself, then gain +2 attack bonus this turn.",
+    "description": "This card counts as 1 experience point. Put in the XP pile, and discard this card when the party uses it for experience.",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "self"
-      },
-      {
-        "type": "attack_bonus",
-        "value": 2,
-        "target": "self"
+        "type": "add_xp_to_pile",
+        "value": 1
       }
-    ]
+    ],
+    "image": "/card-images/fortune-harrowedexperience.png"
   },
   {
     "id": "fortune_intimidating_bellow",
     "name": "Intimidating Bellow",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "All monsters on your tile take 1 damage.",
+    "description": "Place one monster on a tile 2 tiles away from its tile.",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_monsters"
+        "type": "move_monster_away",
+        "value": 2
       }
-    ]
+    ],
+    "image": "/card-images/fortune-intimidatingbellow.png"
   },
   {
     "id": "fortune_level_up",
@@ -260,56 +265,63 @@
     "type": "consumable",
     "treasureType": "fortune",
     "description": "You level up immediately without needing a natural 20.",
-    "effects": []
+    "effects": [],
+    "image": "/card-images/fortune-levelup.png"
   },
   {
     "id": "fortune_lucky_find",
     "name": "Lucky Find",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "Draw 1 treasure card.",
+    "description": "Draw three treasure cards and keep one. Discard the others.",
     "effects": [
       {
-        "type": "draw_treasure",
-        "value": 1,
-        "target": "self"
+        "type": "draw_treasure_choose",
+        "value": 3
       }
-    ]
+    ],
+    "image": "/card-images/fortune-luckyfind.png"
   },
   {
     "id": "fortune_lucky_find_2",
     "name": "Lucky Find",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "Draw 1 treasure card.",
+    "description": "Draw three treasure cards and keep one. Discard the others.",
     "effects": [
       {
-        "type": "draw_treasure",
-        "value": 1,
-        "target": "self"
+        "type": "draw_treasure_choose",
+        "value": 3
       }
-    ]
+    ],
+    "image": "/card-images/fortune-luckyfind.png"
   },
   {
     "id": "fortune_moments_respite",
-    "name": "Moments Respite",
+    "name": "Moment's Respite",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "Skip the next encounter draw.",
-    "effects": []
+    "description": "Place this card face-up on top of either the Encounter Deck or the Monster Deck. The next time a card would be drawn from the chosen deck, discard this card instead.",
+    "effects": [
+      {
+        "type": "deck_sentinel_choice"
+      }
+    ],
+    "image": "/card-images/fortune-dash-momentsrespite.png"
   },
   {
     "id": "fortune_shake_it_off",
     "name": "Shake It Off",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "Remove all conditions from yourself.",
+    "description": "Choose one Hero. That Hero can end one condition affecting him or her.",
     "effects": [
       {
-        "type": "remove_conditions",
-        "target": "self"
+        "type": "remove_one_condition",
+        "target": "single_hero"
       }
-    ]
+    ],
+    "image": "/card-images/fortune-shakeitoff.png"
   },
   {
     "id": "fortune_short_rest",
@@ -317,7 +329,8 @@
     "type": "consumable",
     "treasureType": "fortune",
     "description": "Refresh one of your used powers.",
-    "effects": []
+    "effects": [],
+    "image": "/card-images/fortune-shortrest.png"
   },
   {
     "id": "fortune_short_rest_2",
@@ -325,7 +338,8 @@
     "type": "consumable",
     "treasureType": "fortune",
     "description": "Refresh one of your used powers.",
-    "effects": []
+    "effects": [],
+    "image": "/card-images/fortune-shortrest.png"
   },
   {
     "id": "item_amulet_of_protection",
@@ -339,7 +353,8 @@
         "value": 2,
         "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/item-amuletofprotection.png"
   },
   {
     "id": "item_boots_of_striding",
@@ -353,7 +368,8 @@
         "value": 1,
         "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/item-bootsofstriding.png"
   },
   {
     "id": "item_crystal_ball",
@@ -367,7 +383,8 @@
         "passiveType": "crystal_ball",
         "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/item-crystalball.png"
   },
   {
     "id": "item_dragons_breath_elixir",
@@ -381,7 +398,8 @@
         "value": 1,
         "target": "all_monsters"
       }
-    ]
+    ],
+    "image": "/card-images/items-dragonsbreathelixir.png"
   },
   {
     "id": "item_glyph_warding",
@@ -395,7 +413,8 @@
         "value": "warded",
         "target": "tile"
       }
-    ]
+    ],
+    "image": "/card-images/item-glyphofwarding.png"
   },
   {
     "id": "item_holy_water",
@@ -411,7 +430,8 @@
         "range": 1,
         "condition": "undead"
       }
-    ]
+    ],
+    "image": "/card-images/item-holywater.png"
   },
   {
     "id": "item_holy_avenger",
@@ -432,7 +452,8 @@
         "target": "self",
         "condition": "undead"
       }
-    ]
+    ],
+    "image": "/card-images/item-holyavenger.png"
   },
   {
     "id": "item_lucky_charm",
@@ -446,7 +467,8 @@
         "passiveType": "reroll",
         "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/item-luckycharm.png"
   },
   {
     "id": "item_lucky_charm_2",
@@ -460,7 +482,8 @@
         "passiveType": "reroll",
         "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/item-luckycharm.png"
   },
   {
     "id": "item_lucky_charm_3",
@@ -474,7 +497,8 @@
         "passiveType": "reroll",
         "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/item-luckycharm.png"
   },
   {
     "id": "item_magic_sword",
@@ -488,7 +512,8 @@
         "value": 2,
         "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/item-magicsword.png"
   },
   {
     "id": "item_necklace_fireballs",
@@ -502,7 +527,8 @@
         "passiveType": "necklace_fireballs",
         "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/item-necklaceoffireballs.png"
   },
   {
     "id": "item_potion_of_healing",
@@ -516,7 +542,8 @@
         "value": 2,
         "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/item-potionofhealing.png"
   },
   {
     "id": "item_potion_of_healing_2",
@@ -530,7 +557,8 @@
         "value": 2,
         "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/item-potionofhealing.png"
   },
   {
     "id": "item_potion_of_rejuvenation",
@@ -544,7 +572,8 @@
         "value": 4,
         "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/item-potionofrejuvenation.png"
   },
   {
     "id": "item_ring_of_accuracy",
@@ -558,7 +587,8 @@
         "value": 1,
         "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/item-ringofaccuracy.png"
   },
   {
     "id": "item_ring_of_regeneration",
@@ -573,7 +603,8 @@
         "value": 1,
         "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/item-ringofregeneration.png"
   },
   {
     "id": "item_scroll_of_teleportation",
@@ -586,7 +617,8 @@
         "type": "teleport",
         "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/item-scrollofteleportation.png"
   },
   {
     "id": "item_thieves_tools",
@@ -600,7 +632,8 @@
         "passiveType": "disable_trap",
         "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/items-thievestools.png"
   },
   {
     "id": "item_wand_of_teleportation",
@@ -614,7 +647,8 @@
         "passiveType": "teleport",
         "target": "self"
       }
-    ]
+    ],
+    "image": "/card-images/item-wandofteleportation.png"
   },
   {
     "id": "treasure_icon_ravenloft",
@@ -628,7 +662,8 @@
         "target": "self"
       }
     ],
-    "treasureType": "item"
+    "treasureType": "item",
+    "image": "/card-images/item-iconofravenloft.png"
   },
   {
     "id": "treasure_healing_potion",
@@ -642,7 +677,8 @@
         "target": "self"
       }
     ],
-    "treasureType": "item"
+    "treasureType": "item",
+    "image": "/card-images/item-potionofhealing.png"
   },
   {
     "id": "treasure_blessing",
@@ -671,7 +707,8 @@
         "condition": "undead"
       }
     ],
-    "treasureType": "item"
+    "treasureType": "item",
+    "image": "/card-images/item-silverdagger.png"
   },
   {
     "id": "treasure_skull",
@@ -707,7 +744,8 @@
     "type": "quest",
     "description": "Can only be used on Vampire-type villains. Bypasses normal coffin resurrection and instantly defeats the target.",
     "effects": [],
-    "treasureType": "item"
+    "treasureType": "item",
+    "image": "/card-images/item-woodenstake.png"
   },
   {
     "id": "item_feywalk_amulet",
@@ -715,7 +753,8 @@
     "type": "quest",
     "description": "Use to teleport to any square on any tile.",
     "effects": [],
-    "treasureType": "item"
+    "treasureType": "item",
+    "image": "/card-images/item-feywalkamulet.png"
   },
   {
     "id": "item_torch",
@@ -723,7 +762,8 @@
     "type": "quest",
     "description": "Serves as light source. Discard to deal 1 fire damage to a monster.",
     "effects": [],
-    "treasureType": "item"
+    "treasureType": "item",
+    "image": "/card-images/item-torch.png"
   },
   {
     "id": "item_dimensional_shackles",
@@ -731,7 +771,8 @@
     "type": "quest",
     "description": "Use to immobilize a monster on your tile for a full round.",
     "effects": [],
-    "treasureType": "item"
+    "treasureType": "item",
+    "image": "/card-images/item-dimensionalshackles.png"
   },
   {
     "id": "item_holy_symbol_of_ravenkind",
@@ -739,7 +780,8 @@
     "type": "quest",
     "description": "Deals damage to all Undead on your tile and adjacent tiles (+7 vs AC, 1 damage).",
     "effects": [],
-    "treasureType": "item"
+    "treasureType": "item",
+    "image": "/card-images/item-holysymbolofravenkind.png"
   },
   {
     "id": "item_icon_of_strahd",
@@ -762,6 +804,34 @@
         "condition": "undead"
       }
     ],
-    "treasureType": "item"
+    "treasureType": "item",
+    "image": "/card-images/item-sunsword.png"
+  },
+  {
+    "id": "item_silver_dagger",
+    "name": "Silver Dagger",
+    "type": "scenario_item",
+    "treasureType": "item",
+    "description": "A finely crafted silver dagger.",
+    "image": "/card-images/item-silverdagger.png",
+    "effects": []
+  },
+  {
+    "id": "item_gravestorms_phylactery",
+    "name": "Gravestorm's Phylactery",
+    "type": "scenario_item",
+    "treasureType": "item",
+    "description": "Use an attack action to inflict 10 damage to Gravestorm.",
+    "image": "/card-images/item-amuletofprotection.png",
+    "effects": []
+  },
+  {
+    "id": "item_tome_of_strahd",
+    "name": "Tome of Strahd",
+    "type": "scenario_item",
+    "treasureType": "item",
+    "description": "A tome containing Strahd's history and secrets.",
+    "image": "/card-images/item-tomeofstrahd.png",
+    "effects": []
   }
 ]

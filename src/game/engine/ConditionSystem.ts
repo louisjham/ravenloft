@@ -1,5 +1,6 @@
-import { Entity, Condition, ConditionType, GameState, Hero } from '../types';
+import { Entity, Condition, ConditionType, GameState, Hero, Tile, ActiveCondition } from '../types';
 import { AbilitySystem } from '../ai/AbilitySystem';
+import { isDev } from '../../utils/devEnv';
 
 /**
  * Condition System - Manages condition application, removal, and effects.
@@ -12,6 +13,9 @@ import { AbilitySystem } from '../ai/AbilitySystem';
  * - dazed:       Cannot use Daily powers
  * - weakened:    Damage dealt is halved
  * - stunned:     Cannot take any actions
+ *
+ * Sentinels:
+ * - turnsRemaining: -1 represents permanent condition durations.
  */
 export class ConditionSystem {
   /**
@@ -25,24 +29,24 @@ export class ConditionSystem {
     duration: number = 1,
     value?: number
   ): T {
-    console.log(`[ConditionSystem] Applying condition '${conditionType}' to ${entity.name} from ${sourceId || 'unknown'}`);
+    if (isDev()) console.log(`[ConditionSystem] Applying condition '${conditionType}' to ${entity.name} from ${sourceId || 'unknown'}`);
 
     const existing = entity.conditions.find(c => c.type === conditionType);
     let newConditions: Condition[];
 
     if (existing) {
-      // Refresh duration
+      // Refresh duration and update sourceId (Bug 2)
       newConditions = entity.conditions.map(c =>
-        c.type === conditionType ? { ...c, turnsRemaining: duration, value } : c
+        c.type === conditionType ? { ...c, turnsRemaining: duration, value, sourceId } : c
       );
-      console.log(`[ConditionSystem] Condition '${conditionType}' refreshed on ${entity.name}, duration: ${duration}`);
+      if (isDev()) console.log(`[ConditionSystem] Condition '${conditionType}' refreshed on ${entity.name}, duration: ${duration}`);
     } else {
       // Add new condition
       newConditions = [
         ...entity.conditions,
         { type: conditionType, sourceId, turnsRemaining: duration, value }
       ];
-      console.log(`[ConditionSystem] Condition '${conditionType}' added to ${entity.name}, duration: ${duration}`);
+      if (isDev()) console.log(`[ConditionSystem] Condition '${conditionType}' added to ${entity.name}, duration: ${duration}`);
     }
 
     return { ...entity, conditions: newConditions };
@@ -54,7 +58,7 @@ export class ConditionSystem {
   public static removeCondition<T extends Entity>(entity: T, conditionType: ConditionType): T {
     const newConditions = entity.conditions.filter(c => c.type !== conditionType);
     if (newConditions.length < entity.conditions.length) {
-      console.log(`[ConditionSystem] Condition '${conditionType}' removed from ${entity.name}`);
+      if (isDev()) console.log(`[ConditionSystem] Condition '${conditionType}' removed from ${entity.name}`);
     }
     return { ...entity, conditions: newConditions };
   }
@@ -63,26 +67,37 @@ export class ConditionSystem {
    * Returns a new entity with all conditions cleared.
    */
   public static clearAllConditions<T extends Entity>(entity: T): T {
-    console.log(`[ConditionSystem] Cleared ${entity.conditions.length} conditions from ${entity.name}`);
+    if (isDev()) console.log(`[ConditionSystem] Cleared ${entity.conditions.length} conditions from ${entity.name}`);
     return { ...entity, conditions: [] };
   }
 
   /**
    * Returns a new entity with condition durations decremented.
    * Conditions that reach 0 turns are removed.
+   * Bug 1: Restructured to filter already-expired conditions first, then decrement survivors.
    */
   public static processTurnEnd<T extends Entity>(entity: T): T {
-    console.log(`[ConditionSystem] Processing turn end for ${entity.name}, conditions: ${entity.conditions.map(c => c.type).join(', ') || 'none'}`);
+    if (isDev()) {
+      console.log(`[ConditionSystem] Processing turn end for ${entity.name}, conditions: ${entity.conditions.map(c => c.type).join(', ') || 'none'}`);
+    }
 
     const newConditions = entity.conditions
-      .map(c => ({ ...c, turnsRemaining: c.turnsRemaining - 1 }))
       .filter(c => {
-        if (c.turnsRemaining <= 0) {
-          console.log(`[ConditionSystem] Condition '${c.type}' expired on ${entity.name}`);
+        if (c.turnsRemaining <= 0 && c.turnsRemaining !== -1) {
+          if (isDev()) {
+            console.log(`[ConditionSystem] Condition '${c.type}' expired on ${entity.name}`);
+          }
           return false;
         }
-        console.log(`[ConditionSystem] Condition '${c.type}' on ${entity.name}, turns remaining: ${c.turnsRemaining}`);
         return true;
+      })
+      .map(c => {
+        if (c.turnsRemaining === -1) return c;
+        const nextTurns = c.turnsRemaining - 1;
+        if (isDev()) {
+          console.log(`[ConditionSystem] Condition '${c.type}' on ${entity.name}, turns remaining decremented to: ${nextTurns}`);
+        }
+        return { ...c, turnsRemaining: nextTurns };
       });
 
     return { ...entity, conditions: newConditions };
@@ -96,24 +111,31 @@ export class ConditionSystem {
   }
 
   /**
-   * Gets the effective speed of an entity considering conditions. (Read-only.)
+   * Gets the effective speed of an entity considering conditions and active blessings. (Read-only.)
    */
-  public static getEffectiveSpeed(entity: Entity): number {
+  public static getEffectiveSpeed(entity: Entity, gameState?: GameState): number {
     let effectiveSpeed = entity.speed;
+
+    if (entity.type === 'hero' && gameState?.activeBlessings) {
+      if (gameState.activeBlessings.some(b => b.cardId === 'treasure_blessing_run_154')) {
+        effectiveSpeed += 2;
+        if (isDev()) console.log(`[ConditionSystem] ${entity.name} has Run! blessing, speed increased to ${effectiveSpeed}`);
+      }
+    }
 
     if (this.hasCondition(entity, 'slowed')) {
       effectiveSpeed = Math.floor(effectiveSpeed / 2);
-      console.log(`[ConditionSystem] ${entity.name} is slowed, speed reduced from ${entity.speed} to ${effectiveSpeed}`);
+      if (isDev()) console.log(`[ConditionSystem] ${entity.name} is slowed, speed reduced from ${entity.speed} to ${effectiveSpeed}`);
     }
 
-    if (this.hasCondition(entity, 'crippling_miasma')) {
+    if (gameState?.activeEnvironmentCard === 'enc_crippling_miasma' && !this.hasCondition(entity, 'slowed')) {
       effectiveSpeed = Math.max(0, effectiveSpeed - 1);
-      console.log(`[ConditionSystem] ${entity.name} has crippling miasma, speed reduced to ${effectiveSpeed}`);
+      if (isDev()) console.log(`[ConditionSystem] ${entity.name} is affected by Crippling Miasma environment, speed reduced to ${effectiveSpeed}`);
     }
 
     if (this.hasCondition(entity, 'immobilized')) {
       effectiveSpeed = 0;
-      console.log(`[ConditionSystem] ${entity.name} is immobilized, speed is 0`);
+      if (isDev()) console.log(`[ConditionSystem] ${entity.name} is immobilized, speed is 0`);
     }
 
     return effectiveSpeed;
@@ -124,7 +146,7 @@ export class ConditionSystem {
    */
   public static canTakeActions(entity: Entity): boolean {
     if (this.hasCondition(entity, 'stunned')) {
-      console.log(`[ConditionSystem] ${entity.name} is stunned and cannot take actions`);
+      if (isDev()) console.log(`[ConditionSystem] ${entity.name} is stunned and cannot take actions`);
       return false;
     }
     return true;
@@ -135,7 +157,7 @@ export class ConditionSystem {
    */
   public static canUseDailyPowers(entity: Entity): boolean {
     if (this.hasCondition(entity, 'dazed')) {
-      console.log(`[ConditionSystem] ${entity.name} is dazed and cannot use Daily powers`);
+      if (isDev()) console.log(`[ConditionSystem] ${entity.name} is dazed and cannot use Daily powers`);
       return false;
     }
     return true;
@@ -143,13 +165,15 @@ export class ConditionSystem {
 
   /**
    * Gets damage modifier based on conditions. (Read-only.)
+   * Bug 5: Accumulated multiplicatively.
    */
   public static getDamageModifier(entity: Entity): number {
+    let modifier = 1.0;
     if (this.hasCondition(entity, 'weakened')) {
-      console.log(`[ConditionSystem] ${entity.name} is weakened, damage will be halved`);
-      return 0.5;
+      if (isDev()) console.log(`[ConditionSystem] ${entity.name} is weakened, damage will be halved`);
+      modifier *= 0.5;
     }
-    return 1.0;
+    return modifier;
   }
 
   /**
@@ -158,7 +182,7 @@ export class ConditionSystem {
   public static processPoisonDamage(entity: Entity): number {
     if (this.hasCondition(entity, 'poisoned')) {
       const poisonDamage = 1;
-      console.log(`[ConditionSystem] ${entity.name} is poisoned, taking ${poisonDamage} damage`);
+      if (isDev()) console.log(`[ConditionSystem] ${entity.name} is poisoned, taking ${poisonDamage} damage`);
       return poisonDamage;
     }
     return 0;
@@ -172,34 +196,95 @@ export class ConditionSystem {
     if (!hero) return gameState;
 
     let updatedHero = { ...hero };
-    let logs = [...gameState.log];
+    let newState = { ...gameState };
+    let logs = [...newState.log];
 
-    const hasMiasma = this.hasCondition(hero, 'crippling_miasma');
-    if (hasMiasma) {
-      // Roll Fortitude save (d20 >= 10)
-      const roll = AbilitySystem._rollOverride ? AbilitySystem._rollOverride() : Math.floor(Math.random() * 20) + 1;
-      if (roll >= 10) {
-        updatedHero = this.removeCondition(updatedHero, 'crippling_miasma');
+    if (updatedHero.removedFromPlay) {
+      const startTile = newState.tiles.find(t => t.isStart);
+      const targetTile = startTile || newState.tiles.find(t => t.isRevealed);
+      if (targetTile) {
+        updatedHero.removedFromPlay = false;
+        updatedHero.position = {
+          x: targetTile.x,
+          z: targetTile.z,
+          sqX: 2,
+          sqZ: 2
+        };
+        newState = {
+          ...newState,
+          tiles: newState.tiles.map(t =>
+            t.id === targetTile.id
+              ? { ...t, heroes: [...new Set([...t.heroes, heroId])] }
+              : t
+          )
+        };
         logs.push({
-          id: crypto.randomUUID(),
+          id: String((newState.logIdCounter ?? 0) + 1),
           timestamp: new Date().toISOString(),
-          message: `${hero.name} rolled a Fortitude save of ${roll} (needed 10+) and cured Crippling Miasma!`,
+          message: `${hero.name} returns to the dungeon on tile (${targetTile.x},${targetTile.z}).`,
           type: 'system' as const
         });
-      } else {
-        logs.push({
-          id: crypto.randomUUID(),
-          timestamp: new Date().toISOString(),
-          message: `${hero.name} rolled a Fortitude save of ${roll} (needed 10+) and failed to cure Crippling Miasma.`,
-          type: 'system' as const
-        });
+        newState.logIdCounter = (newState.logIdCounter ?? 0) + 1;
+      }
+    }
+
+    // Bug 3: Poison processing at turn start
+    const poisonDmg = this.processPoisonDamage(updatedHero);
+    if (poisonDmg > 0) {
+      updatedHero = { ...updatedHero, hp: Math.max(0, updatedHero.hp - poisonDmg) };
+      logs.push({
+        id: String((newState.logIdCounter ?? 0) + 1),
+        timestamp: new Date().toISOString(),
+        message: `${hero.name} takes ${poisonDmg} poison damage at the start of their turn.`,
+        type: 'system' as const
+      });
+      newState.logIdCounter = (newState.logIdCounter ?? 0) + 1;
+    }
+
+    return ConditionSystem.syncActiveConditions({
+      ...newState,
+      heroes: newState.heroes.map(h => h.id === heroId ? updatedHero : h),
+      log: logs.slice(-100)
+    });
+  }
+
+  /**
+   * Synchronizes activeConditions in GameState from the conditions arrays on all heroes and monsters.
+   */
+  public static syncActiveConditions(gameState: GameState): GameState {
+    const activeConditions: ActiveCondition[] = [];
+
+    for (const hero of gameState.heroes) {
+      if (hero.conditions) {
+        for (const cond of hero.conditions) {
+          activeConditions.push({
+            type: cond.type,
+            targetId: hero.id,
+            sourceId: cond.sourceId,
+            turnsRemaining: cond.turnsRemaining,
+            value: cond.value
+          });
+        }
+      }
+    }
+
+    for (const monster of gameState.monsters) {
+      if (monster.conditions) {
+        for (const cond of monster.conditions) {
+          activeConditions.push({
+            type: cond.type,
+            targetId: monster.id,
+            sourceId: cond.sourceId,
+            turnsRemaining: cond.turnsRemaining,
+            value: cond.value
+          });
+        }
       }
     }
 
     return {
       ...gameState,
-      heroes: gameState.heroes.map(h => h.id === heroId ? updatedHero : h),
-      log: logs
+      activeConditions
     };
   }
 }

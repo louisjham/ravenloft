@@ -16,10 +16,45 @@ function isStoneFormGargoyle(entity: Entity): entity is Monster {
 
 /**
  * Handles all combat math and resolution.
- * All methods are pure functions — no parameters are mutated.
+ * All methods in this class are pure functions — no parameters are mutated.
+ * Note: For async roll orchestration, see CombatAdapter.
  */
 export class CombatSystem {
   /**
+   * Computes the effective AC of an entity, including passive item bonuses (for heroes)
+   * and any active AC conditions.
+   */
+  public static getEffectiveAC(entity: Entity): number {
+    let effectiveAC = entity.ac;
+
+    // Item AC bonuses (only for heroes)
+    if (entity.type === 'hero') {
+      const hero = entity as Hero;
+      const allCards = DataLoader.getInstance().getAllCards();
+      for (const itemId of hero.items) {
+        const card = allCards.find(c => c.id === itemId);
+        if (!card) continue;
+        for (const effect of card.effects) {
+          if (effect.type === 'defense_bonus' || effect.type === 'ac_bonus') {
+            effectiveAC += typeof effect.value === 'number' ? effect.value : 0;
+          }
+        }
+      }
+    }
+
+    // Condition AC bonuses
+    if (entity.conditions) {
+      const acBonusConditions = entity.conditions.filter(c => c.type === 'ac_bonus');
+      for (const c of acBonusConditions) {
+        effectiveAC += (c.value ?? 0);
+      }
+    }
+
+    return effectiveAC;
+  }
+
+  /**
+
    * Resolves an attack between an attacker and a target.
    * Returns raw hit/damage math without immunity logic (handled by applyDamage).
    * Pure — does not modify attacker or target.
@@ -43,14 +78,13 @@ export class CombatSystem {
     if (
       gameState?.activeEnvironmentCard === 'enc_bat_swarm' &&
       attacker.type === 'hero' &&
-      target.type === 'monster' &&
-      (attacker.position.x !== target.position.x || attacker.position.z !== target.position.z)
+      target.type === 'monster'
     ) {
       roll2 = AbilitySystem._rollOverride ? AbilitySystem._rollOverride() : Math.floor(Math.random() * GAME_CONSTANTS.D20_SIDES) + 1;
       const originalRoll = roll;
       roll = Math.min(originalRoll, roll2);
       if (isDev()) {
-        console.log(`${LOG_PREFIX} Bat Swarm active: Hero attacks across tiles. Rolled twice: ${originalRoll} and ${roll2}. Used lower: ${roll}`);
+        console.log(`${LOG_PREFIX} Bat Swarm active: Hero attacks. Rolled twice: ${originalRoll} and ${roll2}. Used lower: ${roll}`);
       }
     }
 
@@ -66,35 +100,50 @@ export class CombatSystem {
     }
 
     // Sum any active blessing attack bonuses
-    if (gameState?.activeBlessing) {
-      for (const effect of gameState.activeBlessing.effects) {
-        if (effect.type === 'attack_bonus') {
-          finalAttackBonus += (typeof effect.value === 'number' ? effect.value : 0);
+    let healAttackerAmt = 0;
+    if (gameState?.activeBlessings) {
+      for (const blessing of gameState.activeBlessings) {
+        if (blessing.cardId === 'treasure_blessing_heroic_stand_151') {
+          const attackerTile = gameState.tiles.find(t => t.x === attacker.position?.x && t.z === attacker.position?.z);
+          if (attackerTile) {
+            const monstersOnTile = gameState.monsters.filter(m => m.hp > 0 && !m.isDefeated && m.position.x === attackerTile.x && m.position.z === attackerTile.z);
+            finalAttackBonus += monstersOnTile.length;
+            if (isDev() && monstersOnTile.length > 0) console.log(`${LOG_PREFIX} Heroic Stand: +${monstersOnTile.length} attack bonus applied.`);
+          }
+        } else if (blessing.cardId === 'treasure_blessing_surround_them_155') {
+          if (target.type === 'monster') {
+            finalDamage += 1;
+            // Also adding attack bonus because the user explicitly requested it
+            finalAttackBonus += 1;
+            if (isDev()) console.log(`${LOG_PREFIX} Surround Them!: +1 damage/attack bonus applied.`);
+          }
+        } else if (blessing.cardId === 'treasure_blessing_rejuvenating_onslaught_153') {
+          if (attacker.type === 'hero') {
+            healAttackerAmt = 1; // Evaluated later if hit is true
+          }
+        } else {
+          // Fallback for any passive generic attack bonuses on future blessing cards
+          for (const effect of blessing.effects) {
+            if (effect.type === 'attack_bonus') {
+              finalAttackBonus += (typeof effect.value === 'number' ? effect.value : 0);
+            }
+          }
         }
       }
     }
 
-    if (attacker.type === 'hero' && target.type === 'monster') {
-      const heroAttacker = attacker as Hero;
-      const monsterTarget = target as Monster;
-      const isUndead = monsterTarget.monsterType?.toLowerCase().includes('undead') ||
-                       monsterTarget.name.toLowerCase().includes('skeleton') ||
-                       monsterTarget.name.toLowerCase().includes('zombie') ||
-                       monsterTarget.name.toLowerCase().includes('ghoul') ||
-                       monsterTarget.name.toLowerCase().includes('wraith') ||
-                       monsterTarget.name.toLowerCase().includes('strahd') ||
-                       monsterTarget.name.toLowerCase().includes('dracolich');
+    const undeadItemResult = CombatSystem.applyUndeadItemBonuses(attacker, target, finalAttackBonus, finalDamage);
+    finalAttackBonus = undeadItemResult.attackBonus;
+    finalDamage = undeadItemResult.damage;
 
-      if (isUndead) {
-        if (heroAttacker.items?.includes('item_sunsword')) {
-          finalAttackBonus += 2;
-          if (isDev()) console.log(`${LOG_PREFIX} Sunsword passive attack bonus (+2 vs Undead) applied.`);
-        }
-        if (heroAttacker.items?.includes('item_holy_avenger')) {
-          finalAttackBonus += 2;
-          if (isDev()) console.log(`${LOG_PREFIX} Holy Avenger passive attack bonus (+2 vs Undead) applied.`);
-        }
-      }
+    // Haunted Mists Environment (Undead monsters gain +2 attack)
+    if (
+      gameState?.activeEnvironmentCard === 'enc_haunted_mists' &&
+      attacker.type === 'monster' &&
+      (attacker as Monster).monsterType?.toLowerCase() === 'undead'
+    ) {
+      finalAttackBonus += 2;
+      if (isDev()) console.log(`${LOG_PREFIX} Haunted Mists: +2 attack bonus applied to Undead monster.`);
     }
 
     if (!ConditionSystem.canTakeActions(attacker)) {
@@ -112,35 +161,20 @@ export class CombatSystem {
 
     const total = roll + finalAttackBonus + rollModifier;
     const critical = roll === GAME_CONSTANTS.CRITICAL_HIT_ROLL;
-    const hit = critical || total >= target.ac;
+    const hit = critical || total >= CombatSystem.getEffectiveAC(target);
 
     let actualDamage = finalDamage;
     if (hit) {
       const damageModifier = ConditionSystem.getDamageModifier(attacker);
-      actualDamage = Math.floor(finalDamage * damageModifier);
-
-      // Add damage_bonus conditions
+      let flatBonuses = 0;
       if (attacker.conditions) {
         const damageBonusConditions = attacker.conditions.filter(c => c.type === 'damage_bonus');
         for (const c of damageBonusConditions) {
-          actualDamage += (c.value ?? 0);
+          flatBonuses += (c.value ?? 0);
         }
       }
 
-      // Holy Avenger damage bonus (+2 vs Undead)
-      if (attacker.type === 'hero' && target.type === 'monster' && (attacker as Hero).items?.includes('item_holy_avenger')) {
-        const isUndead = (target as Monster).monsterType?.toLowerCase().includes('undead') ||
-                         target.name.toLowerCase().includes('skeleton') ||
-                         target.name.toLowerCase().includes('zombie') ||
-                         target.name.toLowerCase().includes('ghoul') ||
-                         target.name.toLowerCase().includes('wraith') ||
-                         target.name.toLowerCase().includes('strahd') ||
-                         target.name.toLowerCase().includes('dracolich');
-        if (isUndead) {
-          actualDamage += 2;
-          if (isDev()) console.log(`${LOG_PREFIX} Holy Avenger passive damage bonus (+2 vs Undead) applied.`);
-        }
-      }
+      actualDamage = Math.floor((finalDamage + flatBonuses) * damageModifier);
 
       // Blood Fog (Environment 52)
       if (gameState?.activeEnvironmentCard === 'enc_blood_fog' && roll >= 17) {
@@ -160,8 +194,22 @@ export class CombatSystem {
       roll,
       total,
       damage: actualDamage,
-      critical
+      critical,
+      healAttacker: hit && healAttackerAmt > 0 ? healAttackerAmt : undefined
     };
+  }
+
+  /**
+   * Applies any trailing effects from an AttackResult to the attacker (e.g. healAttacker).
+   * Pure — returns a new attacker entity.
+   */
+  public static applyAttackResultEffects<T extends Entity>(attacker: T, result: AttackResult): T {
+    let updatedAttacker = { ...attacker };
+    if (result.healAttacker && result.healAttacker > 0) {
+      updatedAttacker = CombatSystem.applyHealing(updatedAttacker, result.healAttacker);
+      if (isDev()) console.log(`${LOG_PREFIX} AttackResult triggered heal for ${attacker.name}: +${result.healAttacker} HP`);
+    }
+    return updatedAttacker;
   }
 
   /**
@@ -179,13 +227,15 @@ export class CombatSystem {
     }
 
     // Environment card damage modifiers (e.g. sanctuary reduces damage with negative values)
-    if (gameState?.activeEnvironmentCard && entity.type === 'hero') {
+    if (gameState?.activeEnvironmentCard) {
       const envCard = DataLoader.getInstance().getCardById(gameState.activeEnvironmentCard);
       if (envCard) {
         for (const effect of envCard.effects) {
           if (effect.type === 'damage_bonus' && typeof effect.value === 'number') {
-            actualAmount += effect.value;
-            if (isDev()) console.log(`${LOG_PREFIX} Environment ${envCard.name}: +${effect.value} damage modifier applied`);
+            if (effect.targetType === 'hero' || effect.targetType === 'all') {
+              actualAmount += effect.value;
+              if (isDev()) console.log(`${LOG_PREFIX} Environment ${envCard.name}: +${effect.value} damage modifier applied`);
+            }
           }
         }
       }
@@ -220,63 +270,32 @@ export class CombatSystem {
     return ConditionSystem.applyCondition(target, conditionType, sourceId, duration);
   }
 
-  /**
-   * Orchestrates an asynchronous attack resolution involving the 3D dice rolling system.
-   * Prompts the user (or auto-rolls for monsters), waits for the animation,
-   * then computes the final logic. Falls back to direct resolution after timeout.
-   */
-  public static async resolveAttackAsync(
+  private static applyUndeadItemBonuses(
     attacker: Entity,
     target: Entity,
     attackBonus: number,
-    damage: number,
-    rollModifier: number = 0,
-    gameState?: GameState,
-    missDamage: number = 0
-  ): Promise<AttackResult> {
-    const isMonster = isMonsterEntity(attacker);
-    const rollType = isMonster ? 'monster_attack' : 'hero_attack';
-    const store = (await import('../../store/diceStore')).useDiceStore;
+    damage: number
+  ): { attackBonus: number; damage: number } {
+    let finalAttackBonus = attackBonus;
+    let finalDamage = damage;
 
-    return new Promise<AttackResult>((resolve) => {
-      let worldX = 0, worldZ = 0;
-      if (attacker.position) {
-        worldX = attacker.position.x * 4 + attacker.position.sqX + 0.5;
-        worldZ = attacker.position.z * 4 + attacker.position.sqZ + 0.5;
-      }
+    if (attacker.type === 'hero' && target.type === 'monster') {
+      const heroAttacker = attacker as Hero;
+      const monsterTarget = target as Monster;
 
-      let resolved = false;
-      const timeout = setTimeout(() => {
-        if (resolved) return;
-        resolved = true;
-        if (isDev()) console.log(`${LOG_PREFIX} Async attack timed out, resolving with direct roll`);
-        resolve(this.resolveAttack(attacker, target, attackBonus, damage, rollModifier, undefined, gameState, missDamage));
-      }, ASYNC_TIMEOUT_MS);
-
-      store.getState().requestRoll({
-        rollType,
-        rollerId: attacker.id,
-        rollerName: attacker.name,
-        targetId: target.id,
-        targetName: target.name,
-        announcementText: `${attacker.name} attacks!`,
-        attackBonus: attackBonus + rollModifier,
-        targetAC: target.ac,
-        damage,
-        isAutoRoll: isMonster,
-        worldPosition: [worldX, 2, worldZ],
-        onComplete: () => {
-          if (resolved) return;
-          resolved = true;
-          clearTimeout(timeout);
-          const preRolledValue = store.getState().result;
-          if (preRolledValue !== null) {
-            resolve(this.resolveAttack(attacker, target, attackBonus, damage, rollModifier, preRolledValue, gameState, missDamage));
-          } else {
-            resolve(this.resolveAttack(attacker, target, attackBonus, damage, rollModifier, undefined, gameState, missDamage));
-          }
+      if (monsterTarget.isUndead === true) {
+        if (heroAttacker.items?.includes('item_sunsword')) {
+          finalAttackBonus += 2;
+          if (isDev()) console.log(`${LOG_PREFIX} Sunsword passive attack bonus (+2 vs Undead) applied.`);
         }
-      });
-    });
+        if (heroAttacker.items?.includes('item_holy_avenger')) {
+          finalAttackBonus += 2;
+          finalDamage += 2;
+          if (isDev()) console.log(`${LOG_PREFIX} Holy Avenger passive attack and damage bonuses (+2 vs Undead) applied.`);
+        }
+      }
+    }
+
+    return { attackBonus: finalAttackBonus, damage: finalDamage };
   }
 }

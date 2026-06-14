@@ -14,6 +14,7 @@ import { ExperiencePanel } from './ExperiencePanel';
 import { PartySidebar } from './PartySidebar';
 import { ActionPromptAnimated } from './ActionPromptAnimated';
 import { TargetSelection } from './TargetSelection';
+import { FortuneResolutionModal } from './FortuneResolutionModal';
 import { DataLoader } from '../../game/dataLoader';
 import type { Card } from '../../game/types';
 
@@ -215,6 +216,9 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
           }}
         />
       )}
+
+      {/* Fortune Resolution Modal */}
+      <FortuneResolutionModal />
     </>
   );
 };

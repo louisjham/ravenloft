@@ -88,8 +88,9 @@ export class ExperienceSystem {
    * Each monster card contributes its actual XP value (1, 2, 3, or 5).
    */
   public static getTotalXP(gameState: GameState): number {
-    const values = ExperienceSystem.getXpValues(gameState);
-    return values.reduce((sum, v) => sum + v, 0);
+    const monsterXp = ExperienceSystem.getXpValues(gameState).reduce((sum, v) => sum + v, 0);
+    const fortuneXp = (gameState.fortuneXpEntries ?? []).reduce((sum, e) => sum + e.amount, 0);
+    return monsterXp + fortuneXp;
   }
 
   /**

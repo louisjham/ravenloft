@@ -68,8 +68,11 @@ export const createConditionSlice: StateCreator<GameStore, [], [], ConditionSlic
       if (!gameState) return;
 
       const nextConditions = (gameState.activeConditions ?? [])
-        .map(c => ({ ...c, turnsRemaining: c.turnsRemaining - 1 }))
-        .filter(c => c.turnsRemaining > 0 || c.turnsRemaining === -1);
+        .filter(c => c.turnsRemaining > 0 || c.turnsRemaining === -1)
+        .map(c => {
+          if (c.turnsRemaining === -1) return c;
+          return { ...c, turnsRemaining: c.turnsRemaining - 1 };
+        });
 
       const updatedHeroes = gameState.heroes.map(h => ConditionSystem.processTurnEnd(h));
       const updatedMonsters = gameState.monsters.map(m => ConditionSystem.processTurnEnd(m));

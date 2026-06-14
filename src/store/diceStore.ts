@@ -78,6 +78,7 @@ export interface DiceStore {
   dismiss: () => void;
   reset: () => void;
   isActive: () => boolean;
+  cancelRoll: () => void;
 }
 
 const DEFAULT_PHYSICS = {
@@ -219,5 +220,13 @@ export const useDiceStore = create<DiceStore>()(
     },
 
     isActive: () => get().phase !== 'idle',
+    cancelRoll: () => {
+      set({
+        phase: 'idle',
+        _onComplete: null,
+        result: null,
+        rollType: null,
+      });
+    },
   }))
 );

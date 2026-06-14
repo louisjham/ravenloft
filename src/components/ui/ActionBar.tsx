@@ -9,6 +9,7 @@ interface ActionBarProps {
 
 export const ActionBar: React.FC<ActionBarProps> = ({ onOpenTreasure }) => {
   const gameState = useGameStore((state) => state.gameState);
+  const disableTrap = useGameStore((state) => state.disableTrap);
   const { handleEndTurn, canSearch, getSearchableTokens, handleSearchToken } = useGameActions();
 
   const currentHeroId = useGameStore(s => s.gameState?.currentHeroId);
@@ -27,6 +28,10 @@ export const ActionBar: React.FC<ActionBarProps> = ({ onOpenTreasure }) => {
   const heroTile = gameState && activeHero
     ? gameState.tiles.find(t => t.x === activeHero.position.x && t.z === activeHero.position.z)
     : null;
+  const activeTrapOnTile = gameState?.traps.find(
+    t => !t.isDisabled && t.tileId === heroTile?.id
+  );
+  const canDisableTrap = gameState?.phase === 'hero' && !gameState.hasAttackedThisTurn && !!activeTrapOnTile;
   const canEscape = gameState?.activeScenario?.id === 'adventure_04' && heroTile?.id === 'start-tile' && !activeHero?.escaped && gameState?.phase === 'hero';
 
   const anyAliveMonsters = useGameStore(s =>
@@ -128,6 +133,34 @@ export const ActionBar: React.FC<ActionBarProps> = ({ onOpenTreasure }) => {
         <span>Search{searchableTokens.length > 0 ? ` (${searchableTokens.length})` : ''}</span>
         <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>[S]</span>
       </button>
+
+      {activeTrapOnTile && (
+        <button
+          className="gothic-button"
+          onClick={() => {
+            if (activeTrapOnTile) {
+              disableTrap(activeTrapOnTile.id);
+            }
+          }}
+          disabled={!canDisableTrap}
+          style={{
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '4px 8px',
+            fontSize: '0.7rem',
+            opacity: canDisableTrap ? 1 : 0.5,
+            cursor: canDisableTrap ? 'pointer' : 'not-allowed',
+            borderColor: '#ff4444',
+            color: '#ff4444'
+          }}
+          title={canDisableTrap ? 'Attempt to disable the trap on this tile' : 'You must have an attack action remaining to disable traps'}
+        >
+          <span>Disable Trap</span>
+          <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>[D]</span>
+        </button>
+      )}
 
       <button
         className="gothic-button"

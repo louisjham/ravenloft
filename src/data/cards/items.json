@@ -4,7 +4,9 @@
     "name": "Heavy Shield",
     "type": "item",
     "description": "Gain +1 to Defense (AC).",
-    "effects": ["stat-mod:ac,1"],
+    "effects": [
+      "stat-mod:ac,1"
+    ],
     "phase": "hero"
   },
   {
@@ -12,7 +14,9 @@
     "name": "Boots of Speed",
     "type": "item",
     "description": "Gain +1 to Speed.",
-    "effects": ["stat-mod:speed,1"],
+    "effects": [
+      "stat-mod:speed,1"
+    ],
     "phase": "hero"
   },
   {
@@ -20,7 +24,9 @@
     "name": "Ring of Protection",
     "type": "item",
     "description": "Gain +1 to Defense (AC).",
-    "effects": ["stat-mod:ac,1"],
+    "effects": [
+      "stat-mod:ac,1"
+    ],
     "phase": "hero"
   },
   {
@@ -28,15 +34,20 @@
     "name": "Amulet of Protection",
     "type": "item",
     "description": "Gain +1 to Defense (AC).",
-    "effects": ["stat-mod:ac,1"],
-    "phase": "hero"
+    "effects": [
+      "stat-mod:ac,1"
+    ],
+    "phase": "hero",
+    "image": "/card-images/item-amuletofprotection.png"
   },
   {
     "id": "card-item-belt-strength",
     "name": "Belt of Giant Strength",
     "type": "item",
     "description": "Gain +1 Damage on all melee attacks.",
-    "effects": ["stat-mod:damage,1"],
+    "effects": [
+      "stat-mod:damage,1"
+    ],
     "phase": "hero"
   },
   {
@@ -44,15 +55,20 @@
     "name": "Boots of Striding",
     "type": "item",
     "description": "Gain +1 to Speed.",
-    "effects": ["stat-mod:speed,1"],
-    "phase": "hero"
+    "effects": [
+      "stat-mod:speed,1"
+    ],
+    "phase": "hero",
+    "image": "/card-images/item-bootsofstriding.png"
   },
   {
     "id": "card-item-magic-weapon",
     "name": "Magic Weapon",
     "type": "item",
     "description": "Gain +1 Damage on all attacks.",
-    "effects": ["stat-mod:damage,1"],
+    "effects": [
+      "stat-mod:damage,1"
+    ],
     "phase": "hero"
   },
   {
@@ -60,15 +76,20 @@
     "name": "Potion of Healing",
     "type": "item",
     "description": "Use during your turn: Discard to regain 2 HP.",
-    "effects": ["consume:heal,2"],
-    "phase": "hero"
+    "effects": [
+      "consume:heal,2"
+    ],
+    "phase": "hero",
+    "image": "/card-images/item-potionofhealing.png"
   },
   {
     "id": "card-item-potion-speed",
     "name": "Potion of Speed",
     "type": "item",
     "description": "Use during your turn: Discard to gain +3 Speed this turn.",
-    "effects": ["consume:speed,3"],
+    "effects": [
+      "consume:speed,3"
+    ],
     "phase": "hero"
   },
   {
@@ -76,15 +97,20 @@
     "name": "Thieves' Tools",
     "type": "item",
     "description": "Use when you draw a Trap card: Discard to immediately negate and discard the Trap.",
-    "effects": ["consume:cancel-trap"],
-    "phase": "hero"
+    "effects": [
+      "consume:cancel-trap"
+    ],
+    "phase": "hero",
+    "image": "/card-images/items-thievestools.png"
   },
   {
     "id": "card-item-wand-magic-missiles",
     "name": "Wand of Magic Missiles",
     "type": "item",
     "description": "Use during your Hero Phase: Discard to deal 1 damage to a Monster within 2 tiles.",
-    "effects": ["consume:damage,1,range,2"],
+    "effects": [
+      "consume:damage,1,range,2"
+    ],
     "phase": "hero"
   },
   {
@@ -92,7 +118,9 @@
     "name": "Holy Symbol",
     "type": "item",
     "description": "Gain +1 Defense (AC) vs Undead.",
-    "effects": ["stat-mod:ac,1"],
+    "effects": [
+      "stat-mod:ac,1"
+    ],
     "phase": "hero"
   },
   {
@@ -100,15 +128,20 @@
     "name": "Ring of Regeneration",
     "type": "item",
     "description": "At the start of your Hero Phase, you may regain 1 HP if you are below maximum.",
-    "effects": ["trigger:start-turn,heal,1"],
-    "phase": "hero"
+    "effects": [
+      "trigger:start-turn,heal,1"
+    ],
+    "phase": "hero",
+    "image": "/card-images/item-ringofregeneration.png"
   },
   {
     "id": "card-item-blessing",
     "name": "Blessing of the Sun",
     "type": "item",
     "description": "Use when you attack: Discard to add +2 to your attack roll.",
-    "effects": ["consume:attack,2"],
+    "effects": [
+      "consume:attack,2"
+    ],
     "phase": "hero"
   },
   {
@@ -116,7 +149,9 @@
     "name": "Potion of Invisibility",
     "type": "item",
     "description": "Use during your turn: Discard to become invisible until your next Hero Phase.",
-    "effects": ["consume:invisible"],
+    "effects": [
+      "consume:invisible"
+    ],
     "phase": "hero"
   }
 ]

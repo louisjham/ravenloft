@@ -1,8 +1,7 @@
-import { Monster, Hero, MonsterAction, GameState, Position, Path, AttackResult } from '../types';
+import { Monster, Hero, MonsterAction, GameState, Position, Path, Tile, IBehavior } from '../types';
 import { Pathfinding } from './Pathfinding';
 import { ThreatAssessment } from './ThreatAssessment';
 
-// Import behaviors
 import { GargoyleBehavior } from './behaviors/GargoyleBehavior';
 import { GoblinBehavior } from './behaviors/GoblinBehavior';
 import { ZombieBehavior } from './behaviors/ZombieBehavior';
@@ -13,6 +12,17 @@ import { VampireBehavior } from './behaviors/VampireBehavior';
 import { StrahdBehavior } from './behaviors/StrahdBehavior';
 
 export class MonsterAI {
+  private static readonly BEHAVIORS: Record<string, IBehavior> = {
+    'gargoyle': new GargoyleBehavior(),
+    'goblin': new GoblinBehavior(),
+    'zombie': new ZombieBehavior(),
+    'wolf': new WolfBehavior(),
+    'skeleton': new SkeletonBehavior(),
+    'ghost': new GhostBehavior(),
+    'vampire': new VampireBehavior(),
+    'strahd': new StrahdBehavior(),
+  };
+
   /**
    * Main entry point to decide what a monster should do this turn.
    */
@@ -35,44 +45,33 @@ export class MonsterAI {
     return ThreatAssessment.getTopTarget(monster, heroes);
   }
 
-  public calculatePath(monster: Monster, target: Hero, tiles: any[]): Path {
+  public calculatePath(monster: Monster, target: Hero, tiles: Tile[]): Path {
     return Pathfinding.calculatePath(monster.position, target.position, tiles, []);
   }
 
   // --- Actions wrappers (to be triggered by GameEngine) ---
 
   public moveTowardTarget(monster: Monster, target: Hero): void {
-    // Engine will call this to update state
-    console.log(`AI: ${monster.name} moving toward ${target.name}`);
+    throw new Error('[MonsterAI] Use resolveTactic() from MonsterAI engine — this class method is not implemented.');
   }
 
   public moveRandomly(monster: Monster): void {
-    console.log(`AI: ${monster.name} moving randomly`);
+    throw new Error('[MonsterAI] Use resolveTactic() from MonsterAI engine — this class method is not implemented.');
   }
 
   public stayInPlace(monster: Monster): void {
-    console.log(`AI: ${monster.name} staying in place`);
+    throw new Error('[MonsterAI] Use resolveTactic() from MonsterAI engine — this class method is not implemented.');
   }
 
   public attackTarget(monster: Monster, target: Hero): void {
-    console.log(`AI: ${monster.name} attacking ${target.name}`);
+    throw new Error('[MonsterAI] Use resolveTactic() from MonsterAI engine — this class method is not implemented.');
   }
 
   public useSpecialAbility(monster: Monster): void {
-    console.log(`AI: ${monster.name} using special ability`);
+    throw new Error('[MonsterAI] Use resolveTactic() from MonsterAI engine — this class method is not implemented.');
   }
 
-  private getBehavior(type: string) {
-    const behaviors: Record<string, any> = {
-      'gargoyle': GargoyleBehavior,
-      'goblin': GoblinBehavior,
-      'zombie': ZombieBehavior,
-      'wolf': WolfBehavior,
-      'skeleton': SkeletonBehavior,
-      'ghost': GhostBehavior,
-      'vampire': VampireBehavior,
-      'strahd': StrahdBehavior,
-    };
-    return behaviors[type.toLowerCase()];
+  private getBehavior(type: string): IBehavior | undefined {
+    return MonsterAI.BEHAVIORS[type.toLowerCase()];
   }
 }

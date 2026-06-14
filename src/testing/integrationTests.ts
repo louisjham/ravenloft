@@ -8,10 +8,14 @@ import { captureWarn, captureError, captureLog, runWithCapturedConsole } from '.
 
 import { runAbilitySystemTests } from './ability-system-tests';
 import { AbilitySystem } from '../game/ai/AbilitySystem';
+import { MonsterAI } from '../game/ai/MonsterAI';
+import { CombatSystem } from '../game/engine/CombatSystem';
+import { ConditionSystem } from '../game/engine/ConditionSystem';
 import { PowerSystem } from '../game/engine/PowerSystem';
 import { useGameStore } from '../store/gameStore';
 import { buildVillainQueue, applyTrapResult, executeVillainPhase } from '../store/slices/villainPhaseLogic';
 import { useUIStore } from '../store/uiStore';
+import { useDiceStore } from '../store/diceStore';
 import { TileSystem } from '../game/engine/TileSystem';
 import { DataLoader } from '../game/dataLoader';
 import { getPowerCard } from '../data/powerCardLoader';
@@ -32,7 +36,10 @@ import { ObjectiveTracker } from '../game/scenarios/Objectives';
 import { ScenarioManager } from '../game/scenarios/ScenarioManager';
 import { createCardSlice } from '../store/slices/cardSlice';
 import { EncounterSystem } from '../game/engine/EncounterSystem';
-// ---------------------------------------------------------------------------
+import { TreasureSystem } from '../game/engine/TreasureSystem';
+
+
+
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -44,6 +51,129 @@ const closedEdge = (edge: Direction): TileConnection => ({ edge, isOpen: false }
 
 // ---------------------------------------------------------------------------
 
+export const runTreasureSystemTests = () => {
+  let passed = true;
+  console.log('--- TreasureSystem Tests ---');
+
+  const assert = (condition: boolean, msg: string) => {
+    if (!condition) {
+      console.error('FAIL:', msg);
+      passed = false;
+      throw new Error(`Assertion failed: ${msg}`);
+    }
+  };
+
+  try {
+    const createTestHero = (id: string, damage = 1) => (({
+      id, name: id, type: 'hero',
+      hp: 10, maxHp: 10, ac: 10, speed: 5, surgeValue: 5,
+      xp: 0, level: 1, class: 'fighter', race: 'human',
+      position: { x: 0, z: 0, sqX: 0, sqZ: 0 },
+      abilities: [], items: [], conditions: [],
+      attackBonus: 0, damage, flippedPowerIds: []
+    } as unknown) as Hero);
+
+    const createTestMonster = (id: string, monsterType: string, isUndead: boolean) => (({
+      id, name: id, type: 'monster',
+      hp: 1, maxHp: 1, ac: 10, speed: 5, experienceValue: 1,
+      monsterType, isUndead,
+      behavior: { conditions: [], priorityTargets: [], actions: [] },
+      position: { x: 0, z: 0, sqX: 0, sqZ: 0 },
+      isExhausted: false, conditions: [], usedPowers: [],
+      attackBonus: 0, damage: 1, ownedByHeroId: null
+    } as unknown) as Monster);
+
+    const createTestTile = () => (({
+      id: 'test-tile', name: 'test', x: 0, z: 0,
+      terrainType: 'corridor', connections: [],
+      isRevealed: true, monsters: [], heroes: [], items: [],
+      boneSquare: false, isStart: false, isExit: false, rotation: 0
+    } as unknown) as Tile);
+
+    const createTestState = () => (({
+      logIdCounter: 0,
+      phase: 'hero', currentHeroId: 'h1',
+      heroes: [], monsters: [], tiles: [],
+      dungeonDeck: [], treasureDeck: [], encounterDeck: [], monsterDeck: [],
+      discardPiles: { treasure: [], encounter: [], ability: [], monster: [] },
+      turnOrder: [], healingSurges: 0, turnCount: 0, log: [],
+      activeEnvironmentCard: null, experiencePile: [], treasuresDrawnThisTurn: 0,
+      traps: [], villainPhaseQueue: [], activeVillainId: null, powerSelections: [],
+      activeConditions: [], exploredThisTurn: false, lastPlacedTileId: null,
+      activeBlessings: [],
+      activeScenario: null,
+      cardResolution: { phase: 'idle', cardId: null, cardType: null, pendingEffects: [], resolvedEffects: [], targetEntityId: null, result: null }
+    } as unknown) as GameState);
+
+    // Bug 1
+    console.log('Testing Bug 1: Holy Symbol vs Bodak');
+    const hero1 = createTestHero('h1');
+    hero1.items = ['item_holy_symbol_of_ravenkind'];
+    const holySymbol = { id: 'item_holy_symbol_of_ravenkind', name: 'Holy Symbol', type: 'treasure', treasureType: 'item', description: '', effects: [] } as unknown as Card;
+    const bodak = createTestMonster('m1', 'bodak', true);
+    const tile1 = createTestTile();
+    tile1.heroes = ['h1'];
+    tile1.monsters = ['m1'];
+    let state = createTestState();
+    state.heroes = [hero1];
+    state.monsters = [bodak];
+    state.tiles = [tile1];
+    const res1 = TreasureSystem.useItem(state, holySymbol, hero1, null);
+    console.log('BUG 1 RES1 MESSAGE:', res1.message);
+    assert(res1.message.includes('m1'), 'Holy Symbol should target m1 (Bodak)');
+
+    // Bug 2
+    console.log('Testing Bug 2: Wooden Stake vs Vampire');
+    const hero2 = createTestHero('h2');
+    hero2.items = ['item_wooden_stake'];
+    const woodenStake = { id: 'item_wooden_stake', name: 'Wooden Stake', type: 'treasure', treasureType: 'item', description: '', effects: [] } as unknown as Card;
+    const vampire = createTestMonster('m2', 'Vampire', true);
+    const undead = createTestMonster('m3', 'Undead', true);
+    state = createTestState();
+    state.heroes = [hero2];
+    state.monsters = [vampire, undead];
+    const res2a = TreasureSystem.useItem(state, woodenStake, hero2, undead);
+    assert(!res2a.success, 'Wooden Stake should fail against non-vampire Undead');
+    const res2b = TreasureSystem.useItem(state, woodenStake, hero2, vampire);
+    assert(res2b.success, 'Wooden Stake should succeed against Vampire');
+
+    // Bug 4
+    console.log('Testing Bug 4: EffectiveStats with base damage');
+    const hero4 = createTestHero('h4', 3);
+    const itemCard = { id: 'item_1', name: 'Item', type: 'treasure', treasureType: 'item', description: '', effects: [{ type: 'damage_bonus', value: 2 }] } as unknown as Card;
+    hero4.items = ['item_1'];
+    const stats = TreasureSystem.getEffectiveStats(hero4, [itemCard]);
+    assert(stats.damage === 5, `Expected effective damage 5, got ${stats.damage}`);
+
+    // Bug 5
+    console.log('Testing Bug 5: Respite sentinel intercept');
+    state = createTestState();
+    state.treasureDeck = ['sentinel_moments_respite', 'real_card'];
+    const respiteResult = TreasureSystem.checkAndDiscardRespite(state, 'treasureDeck');
+    assert(respiteResult.wasRespite, 'Respite sentinel should be intercepted');
+    const drawRes = TreasureSystem.drawTreasureCard(respiteResult.gameState, hero4);
+    assert(drawRes.card?.id === 'real_card', 'Real card should be drawn after sentinel is consumed');
+
+    // Bug 6
+    console.log('Testing Bug 6: Blessing expiry');
+    state = createTestState();
+    state.currentHeroId = 'h1';
+    state.turnCount = 10;
+    state.activeBlessings = [{ cardId: 'b1', name: 'Blessing 1', effects: [], heroId: 'h1', drawnOnTurnCount: 10 }];
+    const exp1 = TreasureSystem.checkBlessingExpiry(state, 'h2');
+    assert(!exp1.expired, 'Blessing should NOT expire at the end of h2 turn');
+    state.turnCount = 12; // Simulate turn coming back to h1
+    const exp2 = TreasureSystem.checkBlessingExpiry(state, 'h1');
+    assert(exp2.expired, 'Blessing SHOULD expire at the end of h1 turn');
+
+    console.log('--- TreasureSystem Tests PASSED ---');
+  } catch (e) {
+    console.error(e);
+    passed = false;
+  }
+  return passed;
+};
+
 export const runFullGameLoopTest = async () => {
   console.log('--- STARTING INTEGRATION TEST ---');
 
@@ -53,6 +183,12 @@ export const runFullGameLoopTest = async () => {
     const abilityTestsPassed = runAbilitySystemTests();
     if (!abilityTestsPassed) {
       throw new Error('Ability System Tests FAILED');
+    }
+
+    console.log('Running Treasure System Tests...');
+    const treasureTestsPassed = runTreasureSystemTests();
+    if (!treasureTestsPassed) {
+      throw new Error('Treasure System Tests FAILED');
     }
 
     const store = useGameStore.getState();
@@ -595,10 +731,12 @@ export const runFullGameLoopTest = async () => {
     console.log('Testing Villain Phase Queue construction...');
 
     // Inject mock monsters into store
-    const mockM1: Monster = { id: 'm_test_1', type: 'monster', hp: 1, ownedByHeroId: 'h1' } as any;
-    const mockM2: Monster = { id: 'm_test_2', type: 'monster', hp: 1, ownedByHeroId: 'h1' } as any;
-    const mockM3: Monster = { id: 'm_test_3', type: 'monster', hp: 1, ownedByHeroId: 'h2' } as any;
-    const mockDead: Monster = { id: 'm_test_4', type: 'monster', hp: 0, ownedByHeroId: 'h1' } as any;
+    const mockM1: Monster = { id: 'm_test_1', name: 'Zombie', type: 'monster', hp: 1, ownedByHeroId: 'h1' } as any;
+    const mockM2: Monster = { id: 'm_test_2', name: 'Skeleton', type: 'monster', hp: 1, ownedByHeroId: 'h1' } as any;
+    const mockM3: Monster = { id: 'm_test_3', name: 'Wraith', type: 'monster', hp: 1, ownedByHeroId: 'h2' } as any;
+    const mockDead: Monster = { id: 'm_test_4', name: 'Zombie', type: 'monster', hp: 0, ownedByHeroId: 'h1' } as any;
+    const mockM5_sameName: Monster = { id: 'm_test_5', name: 'Zombie', type: 'monster', hp: 1, ownedByHeroId: 'h2' } as any;
+    const mockM6_noName: Monster = { id: 'm_test_6', type: 'monster', hp: 1, ownedByHeroId: 'h1' } as any;
 
     useGameStore.setState(state => {
       if (!state.gameState) return state;
@@ -606,7 +744,7 @@ export const runFullGameLoopTest = async () => {
         ...state,
         gameState: {
           ...state.gameState,
-          monsters: [mockM1, mockM2, mockM3, mockDead],
+          monsters: [mockM1, mockM2, mockM3, mockDead, mockM5_sameName, mockM6_noName],
         }
       };
     });
@@ -614,16 +752,19 @@ export const runFullGameLoopTest = async () => {
     const queueState = useGameStore.getState().gameState!;
     const hero1Queue = buildVillainQueue(queueState, 'h1');
 
-    if (hero1Queue.length !== 2) {
-      throw new Error(`buildVillainQueue: expected 2 ids for Hero 1, got ${hero1Queue.length} (${hero1Queue.join(',')})`);
+    if (hero1Queue.length !== 4) {
+      throw new Error(`buildVillainQueue: expected 4 ids for Hero 1, got ${hero1Queue.length} (${hero1Queue.join(',')})`);
     }
-    if (!hero1Queue.includes('m_test_1') || !hero1Queue.includes('m_test_2')) {
-      throw new Error(`buildVillainQueue: incorrect ids returned`);
+    if (!hero1Queue.includes('m_test_1') || !hero1Queue.includes('m_test_2') || !hero1Queue.includes('m_test_6') || !hero1Queue.includes('m_test_5')) {
+      throw new Error(`buildVillainQueue: incorrect ids returned for Hero 1`);
     }
 
     const hero2Queue = buildVillainQueue(queueState, 'h2');
-    if (hero2Queue.length !== 1 || hero2Queue[0] !== 'm_test_3') {
-      throw new Error(`buildVillainQueue: expected ['m_test_3'] for Hero 2, got ${hero2Queue.join(',')}`);
+    if (hero2Queue.length !== 3) {
+      throw new Error(`buildVillainQueue: expected 3 ids for Hero 2, got ${hero2Queue.length} (${hero2Queue.join(',')})`);
+    }
+    if (!hero2Queue.includes('m_test_3') || !hero2Queue.includes('m_test_5') || !hero2Queue.includes('m_test_1')) {
+      throw new Error(`buildVillainQueue: incorrect ids returned for Hero 2`);
     }
 
     console.log('  buildVillainQueue PASSED');
@@ -856,6 +997,7 @@ export const runFullGameLoopTest = async () => {
 
     // Helper function to create a game state
     const createAIState = (heroes: Hero[], tiles: Tile[]): GameState => ({
+      logIdCounter: 0,
       phase: 'monster',
       currentHeroId: heroes[0]?.id ?? '',
       heroes,
@@ -1343,8 +1485,8 @@ export const runFullGameLoopTest = async () => {
     if (trapState1.heroes[0].hp !== 9) {
       throw new Error(`applyTrapResult: expected hp 9 (10-1), got ${trapState1.heroes[0].hp}`);
     }
-    if (trapState1.traps[0].isTriggered !== true) {
-      throw new Error('applyTrapResult: expected trap.isTriggered to be true');
+    if (trapState1.traps[0].isTriggered !== false) {
+      throw new Error('applyTrapResult: expected trap.isTriggered to remain false');
     }
     // Verify original state is unchanged
     if (trapGameState.heroes[0].hp !== 10) {
@@ -1406,7 +1548,7 @@ export const runFullGameLoopTest = async () => {
 
     const villainMonster: Monster = {
       id: 'monster_skeleton_villain',
-      name: 'Skeleton',
+      name: 'Troll',
       type: 'monster',
       monsterType: 'skeleton',
       behavior: { conditions: [], priorityTargets: [], actions: [] },
@@ -2770,6 +2912,150 @@ export const runFullGameLoopTest = async () => {
     // which includes a roll_15_plus condition check
     console.log('  Test 3 PASSED: Skeleton defeated with isDefeated flag, undying ability checked');
 
+    // Test 4: Monsters that die mid-queue do not activate
+    console.log('  Test 4: Monsters that die mid-queue do not activate...');
+    {
+      const monster1: Monster = {
+        id: 'monster_active_1',
+        name: 'Zombie Aura',
+        type: 'monster',
+        monsterType: 'zombie',
+        hp: 10,
+        maxHp: 10,
+        ac: 10,
+        speed: 4,
+        isExhausted: false,
+        behavior: {
+          conditions: [],
+          priorityTargets: [],
+          actions: ['attack']
+        },
+        attackBonus: 4,
+        damage: 2,
+        experienceValue: 100,
+        ownedByHeroId: 'hero_test_mid',
+        position: { x: 0, z: 0, sqX: 3, sqZ: 3 },
+        conditions: [],
+        usedPowers: [],
+        abilities: [
+          {
+            id: 'death_aura',
+            name: 'Death Aura',
+            description: 'Deals 5 damage to all monsters',
+            type: 'passive',
+            trigger: 'on_turn_start',
+            effects: [
+              { type: 'damage', value: 5, target: 'all_monsters' }
+            ]
+          }
+        ]
+      };
+
+      const monster2: Monster = {
+        id: 'monster_active_2',
+        name: 'Skeleton Mid',
+        type: 'monster',
+        monsterType: 'skeleton',
+        hp: 1,
+        maxHp: 5,
+        ac: 12,
+        speed: 6,
+        isExhausted: false,
+        behavior: {
+          conditions: [],
+          priorityTargets: [],
+          actions: ['attack']
+        },
+        attackBonus: 3,
+        damage: 1,
+        experienceValue: 100,
+        ownedByHeroId: 'hero_test_mid',
+        position: { x: 0, z: 0, sqX: 2, sqZ: 2 },
+        conditions: [],
+        usedPowers: []
+      };
+
+      const midHero: Hero = {
+        id: 'hero_test_mid',
+        name: 'Test Hero Mid',
+        type: 'hero',
+        heroClass: 'fighter',
+        level: 1,
+        surgeValue: 3,
+        xp: 0,
+        surgeUsed: false,
+        abilities: [],
+        hand: [],
+        items: [],
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+        hp: 10,
+        maxHp: 10,
+        ac: 16,
+        speed: 6,
+        isExhausted: false,
+        attackBonus: 0,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const midState: GameState = {
+        phase: 'villain',
+        currentHeroId: 'hero_test_mid',
+        heroes: [midHero],
+        monsters: [monster1, monster2],
+        tiles: [strahdTile, { ...templateTile, id: 'hero_test_mid_tile', x: 0, z: -1, connections: [openEdge('south'), closedEdge('north'), closedEdge('east'), closedEdge('west')] }],
+        dungeonDeck: [],
+        treasureDeck: [],
+        encounterDeck: [],
+        monsterDeck: [],
+        discardPiles: {},
+        activeScenario: {
+          id: 'mid_test',
+          name: 'Mid-Queue Death Test',
+          difficulty: 'Medium',
+          description: 'Test mid-queue death',
+          introText: 'Test',
+          victoryText: 'Test',
+          defeatText: 'Test',
+          objectives: [],
+          specialRules: [],
+          startTileId: 'strahd_tile',
+          maxSurges: 3
+        },
+        turnOrder: ['hero_test_mid'],
+        healingSurges: 2,
+        turnCount: 1,
+        log: [],
+        activeEnvironmentCard: null,
+        experiencePile: [],
+        treasuresDrawnThisTurn: 0,
+        traps: [],
+        villainPhaseQueue: [],
+        activeVillainId: null,
+        activeConditions: [],
+        cardResolution: { phase: 'idle' }
+      } as any;
+
+      const midResult = await executeVillainPhase(midState);
+      const updatedM1 = midResult.monsters.find(m => m.id === 'monster_active_1')!;
+      const updatedM2 = midResult.monsters.find(m => m.id === 'monster_active_2')!;
+
+      if (updatedM2.hp !== 0 || !updatedM2.isDefeated) {
+        throw new Error(`Test 4: Expected monster_active_2 to be defeated (hp=0), got hp=${updatedM2.hp}, isDefeated=${updatedM2.isDefeated}`);
+      }
+
+      if (updatedM2.position.sqX !== 2 || updatedM2.position.sqZ !== 2) {
+        throw new Error(`Test 4: Expected monster_active_2 position to be unchanged (2,2), got (${updatedM2.position.sqX}, ${updatedM2.position.sqZ})`);
+      }
+
+      const skeletonAttackedLog = midResult.log.some(entry => entry.message.includes('Skeleton Mid attacks'));
+      if (skeletonAttackedLog) {
+        throw new Error('Test 4: Expected Skeleton Mid to skip activation and not log any attacks, but found attack logs');
+      }
+
+      console.log('  Test 4 PASSED: Monsters that die mid-queue do not activate');
+    }
+
     console.log('  gameStore.executeVillainPhase Integration PASSED');
 
     // -----------------------------------------------------------------------
@@ -3878,6 +4164,7 @@ export const runFullGameLoopTest = async () => {
         traps: [],
         villainPhaseQueue: [],
         activeVillainId: null,
+        logIdCounter: 0,
         cardResolution: { phase: 'idle', cardId: null, cardType: null, pendingEffects: [], resolvedEffects: [], targetEntityId: null, result: null }
       };
 
@@ -4100,6 +4387,7 @@ export const runFullGameLoopTest = async () => {
         traps: [],
         villainPhaseQueue: [],
         activeVillainId: null,
+        logIdCounter: 0,
         cardResolution: { phase: 'idle', cardId: null, cardType: null, pendingEffects: [], resolvedEffects: [], targetEntityId: null, result: null }
       };
 
@@ -5105,6 +5393,7 @@ export const runFullGameLoopTest = async () => {
         traps: [],
         villainPhaseQueue: [],
         activeVillainId: null,
+        logIdCounter: 0,
         cardResolution: { phase: 'idle', cardId: null, cardType: null, pendingEffects: [], resolvedEffects: [], targetEntityId: null, result: null }
       };
 
@@ -5491,6 +5780,2285 @@ export const runFullGameLoopTest = async () => {
         }
         console.log('  Dispel Magic test PASSED');
       }
+
+      // --- TEST 10: Shield, Skeleton, Zombie & Defeat/Treasure/XP ---
+      {
+        console.log('Running Shield, Skeleton, Zombie & Defeat/Treasure/XP tests...');
+        
+        // 10a. Shield utility card check
+        const targetWizard: Hero = {
+          ...wizardHero,
+          abilities: ['wizard_shield'],
+          flippedPowerIds: [],
+          hp: 6,
+          maxHp: 6,
+          ac: 16,
+          conditions: [],
+          items: [],
+          hand: []
+        };
+        
+        const testSkeleton: Monster = {
+          id: 'test_skeleton_adjacent',
+          name: 'Skeleton',
+          type: 'monster',
+          monsterType: 'Undead',
+          behavior: { conditions: [], priorityTargets: [], actions: [] },
+          hp: 1,
+          maxHp: 1,
+          ac: 16,
+          speed: 1,
+          attackBonus: 7,
+          damage: 1,
+          experienceValue: 2,
+          moveRange: 1,
+          abilities: [],
+          isExhausted: false,
+          position: { x: 0, z: 0, sqX: 2, sqZ: 1 },
+          conditions: [],
+          ownedByHeroId: 'wizard_hero_test',
+          usedPowers: []
+        };
+        
+        const wizardPos = { x: 0, z: 0, sqX: 1, sqZ: 1 };
+        const skeletonPosAdjacent = { x: 0, z: 0, sqX: 1, sqZ: 2 };
+        const skeletonPosOneTileAway = { x: 0, z: 1, sqX: 1, sqZ: 1 };
+        const skeletonPosTwoTilesAway = { x: 0, z: 2, sqX: 1, sqZ: 1 };
+        
+        const testState: GameState = {
+          ...wizardGameState,
+          heroes: [
+            { ...targetWizard, position: wizardPos }
+          ],
+          monsters: [
+            { ...testSkeleton, id: 'skel_adj', position: skeletonPosAdjacent }
+          ],
+          tiles: [tile00, tile01, tile02, tile10],
+          villainPhaseQueue: ['skel_adj'],
+          treasureDeck: ['item_amulet_of_protection'],
+          treasuresDrawnThisTurn: 0,
+          experiencePile: []
+        };
+
+        // If Skeleton is adjacent, it attacks with SCIMITAR: +7 ATK, 1 DMG.
+        // Let's override roll to 15 (which hits wizard's base AC 16 with +7 bonus).
+        // With Shield active, it should mitigate the hit (wizard HP remains 6),
+        // Shield power flips, and wizard gets 'ac_bonus' condition.
+        AbilitySystem._rollOverride = () => 15;
+        const stateAfterShield = executeVillainPhase(testState);
+        AbilitySystem._rollOverride = null;
+
+        const postShieldWizard = stateAfterShield.heroes.find(h => h.id === targetWizard.id)!;
+        if (postShieldWizard.hp !== 6) {
+          throw new Error(`Shield: expected HP to remain 6, got ${postShieldWizard.hp}`);
+        }
+        if (!postShieldWizard.flippedPowerIds?.includes('wizard_shield')) {
+          throw new Error('Shield: expected wizard_shield to be flipped');
+        }
+        const shieldCondition = postShieldWizard.conditions.find(c => c.type === 'ac_bonus');
+        if (!shieldCondition) {
+          throw new Error('Shield: expected ac_bonus condition to be applied');
+        }
+        
+        // Check effective AC bonus
+        const effectiveAC = CombatSystem.getEffectiveAC(postShieldWizard);
+        if (effectiveAC !== 18) {
+          throw new Error(`Shield: expected effective AC to be 18, got ${effectiveAC}`);
+        }
+        console.log('  Shield utility check passed.');
+
+        // 10b. Skeleton scimitar/slice/move tactics
+        // Adjacent case: Attacks with SCIMITAR (+7 ATK, 1 DMG)
+        const skelTacticAdj = resolveTactic(
+          { ...testSkeleton, position: skeletonPosAdjacent },
+          tile00,
+          testState
+        );
+        if (skelTacticAdj.action !== 'attack' || skelTacticAdj.attackBonus !== 7 || skelTacticAdj.damage !== 1) {
+          throw new Error(`Skeleton Tactic (adjacent): expected attack with +7/1, got ${JSON.stringify(skelTacticAdj)}`);
+        }
+
+        // 1 tile away case: Moves adjacent and attacks with SLICE (+9 ATK, 2 DMG)
+        const skelTacticOneTile = resolveTactic(
+          { ...testSkeleton, position: skeletonPosOneTileAway },
+          tile01,
+          testState
+        );
+        if (skelTacticOneTile.action !== 'move_then_attack' || skelTacticOneTile.attackBonus !== 9 || skelTacticOneTile.damage !== 2) {
+          throw new Error(`Skeleton Tactic (1 tile): expected move_then_attack with +9/2, got ${JSON.stringify(skelTacticOneTile)}`);
+        }
+
+        // 2 tiles away case: moves 1 tile towards hero
+        const skelTacticTwoTiles = resolveTactic(
+          { ...testSkeleton, position: skeletonPosTwoTilesAway },
+          tile02,
+          testState
+        );
+        if (skelTacticTwoTiles.action !== 'move') {
+          throw new Error(`Skeleton Tactic (2 tiles): expected move, got ${JSON.stringify(skelTacticTwoTiles)}`);
+        }
+        console.log('  Skeleton tactics checks passed.');
+
+        // 10c. Zombie tactics & Rotting Fist scaling
+        // If within 1 tile, moves adjacent and attacks with ROTTING FIST.
+        // Damage = 1 for each monster on Zombie's tile.
+        const anotherMonster: Monster = {
+          ...testSkeleton,
+          id: 'other_monster',
+          position: { x: 0, z: 0, sqX: 2, sqZ: 2 }
+        };
+        const zombieState: GameState = {
+          ...testState,
+          monsters: [
+            { ...testSkeleton, id: 'monster_zombie', name: 'Zombie', position: skeletonPosOneTileAway },
+            anotherMonster
+          ]
+        };
+
+        const zombieTactic = resolveTactic(
+          zombieState.monsters[0],
+          tile01,
+          zombieState
+        );
+        // Both zombie and another monster are on tile00, so there are 2 monsters on the landing tile.
+        // The rotting fist damage should be 2.
+        if (zombieTactic.action !== 'move_then_attack' || zombieTactic.attackBonus !== 5 || zombieTactic.damage !== 2) {
+          throw new Error(`Zombie Tactic: expected move_then_attack with +5/2, got ${JSON.stringify(zombieTactic)}`);
+        }
+        console.log('  Zombie tactics checks passed.');
+
+        // 10d. Defeat / XP / Treasure drawing check
+        // If a monster is defeated, it should go to the experiencePile.
+        // If it's the first defeat of the turn, a treasure card is drawn.
+        const zombieToDefeat: Monster = {
+          ...testSkeleton,
+          id: 'monster_skeleton_to_defeat',
+          templateId: 'monster_skeleton',
+          hp: 0, // Defeated
+          experienceValue: 2,
+          ownedByHeroId: 'wizard_hero_test'
+        };
+        const defeatState: GameState = {
+          ...testState,
+          currentHeroId: targetWizard.id,
+          monsters: [zombieToDefeat],
+          treasuresDrawnThisTurn: 0,
+          experiencePile: []
+        };
+
+        const stateAfterDefeat = executeVillainPhase(defeatState);
+        const postDefeatSkel = stateAfterDefeat.monsters.find(m => m.id === 'monster_skeleton_to_defeat')!;
+        if (!postDefeatSkel.isDefeated) {
+          throw new Error('Defeat: expected monster to be marked isDefeated');
+        }
+        if (!stateAfterDefeat.experiencePile.includes('monster_skeleton')) {
+          throw new Error(`Defeat: expected monster_skeleton in experiencePile, got ${stateAfterDefeat.experiencePile}`);
+        }
+        if (stateAfterDefeat.treasuresDrawnThisTurn !== 1) {
+          throw new Error(`Defeat: expected 1 treasure drawn this turn, got ${stateAfterDefeat.treasuresDrawnThisTurn}`);
+        }
+        // The drawn card 'item_amulet_of_protection' should be assigned to the wizard's items
+        const postDefeatWizard = stateAfterDefeat.heroes.find(h => h.id === targetWizard.id)!;
+        if (!postDefeatWizard.items.includes('item_amulet_of_protection')) {
+          throw new Error('Defeat: expected item_amulet_of_protection to be assigned to the wizard');
+        }
+        console.log('  Defeat/XP/Treasure checks passed.');
+      }
+    }
+
+    // -----------------------------------------------------------------------
+
+    // 10e. Ghoul, Wolf, Kobold, and Gargoyle Alignment checks
+    {
+      console.log('  Running Ghoul, Wolf, Kobold, and Gargoyle alignment tests...');
+
+      // Deterministic rolls: override d20 roll to 14
+      AbilitySystem._rollOverride = () => 14;
+
+      const testHero: Hero = {
+        ...createAIHero('test_hero', 0, 0),
+        name: 'Test Hero',
+        position: { x: 0, z: 0, sqX: 2, sqZ: 2 }
+      };
+
+      const testTile: Tile = {
+        ...createAITile('tile_start', 0, 0, [
+          { edge: 'north', isOpen: true, connectedTileId: 'tile_north' },
+          { edge: 'south', isOpen: true, connectedTileId: 'tile_south' },
+          { edge: 'east', isOpen: true, connectedTileId: 'tile_east' },
+          { edge: 'west', isOpen: true, connectedTileId: 'tile_west' }
+        ]),
+        name: 'Start Tile'
+      };
+
+      const tileNorth: Tile = {
+        ...createAITile('tile_north', 0, 1, [
+          { edge: 'south', isOpen: true, connectedTileId: 'tile_start' }
+        ]),
+        name: 'North Tile'
+      };
+
+      const baseAlignState: GameState = {
+        ...createAIState([testHero], [testTile, tileNorth]),
+        phase: 'villain',
+        currentHeroId: 'test_hero',
+      };
+
+
+      // --- GHOUL TESTS ---
+      // Ghoul adjacent test
+      const ghoulAdjacent: Monster = {
+        ...createAIMonster('monster_ghoul_adj', 1),
+        name: 'Ghoul',
+        monsterType: 'Undead',
+        hp: 1,
+        maxHp: 1,
+        ac: 16,
+        attackBonus: 6,
+        damage: 1,
+        experienceValue: 2,
+        ownedByHeroId: 'test_hero',
+        position: { x: 0, z: 0, sqX: 2, sqZ: 1 }
+      };
+
+      const ghoulAdjState = { ...baseAlignState, monsters: [ghoulAdjacent] };
+      const postGhoulAdjState = executeVillainPhase(ghoulAdjState);
+      const postHeroGAdj = postGhoulAdjState.heroes.find(h => h.id === 'test_hero')!;
+      if (postHeroGAdj.hp !== 7) {
+        throw new Error(`Ghoul Bite: expected hero HP to be 7, got ${postHeroGAdj.hp}`);
+      }
+
+      // Ghoul within 1 tile test
+      const ghoulNear: Monster = {
+        ...createAIMonster('monster_ghoul_near', 1),
+        name: 'Ghoul',
+        monsterType: 'Undead',
+        hp: 1,
+        maxHp: 1,
+        ac: 16,
+        attackBonus: 6,
+        damage: 1,
+        experienceValue: 2,
+        ownedByHeroId: 'test_hero',
+        position: { x: 0, z: 1, sqX: 2, sqZ: 2 }
+      };
+
+      const ghoulNearState = { ...baseAlignState, monsters: [ghoulNear] };
+      const postGhoulNearState = executeVillainPhase(ghoulNearState);
+      const postHeroGNear = postGhoulNearState.heroes.find(h => h.id === 'test_hero')!;
+      const postMonsterGNear = postGhoulNearState.monsters.find(m => m.id === 'monster_ghoul_near')!;
+      if (postHeroGNear.hp !== 9) {
+        throw new Error(`Ghoul Claw: expected hero HP to be 9, got ${postHeroGNear.hp}`);
+      }
+      if (postMonsterGNear.position.x !== 0 || postMonsterGNear.position.z !== 0) {
+        throw new Error(`Ghoul Claw: expected ghoul to move to start tile (0, 0), got (${postMonsterGNear.position.x}, ${postMonsterGNear.position.z})`);
+      }
+      const hasImmobilized = postHeroGNear.conditions.some(c => c.type === 'immobilized');
+      if (!hasImmobilized) {
+        throw new Error('Ghoul Claw: expected hero to be immobilized');
+      }
+
+      // --- WOLF TESTS ---
+      // Wolf adjacent test
+      const wolfAdjacent: Monster = {
+        ...createAIMonster('monster_wolf_adj', 2),
+        name: 'Wolf',
+        monsterType: 'Animal',
+        hp: 1,
+        maxHp: 1,
+        ac: 14,
+        attackBonus: 6,
+        damage: 1,
+        experienceValue: 1,
+        ownedByHeroId: 'test_hero',
+        position: { x: 0, z: 0, sqX: 2, sqZ: 3 }
+      };
+
+      const wolfAdjState = { ...baseAlignState, monsters: [wolfAdjacent] };
+      const postWolfAdjState = executeVillainPhase(wolfAdjState);
+      const postHeroWAdj = postWolfAdjState.heroes.find(h => h.id === 'test_hero')!;
+      if (postHeroWAdj.hp !== 8) {
+        throw new Error(`Wolf Bite: expected hero HP to be 8, got ${postHeroWAdj.hp}`);
+      }
+
+      // Wolf within 2 tiles test
+      const tileNorth2: Tile = {
+        ...createAITile('tile_north2', 0, 2, [
+          { edge: 'south', isOpen: true, connectedTileId: 'tile_north' }
+        ]),
+        name: 'North Tile 2'
+      };
+      const wolfNear: Monster = {
+        ...createAIMonster('monster_wolf_near', 2),
+        name: 'Wolf',
+        monsterType: 'Animal',
+        hp: 1,
+        maxHp: 1,
+        ac: 14,
+        attackBonus: 6,
+        damage: 1,
+        experienceValue: 1,
+        ownedByHeroId: 'test_hero',
+        position: { x: 0, z: 2, sqX: 2, sqZ: 2 }
+      };
+
+      const wolfNearState = {
+        ...baseAlignState,
+        tiles: [testTile, tileNorth, tileNorth2],
+        monsters: [wolfNear]
+      };
+      const postWolfNearState = executeVillainPhase(wolfNearState);
+      const postHeroWNear = postWolfNearState.heroes.find(h => h.id === 'test_hero')!;
+      const postMonsterWNear = postWolfNearState.monsters.find(m => m.id === 'monster_wolf_near')!;
+      if (postHeroWNear.hp !== 9) {
+        throw new Error(`Wolf Pounce: expected hero HP to be 9, got ${postHeroWNear.hp}`);
+      }
+      if (postMonsterWNear.position.x !== 0 || postMonsterWNear.position.z !== 0) {
+        throw new Error(`Wolf Pounce: expected wolf to move to start tile (0, 0), got (${postMonsterWNear.position.x}, ${postMonsterWNear.position.z})`);
+      }
+      const hasSlowed = postHeroWNear.conditions.some(c => c.type === 'slowed');
+      if (!hasSlowed) {
+        throw new Error('Wolf Pounce: expected hero to be slowed');
+      }
+
+      // --- KOBOLD TESTS ---
+      const koboldNear: Monster = {
+        ...createAIMonster('monster_kobold_near', 2),
+        name: 'Kobold',
+        monsterType: 'Reptile',
+        hp: 1,
+        maxHp: 1,
+        ac: 13,
+        attackBonus: 5,
+        damage: 1,
+        experienceValue: 1,
+        ownedByHeroId: 'test_hero',
+        position: { x: 0, z: 1, sqX: 2, sqZ: 2 }
+      };
+
+      const koboldNearState = { ...baseAlignState, monsters: [koboldNear] };
+      const postKoboldNearState = executeVillainPhase(koboldNearState);
+      const postHeroKNear = postKoboldNearState.heroes.find(h => h.id === 'test_hero')!;
+      const postMonsterKNear = postKoboldNearState.monsters.find(m => m.id === 'monster_kobold_near')!;
+      if (postHeroKNear.hp !== 9) {
+        throw new Error(`Kobold Javelin: expected hero HP to be 9, got ${postHeroKNear.hp}`);
+      }
+      if (postMonsterKNear.position.x !== 0 || postMonsterKNear.position.z !== 1) {
+        throw new Error(`Kobold Javelin: expected kobold to stay on north tile (0, 1), got (${postMonsterKNear.position.x}, ${postMonsterKNear.position.z})`);
+      }
+
+      // --- GARGOYLE TESTS ---
+      const gargoyleNear: Monster = {
+        ...createAIMonster('monster_gargoyle_near', 1),
+        name: 'Gargoyle',
+        monsterType: 'Elemental',
+        hp: 2,
+        maxHp: 2,
+        ac: 16,
+        attackBonus: 8,
+        damage: 2,
+        missDamage: 1,
+        experienceValue: 3,
+        ownedByHeroId: 'test_hero',
+        position: { x: 0, z: 1, sqX: 2, sqZ: 2 }
+      };
+
+      const secondHero: Hero = {
+        ...testHero,
+        id: 'second_hero',
+        name: 'Second Hero',
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 }
+      };
+
+      const gargoyleNearState = {
+        ...baseAlignState,
+        heroes: [testHero, secondHero],
+        monsters: [gargoyleNear]
+      };
+
+      const postGargoyleNearState = executeVillainPhase(gargoyleNearState);
+      const postHero1 = postGargoyleNearState.heroes.find(h => h.id === 'test_hero')!;
+      const postHero2 = postGargoyleNearState.heroes.find(h => h.id === 'second_hero')!;
+      const postGargoyle = postGargoyleNearState.monsters.find(m => m.id === 'monster_gargoyle_near')!;
+
+      if (postHero1.hp !== 8 || !postHero1.conditions.some(c => c.type === 'slowed')) {
+        throw new Error(`Gargoyle Whirlwind (Hero 1): expected 8 HP and slowed`);
+      }
+      if (postHero2.hp !== 8 || !postHero2.conditions.some(c => c.type === 'slowed')) {
+        throw new Error(`Gargoyle Whirlwind (Hero 2): expected 8 HP and slowed`);
+      }
+      if (postGargoyle.position.x !== 0 || postGargoyle.position.z !== 0) {
+        throw new Error(`Gargoyle Whirlwind: expected gargoyle to move to start tile (0, 0)`);
+      }
+
+      // Clean up d20 roll override
+      AbilitySystem._rollOverride = null;
+
+      console.log('  Ghoul, Wolf, Kobold, and Gargoyle alignment tests passed.');
+    }
+
+    // -----------------------------------------------------------------------
+    // Bug 3: Encounter Card Draw Tests
+    // -----------------------------------------------------------------------
+    {
+      console.log('Testing executeVillainPhase: Encounter Card Draw (Bug 3)...');
+
+      const bug3Hero = createAIHero('bug3_hero', 0, 0);
+      const startTile = createAITile('tile_start', 0, 0, []);
+      startTile.isStart = true;
+      startTile.encounterType = 'white';
+
+      const blackTile = createAITile('tile_black', 0, 1, []);
+      blackTile.encounterType = 'black';
+
+      const whiteTile = createAITile('tile_white', 1, 0, []);
+      whiteTile.encounterType = 'white';
+
+      // Test Case A: No tile placed (exploredThisTurn: false)
+      // Should draw and resolve encounter card
+      // Prowling Spirits: hero discards one Treasure Card. No HP damage.
+      // Give hero a treasure item so the discard can actually occur.
+      const bug3HeroWithItem = { ...bug3Hero, items: ['tre_sword_of_ruin'] };
+      const stateA: GameState = {
+        ...createAIState([bug3HeroWithItem], [startTile]),
+        phase: 'villain',
+        currentHeroId: 'bug3_hero',
+        encounterDeck: ['enc_prowling_spirits'],
+        exploredThisTurn: false,
+        lastPlacedTileId: null
+      };
+
+      const resultA = executeVillainPhase(stateA);
+      if (resultA.encounterDeck.length !== 0) {
+        throw new Error(`Bug 3 Test Case A: Expected encounter deck to be empty, got ${resultA.encounterDeck.length}`);
+      }
+      const activeHeroA = resultA.heroes.find(h => h.id === 'bug3_hero')!;
+      // Prowling Spirits discards a treasure — no HP damage, item should be gone
+      if (activeHeroA.hp !== 10) {
+        throw new Error(`Bug 3 Test Case A: Expected hero HP to be 10 after enc_prowling_spirits resolved (no damage), got ${activeHeroA.hp}`);
+      }
+      if (activeHeroA.items.includes('tre_sword_of_ruin')) {
+        throw new Error(`Bug 3 Test Case A: Expected hero to have discarded 'tre_sword_of_ruin' after enc_prowling_spirits resolved`);
+      }
+
+
+      // Test Case B: Tile with a black triangle placed (exploredThisTurn: true, encounterType: 'black')
+      // Should draw and resolve encounter card
+      const stateB: GameState = {
+        ...createAIState([bug3Hero], [startTile, blackTile]),
+        phase: 'villain',
+        currentHeroId: 'bug3_hero',
+        encounterDeck: ['enc_cackling_skull'],
+        exploredThisTurn: true,
+        lastPlacedTileId: 'tile_black'
+      };
+
+      const resultB = executeVillainPhase(stateB);
+      if (resultB.encounterDeck.length !== 0) {
+        throw new Error(`Bug 3 Test Case B: Expected encounter deck to be empty, got ${resultB.encounterDeck.length}`);
+      }
+      if (resultB.activeEnvironmentCard !== 'enc_cackling_skull') {
+        throw new Error(`Bug 3 Test Case B: Expected activeEnvironmentCard to be 'enc_cackling_skull', got ${resultB.activeEnvironmentCard}`);
+      }
+
+      // Test Case C: Tile with a white triangle placed (exploredThisTurn: true, encounterType: 'white')
+      // Should NOT draw
+      const stateC: GameState = {
+        ...createAIState([bug3Hero], [startTile, whiteTile]),
+        phase: 'villain',
+        currentHeroId: 'bug3_hero',
+        encounterDeck: ['enc_prowling_spirits'],
+        exploredThisTurn: true,
+        lastPlacedTileId: 'tile_white'
+      };
+
+      const resultC = executeVillainPhase(stateC);
+      if (resultC.encounterDeck.length !== 1) {
+        throw new Error(`Bug 3 Test Case C: Expected encounter deck to still have 1 card, got ${resultC.encounterDeck.length}`);
+      }
+      const activeHeroC = resultC.heroes.find(h => h.id === 'bug3_hero')!;
+      if (activeHeroC.hp !== 10) {
+        throw new Error(`Bug 3 Test Case C: Expected hero HP to remain 10, got ${activeHeroC.hp}`);
+      }
+
+      // Test Case D: Double-draw prevention (exploredThisTurn: true, lastPlacedTileId: null)
+      // Should NOT draw
+      const stateD: GameState = {
+        ...createAIState([bug3Hero], [startTile]),
+        phase: 'villain',
+        currentHeroId: 'bug3_hero',
+        encounterDeck: ['enc_prowling_spirits'],
+        exploredThisTurn: true,
+        lastPlacedTileId: null
+      };
+
+      const resultD = executeVillainPhase(stateD);
+      if (resultD.encounterDeck.length !== 1) {
+        throw new Error(`Bug 3 Test Case D: Expected encounter deck to still have 1 card (double-draw prevention), got ${resultD.encounterDeck.length}`);
+      }
+      const activeHeroD = resultD.heroes.find(h => h.id === 'bug3_hero')!;
+      if (activeHeroD.hp !== 10) {
+        throw new Error(`Bug 3 Test Case D: Expected hero HP to remain 10, got ${activeHeroD.hp}`);
+      }
+
+      console.log('  Bug 3: Encounter Card Draw tests passed.');
+    }
+
+    // -----------------------------------------------------------------------
+    // Bug 4: Stale Hero State in Reactions (Bodyguard -> Yield Ground check)
+    // -----------------------------------------------------------------------
+    {
+      console.log('Testing executeVillainPhase: Bodyguard -> Yield Ground Reaction (Bug 4)...');
+
+      // Create Hero A (Ranger with Yield Ground, starts at 0, 0, sqX=0, sqZ=0)
+      const rangerHero: Hero = {
+        ...createAIHero('ranger_hero', 0, 0),
+        name: 'Ranger Hero',
+        abilities: ['ranger_yield_ground'],
+        position: { x: 0, z: 0, sqX: 0, sqZ: 0 },
+        flippedPowerIds: [],
+        ac: 14,
+        hp: 10,
+        maxHp: 10
+      };
+
+      // Create Hero B (Fighter with Bodyguard, starts at 0, 1, sqX=3, sqZ=3)
+      const fighterHero: Hero = {
+        ...createAIHero('fighter_hero', 0, 1),
+        name: 'Fighter Hero',
+        abilities: ['fighter_bodyguard'],
+        position: { x: 0, z: 1, sqX: 3, sqZ: 3 },
+        flippedPowerIds: [],
+        ac: 16,
+        hp: 10,
+        maxHp: 10
+      };
+
+      const startTile = createAITile('tile_start', 0, 0, [
+        { edge: 'north', isOpen: true, connectedTileId: 'tile_north' }
+      ]);
+      startTile.encounterType = 'white';
+
+      const northTile = createAITile('tile_north', 0, 1, [
+        { edge: 'south', isOpen: true, connectedTileId: 'tile_start' }
+      ]);
+      northTile.encounterType = 'white';
+
+      // Seed a monster that attacks ranger_hero
+      const attacker: Monster = {
+        ...createAIMonster('attacker_monster', 1),
+        name: 'Attacker Monster',
+        ownedByHeroId: 'ranger_hero', // Must be owned by active hero to activate
+        position: { x: 0, z: 0, sqX: 0, sqZ: 1 }, // Adjacent to ranger_hero
+        hp: 5,
+        maxHp: 5
+      };
+
+      const baseState = createAIState([rangerHero, fighterHero], [startTile, northTile]);
+      const villainState: GameState = {
+        ...baseState,
+        phase: 'villain',
+        currentHeroId: 'ranger_hero',
+        monsters: [attacker],
+        exploredThisTurn: true, // prevent encounter card draw in test
+        lastPlacedTileId: null
+      };
+
+      // Override the d20 roll so the attack hits
+      // ranger_hero AC is 14, roll override 14 + attacker.attackBonus (0) = 14 (hits)
+      AbilitySystem._rollOverride = () => 14;
+
+      const resultState = executeVillainPhase(villainState);
+
+      // Clean up override
+      AbilitySystem._rollOverride = null;
+
+      // 1. Assert Bodyguard trigger and swap
+      const updatedRanger = resultState.heroes.find(h => h.id === 'ranger_hero')!;
+      const updatedFighter = resultState.heroes.find(h => h.id === 'fighter_hero')!;
+
+      // Fighter should have swapped to Ranger's original position: x: 0, z: 0, sqX: 0, sqZ: 0
+      if (updatedFighter.position.x !== 0 || updatedFighter.position.z !== 0 || updatedFighter.position.sqX !== 0 || updatedFighter.position.sqZ !== 0) {
+        throw new Error(`Bug 4: Expected Fighter to swap to Ranger's original position (0, 0, 0, 0), got (${updatedFighter.position.x}, ${updatedFighter.position.z}, ${updatedFighter.position.sqX}, ${updatedFighter.position.sqZ})`);
+      }
+
+      // 2. Assert Yield Ground flipped/triggered ONLY on Ranger (the original target)
+      if (!updatedRanger.flippedPowerIds?.includes('ranger_yield_ground')) {
+        throw new Error('Bug 4: Expected Ranger to have triggered and flipped Yield Ground');
+      }
+      if (updatedFighter.flippedPowerIds?.includes('ranger_yield_ground')) {
+        throw new Error('Bug 4: Expected Fighter to NOT have Yield Ground flipped');
+      }
+
+      // 3. Assert Yield Ground movement origin (should move to tile_start 1,3 instead of tile_start 0,2)
+      if (updatedRanger.position.x === 0 && updatedRanger.position.z === 0 && updatedRanger.position.sqX === 0 && updatedRanger.position.sqZ === 2) {
+        throw new Error('Bug 4: Stale position was used as origin (Ranger moved to 0,0,0,2 which is out of range from swapped position)');
+      }
+      if (updatedRanger.position.x !== 0 || updatedRanger.position.z !== 0 || updatedRanger.position.sqX !== 1 || updatedRanger.position.sqZ !== 3) {
+        throw new Error(`Bug 4: Expected Ranger to move to (0, 0, 1, 3), got (${updatedRanger.position.x}, ${updatedRanger.position.z}, ${updatedRanger.position.sqX}, ${updatedRanger.position.sqZ})`);
+      }
+
+      console.log('  Bug 4: Bodyguard -> Yield Ground Reaction tests passed.');
+    }
+
+    // -----------------------------------------------------------------------
+    // Bug 5: Trap Persistence Tests
+    // -----------------------------------------------------------------------
+    {
+      console.log('Testing executeVillainPhase: Trap Persistence (Bug 5)...');
+
+      const trapHero = createAIHero('trap_hero', 0, 0);
+      const startTile = createAITile('tile_start', 0, 0, []);
+      startTile.encounterType = 'white';
+
+      // Seed a trap on tile_start
+      const testTrap: Trap = {
+        id: 'test_trap',
+        cardId: 'enc_crossbow_turret',
+        tileId: 'tile_start',
+        isDisabled: false,
+        isTriggered: false,
+        ownedByHeroId: 'trap_hero'
+      };
+
+      const baseState = createAIState([trapHero], [startTile]);
+      const trapState: GameState = {
+        ...baseState,
+        phase: 'villain',
+        currentHeroId: 'trap_hero',
+        traps: [testTrap],
+        exploredThisTurn: true, // prevent encounter card draw
+        lastPlacedTileId: null
+      };
+
+      // Call executeVillainPhase once
+      AbilitySystem._rollOverride = () => 2; // roll 2 + 8 = 10 < AC 15 (miss, deals 1 damage)
+      const stateAfterFirst = executeVillainPhase(trapState);
+      AbilitySystem._rollOverride = null;
+      const heroAfterFirst = stateAfterFirst.heroes.find(h => h.id === 'trap_hero')!;
+      if (heroAfterFirst.hp !== 9) {
+        throw new Error(`Bug 5 Test: Expected hero HP to be 9 after first trap activation, got ${heroAfterFirst.hp}`);
+      }
+      const trapAfterFirst = stateAfterFirst.traps.find(t => t.id === 'test_trap')!;
+      if (trapAfterFirst.isDisabled) {
+        throw new Error('Bug 5 Test: Expected trap to not be disabled');
+      }
+
+      // Call executeVillainPhase second time on the resulting state
+      AbilitySystem._rollOverride = () => 2; // roll 2 + 8 = 10 < AC 15 (miss, deals 1 damage)
+      const stateAfterSecond = executeVillainPhase(stateAfterFirst);
+      AbilitySystem._rollOverride = null;
+      const heroAfterSecond = stateAfterSecond.heroes.find(h => h.id === 'trap_hero')!;
+      if (heroAfterSecond.hp !== 8) {
+        throw new Error(`Bug 5 Test: Expected hero HP to be 8 after second trap activation, got ${heroAfterSecond.hp}`);
+      }
+      const trapAfterSecond = stateAfterSecond.traps.find(t => t.id === 'test_trap')!;
+      if (trapAfterSecond.isDisabled) {
+        throw new Error('Bug 5 Test: Expected trap to still not be disabled');
+      }
+
+      // Verify that setting isDisabled: true excludes it from the queue
+      const disabledTrapState: GameState = {
+        ...stateAfterSecond,
+        traps: [{ ...testTrap, isDisabled: true }]
+      };
+      const stateAfterDisabled = executeVillainPhase(disabledTrapState);
+      const heroAfterDisabled = stateAfterDisabled.heroes.find(h => h.id === 'trap_hero')!;
+      if (heroAfterDisabled.hp !== 8) {
+        throw new Error(`Bug 5 Test: Expected hero HP to remain 8 since trap was disabled, got ${heroAfterDisabled.hp}`);
+      }
+
+      console.log('  Bug 5: Trap Persistence tests passed.');
+    }
+
+    // -----------------------------------------------------------------------
+    // Bug 6: Monster Passive Aura on Death Tests
+    // -----------------------------------------------------------------------
+    {
+      console.log('Testing executeVillainPhase: Monster Passive Aura on Death (Bug 6)...');
+
+      const riposteHero: Hero = {
+        ...createAIHero('riposte_hero', 0, 0),
+        name: 'Riposte Hero',
+        abilities: ['rogue_riposte_strike'],
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+        flippedPowerIds: [],
+        hp: 10,
+        maxHp: 10,
+        ac: 15
+      };
+
+      const startTile = createAITile('tile_start', 0, 0, []);
+      startTile.encounterType = 'white';
+
+      const passiveAbility: MonsterAbility = {
+        id: 'aura_damage',
+        name: 'Aura Damage',
+        description: 'Deals 5 damage to adjacent heroes at turn start.',
+        type: 'passive',
+        trigger: 'on_turn_start',
+        effects: [
+          { type: 'damage', value: 5, target: 'all_heroes' }
+        ]
+      };
+
+      const auraMonster: Monster = {
+        ...createAIMonster('aura_monster', 1),
+        name: 'Aura Monster',
+        hp: 1, // Start with 1 HP so Riposte Strike kills it
+        maxHp: 5,
+        ac: 10,
+        attackBonus: 10, // Ensure it hits
+        damage: 1,
+        ownedByHeroId: 'riposte_hero',
+        abilities: [passiveAbility],
+        position: { x: 0, z: 0, sqX: 1, sqZ: 2 } // Adjacent to riposte_hero
+      };
+
+      const baseState = createAIState([riposteHero], [startTile]);
+      const villainState: GameState = {
+        ...baseState,
+        phase: 'villain',
+        currentHeroId: 'riposte_hero',
+        monsters: [auraMonster],
+        exploredThisTurn: true, // prevent encounter card draw
+        lastPlacedTileId: null
+      };
+
+      // Override rolls so attack and counterattack hit
+      AbilitySystem._rollOverride = () => 16;
+
+      const resultState = executeVillainPhase(villainState);
+
+      // Clean up override
+      AbilitySystem._rollOverride = null;
+
+      // Verify the monster was defeated
+      const postMonster = resultState.monsters.find(m => m.id === 'aura_monster')!;
+      if (postMonster.hp > 0 || !postMonster.isDefeated) {
+        throw new Error(`Bug 6 Test: Expected monster to be defeated, got HP ${postMonster.hp}`);
+      }
+
+      // Verify Riposte Hero took the initial 1 damage from the attack,
+      // but did NOT take the 5 passive aura damage because the monster died first.
+      const postHero = resultState.heroes.find(h => h.id === 'riposte_hero')!;
+      if (postHero.hp !== 9) {
+        throw new Error(`Bug 6 Test: Expected hero HP to be 9 (only took attack damage), got ${postHero.hp}`);
+      }
+
+      console.log('  Bug 6: Monster Passive Aura on Death tests passed.');
+    }
+
+    // -----------------------------------------------------------------------
+    // Bug 7: Deterministic Log IDs Tests
+    // -----------------------------------------------------------------------
+    {
+      console.log('Testing executeVillainPhase: Deterministic Log IDs (Bug 7)...');
+
+      // Create a starting state with a hero and a monster that will attack to trigger combat logs.
+      const testHero = createAIHero('det_hero', 0, 0);
+      const startTile = createAITile('tile_start', 0, 0, []);
+      startTile.encounterType = 'white';
+
+      const testMonster: Monster = {
+        ...createAIMonster('det_monster', 1),
+        name: 'Deterministic Zombie',
+        hp: 1,
+        maxHp: 1,
+        ac: 10,
+        behavior: {
+          conditions: [],
+          priorityTargets: [],
+          actions: [
+            {
+              condition: 'adjacent_to_hero',
+              tactic: 'attack',
+              attackBonus: 0,
+              damage: 1
+            }
+          ]
+        } as any,
+        attackBonus: 0,
+        damage: 1,
+        ownedByHeroId: 'det_hero',
+        position: { x: 0, z: 0, sqX: 1, sqZ: 2 } // Adjacent to hero (0,0,1,1)
+      };
+
+      const baseState = createAIState([testHero], [startTile]);
+      const detState: GameState = {
+        ...baseState,
+        phase: 'villain',
+        currentHeroId: 'det_hero',
+        monsters: [testMonster],
+        exploredThisTurn: true, // prevent encounter card draw
+        lastPlacedTileId: null,
+        logIdCounter: 0 // Start counter at 0
+      };
+
+      // Force hit roll
+      AbilitySystem._rollOverride = () => 10;
+
+      // Executing villain phase will run the monster tactic (attack) producing a combat log entry.
+      const firstExecution = executeVillainPhase(detState);
+
+      // Verify the log entries added in firstExecution have deterministic sequential IDs
+      const addedLogsFirst = firstExecution.log;
+      if (addedLogsFirst.length === 0) {
+        throw new Error('Bug 7 Test: Expected log entries to be created during first executeVillainPhase');
+      }
+
+      // Assert that the added logs have sequential string IDs starting at "0"
+      for (let i = 0; i < addedLogsFirst.length; i++) {
+        const expectedId = String(i);
+        if (addedLogsFirst[i].id !== expectedId) {
+          throw new Error(`Bug 7 Test: Expected log ID to be "${expectedId}", got "${addedLogsFirst[i].id}"`);
+        }
+      }
+
+      // Verify logIdCounter has advanced correctly
+      if (firstExecution.logIdCounter !== addedLogsFirst.length) {
+        throw new Error(`Bug 7 Test: Expected logIdCounter to be ${addedLogsFirst.length}, got ${firstExecution.logIdCounter}`);
+      }
+
+      // Run executeVillainPhase again using the output of the first, with another monster attack.
+      // Reset the zombie to alive and unexhausted so it activates again.
+      const secondRunState: GameState = {
+        ...firstExecution,
+        monsters: firstExecution.monsters.map(m => m.id === 'det_monster' ? { ...m, hp: 1, isDefeated: false } : m)
+      };
+
+      const secondExecution = executeVillainPhase(secondRunState);
+      const addedLogsSecond = secondExecution.log;
+
+      // Assert the new logs added in the second execution have sequential IDs continuing from firstExecution.logIdCounter
+      const startIndex = firstExecution.logIdCounter;
+      // We look at the logs added in the second execution (the ones appended at the end)
+      const logsFromSecondRun = addedLogsSecond.slice(startIndex);
+      if (logsFromSecondRun.length === 0) {
+        throw new Error('Bug 7 Test: Expected log entries to be created during second executeVillainPhase');
+      }
+
+      for (let i = 0; i < logsFromSecondRun.length; i++) {
+        const expectedId = String(startIndex + i);
+        if (logsFromSecondRun[i].id !== expectedId) {
+          throw new Error(`Bug 7 Test: Expected sequential log ID to be "${expectedId}", got "${logsFromSecondRun[i].id}"`);
+        }
+      }
+
+      // Assert logIdCounter advanced correctly after second run
+      const expectedEndCounter = startIndex + logsFromSecondRun.length;
+      if (secondExecution.logIdCounter !== expectedEndCounter) {
+        throw new Error(`Bug 7 Test: Expected final logIdCounter to be ${expectedEndCounter}, got ${secondExecution.logIdCounter}`);
+      }
+
+      // Clean up override
+      AbilitySystem._rollOverride = null;
+
+      console.log('  Bug 7: Deterministic Log IDs tests passed.');
+    }
+
+    // -----------------------------------------------------------------------
+    // New Bug Fix Verifications
+    // -----------------------------------------------------------------------
+    {
+      console.log('Testing CombatSystem & MonsterAI Bug Fixes...');
+
+      // C1: Sunsword / Holy Avenger Undead item bonuses
+      const heroWithSunsword: Hero = {
+        id: 'c1_hero_sunsword',
+        name: 'Sunsword Hero',
+        type: 'hero',
+        heroClass: 'fighter',
+        level: 1,
+        maxHp: 10,
+        hp: 10,
+        ac: 10,
+        speed: 6,
+        xp: 0,
+        surgeValue: 3,
+        surgeUsed: false,
+        abilities: [],
+        hand: [],
+        items: ['item_sunsword'],
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+        isExhausted: false,
+        attackBonus: 0,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const heroWithHolyAvenger: Hero = {
+        id: 'c1_hero_holy_avenger',
+        name: 'Holy Avenger Hero',
+        type: 'hero',
+        heroClass: 'fighter',
+        level: 1,
+        maxHp: 10,
+        hp: 10,
+        ac: 10,
+        speed: 6,
+        xp: 0,
+        surgeValue: 3,
+        surgeUsed: false,
+        abilities: [],
+        hand: [],
+        items: ['item_holy_avenger'],
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+        isExhausted: false,
+        attackBonus: 0,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const undeadBodak: Monster = {
+        id: 'c1_bodak',
+        name: 'Bodak',
+        type: 'monster',
+        monsterType: 'Undead',
+        isUndead: true,
+        behavior: { conditions: [], priorityTargets: [], actions: [] } as any,
+        attackBonus: 0,
+        damage: 1,
+        experienceValue: 1,
+        ownedByHeroId: null,
+        position: { x: 0, z: 0, sqX: 2, sqZ: 2 },
+        hp: 5,
+        maxHp: 5,
+        ac: 12,
+        speed: 1,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const animalWolf: Monster = {
+        id: 'c1_wolf',
+        name: 'Wolf',
+        type: 'monster',
+        monsterType: 'Animal',
+        isUndead: false,
+        behavior: { conditions: [], priorityTargets: [], actions: [] } as any,
+        attackBonus: 0,
+        damage: 1,
+        experienceValue: 1,
+        ownedByHeroId: null,
+        position: { x: 0, z: 0, sqX: 2, sqZ: 2 },
+        hp: 5,
+        maxHp: 5,
+        ac: 12,
+        speed: 1,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: []
+      };
+
+      // Assert Sunsword grants +2 attack bonus against Bodak (undead). Roll of 10 + 2 = 12 >= AC 12, so it hits.
+      const resultBodak = CombatSystem.resolveAttack(heroWithSunsword, undeadBodak, 0, 1, 0, 10);
+      if (!resultBodak.hit) {
+        throw new Error('C1 Test Failed: expected Sunsword to grant +2 attack bonus against undead Bodak and hit');
+      }
+
+      // Assert Sunsword does NOT apply against Wolf (non-undead). Roll of 10 + 0 = 10 < AC 12, so it misses.
+      const resultWolf = CombatSystem.resolveAttack(heroWithSunsword, animalWolf, 0, 1, 0, 10);
+      if (resultWolf.hit) {
+        throw new Error('C1 Test Failed: expected Sunsword bonus to not apply against non-undead Wolf');
+      }
+
+      // Assert Holy Avenger damage bonus (+2 damage vs Undead) applies. Base 1 + 2 = 3 damage.
+      const resultHolyAvenger = CombatSystem.resolveAttack(heroWithHolyAvenger, undeadBodak, 0, 1, 0, 12);
+      if (resultHolyAvenger.damage !== 3) {
+        throw new Error(`C1 Test Failed: expected Holy Avenger to deal 3 damage to undead, got ${resultHolyAvenger.damage}`);
+      }
+
+      // C2: targetType Guard for Environment Damage Modifiers
+      const dummyHero: Hero = {
+        id: 'dummy_hero',
+        name: 'Dummy Hero',
+        type: 'hero',
+        heroClass: 'fighter',
+        level: 1,
+        maxHp: 10,
+        hp: 10,
+        ac: 10,
+        speed: 6,
+        xp: 0,
+        surgeValue: 3,
+        surgeUsed: false,
+        abilities: [],
+        hand: [],
+        items: [],
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+        isExhausted: false,
+        attackBonus: 0,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const c2StateMonsterOnly = {
+        phase: 'hero',
+        currentHeroId: 'dummy_hero',
+        heroes: [dummyHero],
+        monsters: [],
+        tiles: [],
+        dungeonDeck: [],
+        treasureDeck: [],
+        encounterDeck: [],
+        monsterDeck: [],
+        discardPiles: {},
+        activeScenario: { id: 'c2_test', name: 'C2 Test', difficulty: 'Easy', description: 'C2 Test', introText: '', victoryText: '', defeatText: '', objectives: [], specialRules: [], startTileId: 'start_tile', maxSurges: 3 },
+        turnOrder: ['dummy_hero'],
+        healingSurges: 2,
+        turnCount: 1,
+        log: [],
+        activeEnvironmentCard: 'enc_test_sanctuary_monster_only',
+        experiencePile: [],
+        treasuresDrawnThisTurn: 0,
+        traps: [],
+        villainPhaseQueue: [],
+        activeVillainId: null,
+        logIdCounter: 0,
+        cardResolution: { phase: 'idle', cardId: null, cardType: null, pendingEffects: [], resolvedEffects: [], targetEntityId: null, result: null }
+      } as any as GameState;
+
+      // Damage should NOT be reduced since targetType is 'monster' (and entity is a hero)
+      const dmgMonsterOnly = CombatSystem.applyDamage(dummyHero, 3, c2StateMonsterOnly);
+      if (dmgMonsterOnly.hp !== 7) {
+        throw new Error(`C2 Test Failed: expected hero damage to not be reduced (HP should be 7), got ${dmgMonsterOnly.hp}`);
+      }
+
+      const c2StateHeroOnly: GameState = {
+        ...c2StateMonsterOnly,
+        activeEnvironmentCard: 'enc_test_sanctuary_hero_only'
+      };
+
+      // Damage SHOULD be reduced by 1 since targetType is 'hero' (and entity is a hero)
+      const dmgHeroOnly = CombatSystem.applyDamage(dummyHero, 3, c2StateHeroOnly);
+      if (dmgHeroOnly.hp !== 8) {
+        throw new Error(`C2 Test Failed: expected hero damage to be reduced by 1 (HP should be 8), got ${dmgHeroOnly.hp}`);
+      }
+
+      // C4: weakened condition multiplier doesn't cover flat damage bonuses
+      const weakenedHero: Hero = {
+        ...dummyHero,
+        id: 'weakened_hero',
+        conditions: [
+          { type: 'weakened', turnsRemaining: 1 },
+          { type: 'damage_bonus', turnsRemaining: 1, value: 2 }
+        ]
+      };
+
+      // Base damage is 2. (2 base + 2 flat) * 0.5 modifier = 2 damage.
+      const resultC4 = CombatSystem.resolveAttack(weakenedHero, animalWolf, 0, 2, 0, 15);
+      if (resultC4.damage !== 2) {
+        throw new Error(`C4 Test Failed: expected damage to be Math.floor((2 + 2) * 0.5) = 2, got ${resultC4.damage}`);
+      }
+
+      // C6: Bat Swarm same-tile disadvantage
+      const batGameState: GameState = {
+        ...c2StateMonsterOnly,
+        activeEnvironmentCard: 'enc_bat_swarm'
+      };
+
+      // Same tile position
+      const batHero: Hero = { ...dummyHero, position: { x: 0, z: 0, sqX: 1, sqZ: 1 } };
+      const batMonster: Monster = { ...animalWolf, position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
+
+      let rollCount = 0;
+      AbilitySystem._rollOverride = () => {
+        rollCount++;
+        return rollCount === 1 ? 18 : 12;
+      };
+
+      const resultBat = CombatSystem.resolveAttack(batHero, batMonster, 0, 1, 0, undefined, batGameState);
+      AbilitySystem._rollOverride = null;
+
+      if (resultBat.roll !== 12) {
+        throw new Error(`C6 Test Failed: expected Bat Swarm disadvantage to apply on same tile (roll should be 12), got ${resultBat.roll}`);
+      }
+
+      // M1: Default fallback is unreachable dead code (returns move or idle for unregistered monster)
+      const ai = new MonsterAI();
+      const unregisteredKobold: Monster = {
+        ...animalWolf,
+        monsterType: 'kobold'
+      };
+      const unregisteredAction = ai.decideAction(unregisteredKobold, [dummyHero], c2StateMonsterOnly);
+      if (!unregisteredAction || !['move', 'idle'].includes(unregisteredAction.type)) {
+        throw new Error(`M1 Test Failed: decideAction on unregistered monster returned invalid action: ${JSON.stringify(unregisteredAction)}`);
+      }
+
+      // M2: getBehavior returns class constructors, not instances (assert decideAction on registered type doesn't throw TypeError)
+      const gargoyle: Monster = {
+        ...animalWolf,
+        monsterType: 'gargoyle'
+      };
+      try {
+        const gargoyleAction = ai.decideAction(gargoyle, [dummyHero], c2StateMonsterOnly);
+        if (!gargoyleAction) {
+          throw new Error('M2 Test Failed: decideAction returned null or undefined');
+        }
+      } catch (err) {
+        throw new Error(`M2 Test Failed: decideAction on gargoyle threw error: ${err}`);
+      }
+
+      // -----------------------------------------------------------------------
+      // combatSlice Bug Fixes Tests (B2, B3, B5, B6)
+      // -----------------------------------------------------------------------
+      {
+        console.log('Testing combatSlice Bug Fixes (B2, B3, B5, B6)...');
+
+        const testHeroForCombat: Hero = {
+          ...dummyHero,
+          id: 'combat_test_hero',
+          name: 'Combat Test Hero',
+          damage: 3, // B2: damage stat set to 3
+          position: { x: 0, z: 0, sqX: 1, sqZ: 1 }
+        };
+
+        const normalMonster: Monster = {
+          ...animalWolf,
+          id: 'combat_test_monster',
+          name: 'Normal Monster',
+          hp: 10,
+          maxHp: 10,
+          ac: 10,
+          position: { x: 0, z: 0, sqX: 2, sqZ: 2 }
+        };
+
+        const stoneFormGargoyle: Monster = {
+          ...animalWolf,
+          id: 'combat_test_gargoyle',
+          name: 'Gargoyle',
+          monsterType: 'gargoyle',
+          hp: 5,
+          maxHp: 5,
+          ac: 10,
+          position: { x: 0, z: 0, sqX: 2, sqZ: 2 },
+          hasActivated: false // Stone Form: active when hasActivated is false
+        };
+
+        const revealedTile = createAITile('tile_0_0', 0, 0, []);
+        revealedTile.isRevealed = true;
+
+        const baseTestState: GameState = {
+          phase: 'hero',
+          currentHeroId: 'combat_test_hero',
+          heroes: [testHeroForCombat],
+          monsters: [normalMonster, stoneFormGargoyle],
+          tiles: [revealedTile],
+          dungeonDeck: [],
+          treasureDeck: [],
+          encounterDeck: [],
+          monsterDeck: [],
+          discardPiles: {},
+          activeScenario: { id: 'combat_slice_test', name: 'Combat Slice Test', difficulty: 'Easy', description: 'Test', introText: '', victoryText: '', defeatText: '', objectives: [], specialRules: [], startTileId: 'tile_0_0', maxSurges: 3 },
+          turnOrder: ['combat_test_hero'],
+          healingSurges: 2,
+          turnCount: 1,
+          log: [],
+          activeEnvironmentCard: null,
+          experiencePile: [],
+          treasuresDrawnThisTurn: 0,
+          traps: [],
+          villainPhaseQueue: [],
+          activeVillainId: null,
+          logIdCounter: 0,
+          cardResolution: { phase: 'idle', cardId: null, cardType: null, pendingEffects: [], resolvedEffects: [], targetEntityId: null, result: null }
+        };
+
+        // Stub requestRoll to immediately call onComplete and set result
+        const originalRequestRoll = useDiceStore.getState().requestRoll;
+        useDiceStore.setState({
+          requestRoll: (params: any) => {
+            const rollResult = AbilitySystem._rollOverride ? AbilitySystem._rollOverride() : 15;
+            useDiceStore.setState({ result: rollResult });
+            params.onComplete();
+          }
+        });
+
+        // Bug 2: Seed a hero with damage: 3. Call attackMonster with a forced hit roll. Assert the monster takes 3 damage, not 1.
+        useGameStore.setState({ gameState: baseTestState });
+        AbilitySystem._rollOverride = () => 15;
+        await useGameStore.getState().attackMonster('combat_test_monster');
+
+        const stateAfterB2 = useGameStore.getState().gameState!;
+        const monsterAfterB2 = stateAfterB2.monsters.find(m => m.id === 'combat_test_monster')!;
+        if (monsterAfterB2.hp !== 7) { // 10 HP - 3 damage = 7 HP
+          throw new Error(`Bug 2 Test Failed: expected monster HP to be 7, got ${monsterAfterB2.hp}`);
+        }
+
+        // Bug 3: Seed a Gargoyle with hasActivated: false (Stone Form). Call attackMonster. Assert the gargoyle takes 0 damage.
+        // Also verify that the attack result's damage was non-zero before being gated by applyDamage (verified via log entry).
+        useGameStore.setState({ gameState: baseTestState });
+        AbilitySystem._rollOverride = () => 15;
+        await useGameStore.getState().attackMonster('combat_test_gargoyle');
+
+        const stateAfterB3 = useGameStore.getState().gameState!;
+        const gargoyleAfterB3 = stateAfterB3.monsters.find(m => m.id === 'combat_test_gargoyle')!;
+        if (gargoyleAfterB3.hp !== 5) {
+          throw new Error(`Bug 3 Test Failed: expected Stone Form gargoyle HP to remain 5, got ${gargoyleAfterB3.hp}`);
+        }
+
+        const b3Log = stateAfterB3.log.find(l => l.message.includes('Gargoyle'));
+        if (!b3Log) {
+          throw new Error('Bug 3 Test Failed: could not find combat log for Gargoyle attack');
+        }
+        if (!b3Log.message.includes('deals 3 damage!')) {
+          throw new Error(`Bug 3 Test Failed: expected log to show deals 3 damage (non-zero before immunity), got: "${b3Log.message}"`);
+        }
+
+        // Bug 5: Call moveHero with a position pointing to a non-existent tile ID. Assert hero position is unchanged.
+        useGameStore.setState({ gameState: baseTestState });
+        useGameStore.getState().moveHero({ x: 99, z: 99, sqX: 0, sqZ: 0 });
+
+        const stateAfterB5 = useGameStore.getState().gameState!;
+        const heroAfterB5 = stateAfterB5.heroes.find(h => h.id === 'combat_test_hero')!;
+        if (heroAfterB5.position.x !== 0 || heroAfterB5.position.z !== 0) {
+          throw new Error(`Bug 5 Test Failed: expected hero position to remain at (0, 0), got (${heroAfterB5.position.x}, ${heroAfterB5.position.z})`);
+        }
+
+        // Verify with unrevealed tile as well
+        const unrevealedTile = createAITile('tile_unrevealed', 1, 1, []);
+        unrevealedTile.isRevealed = false;
+        const stateWithUnrevealed = { ...baseTestState, tiles: [revealedTile, unrevealedTile] };
+        useGameStore.setState({ gameState: stateWithUnrevealed });
+        useGameStore.getState().moveHero({ x: 1, z: 1, sqX: 0, sqZ: 0 });
+
+        const stateAfterB5Unrevealed = useGameStore.getState().gameState!;
+        const heroAfterB5Unrevealed = stateAfterB5Unrevealed.heroes.find(h => h.id === 'combat_test_hero')!;
+        if (heroAfterB5Unrevealed.position.x !== 0 || heroAfterB5Unrevealed.position.z !== 0) {
+          throw new Error(`Bug 5 Test Failed: expected hero position to remain at (0, 0) when moving to unrevealed tile, got (${heroAfterB5Unrevealed.position.x}, ${heroAfterB5Unrevealed.position.z})`);
+        }
+
+        // Bug 6: Call moveHero then attackMonster. Assert both log entries have numeric string IDs ("0", "1") not UUID format.
+        const cleanStateB6 = { ...baseTestState, logIdCounter: 0, log: [] };
+        useGameStore.setState({ gameState: cleanStateB6 });
+
+        useGameStore.getState().moveHero({ x: 0, z: 0, sqX: 3, sqZ: 3 });
+        AbilitySystem._rollOverride = () => 15;
+        await useGameStore.getState().attackMonster('combat_test_monster');
+
+        const stateAfterB6 = useGameStore.getState().gameState!;
+        const actionLog = stateAfterB6.log.find(l => l.type === 'action');
+        const combatLog = stateAfterB6.log.find(l => l.type === 'combat');
+
+        if (!actionLog || !combatLog) {
+          throw new Error('Bug 6 Test Failed: could not find action or combat log');
+        }
+
+        if (actionLog.id !== '0') {
+          throw new Error(`Bug 6 Test Failed: expected action log ID to be "0", got "${actionLog.id}"`);
+        }
+        if (combatLog.id !== '1') {
+          throw new Error(`Bug 6 Test Failed: expected combat log ID to be "1", got "${combatLog.id}"`);
+        }
+
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(actionLog.id)) {
+          throw new Error('Bug 6 Test Failed: action log ID is formatted as a UUID');
+        }
+        if (uuidRegex.test(combatLog.id)) {
+          throw new Error('Bug 6 Test Failed: combat log ID is formatted as a UUID');
+        }
+
+        // Restore original dice store state and overrides
+        useDiceStore.setState({ requestRoll: originalRequestRoll });
+        AbilitySystem._rollOverride = null;
+      }
+
+      // -----------------------------------------------------------------------
+      // ConditionSystem Bug Fixes Tests (B1, B2, B3, B4)
+      // -----------------------------------------------------------------------
+      {
+        console.log('Testing ConditionSystem & coreSlice Bug Fixes (B1, B2, B3, B4)...');
+
+        const testHero: Hero = {
+          ...dummyHero,
+          id: 'condition_test_hero',
+          name: 'Condition Test Hero',
+          hp: 10,
+          maxHp: 10,
+          conditions: []
+        };
+
+        // Bug 1: Apply a condition with duration: 1. Call processTurnEnd once. Assert the condition is still present with turnsRemaining: 0.
+        // Call processTurnEnd a second time. Assert the condition is now removed.
+        const heroWithC1 = ConditionSystem.applyCondition(testHero, 'slowed', 'source_a', 1);
+        if (heroWithC1.conditions.length !== 1 || heroWithC1.conditions[0].turnsRemaining !== 1) {
+          throw new Error(`Bug 1 Test Failed: expected 1 condition with turnsRemaining 1, got duration ${heroWithC1.conditions[0]?.turnsRemaining}`);
+        }
+
+        const afterFirstTurn = ConditionSystem.processTurnEnd(heroWithC1);
+        const conditionAfterFirst = afterFirstTurn.conditions.find(c => c.type === 'slowed');
+        if (!conditionAfterFirst) {
+          throw new Error('Bug 1 Test Failed: expected condition to survive first processTurnEnd call');
+        }
+        if (conditionAfterFirst.turnsRemaining !== 0) {
+          throw new Error(`Bug 1 Test Failed: expected turnsRemaining to be 0 after first processTurnEnd call, got ${conditionAfterFirst.turnsRemaining}`);
+        }
+
+        const afterSecondTurn = ConditionSystem.processTurnEnd(afterFirstTurn);
+        const conditionAfterSecond = afterSecondTurn.conditions.find(c => c.type === 'slowed');
+        if (conditionAfterSecond) {
+          throw new Error('Bug 1 Test Failed: expected condition to be removed after second processTurnEnd call');
+        }
+
+        // Bug 2: Apply condition from source A. Apply same condition again from source B. Assert sourceId on the condition is now source B's ID.
+        const heroWithSrcA = ConditionSystem.applyCondition(testHero, 'poisoned', 'source_a', 2);
+        if (heroWithSrcA.conditions[0].sourceId !== 'source_a') {
+          throw new Error(`Bug 2 Test Failed: expected sourceId to be 'source_a', got ${heroWithSrcA.conditions[0].sourceId}`);
+        }
+        const heroWithSrcB = ConditionSystem.applyCondition(heroWithSrcA, 'poisoned', 'source_b', 2);
+        if (heroWithSrcB.conditions[0].sourceId !== 'source_b') {
+          throw new Error(`Bug 2 Test Failed: expected refreshed sourceId to be 'source_b', got ${heroWithSrcB.conditions[0].sourceId}`);
+        }
+
+        // Bug 3: Apply poisoned condition to a hero. Call processTurnStart. Assert hero's HP decreased by 1.
+        const poisonedHero = ConditionSystem.applyCondition(testHero, 'poisoned', 'some_source', 2);
+        const revealedTile = createAITile('tile_0_0', 0, 0, []);
+        revealedTile.isRevealed = true;
+        const poisonGameState: GameState = {
+          phase: 'hero',
+          currentHeroId: 'condition_test_hero',
+          heroes: [poisonedHero],
+          monsters: [],
+          tiles: [revealedTile],
+          dungeonDeck: [],
+          treasureDeck: [],
+          encounterDeck: [],
+          monsterDeck: [],
+          discardPiles: {},
+          activeScenario: { id: 'poison_test', name: 'Poison Test', difficulty: 'Easy', description: 'Test', introText: '', victoryText: '', defeatText: '', objectives: [], specialRules: [], startTileId: 'tile_0_0', maxSurges: 3 },
+          turnOrder: ['condition_test_hero'],
+          healingSurges: 2,
+          turnCount: 1,
+          log: [],
+          activeEnvironmentCard: null,
+          experiencePile: [],
+          treasuresDrawnThisTurn: 0,
+          traps: [],
+          villainPhaseQueue: [],
+          activeVillainId: null,
+          logIdCounter: 0,
+          cardResolution: { phase: 'idle', cardId: null, cardType: null, pendingEffects: [], resolvedEffects: [], targetEntityId: null, result: null }
+        };
+
+        const stateAfterPoisonStart = ConditionSystem.processTurnStart(poisonGameState, 'condition_test_hero');
+        const heroAfterPoison = stateAfterPoisonStart.heroes.find(h => h.id === 'condition_test_hero')!;
+        if (heroAfterPoison.hp !== 9) {
+          throw new Error(`Bug 3 Test Failed: expected hero HP to be 9 after start of turn poison damage, got ${heroAfterPoison.hp}`);
+        }
+
+        // Bug 4: Seed a hero with a duration: 1 condition, call endTurn, and assert the condition has turnsRemaining: 0.
+        // Also assert that calling endTurn a second time removes the condition.
+        useGameStore.getState().startNewGame('s1', ['hero_arjhan']);
+        
+        // Apply slowed condition with duration: 1
+        const storeState = useGameStore.getState().gameState!;
+        const heroInStore = storeState.heroes.find(h => h.id === 'hero_arjhan')!;
+        const heroWithCondition = ConditionSystem.applyCondition(heroInStore, 'slowed', 'source_test', 1);
+        useGameStore.setState({
+          gameState: {
+            ...storeState,
+            heroes: storeState.heroes.map(h => h.id === 'hero_arjhan' ? heroWithCondition : h)
+          }
+        });
+
+        // Call endTurn (the first turn end). It should decrement to 0 and persist!
+        useGameStore.getState().endTurn();
+        
+        const stateAfterFirstEnd = useGameStore.getState().gameState!;
+        const heroAfterFirstEnd = stateAfterFirstEnd.heroes.find(h => h.id === 'hero_arjhan')!;
+        const condAfterFirstEnd = heroAfterFirstEnd.conditions.find(c => c.type === 'slowed');
+        if (!condAfterFirstEnd) {
+          throw new Error('Bug 4 Test Failed: expected slowed condition to persist after first endTurn call');
+        }
+        if (condAfterFirstEnd.turnsRemaining !== 0) {
+          throw new Error(`Bug 4 Test Failed: expected turnsRemaining to be 0 after first endTurn call, got ${condAfterFirstEnd.turnsRemaining}`);
+        }
+
+        // Call endTurn a second time. It should be removed.
+        const preSecondEndState = useGameStore.getState().gameState!;
+        useGameStore.setState({
+          gameState: {
+            ...preSecondEndState,
+            phase: 'hero',
+            currentHeroId: 'hero_arjhan'
+          }
+        });
+
+        useGameStore.getState().endTurn();
+        const stateAfterSecondEnd = useGameStore.getState().gameState!;
+        const heroAfterSecondEnd = stateAfterSecondEnd.heroes.find(h => h.id === 'hero_arjhan')!;
+        const condAfterSecondEnd = heroAfterSecondEnd.conditions.find(c => c.type === 'slowed');
+        if (condAfterSecondEnd) {
+          throw new Error('Bug 4 Test Failed: expected slowed condition to be removed after second endTurn call');
+        }
+      }
+
+      console.log('  All new Bug Fix verification tests passed.');
+    }
+
+    // --- Music of the Damned Integration Test ---
+    if (true) {
+      console.log('--- Testing Music of the Damned Environment Logic ---');
+      const testHero = createAIHero('motd_hero', 0, 0);
+      const testTile = createAITile('tile_start', 0, 0, [openEdge('north'), openEdge('south'), openEdge('east'), openEdge('west')]);
+      testTile.encounterType = 'black'; // forces monster draw
+      
+      const monsterDeck = [
+        'monster_rat_swarm', // 1 XP (bottom)
+        'monster_gargoyle',  // 2 XP (middle)
+        'monster_zombie'     // 1 XP (top, drawn first)
+      ];
+
+      const baseState = createAIState([testHero], [testTile]);
+      baseState.monsterDeck = monsterDeck;
+      baseState.activeEnvironmentCard = 'enc_music_of_the_damned';
+      baseState.discardPiles = { ...baseState.discardPiles, monster: [] };
+
+      // Spawn monster for exploration (should draw zombie and gargoyle, pick gargoyle)
+      const stateAfterExploration = TileSystem.spawnMonsterForExploration(baseState, testTile);
+      
+      if (stateAfterExploration.monsters.length !== 1) {
+        throw new Error('Music of the Damned Test Failed: Expected exactly 1 monster to be spawned.');
+      }
+      if (stateAfterExploration.monsters[0].name?.toLowerCase() !== 'gargoyle') {
+        throw new Error(`Music of the Damned Test Failed: Expected Gargoyle to spawn (2 XP vs 1 XP), but got ${stateAfterExploration.monsters[0].name}`);
+      }
+      
+      // Verify zombie was discarded
+      if (!stateAfterExploration.discardPiles.monster.includes('monster_zombie')) {
+        throw new Error('Music of the Damned Test Failed: Expected Zombie to be discarded.');
+      }
+
+      // Verify deck has rat swarm remaining
+      if (stateAfterExploration.monsterDeck.length !== 1 || stateAfterExploration.monsterDeck[0] !== 'monster_rat_swarm') {
+        throw new Error('Music of the Damned Test Failed: Expected rat swarm to be only remaining card in deck.');
+      }
+
+      // Tiebreaker check: if empty or only 1 card left, just spawns that one.
+      const stateAfterSecondSpawn = TileSystem.spawnMonsterForExploration(stateAfterExploration, testTile);
+      if (stateAfterSecondSpawn.monsters.length !== 2) {
+         throw new Error('Music of the Damned Test Failed: Expected 2nd monster to spawn when deck only has 1 card.');
+      }
+      if (stateAfterSecondSpawn.monsters[1].name.toLowerCase() !== 'rat swarm') {
+         throw new Error('Music of the Damned Test Failed: Expected rat swarm to spawn from 1-card deck.');
+      }
+
+    }
+
+    // -----------------------------------------------------------------------
+    // Cowardly Flight and Spirit of Doom (Event) Verification
+    // -----------------------------------------------------------------------
+    {
+      console.log('--- Testing Cowardly Flight & Spirit of Doom Event ---');
+      const testHero = createAIHero('event_test_hero', 0, 0);
+      testHero.speed = 6;
+      const startTile = createAITile('tile_start', 0, 0, [openEdge('north')]);
+      startTile.isStart = true;
+      
+      // Setup a monster (zombie) at (0, 0)
+      const zombie: Monster = {
+        ...createAIMonster('test_zombie', 1),
+        id: 'test_zombie',
+        templateId: 'monster_zombie',
+        name: 'Zombie',
+        hp: 2,
+        maxHp: 2,
+        ac: 6,
+        experienceValue: 1,
+        moveRange: 1,
+        isDefeated: false,
+        isExhausted: false,
+        conditions: [],
+        position: { x: 0, z: 0, sqX: 2, sqZ: 2 }
+      };
+
+      const baseState = createAIState([testHero], [startTile]);
+      baseState.monsters = [zombie];
+      baseState.dungeonDeck = ['white_x3_01']; // bottom deck will draw this
+      baseState.monsterDeck = ['monster_skeleton'];
+
+      const cowardlyFlightCard = DataLoader.getInstance().getCardById('enc_cowardly_flight');
+      if (!cowardlyFlightCard) throw new Error('Cowardly Flight card not found');
+
+      const flightResult = EncounterSystem.processEventCard(baseState, cowardlyFlightCard, testHero);
+      if (!flightResult.success) {
+        throw new Error(`Cowardly Flight resolution failed: ${flightResult.message}`);
+      }
+
+      const flightState = flightResult.gameState;
+      // Verify zombie moved to the new tile (0, -1) since north edge from (0,0) is at (0,-1)
+      const movedZombie = flightState.monsters.find(m => m.id === 'test_zombie')!;
+      if (movedZombie.position.x !== 0 || movedZombie.position.z !== -1) {
+        throw new Error(`Cowardly Flight Test Failed: Zombie should have moved to (0, -1), got (${movedZombie.position.x}, ${movedZombie.position.z})`);
+      }
+
+      // Verify a new monster (skeleton) spawned on the new tile (0, -1)
+      const skeleton = flightState.monsters.find(m => m.templateId === 'monster_skeleton');
+      if (!skeleton) {
+        throw new Error('Cowardly Flight Test Failed: Skeleton monster should have spawned');
+      }
+      if (skeleton.position.x !== 0 || skeleton.position.z !== -1) {
+        throw new Error(`Cowardly Flight Test Failed: Skeleton should have spawned at (0, -1), got (${skeleton.position.x}, ${skeleton.position.z})`);
+      }
+
+      // Verify the old tile (0, 0) has no monsters anymore
+      const startTileAfter = flightState.tiles.find(t => t.id === 'tile_start')!;
+      if (startTileAfter.monsters.includes('test_zombie')) {
+        throw new Error('Cowardly Flight Test Failed: Zombie should have been removed from startTile monsters list');
+      }
+
+      // Test Spirit of Doom (Event)
+      // Setup: Hero is at (0, 0) (empty tile). Active monster zombie is at (0, -1).
+      // The hero's speed is 6. The monster tile (0, -1) is at distance 1.
+      // The hero should move to (0, -1) and take 0 damage.
+      const spiritOfDoomCard = DataLoader.getInstance().getCardById('enc_spirit_of_doom_event');
+      if (!spiritOfDoomCard) throw new Error('Spirit of Doom event card not found');
+
+      // Reset hero HP to 10
+      const heroA = { ...testHero, hp: 10, position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
+      const stateBeforeDoom = {
+        ...flightState,
+        heroes: [heroA]
+      };
+
+      const doomResult = EncounterSystem.processEventCard(stateBeforeDoom, spiritOfDoomCard, heroA);
+      const doomState = doomResult.gameState;
+      const finalHero = doomState.heroes.find(h => h.id === 'event_test_hero')!;
+
+      // Hero should have moved to (0, -1) and taken 0 damage
+      if (finalHero.position.x !== 0 || finalHero.position.z !== -1) {
+        throw new Error(`Spirit of Doom Test Failed: Hero should have moved to (0, -1), got (${finalHero.position.x}, ${finalHero.position.z})`);
+      }
+      if (finalHero.hp !== 10) {
+        throw new Error(`Spirit of Doom Test Failed: Hero should have taken 0 damage, got HP = ${finalHero.hp}`);
+      }
+
+      // Now test where the monster tile is unreachable:
+      // Set hero speed to 0. Hero cannot move. Hero stays at (0, 0) and takes 1 damage.
+      const slowHero = { ...testHero, hp: 10, speed: 0, position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
+      const stateDoomUnreachable = {
+        ...stateBeforeDoom,
+        heroes: [slowHero]
+      };
+      const doomResultUnreachable = EncounterSystem.processEventCard(stateDoomUnreachable, spiritOfDoomCard, slowHero);
+      const finalSlowHero = doomResultUnreachable.gameState.heroes.find(h => h.id === 'event_test_hero')!;
+      
+      if (finalSlowHero.position.x !== 0 || finalSlowHero.position.z !== 0) {
+        throw new Error(`Spirit of Doom Test Failed (unreachable): Hero should have stayed at (0, 0), got (${finalSlowHero.position.x}, ${finalSlowHero.position.z})`);
+      }
+      if (finalSlowHero.hp !== 9) {
+        throw new Error(`Spirit of Doom Test Failed (unreachable): Hero should have taken 1 damage, got HP = ${finalSlowHero.hp}`);
+      }
+
+      console.log('  Cowardly Flight & Spirit of Doom logic passed.');
+    }
+
+    // -----------------------------------------------------------------------
+    // Phase 3 Integration Tests (Events Debt & Traps)
+    // -----------------------------------------------------------------------
+    {
+      console.log('Running Phase 3 Traps & Event Debt Integration Tests...');
+
+      const startTile = createAITile('tile_start', 0, 0, [openEdge('north')]);
+      startTile.isStart = true;
+      const testHeroObj = createAIHero('event_test_hero', 0, 0);
+      const testState = {
+        ...createAIState([testHeroObj], [startTile]),
+        encounterDeck: ['enc_mists_of_terror', 'enc_treasure_chest', 'enc_overwhelming_terror', 'enc_ghost_prince_of_aurel', 'enc_king_tomescus_portal']
+      };
+
+      // 1. Mists of Terror independent rolls
+      const mistsCard = DataLoader.getInstance().getCardById('enc_mists_of_terror');
+      if (!mistsCard) throw new Error('Mists of Terror card not found');
+
+      const hero1: Hero = { ...testHeroObj, id: 'hero1', name: 'Hero 1', hp: 10, position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
+      const hero2: Hero = { ...testHeroObj, id: 'hero2', name: 'Hero 2', hp: 10, position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
+      const mistsState = {
+        ...testState,
+        heroes: [hero1, hero2]
+      };
+
+      let rollIndex = 0;
+      const mistsRolls = [4, 10];
+      AbilitySystem._rollOverride = () => mistsRolls[rollIndex++];
+
+      const mistsResult = EncounterSystem.processEventCard(mistsState, mistsCard, hero1);
+      AbilitySystem._rollOverride = null;
+
+      const resHero1 = mistsResult.gameState.heroes.find(h => h.id === 'hero1')!;
+      const resHero2 = mistsResult.gameState.heroes.find(h => h.id === 'hero2')!;
+
+      if (resHero1.hp !== 9) {
+        throw new Error(`Mists of Terror Test Failed: Hero 1 should have taken 1 damage, got hp = ${resHero1.hp}`);
+      }
+      if (resHero2.hp !== 10) {
+        throw new Error(`Mists of Terror Test Failed: Hero 2 should have taken 0 damage, got hp = ${resHero2.hp}`);
+      }
+      console.log('  Mists of Terror independent rolls passed.');
+
+      // 2. Treasure Chest boundary rolls
+      const chestCard = DataLoader.getInstance().getCardById('enc_treasure_chest');
+      if (!chestCard) throw new Error('Treasure Chest card not found');
+
+      const chestState = { ...mistsState, treasureDeck: ['treasure_1', 'treasure_2'] };
+
+      // Roll 10: 2 damage
+      AbilitySystem._rollOverride = () => 10;
+      const chest10 = EncounterSystem.processEventCard(chestState, chestCard, hero1);
+      const h10 = chest10.gameState.heroes.find(h => h.id === 'hero1')!;
+      if (h10.hp !== 8) throw new Error(`Treasure Chest (Roll 10) Failed: Hero should take 2 damage, got hp = ${h10.hp}`);
+
+      // Roll 11: 1 damage + 1 treasure
+      AbilitySystem._rollOverride = () => 11;
+      const chest11 = EncounterSystem.processEventCard(chestState, chestCard, hero1);
+      const h11 = chest11.gameState.heroes.find(h => h.id === 'hero1')!;
+      if (h11.hp !== 9) throw new Error(`Treasure Chest (Roll 11) Failed: Hero should take 1 damage, got hp = ${h11.hp}`);
+
+      // Roll 15: 1 damage + 1 treasure
+      AbilitySystem._rollOverride = () => 15;
+      const chest15 = EncounterSystem.processEventCard(chestState, chestCard, hero1);
+      const h15 = chest15.gameState.heroes.find(h => h.id === 'hero1')!;
+      if (h15.hp !== 9) throw new Error(`Treasure Chest (Roll 15) Failed: Hero should take 1 damage, got hp = ${h15.hp}`);
+
+      // Roll 16: Draw 1 treasure
+      AbilitySystem._rollOverride = () => 16;
+      const chest16 = EncounterSystem.processEventCard(chestState, chestCard, hero1);
+      const h16 = chest16.gameState.heroes.find(h => h.id === 'hero1')!;
+      if (h16.hp !== 10) throw new Error(`Treasure Chest (Roll 16) Failed: Hero should take 0 damage, got hp = ${h16.hp}`);
+
+      console.log('  Treasure Chest boundary rolls passed.');
+
+      // 3. Overwhelming Terror on Start tile
+      const otCard = DataLoader.getInstance().getCardById('enc_overwhelming_terror');
+      if (otCard) {
+        const startTileObj = testState.tiles.find(t => t.isStart)!;
+        const heroOnStart = { ...testHeroObj, position: { x: startTileObj.x, z: startTileObj.z, sqX: 2, sqZ: 2 } };
+        const otState = {
+          ...testState,
+          heroes: [heroOnStart]
+        };
+        const otResult = EncounterSystem.processEventCard(otState, otCard, heroOnStart);
+        const resHeroOt = otResult.gameState.heroes.find(h => h.id === heroOnStart.id)!;
+        if (resHeroOt.position.x !== startTileObj.x || resHeroOt.position.z !== startTileObj.z) {
+          throw new Error('Overwhelming Terror starting on Start tile should keep hero on Start tile.');
+        }
+        console.log('  Overwhelming Terror on Start tile passed.');
+      }
+
+      // 4. Ghost of Prince Aurel
+      const aurelCard = DataLoader.getInstance().getCardById('enc_ghost_prince_of_aurel');
+      if (aurelCard) {
+        const powerHeroReal: Hero = {
+          ...testHeroObj,
+          hp: 10,
+          abilities: ['fighter_brute_strike'],
+          flippedPowerIds: []
+        };
+        const aurelStateReal = { ...testState, heroes: [powerHeroReal] };
+        const aurelResultReal = EncounterSystem.processEventCard(aurelStateReal, aurelCard, powerHeroReal);
+        const resHeroA = aurelResultReal.gameState.heroes[0];
+        if (!resHeroA.flippedPowerIds?.includes('fighter_brute_strike')) {
+          throw new Error('Ghost of Prince Aurel: Daily power should have been flipped face-down');
+        }
+
+        const powerHeroNone: Hero = {
+          ...testHeroObj,
+          hp: 10,
+          abilities: [],
+          flippedPowerIds: []
+        };
+        const aurelStateNone = { ...testState, heroes: [powerHeroNone] };
+        const aurelResultNone = EncounterSystem.processEventCard(aurelStateNone, aurelCard, powerHeroNone);
+        const resHeroB = aurelResultNone.gameState.heroes[0];
+        if (resHeroB.hp !== 9) {
+          throw new Error(`Ghost of Prince Aurel: Hero should take 1 damage if no unused powers, got HP = ${resHeroB.hp}`);
+        }
+        console.log('  Ghost of Prince Aurel tests passed.');
+      }
+
+      // 5. King Tomescu's Portal
+      const portalCard = DataLoader.getInstance().getCardById('enc_king_tomescus_portal');
+      if (portalCard) {
+        const portalHero = { ...testHeroObj, hp: 10 };
+        const portalState = { ...testState, heroes: [portalHero] };
+        AbilitySystem._rollOverride = () => 18; // hits every time
+        const portalResult = EncounterSystem.processEventAttackCard(portalState, portalCard, portalHero);
+        AbilitySystem._rollOverride = null;
+
+        const resPortalHero = portalResult.gameState.heroes[0];
+        if (resPortalHero.hp !== 7) {
+          throw new Error(`King Tomescu's Portal: Hero should take 3 damage, got HP = ${resPortalHero.hp}`);
+        }
+        if (!resPortalHero.removedFromPlay) {
+          throw new Error('King Tomescu\'s Portal: Hero should be removed from play');
+        }
+
+        // Test return to dungeon at start of turn
+        const startState = ConditionSystem.processTurnStart(portalResult.gameState, portalHero.id);
+        const resStartHero = startState.heroes[0];
+        if (resStartHero.removedFromPlay) {
+          throw new Error('King Tomescu\'s Portal: Hero should not be removed from play after turn start');
+        }
+        if (resStartHero.position.x !== 0 || resStartHero.position.z !== 0) {
+          throw new Error('King Tomescu\'s Portal: Hero should be placed on Start tile');
+        }
+        console.log('  King Tomescu\'s Portal tests passed.');
+      }
+
+      // 6. Traps Integration Tests
+      console.log('  Testing Traps Placement and Activation...');
+      const alarmCard = DataLoader.getInstance().getCardById('enc_alarm_trap');
+      if (!alarmCard) throw new Error('Alarm trap card not found');
+      
+      const trapHero = { ...testHeroObj, id: 'trap_hero', name: 'Trap Hero', position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
+      const trapStateBase = {
+        ...testState,
+        heroes: [trapHero],
+        currentHeroId: 'trap_hero',
+        traps: []
+      };
+
+      const placeResult = EncounterSystem.placeTrap(trapStateBase, alarmCard, trapHero);
+      if (placeResult.gameState.traps.length !== 1) {
+        throw new Error('Trap placement failed: traps list should contain 1 trap');
+      }
+      const trapInstance = placeResult.gameState.traps[0];
+      if (trapInstance.cardId !== 'enc_alarm_trap') {
+        throw new Error('Trap placement failed: incorrect cardId');
+      }
+
+      AbilitySystem._rollOverride = () => 5; // DC is 10, so roll 5 fails
+      const disableFailResult = EncounterSystem.attemptDisableTrap(placeResult.gameState, trapHero, trapInstance, alarmCard);
+      if (disableFailResult.success) {
+        throw new Error('attemptDisableTrap should fail when roll < DC');
+      }
+      if (disableFailResult.gameState.traps.length !== 1) {
+        throw new Error('attemptDisableTrap: failed attempt should not remove the trap');
+      }
+      if (!disableFailResult.gameState.hasAttackedThisTurn) {
+        throw new Error('attemptDisableTrap: failed attempt should consume the attack action');
+      }
+      AbilitySystem._rollOverride = null;
+
+      AbilitySystem._rollOverride = () => 12; // DC is 10, so roll 12 succeeds
+      const disableSuccessResult = EncounterSystem.attemptDisableTrap(placeResult.gameState, trapHero, trapInstance, alarmCard);
+      if (!disableSuccessResult.success) {
+        throw new Error('attemptDisableTrap should succeed when roll >= DC');
+      }
+      if (disableSuccessResult.gameState.traps.length !== 0) {
+        throw new Error('attemptDisableTrap: successful attempt should remove the trap');
+      }
+      if (!disableSuccessResult.gameState.hasAttackedThisTurn) {
+        throw new Error('attemptDisableTrap: successful attempt should consume the attack action');
+      }
+      AbilitySystem._rollOverride = null;
+
+      const alarmTriggerState = {
+        ...placeResult.gameState,
+        monsterDeck: ['monster_zombie']
+      };
+      const alarmTriggerResult = EncounterSystem.activateTrap(alarmTriggerState, trapInstance, alarmCard);
+      const resMonsters = alarmTriggerResult.gameState.monsters;
+      if (resMonsters.length !== alarmTriggerState.monsters.length + 1) {
+        throw new Error('Alarm Trap trigger failed: should spawn a new monster');
+      }
+      const spawnedMonster = resMonsters[resMonsters.length - 1];
+      if (spawnedMonster.position.x !== 0 || spawnedMonster.position.z !== 0) {
+        throw new Error(`Alarm Trap trigger failed: should spawn monster on parent tile (0, 0), got (${spawnedMonster.position.x}, ${spawnedMonster.position.z})`);
+      }
+
+      // Test Alarm Trap fallback: No unexplored edges remaining
+      const closedStartTile = {
+        ...startTile,
+        connections: [closedEdge('north')]
+      };
+      const alarmFallbackState = {
+        ...placeResult.gameState,
+        tiles: [closedStartTile],
+        monsterDeck: ['monster_zombie']
+      };
+      const alarmFallbackResult = EncounterSystem.activateTrap(alarmFallbackState, trapInstance, alarmCard);
+      if (alarmFallbackResult.gameState.monsters.length !== alarmFallbackState.monsters.length) {
+        throw new Error('Alarm Trap fallback failed: should not spawn a new monster when no unexplored edges remain');
+      }
+      if (!alarmFallbackResult.gameState.log?.some(l => l.message.includes('No unexplored edges remain'))) {
+        throw new Error('Alarm Trap fallback failed: missing log entry indicating no unexplored edges remain');
+      }
+
+      const turretCard = DataLoader.getInstance().getCardById('enc_crossbow_turret');
+      if (!turretCard) throw new Error('Crossbow Turret card not found');
+      
+      const turretHero1 = { ...testHeroObj, id: 'turret1', name: 'Turret Hero 1', ac: 10, hp: 10, position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
+      const turretHero2 = { ...testHeroObj, id: 'turret2', name: 'Turret Hero 2', ac: 10, hp: 10, position: { x: 0, z: -1, sqX: 2, sqZ: 2 } }; 
+      const turretHero3 = { ...testHeroObj, id: 'turret3', name: 'Turret Hero 3', ac: 10, hp: 10, position: { x: 0, z: -2, sqX: 2, sqZ: 2 } }; 
+      
+      const tileNorthTurret = createAITile('tile_north', 0, -1, [openEdge('south')]);
+      const turretState = {
+        ...testState,
+        tiles: TileSystem.connectTiles(testState.tiles, testState.tiles.find(t => t.id === 'tile_start')!, tileNorthTurret, 'north'),
+        heroes: [turretHero1, turretHero2, turretHero3]
+      };
+      const turretTrap: Trap = { id: 'turret_trap', cardId: 'enc_crossbow_turret', tileId: 'tile_start', position: { x: 0, z: 0, sqX: 2, sqZ: 2 }, isDisabled: false, ownedByHeroId: null, isTriggered: false };
+      
+      let turretRollIndex = 0;
+      const turretRolls = [10, 1]; 
+      AbilitySystem._rollOverride = () => turretRolls[turretRollIndex++];
+      const turretResult = EncounterSystem.activateTrap(turretState, turretTrap, turretCard);
+      AbilitySystem._rollOverride = null;
+
+      const resTurretHero1 = turretResult.gameState.heroes.find(h => h.id === 'turret1')!;
+      const resTurretHero2 = turretResult.gameState.heroes.find(h => h.id === 'turret2')!;
+      const resTurretHero3 = turretResult.gameState.heroes.find(h => h.id === 'turret3')!;
+
+      if (resTurretHero1.hp !== 8) throw new Error(`Crossbow Turret: Hero 1 should take 2 damage on hit, got HP = ${resTurretHero1.hp}`);
+      if (resTurretHero2.hp !== 9) throw new Error(`Crossbow Turret: Hero 2 should take 1 damage on miss, got HP = ${resTurretHero2.hp}`);
+      if (resTurretHero3.hp !== 10) throw new Error(`Crossbow Turret: Hero 3 should be untouched, got HP = ${resTurretHero3.hp}`);
+
+      const crushingCard = DataLoader.getInstance().getCardById('enc_crushing_walls');
+      if (!crushingCard) throw new Error('Crushing Walls card not found');
+      
+      const crushingTrap: Trap = { id: 'crushing_trap', cardId: 'enc_crushing_walls', tileId: 'tile_start', position: { x: 0, z: 0, sqX: 2, sqZ: 2 }, isDisabled: false, ownedByHeroId: null, isTriggered: false };
+      
+      AbilitySystem._rollOverride = () => 10;
+      const crushingResult = EncounterSystem.activateTrap(turretState, crushingTrap, crushingCard);
+      AbilitySystem._rollOverride = null;
+
+      const resCrushingHero1 = crushingResult.gameState.heroes.find(h => h.id === 'turret1')!;
+      const resCrushingHero2 = crushingResult.gameState.heroes.find(h => h.id === 'turret2')!;
+      if (resCrushingHero1.hp !== 8) throw new Error(`Crushing Walls: Hero 1 should take 2 damage, got HP = ${resCrushingHero1.hp}`);
+      if (!crushingResult.gameState.activeConditions?.some(c => c.targetId === 'turret1' && c.type === 'immobilized')) {
+        throw new Error('Crushing Walls: Hero 1 should be Immobilized');
+      }
+      if (resCrushingHero2.hp !== 10) throw new Error(`Crushing Walls: Hero 2 should be untouched, got HP = ${resCrushingHero2.hp}`);
+
+      const fireCard = DataLoader.getInstance().getCardById('enc_fire_trap');
+      if (!fireCard) throw new Error('Fire Trap card not found');
+      
+      const fireTrap: Trap = { id: 'fire_trap', cardId: 'enc_fire_trap', tileId: 'tile_start', position: { x: 0, z: 0, sqX: 2, sqZ: 2 }, isDisabled: false, ownedByHeroId: null, isTriggered: false };
+      const fireResult = EncounterSystem.activateTrap(turretState, fireTrap, fireCard);
+      
+      const resFireHero1 = fireResult.gameState.heroes.find(h => h.id === 'turret1')!;
+      const resFireHero2 = fireResult.gameState.heroes.find(h => h.id === 'turret2')!;
+      if (resFireHero1.hp !== 8) throw new Error(`Fire Trap: Hero 1 should take 2 damage, got HP = ${resFireHero1.hp}`);
+      if (resFireHero2.hp !== 10) throw new Error(`Fire Trap: Hero 2 should be untouched, got HP = ${resFireHero2.hp}`);
+
+      const slidingCard = DataLoader.getInstance().getCardById('enc_sliding_walls');
+      if (!slidingCard) throw new Error('Sliding Walls card not found');
+      
+      const slidingTrap: Trap = { id: 'sliding_trap', cardId: 'enc_sliding_walls', tileId: 'tile_start', position: { x: 0, z: 0, sqX: 2, sqZ: 2 }, isDisabled: false, ownedByHeroId: null, isTriggered: false };
+      
+      // Tile North at (0, -1) setup
+      const tileNorth = createAITile('tile_north', 0, -1, [openEdge('south')]);
+      const tileStateSliding = {
+        ...testState,
+        tiles: TileSystem.connectTiles(testState.tiles, testState.tiles.find(t => t.id === 'tile_start')!, tileNorth, 'north'),
+        heroes: [turretHero1, turretHero2, turretHero3]
+      };
+
+      AbilitySystem._rollOverride = () => 3;
+      const slidingResultA = EncounterSystem.activateTrap(tileStateSliding, slidingTrap, slidingCard);
+      AbilitySystem._rollOverride = null;
+      const resSlidingHero1A = slidingResultA.gameState.heroes.find(h => h.id === 'turret1')!;
+      if (resSlidingHero1A.position.x !== 0 || resSlidingHero1A.position.z !== -1) {
+        throw new Error(`Sliding Walls (success): Hero 1 should move to (0, -1), got (${resSlidingHero1A.position.x}, ${resSlidingHero1A.position.z})`);
+      }
+      if (resSlidingHero1A.hp !== 10) {
+        throw new Error(`Sliding Walls (success): Hero 1 should take 0 damage, got HP = ${resSlidingHero1A.hp}`);
+      }
+
+      AbilitySystem._rollOverride = () => 18;
+      const slidingResultB = EncounterSystem.activateTrap(tileStateSliding, slidingTrap, slidingCard);
+      AbilitySystem._rollOverride = null;
+      const resSlidingHero1B = slidingResultB.gameState.heroes.find(h => h.id === 'turret1')!;
+      if (resSlidingHero1B.position.x !== 0 || resSlidingHero1B.position.z !== 0) {
+        throw new Error(`Sliding Walls (blocked): Hero 1 should remain at (0, 0), got (${resSlidingHero1B.position.x}, ${resSlidingHero1B.position.z})`);
+      }
+      if (resSlidingHero1B.hp !== 9) {
+        throw new Error(`Sliding Walls (blocked): Hero 1 should take 1 damage, got HP = ${resSlidingHero1B.hp}`);
+      }
+
+      const spearCard = DataLoader.getInstance().getCardById('enc_spear_gauntlet');
+      if (!spearCard) throw new Error('Spear Gauntlet card not found');
+      const spearTrap: Trap = { id: 'spear_trap', cardId: 'enc_spear_gauntlet', tileId: 'tile_start', position: { x: 0, z: 0, sqX: 2, sqZ: 2 }, isDisabled: false, ownedByHeroId: null, isTriggered: false };
+      
+      AbilitySystem._rollOverride = () => 10;
+      const spearResult = EncounterSystem.activateTrap(turretState, spearTrap, spearCard);
+      AbilitySystem._rollOverride = null;
+      const resSpearHero1 = spearResult.gameState.heroes.find(h => h.id === 'turret1')!;
+      if (resSpearHero1.hp !== 7) throw new Error(`Spear Gauntlet: Hero 1 should take 3 damage on hit, got HP = ${resSpearHero1.hp}`);
+
+      const dartCard = DataLoader.getInstance().getCardById('enc_dart_trap');
+      if (!dartCard) throw new Error('Dart Trap card not found');
+      const dartTrap: Trap = { id: 'dart_trap', cardId: 'enc_dart_trap', tileId: 'tile_start', position: { x: 0, z: 0, sqX: 2, sqZ: 2 }, isDisabled: false, ownedByHeroId: null, isTriggered: false };
+
+      AbilitySystem._rollOverride = () => 10;
+      const dartResult = EncounterSystem.activateTrap(turretState, dartTrap, dartCard);
+      AbilitySystem._rollOverride = null;
+      const resDartHero1 = dartResult.gameState.heroes.find(h => h.id === 'turret1')!;
+      if (resDartHero1.hp !== 8) throw new Error(`Dart Trap: Hero 1 should take 2 damage on hit, got HP = ${resDartHero1.hp}`);
+
+      console.log('  Traps Integration Tests passed.');
+    }
+
+    // -----------------------------------------------------------------------
+    // 7. Phase 4 Integration Tests
+    // -----------------------------------------------------------------------
+    {
+      console.log('  Testing Phase 4 cards and repositioning...');
+
+      const startTile = createAITile('tile_start', 0, 0, [openEdge('north')]);
+      startTile.isStart = true;
+      const testHeroObj = createAIHero('event_test_hero', 0, 0);
+      const testState = {
+        ...createAIState([testHeroObj], [startTile]),
+        encounterDeck: []
+      };
+
+      // enc_strahds_whispers
+      const whispersCard = DataLoader.getInstance().getCardById('enc_strahds_whispers');
+      if (whispersCard) {
+        const whispersHero1: Hero = { ...testHeroObj, id: 'whispers1', name: 'Whispers Hero 1', hp: 10, position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
+        const whispersHero2: Hero = { 
+          ...testHeroObj, 
+          id: 'whispers2', 
+          name: 'Whispers Hero 2', 
+          hp: 10, 
+          position: { x: 1, z: 0, sqX: 2, sqZ: 2 },
+          abilities: ['arjhan_power_1'], // Arjhan's at-will power (Valiant Strike)
+          selectedPowerIds: ['arjhan_power_1']
+        };
+        
+        // Setup simple board: start tile at (0,0) and a corridor tile at (1,0) connected
+        const whispersTile0 = { ...startTile, id: 'tile_whispers0', x: 0, z: 0, heroes: ['whispers1'], monsters: [] };
+        const whispersTile1 = { ...startTile, id: 'tile_whispers1', x: 1, z: 0, heroes: ['whispers2'], monsters: [], isStart: false };
+        whispersTile0.connections = [openEdge('east')];
+        whispersTile1.connections = [openEdge('west')];
+        whispersTile0.connections[0].connectedTileId = whispersTile1.id;
+        whispersTile1.connections[0].connectedTileId = whispersTile0.id;
+
+        const whispersState = {
+          ...testState,
+          heroes: [whispersHero1, whispersHero2],
+          tiles: [whispersTile0, whispersTile1],
+          currentHeroId: 'whispers1'
+        };
+
+        const whispersResult = EncounterSystem.processEventCard(whispersState, whispersCard, whispersHero1);
+        const resWhispersState = whispersResult.gameState;
+        
+        // Hero 1 should have moved to Hero 2's tile (1,0)
+        const movedHero1 = resWhispersState.heroes.find(h => h.id === 'whispers1')!;
+        if (movedHero1.position.x !== 1 || movedHero1.position.z !== 0) {
+          throw new Error(`Strahd's Whispers: Hero 1 did not move to Hero 2's tile, got x=${movedHero1.position.x}, z=${movedHero1.position.z}`);
+        }
+
+        // It should have created a pending fortune of kind atWillPowerPick
+        const pending = resWhispersState.pendingFortune;
+        if (!pending || pending.kind !== 'atWillPowerPick') {
+          throw new Error(`Strahd's Whispers: Expected pendingFortune kind 'atWillPowerPick', got ${pending?.kind}`);
+        }
+        if (pending.attackerHeroId !== 'whispers2' || pending.targetHeroId !== 'whispers1') {
+          throw new Error('Strahd\'s Whispers: Incorrect attacker or target in pending selection');
+        }
+
+        // Resolve the pending fortune to trigger the attack
+        // Stub dice store for async attack resolution and override roll so the attack hits
+        const originalRequestRoll = useDiceStore.getState().requestRoll;
+        useDiceStore.setState({
+          requestRoll: (params: any) => {
+            useDiceStore.setState({ result: 15 });
+            params.onComplete();
+          },
+        });
+        AbilitySystem._rollOverride = () => 15;
+        const resolveResult = await TreasureSystem.resolvePendingFortuneAsync(resWhispersState, {
+          kind: 'atWillPowerPick',
+          powerCardId: 'arjhan_power_1'
+        });
+        AbilitySystem._rollOverride = null;
+        useDiceStore.setState({ requestRoll: originalRequestRoll });
+
+        const hitHero1 = resolveResult.newState.heroes.find(h => h.id === 'whispers1')!;
+        // Arjhan's Dragon Breath deals 1 damage. Check if Hero 1 took damage
+        if (hitHero1.hp >= 10) {
+          throw new Error(`Strahd's Whispers: Target Hero 1 should have taken damage, got HP = ${hitHero1.hp}`);
+        }
+        const attackerHero2 = resolveResult.newState.heroes.find(h => h.id === 'whispers2')!;
+        if (attackerHero2.hp !== 10) {
+          throw new Error(`Strahd's Whispers: Attacker Hero 2 should not have taken damage, got HP = ${attackerHero2.hp}`);
+        }
+        console.log("  Strahd's Whispers tests passed.");
+      }
+
+      // enc_illusionary_trick
+      const trickCard = DataLoader.getInstance().getCardById('enc_illusionary_trick');
+      if (trickCard) {
+        // Test 1: No monsters on board -> no-op
+        const trickHero = { ...testHeroObj, id: 'trickHero', position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
+        const trickStateNoMonsters = { ...testState, heroes: [trickHero], monsters: [] };
+        const trickResultNoMonsters = EncounterSystem.processEventCard(trickStateNoMonsters, trickCard, trickHero);
+        if (trickResultNoMonsters.gameState.heroes[0].position.x !== 0) {
+          throw new Error('Illusionary Trick (no monsters): active hero moved');
+        }
+
+        // Test 2: Multiple monsters -> swaps with farthest
+        const trickTile0 = { ...startTile, id: 'tile_trick0', x: 0, z: 0, heroes: ['trickHero'], monsters: [] };
+        const trickTile1 = { ...startTile, id: 'tile_trick1', x: 1, z: 0, heroes: [], monsters: ['zombie_close'], isStart: false };
+        const trickTile2 = { ...startTile, id: 'tile_trick2', x: 2, z: 0, heroes: [], monsters: ['zombie_far'], isStart: false };
+        trickTile0.connections = [openEdge('east')];
+        trickTile1.connections = [openEdge('west'), openEdge('east')];
+        trickTile2.connections = [openEdge('west')];
+        trickTile0.connections[0].connectedTileId = trickTile1.id;
+        trickTile1.connections[0].connectedTileId = trickTile0.id;
+        trickTile1.connections[1].connectedTileId = trickTile2.id;
+        trickTile2.connections[0].connectedTileId = trickTile1.id;
+
+        const zombieClose = { 
+          id: 'zombie_close', 
+          name: 'Zombie Close', 
+          hp: 1, 
+          maxHp: 1, 
+          ac: 10, 
+          speed: 1, 
+          type: 'monster' as const,
+          position: { x: 1, z: 0, sqX: 2, sqZ: 2 },
+          isExhausted: false,
+          conditions: [],
+          usedPowers: []
+        };
+        const zombieFar = { 
+          id: 'zombie_far', 
+          name: 'Zombie Far', 
+          hp: 1, 
+          maxHp: 1, 
+          ac: 10, 
+          speed: 1, 
+          type: 'monster' as const,
+          position: { x: 2, z: 0, sqX: 2, sqZ: 2 },
+          isExhausted: false,
+          conditions: [],
+          usedPowers: []
+        };
+
+        const trickStateMultiple = {
+          ...testState,
+          heroes: [trickHero],
+          monsters: [zombieClose, zombieFar],
+          tiles: [trickTile0, trickTile1, trickTile2],
+          currentHeroId: 'trickHero'
+        };
+
+        const trickResultMultiple = EncounterSystem.processEventCard(trickStateMultiple, trickCard, trickHero);
+        const resHero = trickResultMultiple.gameState.heroes.find(h => h.id === 'trickHero')!;
+        const resZombieFar = trickResultMultiple.gameState.monsters.find(m => m.id === 'zombie_far')!;
+        const resZombieClose = trickResultMultiple.gameState.monsters.find(m => m.id === 'zombie_close')!;
+
+        // Swapped with zombieFar (farthest)
+        if (resHero.position.x !== 2 || resHero.position.z !== 0) {
+          throw new Error(`Illusionary Trick: Hero should have swapped to (2,0), got (${resHero.position.x},${resHero.position.z})`);
+        }
+        if (resZombieFar.position.x !== 0 || resZombieFar.position.z !== 0) {
+          throw new Error(`Illusionary Trick: Zombie Far should have swapped to (0,0), got (${resZombieFar.position.x},${resZombieFar.position.z})`);
+        }
+        if (resZombieClose.position.x !== 1 || resZombieClose.position.z !== 0) {
+          throw new Error('Illusionary Trick: Zombie Close should not have moved');
+        }
+        console.log('  Illusionary Trick tests passed.');
+      }
+
+      // enc_strahds_minions
+      const minionsCard = DataLoader.getInstance().getCardById('enc_strahds_minions');
+      if (minionsCard) {
+        // Test: Active hero + closest monsters teleport. If < 2 monsters, spawn 1 on the farthest tile
+        const minHero = { ...testHeroObj, id: 'minHero', position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
+        
+        const minTile0 = { ...startTile, id: 'tile_min0', x: 0, z: 0, heroes: ['minHero'], monsters: [], isStart: true };
+        const minTile1 = { ...startTile, id: 'tile_min1', x: 1, z: 0, heroes: [], monsters: ['zombie1'], isStart: false };
+        const minTile2 = { ...startTile, id: 'tile_min2', x: 2, z: 0, heroes: [], monsters: [], isStart: false };
+        minTile0.connections = [openEdge('east')];
+        minTile1.connections = [openEdge('west'), openEdge('east')];
+        minTile2.connections = [openEdge('west')];
+        minTile0.connections[0].connectedTileId = minTile1.id;
+        minTile1.connections[0].connectedTileId = minTile0.id;
+        minTile1.connections[1].connectedTileId = minTile2.id;
+        minTile2.connections[0].connectedTileId = minTile1.id;
+
+        const zombie1 = { 
+          id: 'zombie1', 
+          name: 'Zombie 1', 
+          hp: 1, maxHp: 1, ac: 10, speed: 1, type: 'monster' as const,
+          position: { x: 1, z: 0, sqX: 2, sqZ: 2 }, isExhausted: false, conditions: [], usedPowers: []
+        };
+
+        const minState = {
+          ...testState,
+          heroes: [minHero],
+          monsters: [zombie1],
+          tiles: [minTile0, minTile1, minTile2],
+          monsterDeck: ['monster_skeleton'], // backup monster deck
+          currentHeroId: 'minHero'
+        };
+
+        const minResult = EncounterSystem.processEventCard(minState, minionsCard, minHero);
+        const resMinHero = minResult.gameState.heroes.find(h => h.id === 'minHero')!;
+        const resZombie1 = minResult.gameState.monsters.find(m => m.id === 'zombie1')!;
+        
+        // Farthest tile is minTile2 (distance 2 from Start tile)
+        if (resMinHero.position.x !== 2 || resMinHero.position.z !== 0) {
+          throw new Error(`Strahd's Minions: Hero should teleport to farthest tile (2,0), got (${resMinHero.position.x},${resMinHero.position.z})`);
+        }
+        if (resZombie1.position.x !== 2 || resZombie1.position.z !== 0) {
+          throw new Error('Strahd\'s Minions: Zombie 1 should teleport to farthest tile');
+        }
+        
+        // Since fewer than 2 monsters existed, 1 should spawn on the farthest tile (minTile2)
+        if (minResult.gameState.monsters.length !== 2) {
+          throw new Error(`Strahd's Minions: Expected 2 monsters in play after spawn, got ${minResult.gameState.monsters.length}`);
+        }
+        const spawnedMonster = minResult.gameState.monsters.find(m => m.id !== 'zombie1')!;
+        if (spawnedMonster.position.x !== 2 || spawnedMonster.position.z !== 0) {
+          throw new Error(`Strahd's Minions: Spawned monster should be on farthest tile, got (${spawnedMonster.position.x},${spawnedMonster.position.z})`);
+        }
+        console.log("  Strahd's Minions tests passed.");
+      }
+
+      // enc_teleport_glyph
+      const glyphCard = DataLoader.getInstance().getCardById('enc_teleport_glyph');
+      if (glyphCard) {
+        const glyphHero = { ...testHeroObj, id: 'glyphHero', position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
+        const singleTileState = {
+          ...testState,
+          heroes: [glyphHero],
+          monsters: [],
+          tiles: [{ ...startTile, id: 'tile_single', x: 0, z: 0, heroes: ['glyphHero'], monsters: [], isStart: true }],
+          currentHeroId: 'glyphHero'
+        };
+        const singleResult = EncounterSystem.processEventCard(singleTileState, glyphCard, glyphHero);
+        if (singleResult.gameState.heroes[0].position.x !== 0 || singleResult.gameState.heroes[0].position.z !== 0) {
+          throw new Error('Teleport Glyph: Hero moved when there was no other tile');
+        }
+        console.log('  Teleport Glyph tests passed.');
+      }
+
+      // enc_cyrus_belview
+      const cyrusCard = DataLoader.getInstance().getCardById('enc_cyrus_belview');
+      if (cyrusCard) {
+        const cyrusHero1 = { ...testHeroObj, id: 'cyrus1', position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
+        const cyrusHero2 = { ...testHeroObj, id: 'cyrus2', position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
+        const cyrusTile0 = { ...startTile, id: 'tile_cyrus0', x: 0, z: 0, heroes: ['cyrus1', 'cyrus2'], monsters: [], connections: [openEdge('east')] };
+        const cyrusState = {
+          ...testState,
+          heroes: [cyrusHero1, cyrusHero2],
+          tiles: [cyrusTile0],
+          dungeonDeck: ['start-tile'], // tile template to place (has all edges open)
+          monsterDeck: ['monster_zombie', 'monster_skeleton'], // monsters to spawn
+          currentHeroId: 'cyrus1'
+        };
+
+        const cyrusResult = EncounterSystem.processEventCard(cyrusState, cyrusCard, cyrusHero1);
+        const resCyrusState = cyrusResult.gameState;
+        
+        // New tile crypt placed at (1,0)
+        if (resCyrusState.tiles.length !== 2) {
+          throw new Error(`Cyrus Belview: Expected 2 tiles, got ${resCyrusState.tiles.length}`);
+        }
+        const placedTile = resCyrusState.tiles.find(t => t.id !== 'tile_cyrus0')!;
+        if (placedTile.x !== 1 || placedTile.z !== 0) {
+          throw new Error(`Cyrus Belview: Placed tile coordinates incorrect: (${placedTile.x}, ${placedTile.z})`);
+        }
+
+        // Both monsters spawned on it
+        if (placedTile.monsters.length !== 2) {
+          throw new Error(`Cyrus Belview: Expected 2 monsters on placed tile, got ${placedTile.monsters.length}`);
+        }
+
+        // All heroes relocated to the new tile
+        const cy1 = resCyrusState.heroes.find(h => h.id === 'cyrus1')!;
+        const cy2 = resCyrusState.heroes.find(h => h.id === 'cyrus2')!;
+        if (cy1.position.x !== 1 || cy1.position.z !== 0 || cy2.position.x !== 1 || cy2.position.z !== 0) {
+          throw new Error('Cyrus Belview: Heroes did not relocate to new tile');
+        }
+        if (!placedTile.heroes.includes('cyrus1') || !placedTile.heroes.includes('cyrus2')) {
+          throw new Error('Cyrus Belview: New tile heroes list incorrect');
+        }
+        if (resCyrusState.tiles.find(t => t.id === 'tile_cyrus0')!.heroes.length !== 0) {
+          throw new Error('Cyrus Belview: Old tile heroes list not cleared');
+        }
+        console.log('  Cyrus Belview tests passed.');
+      }
+
+      // enc_icy_corridor
+      const icyCard = DataLoader.getInstance().getCardById('enc_icy_corridor');
+      if (icyCard) {
+        const icyHero = { ...testHeroObj, id: 'icyHero', hp: 10, position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
+        const icyTile0 = { ...startTile, id: 'tile_icy0', x: 0, z: 0, heroes: ['icyHero'], monsters: [] };
+        const icyTile1 = { ...startTile, id: 'tile_icy1', x: 1, z: 0, heroes: [], monsters: [], isStart: false };
+        icyTile0.connections = [openEdge('east')];
+        icyTile1.connections = [openEdge('west')];
+        icyTile0.connections[0].connectedTileId = icyTile1.id;
+        icyTile1.connections[0].connectedTileId = icyTile0.id;
+
+        const icyState = {
+          ...testState,
+          heroes: [icyHero],
+          tiles: [icyTile0, icyTile1],
+          currentHeroId: 'icyHero'
+        };
+
+        // Stub roll override to make attack hit
+        AbilitySystem._rollOverride = () => 15;
+        const icyResult = EncounterSystem.processEventAttackCard(icyState, icyCard, icyHero);
+        AbilitySystem._rollOverride = null;
+
+        const resIcyHero = icyResult.gameState.heroes.find(h => h.id === 'icyHero')!;
+        if (resIcyHero.hp !== 8) {
+          throw new Error(`Icy Corridor: Hero should take 2 damage on hit, got HP = ${resIcyHero.hp}`);
+        }
+
+        // Verify player-choice prompt fires
+        const pending = icyResult.gameState.pendingFortune;
+        if (!pending || pending.kind !== 'tileRelocatePick') {
+          throw new Error('Icy Corridor: Relocation choice prompt did not fire');
+        }
+        if (pending.eligibleTileIds.length !== 1 || pending.eligibleTileIds[0] !== 'tile_icy1') {
+          throw new Error('Icy Corridor: Incorrect eligible tiles list');
+        }
+
+        // Resolve choice and check position
+        const finalState = await TreasureSystem.resolvePendingFortuneAsync(icyResult.gameState, {
+          kind: 'tileRelocatePick',
+          destinationTileId: 'tile_icy1'
+        });
+        const finalHero = finalState.newState.heroes.find(h => h.id === 'icyHero')!;
+        if (finalHero.position.x !== 1 || finalHero.position.z !== 0) {
+          throw new Error('Icy Corridor: Hero did not relocate to chosen tile');
+        }
+        console.log('  Icy Corridor tests passed.');
+      }
+
+      // King Tomescu's Portal turn order skip/return
+      const t1 = { ...testHeroObj, id: 't1', hp: 10, removedFromPlay: true, position: { x: -999, z: -999 } };
+      const t2 = { ...testHeroObj, id: 't2', hp: 10, position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
+      const turnOrderState = {
+        ...testState,
+        heroes: [t1, t2],
+        turnOrder: ['t1', 't2'],
+        currentHeroId: 't2',
+        phase: 'hero' as const
+      };
+      
+      const stateAfterT2 = ConditionSystem.processTurnStart(turnOrderState, 't1');
+      const startT1Hero = stateAfterT2.heroes.find(h => h.id === 't1')!;
+      if (startT1Hero.removedFromPlay) {
+        throw new Error("King Tomescu's Portal: Hero should return to play at start of their next turn");
+      }
+      if (startT1Hero.position.x !== 0 || startT1Hero.position.z !== 0) {
+        throw new Error("King Tomescu's Portal: Hero should be placed on Start tile upon return");
+      }
+      console.log("  King Tomescu's Portal turn transition tests passed.");
     }
 
     // -----------------------------------------------------------------------

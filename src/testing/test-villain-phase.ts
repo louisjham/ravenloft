@@ -119,6 +119,7 @@ const villainTiles: Tile[] = [
 ];
 
 const villainGameState: GameState = {
+    logIdCounter: 0,
     phase: 'hero',
     currentHeroId: 'hero_villain',
     heroes: [villainHero],

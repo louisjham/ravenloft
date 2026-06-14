@@ -3,7 +3,7 @@
     "id": "enc_bat_swarm",
     "type": "encounter",
     "name": "Bat Swarm",
-    "description": "Whenever a Hero attacks a Monster that is not on his or her tile, that Hero makes the attack roll twice and uses the lower result.",
+    "description": "If there is an Environment card already in play, discard it. This Environment remains in play until a new Environment is drawn.\nWhenever a Hero attacks a Monster that is not on his or her tile, that Hero makes the attack roll twice and uses the lower result.",
     "effects": [
       {
         "type": "passive",
@@ -18,7 +18,7 @@
     "id": "enc_blood_fog",
     "type": "encounter",
     "name": "Blood Fog",
-    "description": "Whenever a Hero or a Monster attacks and rolls a natural 17 or higher, the target of the attack takes 1 additional damage.",
+    "description": "If there is an Environment card already in play, discard it. This Environment remains in play until a new Environment is drawn.\nWhenever a Hero or a Monster attacks and rolls a natural 17 or higher, the target of the attack takes 1 additional damage.",
     "effects": [
       {
         "type": "passive",
@@ -33,7 +33,7 @@
     "id": "enc_cackling_skull",
     "type": "encounter",
     "name": "Cackling Skull",
-    "description": "Whenever a Hero uses a Daily or Utility power, he or she takes 1 damage.",
+    "description": "If there is an Environment card already in play, discard it. This Environment remains in play until a new Environment is drawn.\nWhenever a Hero uses a Daily or Utility power, he or she takes 1 damage.",
     "effects": [
       {
         "type": "passive",
@@ -48,7 +48,7 @@
     "id": "enc_crippling_miasma",
     "type": "encounter",
     "name": "Crippling Miasma",
-    "description": "Each Hero's speed is reduced by 1. Fortitude save ends.",
+    "description": "If there is an Environment card already in play, discard it. This Environment remains in play until a new Environment is drawn.\nEach Hero's Speed is reduced by 1.",
     "effects": [
       {
         "type": "status_effect",
@@ -64,12 +64,12 @@
     "id": "enc_deadly_shadows",
     "type": "encounter",
     "name": "Deadly Shadows",
-    "description": "Shadows writhe and blind you! All heroes on this tile are stunned.",
+    "description": "If there is an Environment card already in play, discard it. This Environment remains in play until a new Environment is drawn.\nWhenever the active Hero ends his or her turn on a tile that has another Hero on it, the active Hero takes 1 damage.",
     "effects": [
       {
-        "type": "status_effect",
-        "statusEffect": "stunned",
-        "target": "all_heroes"
+        "type": "passive",
+        "passiveType": "deadly_shadows",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -79,12 +79,12 @@
     "id": "enc_haunted_mists",
     "type": "encounter",
     "name": "Haunted Mists",
-    "description": "Ghostly mists surround you! All heroes on this tile draw an encounter card.",
+    "description": "If there is an Environment card already in play, discard it. This Environment remains in play until a new Environment is drawn.\nUndead Monsters gain a +2 bonus to attack rolls.",
     "effects": [
       {
-        "type": "draw_card",
-        "value": 1,
-        "target": "all_heroes"
+        "type": "passive",
+        "passiveType": "haunted_mists",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -94,12 +94,12 @@
     "id": "enc_music_of_the_damned",
     "type": "encounter",
     "name": "Music of the Damned",
-    "description": "Eerie music echoes through the halls! All heroes on this tile are dazed.",
+    "description": "If there is an Environment card already in play, discard it. This Environment remains in play until a new Environment is drawn.\nWhenever a Hero would place a new Monster, that Hero draws two Monster Cards and chooses the Monster worth the most experience. He or she places that Monster and discards the other.",
     "effects": [
       {
-        "type": "status_effect",
-        "statusEffect": "dazed",
-        "target": "all_heroes"
+        "type": "passive",
+        "passiveType": "music_of_the_damned",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -109,7 +109,7 @@
     "id": "enc_spirit_of_doom_env",
     "type": "encounter",
     "name": "Spirit of Doom",
-    "description": "Whenever a Hero discards a Treasure Card, he or she takes 1 damage.",
+    "description": "If there is an Environment card already in play, discard it. This Environment remains in play until a new Environment is drawn.\nWhenever a Hero discards a Treasure Card, he or she takes 1 damage.",
     "effects": [
       {
         "type": "passive",
@@ -124,12 +124,12 @@
     "id": "enc_bubbling_cauldron",
     "type": "encounter",
     "name": "Bubbling Cauldron",
-    "description": "A cauldron bubbles with foul liquid! Spawn 1 monster on this tile.",
+    "description": "Place each Monster 1 tile closer to the active Hero.",
     "effects": [
       {
-        "type": "spawn_monster",
+        "type": "move_monsters_closer",
         "value": 1,
-        "target": "tile"
+        "target": "all_monsters"
       }
     ],
     "phase": "villain",
@@ -139,12 +139,12 @@
     "id": "enc_corner_of_your_eye",
     "type": "encounter",
     "name": "Corner of Your Eye",
-    "description": "Something moves in the shadows! Spawn 1 monster on this tile.",
+    "description": "Place the active Hero on an adjacent tile and roll the die:\n1-15: A Monster rushes you from the darkness. Place a new Monster on the active Hero's tile.\n16-20: A friendly spirit inspires you to fight on. Flip up one of your used powers.",
     "effects": [
       {
-        "type": "spawn_monster",
-        "value": 1,
-        "target": "tile"
+        "type": "passive",
+        "passiveType": "corner_of_your_eye",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -154,7 +154,7 @@
     "id": "enc_cowardly_flight",
     "type": "encounter",
     "name": "Cowardly Flight",
-    "description": "A monster flees from you to seek help. If there are no Monsters in play, discard this card. Draw a tile from the bottom of the Dungeon Tile stack and place it adjacent to the unexplored edge that is closest to the active Hero. Place the Monster closest to the active Hero on this new tile. Discard this card after playing it.",
+    "description": "If there are no Monsters in play, discard this card. Draw a tile from the bottom of the Dungeon Tile stack and place it adjacent to the unexplored edge that is closest to the active Hero. Place the Monster closest to the active Hero on that tile, and place a new Monster on that tile. Do not draw an Encounter Card.",
     "effects": [
       {
         "type": "passive",
@@ -169,12 +169,12 @@
     "id": "enc_cyrus_belview",
     "type": "encounter",
     "name": "Cyrus Belview",
-    "description": "The twisted bellhop offers aid. Heal 1 HP for all heroes on this tile.",
+    "description": "Draw a tile from the bottom of the Dungeon Tile stack and place it adjacent to any unexplored edge. Place two new Monsters on that tile, then place the active Hero on that tile. Each other Hero can place himself or herself on the active Hero's new tile.",
     "effects": [
       {
-        "type": "heal",
-        "value": 1,
-        "target": "all_heroes"
+        "type": "passive",
+        "passiveType": "cyrus_belview",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -184,27 +184,12 @@
     "id": "enc_frenzy",
     "type": "encounter",
     "name": "Frenzy",
-    "description": "Chaos erupts! Spawn 2 monsters on this tile.",
+    "description": "Each Monster you control activates twice during your Villain Phase.",
     "effects": [
       {
-        "type": "spawn_monster",
-        "value": 2,
-        "target": "tile"
-      }
-    ],
-    "phase": "villain",
-    "encounterType": "event"
-  },
-  {
-    "id": "enc_frenzy_2",
-    "type": "encounter",
-    "name": "Frenzy",
-    "description": "Chaos erupts! Spawn 2 monsters on this tile.",
-    "effects": [
-      {
-        "type": "spawn_monster",
-        "value": 2,
-        "target": "tile"
+        "type": "passive",
+        "passiveType": "frenzy",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -213,12 +198,12 @@
   {
     "id": "enc_ghost_prince_of_aurel",
     "type": "encounter",
-    "name": "Ghost Prince of Aurel",
-    "description": "The ghost prince offers a gift. Draw a treasure card.",
+    "name": "Ghost of Prince Aurel",
+    "description": "Flip over one unused Daily power or Utility power. If you don't have an unused power to flip over, take 1 damage instead.",
     "effects": [
       {
-        "type": "draw_treasure",
-        "value": 1
+        "type": "flip_power",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -228,17 +213,12 @@
     "id": "enc_howl_of_the_wolf",
     "type": "encounter",
     "name": "Howl of the Wolf",
-    "description": "Howling echoes through the castle! Spawn 2 Wolves on this tile.",
+    "description": "Choose one Monster on any Hero's tile. That Monster immediately activates.",
     "effects": [
       {
-        "type": "spawn_monster",
-        "value": "monster_wolf",
-        "target": "tile"
-      },
-      {
-        "type": "spawn_monster",
-        "value": "monster_wolf",
-        "target": "tile"
+        "type": "passive",
+        "passiveType": "howl_of_the_wolf",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -248,12 +228,12 @@
     "id": "enc_illusionary_trick",
     "type": "encounter",
     "name": "Illusionary Trick",
-    "description": "Illusions confound your mind! All heroes on this tile are dazed.",
+    "description": "The active Hero swaps positions with the Monster that is farthest from him or her.",
     "effects": [
       {
-        "type": "status_effect",
-        "statusEffect": "dazed",
-        "target": "all_heroes"
+        "type": "passive",
+        "passiveType": "illusionary_trick",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -263,12 +243,12 @@
     "id": "enc_lief_lipsiege",
     "type": "encounter",
     "name": "Lief Lipsiege",
-    "description": "The Vistani merchant tends to your wounds. Heal 1 HP for all heroes on this tile.",
+    "description": "You try to distract Lief. Roll a die:\n1-10: You scare Lief and he calls for help. Place a new Monster on the active Hero's tile.\n11-20: Draw a Treasure Card.",
     "effects": [
       {
-        "type": "heal",
-        "value": 1,
-        "target": "all_heroes"
+        "type": "passive",
+        "passiveType": "lief_lipsiege",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -278,11 +258,11 @@
     "id": "enc_mists_of_terror",
     "type": "encounter",
     "name": "Mists of Terror",
-    "description": "Terrifying visions freeze you in place! All heroes on this tile are immobilized.",
+    "description": "Roll a die for each Hero. On a 1-5, the Hero takes 1 damage and is Immobilized.",
     "effects": [
       {
-        "type": "status_effect",
-        "statusEffect": "immobilized",
+        "type": "passive",
+        "passiveType": "mists_of_terror",
         "target": "all_heroes"
       }
     ],
@@ -293,17 +273,14 @@
     "id": "enc_neglected_passage",
     "type": "encounter",
     "name": "Neglected Passage",
-    "description": "An empty, forgotten corridor. Nothing happens.",
-    "effects": [],
-    "phase": "villain",
-    "encounterType": "event"
-  },
-  {
-    "id": "enc_neglected_passage_2",
-    "type": "encounter",
-    "name": "Neglected Passage",
-    "description": "An empty, forgotten corridor. Nothing happens.",
-    "effects": [],
+    "description": "If a Start tile is not in play, discard this card and draw a new Encounter Card. Draw a tile from the bottom of the Dungeon Tile stack and place it adjacent to the unexplored edge that is closest to the Start tile. Place a new Monster on that tile, but do not draw an Encounter Card.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "neglected_passage",
+        "target": "self"
+      }
+    ],
     "phase": "villain",
     "encounterType": "event"
   },
@@ -311,27 +288,12 @@
     "id": "enc_overrun",
     "type": "encounter",
     "name": "Overrun",
-    "description": "Monsters pour through the area! Spawn 2 monsters on this tile.",
+    "description": "Each Hero takes damage equal to the number of Monsters he or she controls.",
     "effects": [
       {
-        "type": "spawn_monster",
-        "value": 2,
-        "target": "tile"
-      }
-    ],
-    "phase": "villain",
-    "encounterType": "event"
-  },
-  {
-    "id": "enc_overrun_2",
-    "type": "encounter",
-    "name": "Overrun",
-    "description": "Monsters pour through the area! Spawn 2 monsters on this tile.",
-    "effects": [
-      {
-        "type": "spawn_monster",
-        "value": 2,
-        "target": "tile"
+        "type": "passive",
+        "passiveType": "overrun",
+        "target": "all_heroes"
       }
     ],
     "phase": "villain",
@@ -341,11 +303,11 @@
     "id": "enc_overwhelming_terror",
     "type": "encounter",
     "name": "Overwhelming Terror",
-    "description": "Unbearable horror grips your heart! All heroes on this tile are stunned.",
+    "description": "If a Start tile is not in play, discard this card and draw a new Encounter Card. Place each Hero 2 tiles closer to the Start tile. If a Hero is on the same tile as a Monster after being placed, that Hero is Slowed.",
     "effects": [
       {
-        "type": "status_effect",
-        "statusEffect": "stunned",
+        "type": "passive",
+        "passiveType": "overwhelming_terror",
         "target": "all_heroes"
       }
     ],
@@ -356,37 +318,7 @@
     "id": "enc_passage_of_time",
     "type": "encounter",
     "name": "Passage of Time",
-    "description": "Time flows strangely here. Spawn 1 monster on this tile.",
-    "effects": [
-      {
-        "type": "spawn_monster",
-        "value": 1,
-        "target": "tile"
-      }
-    ],
-    "phase": "villain",
-    "encounterType": "event"
-  },
-  {
-    "id": "enc_passage_of_time_2",
-    "type": "encounter",
-    "name": "Passage of Time",
-    "description": "Time flows strangely here. Spawn 1 monster on this tile.",
-    "effects": [
-      {
-        "type": "spawn_monster",
-        "value": 1,
-        "target": "tile"
-      }
-    ],
-    "phase": "villain",
-    "encounterType": "event"
-  },
-  {
-    "id": "enc_prowling_spirits",
-    "type": "encounter",
-    "name": "Prowling Spirits",
-    "description": "Angry spirits lash out! Deal 1 damage to all heroes on this tile.",
+    "description": "Each Hero takes 1 damage.",
     "effects": [
       {
         "type": "damage",
@@ -398,15 +330,29 @@
     "encounterType": "event"
   },
   {
+    "id": "enc_prowling_spirits",
+    "type": "encounter",
+    "name": "Prowling Spirits",
+    "description": "You must discard one of your Treasure Cards (of your choice).",
+    "effects": [
+      {
+        "type": "discard_treasure",
+        "target": "self"
+      }
+    ],
+    "phase": "villain",
+    "encounterType": "event"
+  },
+  {
     "id": "enc_reinforcements",
     "type": "encounter",
     "name": "Reinforcements",
-    "description": "Enemy reinforcements arrive! Spawn 1 monster on this tile.",
+    "description": "Choose the Hero controlling the fewest Monsters. That Hero places a new Monster on any tile with an unexplored edge.",
     "effects": [
       {
-        "type": "spawn_monster",
-        "value": 1,
-        "target": "tile"
+        "type": "passive",
+        "passiveType": "reinforcements",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -416,11 +362,12 @@
     "id": "enc_secret_door",
     "type": "encounter",
     "name": "Secret Door",
-    "description": "A hidden passage is found! Draw a treasure card.",
+    "description": "Draw a tile from the bottom of the Dungeon Tile stack and place it adjacent to the unexplored edge that is closest to the active Hero. Place a new Monster on that tile, but do not draw an Encounter Card.",
     "effects": [
       {
-        "type": "draw_treasure",
-        "value": 1
+        "type": "passive",
+        "passiveType": "secret_door",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -430,7 +377,7 @@
     "id": "enc_spirit_of_doom_event",
     "type": "encounter",
     "name": "Spirit of Doom",
-    "description": "Each Hero can immediately move up to his or her Speed and after this move each Hero on a tile with no Monsters takes one damage.",
+    "description": "Each Hero can immediately move up to his or her Speed. After this move, each Hero on a tile with no Monsters takes 1 damage.",
     "effects": [
       {
         "type": "passive",
@@ -445,12 +392,12 @@
     "id": "enc_strahds_hunger",
     "type": "encounter",
     "name": "Strahd's Hunger",
-    "description": "Strahd's minions answer his call. Spawn 1 monster on this tile.",
+    "description": "Choose the Hero with the most Hit Points remaining. That Hero takes 1 damage and is Immobilized.",
     "effects": [
       {
-        "type": "spawn_monster",
-        "value": 1,
-        "target": "tile"
+        "type": "passive",
+        "passiveType": "strahds_hunger",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -460,12 +407,12 @@
     "id": "enc_strahds_minions",
     "type": "encounter",
     "name": "Strahd's Minions",
-    "description": "Strahd's servants emerge from the darkness! Spawn 2 monsters on this tile.",
+    "description": "Place the active Hero and the two Monsters that are closest to that Hero on the tile farthest from the active Hero. If there are less than two Monsters in play, place a new Monster adjacent to the active Hero after he or she is placed.",
     "effects": [
       {
-        "type": "spawn_monster",
-        "value": 2,
-        "target": "tile"
+        "type": "passive",
+        "passiveType": "strahds_minions",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -475,12 +422,12 @@
     "id": "enc_strahds_trick",
     "type": "encounter",
     "name": "Strahd's Trick",
-    "description": "A malicious trick slows your progress! All heroes on this tile are slowed.",
+    "description": "Place the active Hero on a tile within 1 tile of you that has the most Monsters on it. If no tile within 1 tile of you has Monsters, the active Hero takes 1 damage.",
     "effects": [
       {
-        "type": "status_effect",
-        "statusEffect": "slowed",
-        "target": "all_heroes"
+        "type": "passive",
+        "passiveType": "strahds_trick",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -490,12 +437,12 @@
     "id": "enc_strahds_whispers",
     "type": "encounter",
     "name": "Strahd's Whispers",
-    "description": "Whispers cloud your mind! All heroes on this tile are dazed.",
+    "description": "Place the active Hero adjacent to the next closest Hero. The active Hero attacks that Hero with an at-will power.",
     "effects": [
       {
-        "type": "status_effect",
-        "statusEffect": "dazed",
-        "target": "all_heroes"
+        "type": "passive",
+        "passiveType": "strahds_whispers",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -505,11 +452,11 @@
     "id": "enc_summoning_circle",
     "type": "encounter",
     "name": "Summoning Circle",
-    "description": "A circle flares with dark energy! Spawn 2 monsters on this tile.",
+    "description": "Place a new Monster adjacent to the active Hero.",
     "effects": [
       {
         "type": "spawn_monster",
-        "value": 2,
+        "value": 1,
         "target": "tile"
       }
     ],
@@ -520,12 +467,12 @@
     "id": "enc_teleport_glyph",
     "type": "encounter",
     "name": "Teleport Glyph",
-    "description": "A glyph transports you back! Move all heroes on this tile to the starting tile.",
+    "description": "Place the active Hero and each Monster on his or her tile on the tile farthest from the active Hero.",
     "effects": [
       {
-        "type": "teleport",
-        "value": "start",
-        "target": "all_heroes"
+        "type": "passive",
+        "passiveType": "teleport_glyph",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -535,11 +482,12 @@
     "id": "enc_treasure_chest",
     "type": "encounter",
     "name": "Treasure Chest",
-    "description": "A chest lies against the wall. Draw a treasure card.",
+    "description": "You open a treasure chest. Roll a die:\n1-10: Take 2 damage.\n11-15: Take 1 damage and draw 1 Treasure Card.\n16-20: Draw 1 Treasure Card.",
     "effects": [
       {
-        "type": "draw_treasure",
-        "value": 1
+        "type": "passive",
+        "passiveType": "treasure_chest",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -549,12 +497,12 @@
     "id": "enc_voice_of_the_master",
     "type": "encounter",
     "name": "Voice of the Master",
-    "description": "Strahd's voice commands his forces! Spawn 2 monsters on this tile.",
+    "description": "Starting with the Hero on your left, each Hero immediately activates one Monster he or she controls. The first Hero that cannot activate a Monster instead places a new Monster on any tile.",
     "effects": [
       {
-        "type": "spawn_monster",
-        "value": 2,
-        "target": "tile"
+        "type": "passive",
+        "passiveType": "voice_of_the_master",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -564,29 +512,20 @@
     "id": "enc_ambush",
     "type": "encounter",
     "name": "Ambush!",
-    "description": "Monsters spring from hiding! +7 to hit, 1 damage to all heroes on this tile.",
+    "description": "Attack each Hero on the active Hero's tile. +8 / Slowed. Place a new Monster on the active Hero's tile.",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
-      }
-    ],
-    "phase": "villain",
-    "encounterType": "event-attack"
-  },
-  {
-    "id": "enc_ambush_2",
-    "type": "encounter",
-    "name": "Ambush!",
-    "description": "Monsters spring from hiding! +7 to hit, 1 damage to all heroes on this tile.",
-    "effects": [
+        "type": "event_attack",
+        "attackBonus": 8,
+        "damage": 0,
+        "missValue": 0,
+        "target": "heroes_on_active_tile",
+        "onHitStatusEffect": "slowed"
+      },
       {
-        "type": "damage",
+        "type": "spawn_monster",
         "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
+        "target": "tile"
       }
     ],
     "phase": "villain",
@@ -596,34 +535,14 @@
     "id": "enc_animated_armor",
     "type": "encounter",
     "name": "Animated Armor",
-    "description": "An empty suit of armor attacks! +7 to hit, 1 damage to all heroes on this tile.",
+    "description": "Attack each Hero on the active Hero's tile. +7 / 3 (Miss: 1 Damage).",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
-      }
-    ],
-    "phase": "villain",
-    "encounterType": "event-attack"
-  },
-  {
-    "id": "enc_choking_fog",
-    "type": "encounter",
-    "name": "Choking Fog",
-    "description": "The fog tightens around your throat! +7 to hit, 1 damage to all heroes on this tile, also slowed.",
-    "effects": [
-      {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
-      },
-      {
-        "type": "status_effect",
-        "statusEffect": "slowed",
-        "target": "all_heroes"
+        "type": "event_attack",
+        "attackBonus": 7,
+        "damage": 3,
+        "missValue": 1,
+        "target": "heroes_on_active_tile"
       }
     ],
     "phase": "villain",
@@ -633,13 +552,19 @@
     "id": "enc_circle_of_death",
     "type": "encounter",
     "name": "Circle of Death",
-    "description": "A circle of dark energy expands! +7 to hit, 1 damage to all heroes on this tile.",
+    "description": "Attack each Hero on the active Hero's tile. +8 / 2 (Miss: 1 Damage). Each Undead Monster on the active Hero's tile regains 1 Hit Point.",
     "effects": [
       {
-        "type": "damage",
+        "type": "event_attack",
+        "attackBonus": 8,
+        "damage": 2,
+        "missValue": 1,
+        "target": "heroes_on_active_tile"
+      },
+      {
+        "type": "heal_undead_on_tile",
         "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
+        "target": "monsters_on_active_tile"
       }
     ],
     "phase": "villain",
@@ -649,18 +574,15 @@
     "id": "enc_gray_ooze",
     "type": "encounter",
     "name": "Gray Ooze",
-    "description": "A gray ooze drips from the ceiling! +7 to hit, 1 damage to all heroes on this tile, also poisoned.",
+    "description": "Attack the active Hero. +8 / 3 (Miss: 1 Damage). If the active Hero is hit by the attack, the active Hero discards 1 Treasure Card at random.",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
-      },
-      {
-        "type": "status_effect",
-        "statusEffect": "poisoned",
-        "target": "all_heroes"
+        "type": "event_attack",
+        "attackBonus": 8,
+        "damage": 3,
+        "missValue": 1,
+        "target": "active_hero",
+        "onHitEffect": "discard_treasure_random"
       }
     ],
     "phase": "villain",
@@ -670,18 +592,15 @@
     "id": "enc_green_slime",
     "type": "encounter",
     "name": "Green Slime",
-    "description": "Green slime drops from above! +7 to hit, 1 damage to all heroes on this tile, also poisoned.",
+    "description": "Attack each Hero on the active Hero's tile. +6 / 2 (Miss: 1 Damage). If the active Hero is hit by the attack, the active Hero discards 1 Treasure Card at random.",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
-      },
-      {
-        "type": "status_effect",
-        "statusEffect": "poisoned",
-        "target": "all_heroes"
+        "type": "event_attack",
+        "attackBonus": 6,
+        "damage": 2,
+        "missValue": 1,
+        "target": "heroes_on_active_tile",
+        "onHitEffect": "discard_treasure_random"
       }
     ],
     "phase": "villain",
@@ -691,18 +610,15 @@
     "id": "enc_hands_of_the_dead",
     "type": "encounter",
     "name": "Hands of the Dead",
-    "description": "Skeletal hands grasp at you! +7 to hit, 1 damage to all heroes on this tile, also immobilized.",
+    "description": "Attack each Hero on the active Hero's tile. +6 / 2 (Miss: 1 Damage). If a Hero is hit by the attack, the Hero is slowed.",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
-      },
-      {
-        "type": "status_effect",
-        "statusEffect": "immobilized",
-        "target": "all_heroes"
+        "type": "event_attack",
+        "attackBonus": 6,
+        "damage": 2,
+        "missValue": 1,
+        "target": "heroes_on_active_tile",
+        "onHitStatusEffect": "slowed"
       }
     ],
     "phase": "villain",
@@ -712,18 +628,14 @@
     "id": "enc_howling_ghost",
     "type": "encounter",
     "name": "Howling Ghost",
-    "description": "A ghost howls in rage! +7 to hit, 1 damage to all heroes on this tile, also dazed.",
+    "description": "Attack each Hero on the active Hero's tile. +9 / 2. A Hero hit by this attack can flip an unused Daily power over to prevent this damage.",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
-      },
-      {
-        "type": "status_effect",
-        "statusEffect": "dazed",
-        "target": "all_heroes"
+        "type": "event_attack",
+        "attackBonus": 9,
+        "damage": 2,
+        "missValue": 0,
+        "target": "heroes_on_active_tile"
       }
     ],
     "phase": "villain",
@@ -733,18 +645,14 @@
     "id": "enc_icy_corridor",
     "type": "encounter",
     "name": "Icy Corridor",
-    "description": "Freezing cold fills the hall! +7 to hit, 1 damage to all heroes on this tile, also slowed.",
+    "description": "Attack each Hero on the active Hero's tile. +8 / 2 (Miss: 1 Damage). After the attack, place each Hero on the active Hero's tile on a tile within 1 tile of the active Hero's tile. (Heroes can be placed on different tiles.)",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
-      },
-      {
-        "type": "status_effect",
-        "statusEffect": "slowed",
-        "target": "all_heroes"
+        "type": "event_attack",
+        "attackBonus": 8,
+        "damage": 2,
+        "missValue": 1,
+        "target": "heroes_on_active_tile"
       }
     ],
     "phase": "villain",
@@ -754,13 +662,15 @@
     "id": "enc_king_tomescus_portal",
     "type": "encounter",
     "name": "King Tomescu's Portal",
-    "description": "A portal opens to a dark realm! +7 to hit, 1 damage to all heroes on this tile.",
+    "description": "Attack the active Hero three times. +8 / 1. Remove the active Hero from his or her tile. At the start of that Hero's next Hero Phase, place that Hero on any tile.",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
+        "type": "event_attack",
+        "attackBonus": 8,
+        "damage": 1,
+        "missValue": 0,
+        "target": "active_hero",
+        "repeatCount": 3
       }
     ],
     "phase": "villain",
@@ -770,18 +680,19 @@
     "id": "enc_patrina_velikovna",
     "type": "encounter",
     "name": "Patrina Velikovna",
-    "description": "Patrina's spirit attacks! +7 to hit, 1 damage to all heroes on this tile, also dazed.",
+    "description": "Attack each Hero. +7 / 2 (Miss: 1 Damage). After the attack, place each Monster that is not on the same tile as a Hero 1 tile closer to the closest Hero.",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
+        "type": "event_attack",
+        "attackBonus": 7,
+        "damage": 2,
+        "missValue": 1,
+        "target": "all_heroes"
       },
       {
-        "type": "status_effect",
-        "statusEffect": "dazed",
-        "target": "all_heroes"
+        "type": "move_monsters_closer",
+        "value": 1,
+        "target": "monsters_not_on_hero_tile"
       }
     ],
     "phase": "villain",
@@ -791,13 +702,19 @@
     "id": "enc_prowling_ghost",
     "type": "encounter",
     "name": "Prowling Ghost",
-    "description": "A ghost attacks from the shadows! +7 to hit, 1 damage to all heroes on this tile.",
+    "description": "Attack the active Hero. +9 / 1. After the attack, draw a tile from the bottom of the Dungeon Tile stack and place it adjacent to the unexplored edge that is closest to the active Hero. Place a new Monster on that tile, and then place the active Hero on that tile.",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
+        "type": "event_attack",
+        "attackBonus": 9,
+        "damage": 1,
+        "missValue": 0,
+        "target": "active_hero"
+      },
+      {
+        "type": "passive",
+        "passiveType": "prowling_ghost_post",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -807,18 +724,16 @@
     "id": "enc_spider_webs",
     "type": "encounter",
     "name": "Spider Webs",
-    "description": "Thick webs entangle you! +7 to hit, 1 damage to all heroes on this tile, also immobilized.",
+    "description": "Attack the active Hero. +4 / Immobilized (Miss: Slowed).",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
-      },
-      {
-        "type": "status_effect",
-        "statusEffect": "immobilized",
-        "target": "all_heroes"
+        "type": "event_attack",
+        "attackBonus": 4,
+        "damage": 0,
+        "missValue": 0,
+        "target": "active_hero",
+        "onHitStatusEffect": "immobilized",
+        "onMissStatusEffect": "slowed"
       }
     ],
     "phase": "villain",
@@ -827,14 +742,15 @@
   {
     "id": "enc_strahd_attacks",
     "type": "encounter",
-    "name": "Strahd Attacks",
-    "description": "Strahd himself strikes! +7 to hit, 1 damage to all heroes on this tile.",
+    "name": "Strahd Attacks!",
+    "description": "Attack each Hero within 1 tile of the active Hero. +6 / 3 (Miss: 1 Damage).",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
+        "type": "event_attack",
+        "attackBonus": 6,
+        "damage": 3,
+        "missValue": 1,
+        "target": "heroes_within_1_tile"
       }
     ],
     "phase": "villain",
@@ -844,12 +760,12 @@
     "id": "enc_alarm_trap",
     "type": "encounter",
     "name": "Alarm",
-    "description": "A magical alarm summons guardians! Spawn 1 monster on this tile.",
+    "description": "Place the Alarm marker on the active Hero's tile. If that tile already has a marker, discard this card and draw a new Encounter Card.\nTrigger the Trap during your Villain Phase: Place a new Monster on the unexplored edge that is closest to the Alarm marker.\nInstead of attacking, a Hero on a tile with a Trap can try to disable it. DISABLE: Roll 10+",
     "effects": [
       {
-        "type": "spawn_monster",
-        "value": 1,
-        "target": "tile"
+        "type": "passive",
+        "passiveType": "alarm_trigger",
+        "target": "self"
       }
     ],
     "phase": "villain",
@@ -860,107 +776,131 @@
     "id": "enc_crossbow_turret",
     "type": "encounter",
     "name": "Crossbow Turret",
-    "description": "A turret fires bolts! +7 to hit, 1 damage to any hero on this tile.",
+    "description": "Place the Crossbow Turret marker on the active Hero's tile. If that tile already has a marker, discard this card and draw a new Encounter Card.\nTrigger the Trap during your Villain Phase: Attack each Hero within 1 tile of this Trap. +8 / 2 (Miss: 1 Damage).\nInstead of attacking, a Hero on a tile with a Trap can try to disable it. DISABLE: Roll 10+",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
+        "type": "event_attack",
+        "attackBonus": 8,
+        "damage": 2,
+        "missValue": 1,
+        "target": "heroes_within_1_tile"
       }
     ],
     "phase": "villain",
     "encounterType": "trap",
-    "disableDC": 12
+    "disableDC": 10
   },
   {
     "id": "enc_crushing_walls",
     "type": "encounter",
     "name": "Crushing Walls",
-    "description": "The walls close in! +7 to hit, 1 damage to any hero on this tile.",
+    "description": "Place the Crushing Walls marker on the active Hero's tile. If that tile already has a marker, discard this card and draw a new Encounter Card.\nTrigger the Trap during your Villain Phase: Attack each Hero on this tile. +6 / 2 and Immobilized (Miss: 1 Damage).\nInstead of attacking, a Hero on a tile with a Trap can try to disable it. DISABLE: Roll 10+",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
+        "type": "event_attack",
+        "attackBonus": 6,
+        "damage": 2,
+        "missValue": 1,
+        "target": "heroes_on_active_tile",
+        "onHitStatusEffect": "immobilized"
       }
     ],
     "phase": "villain",
     "encounterType": "trap",
-    "disableDC": 12
+    "disableDC": 10
   },
   {
     "id": "enc_dart_trap",
     "type": "encounter",
     "name": "Dart Trap",
-    "description": "Poisoned darts fly from the walls! +7 to hit, 1 damage to any hero on this tile, also poisoned.",
+    "description": "Place the Dart Trap marker on the active Hero's tile. If that tile already has a marker, discard this card and draw a new Encounter Card.\nTrigger the Trap during your Villain Phase: Attack each Hero on this tile. +8 / 2 (Miss: 1 Damage).\nInstead of attacking, a Hero on a tile with a Trap can try to disable it. DISABLE: Roll 10+",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
-      },
-      {
-        "type": "status_effect",
-        "statusEffect": "poisoned",
-        "target": "all_heroes"
+        "type": "event_attack",
+        "attackBonus": 8,
+        "damage": 2,
+        "missValue": 1,
+        "target": "heroes_on_active_tile"
       }
     ],
     "phase": "villain",
     "encounterType": "trap",
-    "disableDC": 14
+    "disableDC": 10
   },
   {
     "id": "enc_fire_trap",
     "type": "encounter",
     "name": "Fire Trap",
-    "description": "Flames erupt from hidden vents! +7 to hit, 1 damage to any hero on this tile.",
+    "description": "Place the Fire Trap marker on the active Hero's tile. If that tile already has a marker, discard this card and draw a new Encounter Card.\nTrigger the Trap during your Villain Phase: Each Hero on this tile takes 2 damage.\nInstead of attacking, a Hero on a tile with a Trap can try to disable it. DISABLE: Roll 10+",
     "effects": [
       {
         "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
+        "value": 2,
+        "target": "heroes_on_active_tile"
       }
     ],
     "phase": "villain",
     "encounterType": "trap",
-    "disableDC": 12
+    "disableDC": 10
   },
   {
     "id": "enc_sliding_walls",
     "type": "encounter",
     "name": "Sliding Walls",
-    "description": "Walls shift and crush! +7 to hit, 1 damage to any hero on this tile.",
+    "description": "Place the Sliding Walls marker on the active Hero's tile. If that tile already has a marker, discard this card and draw a new Encounter Card.\nTrigger the Trap during your Villain Phase: Roll the die for each Hero on this tile and place that Hero on a tile within 1 tile of this Trap in the direction indicated by the Sliding Walls marker. If the direction rolled is a wall or an unexplored tile, the Hero takes 1 damage and remains on this tile.\nInstead of attacking, a Hero on a tile with a Trap can try to disable it. DISABLE: Roll 10+",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
+        "type": "passive",
+        "passiveType": "sliding_walls_trigger",
+        "target": "self"
       }
     ],
     "phase": "villain",
     "encounterType": "trap",
-    "disableDC": 12
+    "disableDC": 10
   },
   {
     "id": "enc_spear_gauntlet",
     "type": "encounter",
     "name": "Spear Gauntlet",
-    "description": "Spears thrust from the floor! +7 to hit, 1 damage to any hero on this tile.",
+    "description": "Place the Spear Gauntlet marker on the active Hero's tile. If that tile already has a marker, discard this card and draw a new Encounter Card.\nTrigger the Trap during your Villain Phase: Attack each Hero within 1 tile of this Trap. +6 / 3 (Miss: 1 Damage).\nInstead of attacking, a Hero on a tile with a Trap can try to disable it. DISABLE: Roll 10+",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_heroes",
-        "attackBonus": 7
+        "type": "event_attack",
+        "attackBonus": 6,
+        "damage": 3,
+        "missValue": 1,
+        "target": "heroes_within_1_tile"
       }
     ],
     "phase": "villain",
     "encounterType": "trap",
-    "disableDC": 12
+    "disableDC": 10
+  },
+  {
+    "id": "enc_test_sanctuary_monster_only",
+    "name": "Test Sanctuary Monster",
+    "type": "encounter",
+    "encounterType": "environment",
+    "effects": [
+      {
+        "type": "damage_bonus",
+        "value": -1,
+        "targetType": "monster"
+      }
+    ]
+  },
+  {
+    "id": "enc_test_sanctuary_hero_only",
+    "name": "Test Sanctuary Hero",
+    "type": "encounter",
+    "encounterType": "environment",
+    "effects": [
+      {
+        "type": "damage_bonus",
+        "value": -1,
+        "targetType": "hero"
+      }
+    ]
   }
 ]

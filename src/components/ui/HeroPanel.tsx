@@ -2,6 +2,7 @@ import React from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { useUIStore } from '../../store/uiStore';
 import ConditionMarkers from './ConditionMarkers';
+import { GameLogEntry } from '../../game/types';
 
 export const HeroPanel: React.FC = () => {
   const gameState = useGameStore((state) => state.gameState);
@@ -39,6 +40,93 @@ export const HeroPanel: React.FC = () => {
     };
 
     useGameStore.getState().setGameState(newState);
+  };
+
+  const isTomeOfStrahd = gameState?.activeScenario?.id === 'adventure_tome_of_strahd';
+  const canScout = isTomeOfStrahd && currentHero.xp >= 5;
+  const hasPhylactery = currentHero.items?.includes('item_gravestorms_phylactery');
+
+  const cryptTile = gameState?.tiles.find(t => t.id === 'crypt_barov_ravenovia');
+  const onCryptTile = cryptTile && currentHero.position.x === cryptTile.x && currentHero.position.z === cryptTile.z;
+
+  const handleEndGameTomeOfStrahd = () => {
+    if (!gameState) return;
+    const hasTome = gameState.heroes.some(h => h.items?.includes('item_tome_of_strahd'));
+    if (hasTome) {
+      useGameStore.getState().setGameState({ ...gameState, phase: 'victory' });
+      useUIStore.getState().showModal('victory');
+    } else {
+      useGameStore.getState().setGameState({ ...gameState, phase: 'defeat' });
+      useUIStore.getState().showModal('defeat');
+    }
+  };
+
+  const handleUsePhylactery = () => {
+    if (!gameState) return;
+    const dragolich = gameState.monsters.find(m => (m.templateId === 'monster_dragolich' || m.name.toLowerCase().includes('gravestorm')) && m.hp > 0 && !m.isDefeated);
+    if (!dragolich) {
+      useGameStore.getState().setGameState({
+        ...gameState,
+        log: [...gameState.log, { 
+          id: crypto.randomUUID(), 
+          timestamp: new Date().toISOString(), 
+          message: 'Gravestorm is not on the board!', 
+          type: 'system'
+        } as GameLogEntry].slice(-100)
+      });
+      return;
+    }
+
+    const newHp = Math.max(0, dragolich.hp - 10);
+    const updatedDragolich = { ...dragolich, hp: newHp, isDefeated: newHp === 0 };
+    
+    const newMonsters = gameState.monsters.map(m => m.id === dragolich.id ? updatedDragolich : m);
+    const newHeroes = gameState.heroes.map(h => h.id === currentHero.id ? { ...h, items: h.items.filter(i => i !== 'item_gravestorms_phylactery') } : h);
+
+    useGameStore.getState().setGameState({
+      ...gameState,
+      monsters: newMonsters,
+      heroes: newHeroes,
+      log: [...gameState.log, { 
+        id: crypto.randomUUID(), 
+        timestamp: new Date().toISOString(), 
+        message: `${currentHero.name} used Gravestorm's Phylactery to deal 10 damage to Gravestorm!`, 
+        type: 'event'
+      } as GameLogEntry].slice(-100)
+    });
+  };
+
+  const handleScoutTile = () => {
+    if (!gameState || currentHero.xp < 5 || gameState.dungeonDeck.length === 0) return;
+    const topTile = gameState.dungeonDeck[0];
+    if (topTile === 'crypt_barov_ravenovia') {
+      useGameStore.getState().setGameState({
+        ...gameState,
+        log: [...gameState.log, { 
+          id: crypto.randomUUID(), 
+          timestamp: new Date().toISOString(), 
+          message: 'Cannot scout the Crypt of Barov and Ravenovia!', 
+          type: 'system'
+        } as GameLogEntry].slice(-100)
+      });
+      return;
+    }
+
+    const newDeck = [...gameState.dungeonDeck.slice(1), topTile];
+    const newHeroes = gameState.heroes.map(h => 
+      h.id === currentHero.id ? { ...h, xp: h.xp - 5 } : h
+    );
+    useGameStore.getState().setGameState({
+      ...gameState,
+      dungeonDeck: newDeck,
+      heroes: newHeroes,
+      log: [...gameState.log, { 
+        id: crypto.randomUUID(), 
+        timestamp: new Date().toISOString(), 
+        message: `${currentHero.name} spent 5 XP to scout and moved the top tile to the bottom.`, 
+        type: 'action' 
+      } as GameLogEntry].slice(-100)
+    });
   };
 
   return (
@@ -176,6 +264,77 @@ export const HeroPanel: React.FC = () => {
           Use Surge
         </button>
       </div>
+
+      {isTomeOfStrahd && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
+          <button 
+            onClick={handleScoutTile}
+            disabled={!canScout}
+            title="Spend 5 XP to place the top tile at the bottom of the deck."
+            style={{
+              fontFamily: 'Cinzel, serif',
+              fontSize: '0.8rem',
+              padding: '4px 12px',
+              background: canScout ? 'rgba(139, 0, 0, 0.2)' : 'rgba(100, 100, 100, 0.1)',
+              border: `1px solid ${canScout ? 'var(--color-accent)' : '#444'}`,
+              color: canScout ? 'var(--color-gold)' : '#666',
+              borderRadius: '4px',
+              cursor: canScout ? 'pointer' : 'not-allowed',
+              transition: 'all 0.2s',
+              width: '100%'
+            }}
+          >
+            Scout Tile (5 XP)
+          </button>
+        </div>
+      )}
+
+      {hasPhylactery && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
+          <button 
+            onClick={handleUsePhylactery}
+            title="Use an attack action to inflict 10 damage to Gravestorm."
+            style={{
+              fontFamily: 'Cinzel, serif',
+              fontSize: '0.8rem',
+              padding: '4px 12px',
+              background: 'rgba(0, 200, 255, 0.2)',
+              border: '1px solid #0cf',
+              color: '#0cf',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              width: '100%'
+            }}
+          >
+            Use Gravestorm's Phylactery
+          </button>
+        </div>
+      )}
+
+      {isTomeOfStrahd && onCryptTile && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
+          <button 
+            onClick={handleEndGameTomeOfStrahd}
+            title="Use an attack action to end the game. If you have the Tome of Strahd, you win!"
+            style={{
+              fontFamily: 'Cinzel, serif',
+              fontSize: '0.8rem',
+              padding: '4px 12px',
+              background: 'rgba(255, 0, 0, 0.3)',
+              border: '1px solid #ff0000',
+              color: '#ffaaaa',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              width: '100%',
+              boxShadow: '0 0 10px #ff0000 inset'
+            }}
+          >
+            End Game
+          </button>
+        </div>
+      )}
 
       <div className="ability-minis">
         <h3 className="gothic-title" style={{ fontSize: '0.8rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '5px' }}>Abilities</h3>

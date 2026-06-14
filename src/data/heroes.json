@@ -27,7 +27,8 @@
     },
     "conditions": [],
     "usedPowers": [],
-    "flippedPowerIds": []
+    "flippedPowerIds": [],
+    "damage": 1
   },
   {
     "id": "hero_immeril",
@@ -57,7 +58,8 @@
     },
     "conditions": [],
     "usedPowers": [],
-    "flippedPowerIds": []
+    "flippedPowerIds": [],
+    "damage": 1
   },
   {
     "id": "hero_kat",
@@ -87,7 +89,8 @@
     },
     "conditions": [],
     "usedPowers": [],
-    "flippedPowerIds": []
+    "flippedPowerIds": [],
+    "damage": 1
   },
   {
     "id": "hero_thorgrim",
@@ -117,7 +120,8 @@
     },
     "conditions": [],
     "usedPowers": [],
-    "flippedPowerIds": []
+    "flippedPowerIds": [],
+    "damage": 1
   },
   {
     "id": "hero_alanni",
@@ -147,6 +151,7 @@
     },
     "conditions": [],
     "usedPowers": [],
-    "flippedPowerIds": []
+    "flippedPowerIds": [],
+    "damage": 1
   }
 ]

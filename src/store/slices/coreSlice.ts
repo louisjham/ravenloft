@@ -44,6 +44,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     }
 
     const initialState: GameState = {
+      logIdCounter: 0,
       phase: 'setup',
       currentHeroId: selectedHeroes[0].id,
       heroes: selectedHeroes,
@@ -126,6 +127,12 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
           poolTileIds.splice(insertAt, 0, placement.tileId);
         }
 
+        if (scenario.id === 'adventure_tome_of_strahd') {
+          const top3 = poolTileIds.splice(0, 3);
+          const tomePacket = [...top3, 'crypt_barov_ravenovia'].sort(() => Math.random() - 0.5);
+          poolTileIds.splice(12, 0, ...tomePacket);
+        }
+
         return poolTileIds;
       })(),
       treasureDeck: (() => {
@@ -176,6 +183,9 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
       powerSelections: selectedHeroes.map(hero => ({ heroId: hero.id, selectedPowerIds: [], isConfirmed: false })),
       activeConditions: [],
       cardResolution: { phase: 'idle', cardId: null, cardType: null, pendingEffects: [], resolvedEffects: [], targetEntityId: null, result: null },
+      exploredThisTurn: false,
+      lastPlacedTileId: null,
+      activeBlessings: [],
 
       // Scenario-specific state
       ...(() => {
@@ -225,6 +235,31 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
         // Lair pairings / villain tracking (Adventure 7)
         if (scenario.villainLairPairings) {
           extra.defeatedVillainIds = [];
+        }
+
+        if (scenario.id === 'adventure_tome_of_strahd') {
+          const itemTokens = [
+            'item_silver_dagger',
+            'item_dimensional_shackles',
+            'item_holy_water',
+            'item_feywalk_amulet',
+            'item_torch',
+            'item_wooden_stake',
+            'item_gravestorms_phylactery',
+            'item_tome_of_strahd'
+          ];
+          extra.tomeOfStrahdItemStack = itemTokens.sort(() => Math.random() - 0.5);
+
+          const villainTokens = [
+            'monster_werewolf',
+            'monster_howling_hag',
+            'monster_dragolich',
+            'monster_zombie_dragon',
+            'monster_flesh_golem',
+            'monster_kobold_sorcerer',
+            'monster_young_vampire'
+          ];
+          extra.tomeOfStrahdVillainStack = villainTokens.sort(() => Math.random() - 0.5);
         }
 
         return extra;
@@ -317,18 +352,100 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
       }
     }
 
-    const treasuresClearedState = TreasureSystem.resetTreasuresDrawn({ ...stateForFreezingCloud, heroes: updatedHeroes, monsters: updatedMonsters });
-    // Cross-slice call: depends on conditionSlice.decrementConditions
+    const treasuresClearedState = TreasureSystem.resetTreasuresDrawn(
+      TreasureSystem.processDefeatedMonsters({ ...stateForFreezingCloud, heroes: updatedHeroes, monsters: updatedMonsters })
+    );
+
+    // Bug 4: commit treasuresClearedState first so decrementConditions reads the fresh state,
+    // then retrieve the updated stateAfterDecrement and propagate it to all downstream actions.
+    set({ gameState: treasuresClearedState });
     get().decrementConditions();
+    let stateAfterDecrement = get().gameState!;
+
+    const expiryResult = TreasureSystem.checkBlessingExpiry(stateAfterDecrement, stateAfterDecrement.currentHeroId);
+    if (expiryResult.expired) {
+      stateAfterDecrement = {
+        ...expiryResult.newState,
+        log: [...expiryResult.newState.log, {
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          message: expiryResult.message,
+          type: 'system'
+        } as GameLogEntry].slice(-100)
+      };
+      set({ gameState: stateAfterDecrement });
+    }
+
+    // Tome of Strahd token reveal logic
+    if (stateAfterDecrement.activeScenario.id === 'adventure_tome_of_strahd') {
+      const activeHero = stateAfterDecrement.heroes.find(h => h.id === stateAfterDecrement.currentHeroId);
+      if (activeHero && stateAfterDecrement.tokens) {
+        const itemTokens = stateAfterDecrement.tokens.filter(t => t.type === 'item' && !t.isRevealed);
+        
+        for (const token of itemTokens) {
+          const dx = (activeHero.position.x * 4 + activeHero.position.sqX) - (token.position.x * 4 + token.position.sqX);
+          const dz = (activeHero.position.z * 4 + activeHero.position.sqZ) - (token.position.z * 4 + token.position.sqZ);
+          
+          if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
+            const itemId = token.metadata?.itemId as string;
+            if (itemId) {
+              const updatedTokens = stateAfterDecrement.tokens!.map(t => 
+                t.id === token.id ? { ...t, isRevealed: true, isSearched: true } : t
+              );
+              
+              const updatedHero = {
+                ...activeHero,
+                items: [...activeHero.items, itemId]
+              };
+
+              stateAfterDecrement = {
+                ...stateAfterDecrement,
+                tokens: updatedTokens,
+                heroes: stateAfterDecrement.heroes.map(h => h.id === updatedHero.id ? updatedHero : h),
+                log: [...stateAfterDecrement.log, {
+                  id: crypto.randomUUID(),
+                  timestamp: new Date().toISOString(),
+                  message: `${activeHero.name} discovered an item token and received a special item!`,
+                  type: 'system' as const
+                }].slice(-100)
+              };
+              set({ gameState: stateAfterDecrement });
+            }
+          }
+        }
+      }
+    }
+
+    // Deadly Shadows Environment Effect
+    if (stateAfterDecrement.activeEnvironmentCard === 'enc_deadly_shadows') {
+      const activeHero = stateAfterDecrement.heroes.find(h => h.id === stateAfterDecrement.currentHeroId);
+      if (activeHero) {
+        const hasOtherHero = stateAfterDecrement.heroes.some(h => h.id !== activeHero.id && h.position.x === activeHero.position.x && h.position.z === activeHero.position.z);
+        if (hasOtherHero) {
+          const damagedHero = CombatSystem.applyDamage(activeHero, 1, stateAfterDecrement);
+          stateAfterDecrement = {
+            ...stateAfterDecrement,
+            heroes: stateAfterDecrement.heroes.map(h => h.id === damagedHero.id ? damagedHero : h),
+            log: [...stateAfterDecrement.log, {
+              id: crypto.randomUUID(),
+              timestamp: new Date().toISOString(),
+              message: `Deadly Shadows deals 1 damage to ${activeHero.name} for ending their turn on a shared tile!`,
+              type: 'system' as const
+            }].slice(-100)
+          };
+          set({ gameState: stateAfterDecrement });
+        }
+      }
+    }
 
     // Check victory/defeat BEFORE villain phase
     // This ensures immediate feedback when objectives are met during the hero phase
-    if (treasuresClearedState.phase !== 'setup') {
-      const updatedObjectives = ObjectiveTracker.checkObjectives(treasuresClearedState);
+    if (stateAfterDecrement.phase !== 'setup') {
+      const updatedObjectives = ObjectiveTracker.checkObjectives(stateAfterDecrement);
       const allObjectivesComplete = updatedObjectives.every(obj => obj.isCompleted);
       const stateWithObjectives = {
-        ...treasuresClearedState,
-        activeScenario: { ...treasuresClearedState.activeScenario, objectives: updatedObjectives }
+        ...stateAfterDecrement,
+        activeScenario: { ...stateAfterDecrement.activeScenario, objectives: updatedObjectives }
       };
       const isDefeated = ScenarioManager.checkDefeat(stateWithObjectives);
 
@@ -353,12 +470,12 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
 
     // Check if an encounter card should be drawn (start of villain phase)
     // Rules: draw encounter if chapel is revealed, no tile was placed, OR if the placed tile has a black triangle
-    const placedType = state.lastPlacedTileEncounterType;
-    const chapelRevealed = state.chapelRevealed === true;
+    const placedType = stateAfterDecrement.lastPlacedTileEncounterType;
+    const chapelRevealed = stateAfterDecrement.chapelRevealed === true;
     const shouldDrawEncounter = chapelRevealed || !placedType || placedType === 'black';
 
-    if (shouldDrawEncounter && state.encounterDeck.length > 0) {
-      const respiteResult = TreasureSystem.checkAndDiscardRespite(treasuresClearedState, 'encounterDeck');
+    if (shouldDrawEncounter && stateAfterDecrement.encounterDeck.length > 0) {
+      const respiteResult = TreasureSystem.checkAndDiscardRespite(stateAfterDecrement, 'encounterDeck');
       const drawResult = EncounterSystem.drawEncounterCard(respiteResult.gameState);
 
       if (drawResult.card) {
@@ -367,6 +484,8 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
             ...drawResult.newState,
             phase: 'villain' as const,
             hasExploredThisTurn: false,
+            exploredThisTurn: true,
+            lastPlacedTileId: null,
             cardResolution: {
               phase: 'revealing' as const,
               cardId: drawResult.card.id,
@@ -384,7 +503,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     }
 
     // No encounter needed, or encounter deck empty — proceed with villain phase normally
-    let newState = executeVillainPhase(treasuresClearedState);
+    let newState = executeVillainPhase(stateAfterDecrement);
 
     const currentIndex = newState.turnOrder.indexOf(newState.currentHeroId);
     const nextIndex = (currentIndex + 1) % newState.turnOrder.length;
@@ -397,8 +516,15 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
         currentHeroId: nextId,
         phase: 'hero',
         hasExploredThisTurn: false,
+        exploredThisTurn: false,
         lastPlacedTileEncounterType: null,
-        turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0)
+        lastPlacedTileId: null,
+        turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0),
+        // Reset per-turn fortune flags on all heroes
+        heroes: stateAfterTurnStart.heroes.map(h => ({
+          ...h,
+          extraActionsThisTurn: 0,
+        }))
       } as any
     });
   },
@@ -442,6 +568,30 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
   discardTreasureForPower: (heroId: string) => {
     console.log('discardTreasureForPower called for', heroId);
     // TODO: implement discard treasure for power upgrade
+  },
+
+  resolvePendingFortune: async (choice: Record<string, unknown>) => {
+    const state = get().gameState;
+    if (!state) return;
+    if (!state.pendingFortune) {
+      console.warn('[resolvePendingFortune] Called with no pendingFortune in state.');
+      return;
+    }
+    const { newState, message } = await TreasureSystem.resolvePendingFortuneAsync(state, choice as any);
+    const syncedState = ConditionSystem.syncActiveConditions(newState);
+    const updatedState = {
+      ...syncedState,
+      log: [
+        ...syncedState.log,
+        {
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          message,
+          type: 'system' as const,
+        }
+      ].slice(-100)
+    };
+    set({ gameState: updatedState });
   },
 
   pauseGame: () => set({ isPaused: true }),

@@ -20,6 +20,7 @@ This file provides guidance to agents when working with code in this repository.
 - Use `crypto.randomUUID()` for unique IDs in test data
 - Factory functions for test objects: `createAITile()`, `createAIHero()`, `createAIMonster()`, `createAIState()` in integrationTests.ts; `createTestTile()`, `createTestHero()`, `createTestMonster()`, `createTestGameState()` in ability-system-tests.ts
 - Deterministic rolls via `AbilitySystem._rollOverride = () => 14` / `null`
+- Async combat tests: Any test file exercising `attackMonster` or async combat actions must import `useDiceStore` from `../store/diceStore` and initialize it with a stub `requestRoll` that immediately sets a result and calls `onComplete()` (e.g., using `useDiceStore.setState({ requestRoll: (params: any) => { ... params.onComplete(); } })`).
 - Test both success and failure paths; verify immutability of original objects after operations
 - `TileConnection` shorthands: `openEdge(edge)`, `closedEdge(edge)`
 

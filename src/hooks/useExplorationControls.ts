@@ -70,9 +70,21 @@ export function useExplorationControls() {
       if (placedTile) {
         const stateWithMonster = TileSystem.spawnMonsterForExploration(finalState, placedTile);
         const stateWithRules = ScenarioManager.processPostExplore(stateWithMonster, placedTile);
-        setGameState({ ...stateWithRules, hasExploredThisTurn: true, lastPlacedTileEncounterType: placedTile.encounterType ?? null });
+        setGameState({
+          ...stateWithRules,
+          hasExploredThisTurn: true,
+          exploredThisTurn: true,
+          lastPlacedTileEncounterType: placedTile.encounterType ?? null,
+          lastPlacedTileId: placedTile.id
+        });
       } else {
-        setGameState({ ...finalState, hasExploredThisTurn: true, lastPlacedTileEncounterType: null });
+        setGameState({
+          ...finalState,
+          hasExploredThisTurn: true,
+          exploredThisTurn: true,
+          lastPlacedTileEncounterType: null,
+          lastPlacedTileId: null
+        });
       }
       setExploration(onPlacementComplete(newState));
     } else if (newState.phase === 'placement_blocked') {
