@@ -7827,7 +7827,13 @@ export const runFullGameLoopTest = async () => {
           position: { x: 1, z: 0, sqX: 2, sqZ: 2 },
           isExhausted: false,
           conditions: [],
-          usedPowers: []
+          usedPowers: [],
+          monsterType: 'undead',
+          behavior: { conditions: [], priorityTargets: [], actions: [] },
+          attackBonus: 4,
+          damage: 1,
+          experienceValue: 50,
+          ownedByHeroId: null
         };
         const zombieFar = { 
           id: 'zombie_far', 
@@ -7840,7 +7846,13 @@ export const runFullGameLoopTest = async () => {
           position: { x: 2, z: 0, sqX: 2, sqZ: 2 },
           isExhausted: false,
           conditions: [],
-          usedPowers: []
+          usedPowers: [],
+          monsterType: 'undead',
+          behavior: { conditions: [], priorityTargets: [], actions: [] },
+          attackBonus: 4,
+          damage: 1,
+          experienceValue: 50,
+          ownedByHeroId: null
         };
 
         const trickStateMultiple = {
@@ -7890,7 +7902,13 @@ export const runFullGameLoopTest = async () => {
           id: 'zombie1', 
           name: 'Zombie 1', 
           hp: 1, maxHp: 1, ac: 10, speed: 1, type: 'monster' as const,
-          position: { x: 1, z: 0, sqX: 2, sqZ: 2 }, isExhausted: false, conditions: [], usedPowers: []
+          position: { x: 1, z: 0, sqX: 2, sqZ: 2 }, isExhausted: false, conditions: [], usedPowers: [],
+          monsterType: 'undead',
+          behavior: { conditions: [], priorityTargets: [], actions: [] },
+          attackBonus: 4,
+          damage: 1,
+          experienceValue: 50,
+          ownedByHeroId: null
         };
 
         const minState = {
@@ -8040,7 +8058,7 @@ export const runFullGameLoopTest = async () => {
       }
 
       // King Tomescu's Portal turn order skip/return
-      const t1 = { ...testHeroObj, id: 't1', hp: 10, removedFromPlay: true, position: { x: -999, z: -999 } };
+      const t1 = { ...testHeroObj, id: 't1', hp: 10, removedFromPlay: true, position: { x: -999, z: -999, sqX: 0, sqZ: 0 } };
       const t2 = { ...testHeroObj, id: 't2', hp: 10, position: { x: 0, z: 0, sqX: 2, sqZ: 2 } };
       const turnOrderState = {
         ...testState,
