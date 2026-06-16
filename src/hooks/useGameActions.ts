@@ -94,7 +94,11 @@ export const useGameActions = () => {
 
     // ── Valid move — animate then commit ──────────────────────────────────────
     await animationQueue.enqueue('HeroMove', async () => {
-      await new Promise<void>(resolve => setTimeout(resolve, 350));
+      const animSpeed = useGameStore.getState().settings?.animationSpeed ?? 'normal';
+      const delay = animSpeed === 'instant' ? 0 : animSpeed === 'fast' ? 50 : 150;
+      if (delay > 0) {
+        await new Promise<void>(resolve => setTimeout(resolve, delay));
+      }
     });
 
     storeMoveHero(targetPosition);
@@ -117,7 +121,11 @@ export const useGameActions = () => {
 
     await animationQueue.enqueue('HeroAttack', async () => {
       console.log('Playing attack animation on:', monsterId);
-      await new Promise<void>(resolve => setTimeout(resolve, 800));
+      const animSpeed = useGameStore.getState().settings?.animationSpeed ?? 'normal';
+      const delay = animSpeed === 'instant' ? 0 : animSpeed === 'fast' ? 70 : 200;
+      if (delay > 0) {
+        await new Promise<void>(resolve => setTimeout(resolve, delay));
+      }
     });
 
     storeAttackMonster(monsterId);
@@ -164,7 +172,11 @@ export const useGameActions = () => {
 
     // Animate the search
     await animationQueue.enqueue('TokenSearch', async () => {
-      await new Promise<void>(resolve => setTimeout(resolve, 500));
+      const animSpeed = useGameStore.getState().settings?.animationSpeed ?? 'normal';
+      const delay = animSpeed === 'instant' ? 0 : animSpeed === 'fast' ? 70 : 200;
+      if (delay > 0) {
+        await new Promise<void>(resolve => setTimeout(resolve, delay));
+      }
     });
 
     // Perform the search

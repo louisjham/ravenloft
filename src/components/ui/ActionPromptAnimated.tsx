@@ -41,7 +41,7 @@ export const ActionPromptAnimated: React.FC = () => {
   const hasMovement = useGameStore(s => {
     if (!s.gameState) return false;
     const hero = s.gameState.heroes.find(h => h.id === s.gameState!.currentHeroId);
-    return hero ? !hero.isExhausted : false;
+    return hero ? (!hero.isExhausted || !s.gameState.hasAttackedThisTurn) : false;
   });
   
   const currentHeroSpeed = useGameStore(s => {
@@ -52,6 +52,7 @@ export const ActionPromptAnimated: React.FC = () => {
 
   const canAttack = useGameStore(s => {
     if (!s.gameState) return false;
+    if (s.gameState.hasAttackedThisTurn) return false;
     const hero = s.gameState.heroes.find(h => h.id === s.gameState!.currentHeroId);
     if (!hero) return false;
     // Rule check: Any monster on the same tile (simplified for now as 'can attack')
@@ -66,7 +67,8 @@ export const ActionPromptAnimated: React.FC = () => {
   const hasUsablePowers = useGameStore(s => {
     if (!s.gameState) return false;
     const hero = s.gameState.heroes.find(h => h.id === s.gameState!.currentHeroId);
-    return hero ? !!hero.hand && hero.hand.length > 0 : false;
+    if (!hero) return false;
+    return (hero.abilities?.length || 0) > 0 || (hero.selectedPowerIds?.length || 0) > 0;
   });
 
   const hasExplorationPoints = useGameStore(s => {

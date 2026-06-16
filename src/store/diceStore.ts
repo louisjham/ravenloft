@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { getEntityDiceProfile } from '../game/engine/DiceProfiles';
+import { getEntityDiceProfile, DEFAULT_HERO_PHYSICS } from '../game/engine/DiceProfiles';
+import { useGameStore } from './gameStore';
 
 export type DicePhase = 
   | 'idle'              // No dice roll happening
@@ -50,7 +51,7 @@ export interface DiceStore {
   isCritical: boolean;
   damage: number | null;
   
-  // 3D placement
+  // 3D placement (fixed arena position)
   worldPosition: [number, number, number];
   
   // Callback
@@ -67,7 +68,6 @@ export interface DiceStore {
     attackBonus?: number;
     targetAC?: number;
     damage?: number;
-    worldPosition: [number, number, number];
     isAutoRoll?: boolean;
     onComplete: () => void;
   }) => void;
@@ -81,13 +81,7 @@ export interface DiceStore {
   cancelRoll: () => void;
 }
 
-const DEFAULT_PHYSICS = {
-  mass: 1,
-  friction: 0.4,
-  restitution: 0.35,
-  impulseMultiplier: 1,
-  dropHeight: 2,
-};
+const ARENA_POSITION: [number, number, number] = [0, 0, -6];
 
 const initialState = {
   phase: 'idle' as DicePhase,
@@ -95,7 +89,7 @@ const initialState = {
   isAutoRoll: false,
   
   diceColor: '#cc1111',
-  physicsProfile: DEFAULT_PHYSICS,
+  physicsProfile: DEFAULT_HERO_PHYSICS,
   dismissEffect: 'fire',
 
   rollerId: null,
@@ -111,7 +105,7 @@ const initialState = {
   isCritical: false,
   damage: null,
   
-  worldPosition: [0, 0, 0] as [number, number, number],
+  worldPosition: ARENA_POSITION,
   _onComplete: null,
 };
 
@@ -121,14 +115,67 @@ export const useDiceStore = create<DiceStore>()(
 
     requestRoll: (params) => {
       const profile = getEntityDiceProfile(params.rollerId, params.rollerName, params.rollType);
-      
+      const animSpeed = useGameStore.getState().settings?.animationSpeed ?? 'normal';
+      const isQuickRoll = useGameStore.getState().settings?.quickRoll || animSpeed === 'instant';
+
+      if (isQuickRoll) {
+        const result = Math.floor(Math.random() * 20) + 1;
+        const isCritical = result === 20;
+        let isHit: boolean | null = null;
+        
+        const targetAC = params.targetAC ?? null;
+        if (targetAC !== null) {
+          if (params.rollType === 'trap_disable') {
+            isHit = isCritical || (result >= targetAC);
+          } else {
+            isHit = isCritical || (result + (params.attackBonus ?? 0) >= targetAC);
+          }
+        }
+
+        set({
+          ...initialState,
+          rollType: params.rollType,
+          rollerId: params.rollerId,
+          rollerName: params.rollerName,
+          announcementText: params.announcementText,
+          worldPosition: ARENA_POSITION,
+          targetId: params.targetId ?? null,
+          targetName: params.targetName ?? '',
+          attackBonus: params.attackBonus ?? 0,
+          targetAC: targetAC,
+          damage: params.damage ?? null,
+          isAutoRoll: params.isAutoRoll ?? false,
+          
+          result,
+          isCritical,
+          isHit,
+          phase: 'showing_result',
+          _onComplete: params.onComplete,
+          
+          diceColor: profile.color,
+          physicsProfile: profile.physics,
+          dismissEffect: profile.particleEffect,
+        });
+
+        // Auto-dismiss quick roll result
+        const quickRollDelay = animSpeed === 'instant' ? 100 : animSpeed === 'fast' ? 400 : 800;
+        setTimeout(() => {
+          const currentStore = get();
+          if (currentStore.phase === 'showing_result') {
+            currentStore.dismiss();
+          }
+        }, quickRollDelay);
+
+        return;
+      }
+
       set({
         ...initialState,
         rollType: params.rollType,
         rollerId: params.rollerId,
         rollerName: params.rollerName,
         announcementText: params.announcementText,
-        worldPosition: params.worldPosition,
+        worldPosition: ARENA_POSITION,
         targetId: params.targetId ?? null,
         targetName: params.targetName ?? '',
         attackBonus: params.attackBonus ?? 0,
@@ -146,12 +193,13 @@ export const useDiceStore = create<DiceStore>()(
       });
 
       // Auto transition after announcement (shorter for responsive feel)
+      const announcementDelay = animSpeed === 'fast' ? 50 : 200;
       setTimeout(() => {
         const { phase } = get();
         if (phase === 'announcing') {
           get().finishAnnouncement();
         }
-      }, 400);
+      }, announcementDelay);
     },
 
     finishAnnouncement: () => {
@@ -196,6 +244,17 @@ export const useDiceStore = create<DiceStore>()(
       const { phase } = get();
       if (phase === 'rolling') {
         set({ phase: 'showing_result' });
+
+        const animSpeed = useGameStore.getState().settings?.animationSpeed ?? 'normal';
+        const showResultDelay = animSpeed === 'fast' ? 400 : 1500;
+
+        // Auto-dismiss the result so players don't have to mash Spacebar
+        setTimeout(() => {
+          const currentStore = get();
+          if (currentStore.phase === 'showing_result') {
+            currentStore.dismiss();
+          }
+        }, showResultDelay);
       }
     },
 
@@ -204,10 +263,13 @@ export const useDiceStore = create<DiceStore>()(
       if (phase === 'showing_result') {
         set({ phase: 'dismissing' });
         
+        const animSpeed = useGameStore.getState().settings?.animationSpeed ?? 'normal';
+        const dismissDelay = animSpeed === 'fast' ? 70 : 150;
+
         // Auto reset after dismiss animation (shorter for responsive feel)
         setTimeout(() => {
           get().reset();
-        }, 300);
+        }, dismissDelay);
       }
     },
 

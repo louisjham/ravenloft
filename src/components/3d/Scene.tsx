@@ -13,6 +13,8 @@ import { useUIStore } from '../../store/uiStore';
 export const Scene: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const isPaused = useGameStore((state) => state.isPaused);
   const interactionMode = useUIStore((state) => state.interactionMode);
+  const graphicsQuality = useGameStore((state) => state.settings?.graphicsQuality ?? 'high');
+  const resolutionScale = useGameStore((state) => state.settings?.resolutionScale ?? 1.0);
 
   let outlineColorStr = '#00aaff'; // default / move (BLUE)
   if (interactionMode === 'attack') outlineColorStr = '#ff3333'; // RED
@@ -24,11 +26,11 @@ export const Scene: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
     <div style={{ width: '100vw', height: '100vh', background: '#050505' }}>
       <Canvas
         frameloop={isPaused ? 'never' : 'always'}
-        shadows
-        camera={{ position: [10, 10, 10], fov: 45 }}
-        dpr={[1, 1.5]}
+        shadows={graphicsQuality === 'high'}
+        camera={{ position: [5.5, 5.5, 5.5], fov: 38 }}
+        dpr={resolutionScale}
         gl={{
-          antialias: true,
+          antialias: graphicsQuality !== 'low',
           powerPreference: "high-performance",
           failIfMajorPerformanceCaveat: false
         }}
@@ -45,7 +47,7 @@ export const Scene: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
           gl.domElement.addEventListener('webglcontextrestored', onRestored);
         }}
       >
-        {/* Camera Setup — locked isometric view */}
+        {/* Camera Setup — locked isometric view but closer */}
         <OrbitControls
           makeDefault
           enablePan={false}
@@ -56,23 +58,23 @@ export const Scene: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
           /* Horizontal: narrow ±20° so the board feels locked */
           minAzimuthAngle={-Math.PI / 9}
           maxAzimuthAngle={Math.PI / 9}
-          minDistance={12}
-          maxDistance={22}
+          minDistance={5}
+          maxDistance={13}
           enableDamping={true}
           dampingFactor={0.15}
           rotateSpeed={0.3}
         />
 
-        {/* Lighting - Gothic Atmosphere */}
-        <ambientLight intensity={0.35} color="#442266" />
+        {/* Lighting - Gothic Atmosphere (Brighter & More Vivid) */}
+        <ambientLight intensity={0.65} color="#8855aa" />
         
-        {/* "Moonlight" */}
+        {/* "Moonlight" (Brighter) */}
         <directionalLight
           position={[-10, 15, -5]}
-          intensity={0.8}
-          color="#aaccff"
-          castShadow
-          shadow-mapSize={[1024, 1024]}
+          intensity={1.5}
+          color="#cceeff"
+          castShadow={graphicsQuality === 'high'}
+          shadow-mapSize={graphicsQuality === 'high' ? [512, 512] : [256, 256]}
           shadow-camera-near={0.5}
           shadow-camera-far={50}
           shadow-camera-left={-15}
@@ -81,19 +83,19 @@ export const Scene: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
           shadow-camera-bottom={-15}
         />
 
-        {/* Fill light from opposite side */}
+        {/* Fill light from opposite side (Brighter) */}
         <directionalLight
           position={[8, 5, 8]}
-          intensity={0.2}
-          color="#664488"
+          intensity={0.4}
+          color="#8866aa"
           castShadow={false}
         />
 
         {/* Atmosphere */}
-        <fog attach="fog" args={['#1a0f2e', 25, 45]} />
+        <fog attach="fog" args={['#1a0f2e', 20, 38]} />
 
         <Suspense fallback={null}>
-          <Stars radius={100} depth={50} count={1500} factor={4} saturation={0} fade speed={1} />
+          <Stars radius={100} depth={50} count={500} factor={4} saturation={0} fade speed={1} />
         </Suspense>
           
         <Selection>
@@ -103,16 +105,20 @@ export const Scene: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
         </Selection>
 
         {/* Post-processing */}
-        <EffectComposer multisampling={4} autoClear={false}>
-          <Outline 
-            visibleEdgeColor={outlineThreeColor as any}
-            hiddenEdgeColor={outlineThreeColor as any}
-            blur
-            edgeStrength={10} 
-            width={1000} 
-          />
-          <Vignette eskil={false} offset={0.1} darkness={0.9} />
-        </EffectComposer>
+        {graphicsQuality !== 'low' ? (
+          <EffectComposer multisampling={graphicsQuality === 'high' ? 4 : 0} autoClear={false}>
+            {graphicsQuality === 'high' ? (
+              <Outline 
+                visibleEdgeColor={outlineThreeColor as any}
+                hiddenEdgeColor={outlineThreeColor as any}
+                blur
+                edgeStrength={10} 
+                width={1000} 
+              />
+            ) : <></>}
+            <Vignette eskil={false} offset={0.1} darkness={0.9} />
+          </EffectComposer>
+        ) : null}
       </Canvas>
     </div>
   );

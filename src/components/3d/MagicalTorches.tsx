@@ -2,6 +2,7 @@ import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { PointLight } from 'three';
+import { useGameStore } from '../../store/gameStore';
 
 const TILE_SIZE = 4;
 
@@ -12,6 +13,7 @@ interface MagicalTorchesProps {
 }
 
 export const MagicalTorches: React.FC<MagicalTorchesProps> = ({ edge }) => {
+  const graphicsQuality = useGameStore((state) => state.settings?.graphicsQuality ?? 'high');
   const redLightRef = useRef<PointLight>(null);
   const purpleLightRef = useRef<PointLight>(null);
   const yellowLightRef = useRef<PointLight>(null);
@@ -42,6 +44,8 @@ export const MagicalTorches: React.FC<MagicalTorchesProps> = ({ edge }) => {
   }, [edge]);
 
   useFrame((state) => {
+    if (graphicsQuality === 'low') return;
+
     const time = state.clock.elapsedTime;
 
     const flicker = (phase: number, speedMult: number) => {
@@ -53,6 +57,14 @@ export const MagicalTorches: React.FC<MagicalTorchesProps> = ({ edge }) => {
 
     const colorBreath = (phase: number, speedMult: number) =>
       0.85 + 0.15 * Math.sin(time * 1.5 * speedMult + phase);
+
+    if (graphicsQuality === 'medium') {
+      if (purpleLightRef.current) {
+        const f = flicker(phases.purple, 1.0);
+        purpleLightRef.current.intensity = f * 1.2;
+      }
+      return;
+    }
 
     if (redLightRef.current) {
       const f = flicker(phases.red, 1.0);
@@ -73,6 +85,22 @@ export const MagicalTorches: React.FC<MagicalTorchesProps> = ({ edge }) => {
       yellowLightRef.current.color.setRGB(1.0, 0.87 * b, 0.13);
     }
   });
+
+  if (graphicsQuality === 'low') {
+    return null;
+  }
+
+  if (graphicsQuality === 'medium') {
+    return (
+      <pointLight 
+        ref={purpleLightRef} 
+        position={lightPositions.purple} 
+        color="#ffaa44" 
+        distance={4.0} 
+        castShadow={false} 
+      />
+    );
+  }
 
   return (
     <>

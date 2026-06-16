@@ -12,7 +12,8 @@ export const ExperiencePanel: React.FC = () => {
 
   if (!gameState || !currentHero) return null;
 
-  const xpCount = gameState.experiencePile.length;
+  const xpCount = ExperienceSystem.getTotalXP(gameState);
+  const xpCardCount = gameState.experiencePile.length;
   const canLevelUp = ExperienceSystem.canLevelUp(gameState, currentHero);
 
   // Benefits summary
@@ -76,8 +77,8 @@ export const ExperiencePanel: React.FC = () => {
           border: '1px solid rgba(212, 175, 55, 0.2)',
           borderRadius: '8px'
         }}>
-          <div className="xp-pile" style={{ display: 'flex', gap: '4px' }}>
-            {[...Array(xpCount)].map((_, i) => (
+          <div className="xp-pile" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', maxWidth: '260px' }}>
+            {[...Array(Math.min(xpCount, 20))].map((_, i) => (
               <div key={i} style={{
                 width: '15px',
                 height: '25px',
@@ -90,7 +91,7 @@ export const ExperiencePanel: React.FC = () => {
             {xpCount === 0 && <span style={{ color: 'var(--color-text-dim)' }}>No Experience Cards</span>}
           </div>
           <div style={{ fontSize: '1.2rem', color: 'var(--color-gold)', fontWeight: 'bold' }}>
-            {xpCount} XP
+            {xpCount} XP ({xpCardCount} card{xpCardCount !== 1 ? 's' : ''})
           </div>
         </div>
 
@@ -109,8 +110,9 @@ export const ExperiencePanel: React.FC = () => {
               </div>
             </div>
             
-            <p style={{ fontSize: '0.9rem', color: 'var(--color-text-dim)', marginBottom: '15px' }}>
-              Requires a Natural 20 on an attack roll or trap disable (currently simplified).
+            <p style={{ fontSize: '0.9rem', color: currentHero.hasRolledNatural20ThisTurn ? 'var(--color-gold)' : 'var(--color-text-dim)', marginBottom: '15px' }}>
+              Requires rolling a Natural 20 on an attack or trap disable this turn.
+              {currentHero.hasRolledNatural20ThisTurn ? ' (You rolled a 20!)' : ' (You have not rolled a 20 this turn)'}
             </p>
 
             <ul style={{ fontSize: '0.85rem', color: '#ccc', paddingLeft: '20px', marginBottom: '15px' }}>

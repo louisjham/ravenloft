@@ -96,6 +96,8 @@ export interface Hero extends Entity {
   damage?: number;
   /** Fortune: Action Surge — number of extra actions granted this turn. Reset to 0 at end of turn. */
   extraActionsThisTurn?: number;
+  hasRolledNatural20ThisTurn?: boolean;
+  hasUsedSurgeThisTurn?: boolean;
   removedFromPlay?: boolean;
 }
 
@@ -413,6 +415,8 @@ export interface GameState {
   // Turn state
   hasExploredThisTurn?: boolean;
   hasAttackedThisTurn?: boolean;
+  hasRolledNatural20ThisTurn?: boolean;
+  hasUsedSurgeThisTurn?: boolean;
   lastPlacedTileEncounterType?: string | null;
   exploredThisTurn?: boolean;
   lastPlacedTileId?: string | null;
@@ -476,6 +480,10 @@ export interface GameSettings {
   voiceVolume: number;
   showDevTools: boolean;
   difficulty: 'normal' | 'hard';
+  quickRoll?: boolean;
+  animationSpeed?: 'normal' | 'fast' | 'instant';
+  graphicsQuality?: 'high' | 'medium' | 'low';
+  resolutionScale?: number;
   accessibility?: {
     colorblindMode?: 'none' | 'protanopia' | 'deuteranopia' | 'tritanopia';
     highContrast?: boolean;

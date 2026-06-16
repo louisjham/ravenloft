@@ -25,13 +25,8 @@ export class CombatAdapter {
     const store = (await import('../../store/diceStore')).useDiceStore;
 
     return new Promise<AttackResult>((resolve) => {
-      let worldX = 0, worldZ = 0;
-      if (attacker.position) {
-        worldX = attacker.position.x * 4 + attacker.position.sqX + 0.5;
-        worldZ = attacker.position.z * 4 + attacker.position.sqZ + 0.5;
-      }
-
       let resolved = false;
+      const timeoutMs = isMonster ? 3000 : ASYNC_TIMEOUT_MS;
       const timeout = setTimeout(() => {
         if (resolved) return;
         resolved = true;
@@ -39,7 +34,7 @@ export class CombatAdapter {
         // targeted cancel roll before resolving
         store.getState().cancelRoll?.();
         resolve(CombatSystem.resolveAttack(attacker, target, attackBonus, damage, rollModifier, undefined, gameState, missDamage));
-      }, ASYNC_TIMEOUT_MS);
+      }, timeoutMs);
 
       store.getState().requestRoll({
         rollType,
@@ -52,7 +47,6 @@ export class CombatAdapter {
         targetAC: CombatSystem.getEffectiveAC(target),
         damage,
         isAutoRoll: isMonster,
-        worldPosition: [worldX, 2, worldZ],
         onComplete: () => {
           if (resolved) return;
           resolved = true;

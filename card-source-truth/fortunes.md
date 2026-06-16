@@ -15,12 +15,12 @@ This file contains the verbatim text transcribed from the physical Fortune cards
 ---
 
 ## Burst Of Speed
-> Play this fortune immediately — Gain +2 Speed this turn. — Discard this card after playing it
+> Play this fortune immediately — Your Hero can move his or her speed — Discard this card after playing it
 
 ---
 
 ## Clear The Air
-> Play this fortune immediately — Remove all conditions from all Heroes — Discard this card after playing it
+> Play this fortune immediately — Discard an Environment card in play — Discard this card after playing it
 
 ---
 

@@ -11,8 +11,15 @@ export interface PowerCardDisplayProps {
   isFlipped?: boolean;
 }
 
-const getPowerBadgeConfig = (powerType: PowerType | undefined) => {
-  switch (powerType) {
+const getPowerBadgeConfig = (card: Card) => {
+  if (card.type === 'treasure') {
+    if (card.treasureType === 'item') return { label: 'ITEM', color: '#b8860b', glow: '#ffd700' };
+    if (card.treasureType === 'fortune') return { label: 'FORTUNE', color: '#8b008b', glow: '#da70d6' };
+    if (card.treasureType === 'blessing') return { label: 'BLESSING', color: '#4682b4', glow: '#87ceeb' };
+    return { label: 'TREASURE', color: '#b8860b', glow: '#ffd700' };
+  }
+  
+  switch (card.powerType) {
     case 'at-will':  return { label: 'AT-WILL',  color: '#2d6a2d', glow: '#4caf50' };
     case 'daily':    return { label: 'DAILY',     color: '#8b1a1a', glow: '#e53935' };
     case 'utility':  return { label: 'UTILITY',   color: '#1a3a8b', glow: '#1976d2' };
@@ -39,7 +46,7 @@ export const PowerCardDisplay: React.FC<PowerCardDisplayProps> = ({
     }
   };
 
-  const badge = getPowerBadgeConfig(card.powerType);
+  const badge = getPowerBadgeConfig(card);
 
   // Card dimensions (physical card ~2:3 ratio)
   const W = 130;

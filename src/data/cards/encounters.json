@@ -12,7 +12,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "environment"
+    "encounterType": "environment",
+    "image": "/card-images/env-batswarm.png"
   },
   {
     "id": "enc_blood_fog",
@@ -27,7 +28,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "environment"
+    "encounterType": "environment",
+    "image": "/card-images/env-bloodfog.png"
   },
   {
     "id": "enc_cackling_skull",
@@ -42,7 +44,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "environment"
+    "encounterType": "environment",
+    "image": "/card-images/env-cacklingskull.png"
   },
   {
     "id": "enc_crippling_miasma",
@@ -58,7 +61,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "environment"
+    "encounterType": "environment",
+    "image": "/card-images/env-cripplingmiasma.png"
   },
   {
     "id": "enc_deadly_shadows",
@@ -73,7 +77,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "environment"
+    "encounterType": "environment",
+    "image": "/card-images/env-deadlyshadows.png"
   },
   {
     "id": "enc_haunted_mists",
@@ -88,7 +93,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "environment"
+    "encounterType": "environment",
+    "image": "/card-images/env-hauntedmists.png"
   },
   {
     "id": "enc_music_of_the_damned",
@@ -103,7 +109,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "environment"
+    "encounterType": "environment",
+    "image": "/card-images/env-musicofthedamned.png"
   },
   {
     "id": "enc_spirit_of_doom_env",
@@ -118,7 +125,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "environment"
+    "encounterType": "environment",
+    "image": "/card-images/env-spiritofdoomenv.png"
   },
   {
     "id": "enc_bubbling_cauldron",
@@ -133,7 +141,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-bubblingcauldron.png"
   },
   {
     "id": "enc_corner_of_your_eye",
@@ -148,7 +157,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-cornerofyoureye.png"
   },
   {
     "id": "enc_cowardly_flight",
@@ -163,7 +173,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-cowardlyflight.png"
   },
   {
     "id": "enc_cyrus_belview",
@@ -178,7 +189,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-ctrusbelview.png"
   },
   {
     "id": "enc_frenzy",
@@ -193,7 +205,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-frenzy.png"
   },
   {
     "id": "enc_ghost_prince_of_aurel",
@@ -207,7 +220,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-ghostprinceofaurel.png"
   },
   {
     "id": "enc_howl_of_the_wolf",
@@ -222,7 +236,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-howlofthewolf.png"
   },
   {
     "id": "enc_illusionary_trick",
@@ -237,7 +252,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-illusionarytrick.png"
   },
   {
     "id": "enc_lief_lipsiege",
@@ -252,7 +268,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-lieflipsiege.png"
   },
   {
     "id": "enc_mists_of_terror",
@@ -267,7 +284,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-mistsofterror.png"
   },
   {
     "id": "enc_neglected_passage",
@@ -282,7 +300,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-neglectedpassage.png"
   },
   {
     "id": "enc_overrun",
@@ -297,7 +316,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-overrun.png"
   },
   {
     "id": "enc_overwhelming_terror",
@@ -312,7 +332,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-overwhelmingterror.png"
   },
   {
     "id": "enc_passage_of_time",
@@ -327,7 +348,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-passageoftime.png"
   },
   {
     "id": "enc_prowling_spirits",
@@ -341,7 +363,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-prowlingspirits.png"
   },
   {
     "id": "enc_reinforcements",
@@ -356,7 +379,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-reinforcements.png"
   },
   {
     "id": "enc_secret_door",
@@ -371,7 +395,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-secretdoot.png"
   },
   {
     "id": "enc_spirit_of_doom_event",
@@ -386,7 +411,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-spiritofdoomevent.png"
   },
   {
     "id": "enc_strahds_hunger",
@@ -401,7 +427,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-strahdshunger.png"
   },
   {
     "id": "enc_strahds_minions",
@@ -416,7 +443,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-strahdsminions.png"
   },
   {
     "id": "enc_strahds_trick",
@@ -431,7 +459,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-strahdstrick.png"
   },
   {
     "id": "enc_strahds_whispers",
@@ -446,7 +475,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-strahdswhispers.png"
   },
   {
     "id": "enc_summoning_circle",
@@ -461,7 +491,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-summoningcircle.png"
   },
   {
     "id": "enc_teleport_glyph",
@@ -476,7 +507,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-teleportglyph.png"
   },
   {
     "id": "enc_treasure_chest",
@@ -491,7 +523,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-treasurechest.png"
   },
   {
     "id": "enc_voice_of_the_master",
@@ -506,7 +539,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event"
+    "encounterType": "event",
+    "image": "/card-images/event-voiceofthemaster.png"
   },
   {
     "id": "enc_ambush",
@@ -529,7 +563,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event-attack"
+    "encounterType": "event-attack",
+    "image": "/card-images/evtatk-ambush.png"
   },
   {
     "id": "enc_animated_armor",
@@ -546,7 +581,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event-attack"
+    "encounterType": "event-attack",
+    "image": "/card-images/evtatk-animatedarmor.png"
   },
   {
     "id": "enc_circle_of_death",
@@ -568,7 +604,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event-attack"
+    "encounterType": "event-attack",
+    "image": "/card-images/evtatk-circleofdeath.png"
   },
   {
     "id": "enc_gray_ooze",
@@ -586,7 +623,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event-attack"
+    "encounterType": "event-attack",
+    "image": "/card-images/evtatk-grayooze.png"
   },
   {
     "id": "enc_green_slime",
@@ -604,7 +642,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event-attack"
+    "encounterType": "event-attack",
+    "image": "/card-images/evtatk-greenslime.png"
   },
   {
     "id": "enc_hands_of_the_dead",
@@ -622,7 +661,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event-attack"
+    "encounterType": "event-attack",
+    "image": "/card-images/evtatk-handsofthedead.png"
   },
   {
     "id": "enc_howling_ghost",
@@ -639,7 +679,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event-attack"
+    "encounterType": "event-attack",
+    "image": "/card-images/evtatk-howlingghost.png"
   },
   {
     "id": "enc_icy_corridor",
@@ -656,7 +697,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event-attack"
+    "encounterType": "event-attack",
+    "image": "/card-images/evtatk-icycorridor.png"
   },
   {
     "id": "enc_king_tomescus_portal",
@@ -674,7 +716,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event-attack"
+    "encounterType": "event-attack",
+    "image": "/card-images/evtatk-kingtomescusportal.png"
   },
   {
     "id": "enc_patrina_velikovna",
@@ -696,7 +739,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event-attack"
+    "encounterType": "event-attack",
+    "image": "/card-images/evtatk-patrinavelikovna.png"
   },
   {
     "id": "enc_prowling_ghost",
@@ -718,7 +762,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event-attack"
+    "encounterType": "event-attack",
+    "image": "/card-images/evtatk-prowlingghost.png"
   },
   {
     "id": "enc_spider_webs",
@@ -737,7 +782,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event-attack"
+    "encounterType": "event-attack",
+    "image": "/card-images/evtatk-spiderwebs.png"
   },
   {
     "id": "enc_strahd_attacks",
@@ -754,7 +800,8 @@
       }
     ],
     "phase": "villain",
-    "encounterType": "event-attack"
+    "encounterType": "event-attack",
+    "image": "/card-images/evtatk-strahdattacks.png"
   },
   {
     "id": "enc_alarm_trap",
@@ -770,7 +817,8 @@
     ],
     "phase": "villain",
     "encounterType": "trap",
-    "disableDC": 10
+    "disableDC": 10,
+    "image": "/card-images/trp-alarmtrap.png"
   },
   {
     "id": "enc_crossbow_turret",
@@ -788,7 +836,8 @@
     ],
     "phase": "villain",
     "encounterType": "trap",
-    "disableDC": 10
+    "disableDC": 10,
+    "image": "/card-images/trp-crossbowturret.png"
   },
   {
     "id": "enc_crushing_walls",
@@ -807,7 +856,8 @@
     ],
     "phase": "villain",
     "encounterType": "trap",
-    "disableDC": 10
+    "disableDC": 10,
+    "image": "/card-images/trpcrushingwalls.png"
   },
   {
     "id": "enc_dart_trap",
@@ -825,7 +875,8 @@
     ],
     "phase": "villain",
     "encounterType": "trap",
-    "disableDC": 10
+    "disableDC": 10,
+    "image": "/card-images/trp-darttrap.png"
   },
   {
     "id": "enc_fire_trap",
@@ -841,7 +892,8 @@
     ],
     "phase": "villain",
     "encounterType": "trap",
-    "disableDC": 10
+    "disableDC": 10,
+    "image": "/card-images/trp-firetrap.png"
   },
   {
     "id": "enc_sliding_walls",
@@ -857,7 +909,8 @@
     ],
     "phase": "villain",
     "encounterType": "trap",
-    "disableDC": 10
+    "disableDC": 10,
+    "image": "/card-images/trp-slidingwalls.png"
   },
   {
     "id": "enc_spear_gauntlet",
@@ -875,7 +928,8 @@
     ],
     "phase": "villain",
     "encounterType": "trap",
-    "disableDC": 10
+    "disableDC": 10,
+    "image": "/card-images/trp-speargauntlet.png"
   },
   {
     "id": "enc_test_sanctuary_monster_only",
@@ -888,7 +942,8 @@
         "value": -1,
         "targetType": "monster"
       }
-    ]
+    ],
+    "image": "/card-images/env-testsanctuarymonsteronly.png"
   },
   {
     "id": "enc_test_sanctuary_hero_only",
@@ -901,6 +956,7 @@
         "value": -1,
         "targetType": "hero"
       }
-    ]
+    ],
+    "image": "/card-images/env-testsanctuaryheroonly.png"
   }
 ]

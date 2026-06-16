@@ -6,12 +6,15 @@ import { createD20Geometry, createD20Material, getQuaternionForNumber } from './
 import { useDiceStore } from '../../store/diceStore';
 import { DiceDismissEffect } from './DiceDismissEffect';
 
+const ARENA_POSITION: [number, number, number] = [0, 0, -6];
+const DIE_RADIUS = 0.35;
+const GRAVITY = 9.8;
+
 export const Dice3D: React.FC = () => {
   const phase = useDiceStore(s => s.phase);
   const result = useDiceStore(s => s.result);
   const diceColor = useDiceStore(s => s.diceColor);
   const physicsProfile = useDiceStore(s => s.physicsProfile);
-  const worldPosition = useDiceStore(s => s.worldPosition);
   const settleResult = useDiceStore(s => s.settleResult);
 
   // We only render the physical die when rolling, settling, or showing result
@@ -23,7 +26,7 @@ export const Dice3D: React.FC = () => {
   }
 
   return (
-    <group position={worldPosition}>
+    <group position={ARENA_POSITION} renderOrder={10}>
       {shouldRenderPhysical && (
         <PhysicalDie 
           color={diceColor}
@@ -47,12 +50,8 @@ interface PhysicalDieProps {
 }
 
 const PhysicalDie: React.FC<PhysicalDieProps> = ({ color, physics, targetResult, onSettled }) => {
-  // Generate d20 visual geometry and material
   const { geometry } = useMemo(() => createD20Geometry(), []);
   const material = useMemo(() => createD20Material(color), [color]);
-
-  // Use a sphere for physics (simpler than convex polyhedron, works identically for rolling)
-  const DIE_RADIUS = 0.35;
 
   // Track state
   const [isSettled, setIsSettled] = useState(false);
@@ -60,36 +59,43 @@ const PhysicalDie: React.FC<PhysicalDieProps> = ({ color, physics, targetResult,
   const velocityRef = useRef<[number, number, number]>([0, 0, 0]);
   const angularVelocityRef = useRef<[number, number, number]>([0, 0, 0]);
   const settledFrames = useRef(0);
+  const settlingStartTime = useRef(0);
+  const initialDropDone = useRef(false);
 
   // Physics body — uses sphere shape for simplicity but needs high damping
   // to compensate for the lack of rolling resistance on a flat plane
   const [ref, api] = useSphere(() => ({
     mass: physics.mass,
     args: [DIE_RADIUS],
-    position: [0, physics.dropHeight, 0],
+    position: [0, physics.dropHeight + DIE_RADIUS, 0],
     rotation: [Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI],
-    material: { friction: physics.friction, restitution: physics.restitution },
-    linearDamping: 0.3,
-    angularDamping: 0.4,
+    material: { friction: physics.friction, restitution: Math.min(physics.restitution, 0.2) },
+    linearDamping: 0, // We handle damping manually for frame-rate independence
+    angularDamping: 0, // We handle damping manually for frame-rate independence
     allowSleep: true,
   }));
+
+  // Calculate initial drop velocity from dropHeight
+  const initialDropVelocity = useMemo(() => Math.sqrt(2 * GRAVITY * physics.dropHeight), [physics.dropHeight]);
 
   // Setup initial impulse — stronger for faster, more energetic rolls
   useEffect(() => {
     const angle = Math.random() * Math.PI * 2;
-    const speed = 3 * physics.impulseMultiplier;
-    api.applyImpulse([Math.cos(angle) * speed, 1.5 * physics.impulseMultiplier, Math.sin(angle) * speed], [0, 0, 0]);
+    const baseImpulse = 4 * physics.impulseMultiplier;
+    const speed = baseImpulse; // Angular spin = baseImpulse * impulseMultiplier (NOT divided by mass)
+    api.applyImpulse([Math.cos(angle) * speed, initialDropVelocity, Math.sin(angle) * speed], [0, 0, 0]);
     
-    const spin = 12 * physics.impulseMultiplier;
+    const spin = 15 * physics.impulseMultiplier; // Base spin * impulseMultiplier (NOT divided by mass)
     api.angularVelocity.set(
       (Math.random() - 0.5) * spin,
       (Math.random() - 0.5) * spin,
       (Math.random() - 0.5) * spin
     );
-  }, [api, physics.impulseMultiplier]);
+  }, [api, physics.impulseMultiplier, initialDropVelocity]);
 
-  // Safety timeout — force settlement after 3s if physics never settles
+  // Safety timeout — force settlement after physics-based settle duration
   useEffect(() => {
+    const settleMs = 400 + physics.mass * 200; // Derived from mass
     const timer = setTimeout(() => {
       if (!settledRef.current) {
         if (targetResult !== null && ref.current) {
@@ -100,7 +106,7 @@ const PhysicalDie: React.FC<PhysicalDieProps> = ({ color, physics, targetResult,
         }
         onSettled();
       }
-    }, 3000);
+    }, settleMs);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -115,22 +121,42 @@ const PhysicalDie: React.FC<PhysicalDieProps> = ({ color, physics, targetResult,
     };
   }, [api]);
 
-  // Settlement detection
-  useFrame(() => {
+  // Frame-rate independent friction damping and settlement detection
+  useFrame((_, delta) => {
     if (isSettled) return;
 
     const v = velocityRef.current;
     const w = angularVelocityRef.current;
     
-    const speedSq = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
-    const spinSq = w[0]*w[0] + w[1]*w[1] + w[2]*w[2];
+    // Apply frame-rate independent friction damping
+    // velocity *= Math.pow(1 - friction, dt * 60)
+    const frictionFactor = Math.pow(1 - physics.friction, delta * 60);
+    const angularFrictionFactor = Math.pow(1 - physics.friction * 1.5, delta * 60);
+    
+    api.velocity.set(
+      v[0] * frictionFactor,
+      v[1] * frictionFactor,
+      v[2] * frictionFactor
+    );
+    api.angularVelocity.set(
+      w[0] * angularFrictionFactor,
+      w[1] * angularFrictionFactor,
+      w[2] * angularFrictionFactor
+    );
 
-    // If moving very slowly (threshold relaxed with high damping)
-    if (speedSq < 0.02 && spinSq < 0.02) {
+    // Update refs after damping
+    const newV = velocityRef.current;
+    const newW = angularVelocityRef.current;
+    
+    const speedSq = newV[0]*newV[0] + newV[1]*newV[1] + newV[2]*newV[2];
+    const spinSq = newW[0]*newW[0] + newW[1]*newW[1] + newW[2]*newW[2];
+
+    // If moving very slowly
+    if (speedSq < 0.005 && spinSq < 0.005) {
       settledFrames.current++;
       
-      // Quick confirmation — 4 frames (~0.07s at 60fps)
-      if (settledFrames.current > 4) {
+      // Quick confirmation — 2 frames (~0.03s at 60fps)
+      if (settledFrames.current > 2) {
         setIsSettled(true);
         settledRef.current = true;
         

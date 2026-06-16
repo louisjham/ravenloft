@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { DataLoader } from '../../game/dataLoader';
 import { Hero, Scenario } from '../../game/types';
+import { useGameStore } from '../../store/gameStore';
 
 interface ScenarioSetupScreenProps {
   onBack: () => void;
@@ -16,6 +17,9 @@ export const ScenarioSetupScreen: React.FC<ScenarioSetupScreenProps> = ({ onBack
   const [selectedHeroIds, setSelectedHeroIds] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Medium');
   const [surges, setSurges] = useState<number>(2);
+  const [quickRoll, setQuickRoll] = useState<boolean>(false);
+  const [animationSpeed, setAnimationSpeed] = useState<'normal' | 'fast' | 'instant'>('normal');
+  const [graphicsQuality, setGraphicsQuality] = useState<'high' | 'medium' | 'low'>('high');
 
   const selectedScenario = allScenarios.find(s => s.id === selectedScenarioId);
 
@@ -135,6 +139,73 @@ export const ScenarioSetupScreen: React.FC<ScenarioSetupScreenProps> = ({ onBack
                 style={{ width: '100%', accentColor: 'var(--color-gold)' }}
               />
             </div>
+
+            {/* Animation Speed Selector */}
+            <div style={{ marginTop: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--color-text-dim)' }}>Pacing Speed</label>
+              <div style={{ display: 'flex', gap: '5px' }}>
+                {(['normal', 'fast', 'instant'] as const).map(speed => (
+                  <button
+                    key={speed}
+                    onClick={() => setAnimationSpeed(speed)}
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      background: animationSpeed === speed ? 'var(--color-accent)' : 'transparent',
+                      border: `1px solid ${animationSpeed === speed ? 'var(--color-gold)' : '#444'}`,
+                      color: animationSpeed === speed ? 'white' : '#888',
+                      cursor: 'pointer',
+                      fontSize: '0.75rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1px'
+                    }}
+                  >
+                    {speed}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Graphics Quality Selector */}
+            <div style={{ marginTop: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--color-text-dim)' }}>Graphics Quality</label>
+              <div style={{ display: 'flex', gap: '5px' }}>
+                {(['low', 'medium', 'high'] as const).map(quality => (
+                  <button
+                    key={quality}
+                    onClick={() => setGraphicsQuality(quality)}
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      background: graphicsQuality === quality ? 'var(--color-accent)' : 'transparent',
+                      border: `1px solid ${graphicsQuality === quality ? 'var(--color-gold)' : '#444'}`,
+                      color: graphicsQuality === quality ? 'white' : '#888',
+                      cursor: 'pointer',
+                      fontSize: '0.75rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1px'
+                    }}
+                  >
+                    {quality}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginTop: '15px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--color-text-dim)' }}>
+                <input
+                  type="checkbox"
+                  checked={quickRoll}
+                  onChange={(e) => setQuickRoll(e.target.checked)}
+                  style={{ accentColor: 'var(--color-gold)', width: '16px', height: '16px' }}
+                />
+                Snappy / Instant Dice Rolls
+              </label>
+              <div style={{ fontSize: '0.72rem', color: '#888', marginTop: '4px', marginLeft: '24px', fontStyle: 'italic' }}>
+                Bypasses 3D physics rolls and resolves combat results immediately.
+              </div>
+            </div>
           </div>
         </div>
 
@@ -246,7 +317,18 @@ export const ScenarioSetupScreen: React.FC<ScenarioSetupScreenProps> = ({ onBack
           <button
             className="gothic-button"
             disabled={!isReady}
-            onClick={() => onStart(selectedScenarioId, selectedHeroIds)}
+            onClick={() => {
+              // Set difficulty and settings in gameStore
+              const scaleMap = { low: 0.5, medium: 0.75, high: 1.0 };
+              useGameStore.getState().updateSettings({
+                difficulty: difficulty === 'Hard' ? 'hard' : 'normal',
+                quickRoll,
+                animationSpeed,
+                graphicsQuality,
+                resolutionScale: scaleMap[graphicsQuality]
+              });
+              onStart(selectedScenarioId, selectedHeroIds);
+            }}
             style={{
               padding: '12px 50px',
               fontSize: '1.1rem',

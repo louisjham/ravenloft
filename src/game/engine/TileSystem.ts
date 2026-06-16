@@ -277,10 +277,12 @@ export class TileSystem {
                       (activeHero.abilities.includes('rogue_stealth') || activeHero.hand.includes('rogue_stealth')) &&
                       !(activeHero.flippedPowerIds ?? []).includes('rogue_stealth');
 
-    // Build set of template IDs already active on the board.
-    // Uses templateId when available (set by this function); falls back to m.id for
-    // any monsters placed before this field was introduced.
-    const activeTemplateIds = new Set(gameState.monsters.map(m => m.templateId ?? m.id));
+    // Build set of template IDs already active on the board for the current hero.
+    const activeTemplateIds = new Set(
+      gameState.monsters
+        .filter(m => m.ownedByHeroId === gameState.currentHeroId)
+        .map(m => m.templateId ?? m.id)
+    );
 
     const deck = [...gameState.monsterDeck];
     if (deck.length === 0) return gameState;

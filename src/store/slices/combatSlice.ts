@@ -14,9 +14,16 @@ export const createCombatSlice: StateCreator<GameStore, [], [], CombatSlice> = (
       const targetTile = state.tiles.find(t => t.x === targetPosition.x && t.z === targetPosition.z);
       if (!targetTile || !targetTile.isRevealed) return;
 
+      let usedStandardActionForMove = false;
       const updatedHeroes = state.heroes.map(hero => {
         if (hero.id === state.currentHeroId) {
-          return { ...hero, position: targetPosition };
+          let exhausted = hero.isExhausted;
+          if (!exhausted) {
+             exhausted = true;
+          } else {
+             usedStandardActionForMove = true;
+          }
+          return { ...hero, position: targetPosition, isExhausted: exhausted };
         }
         return hero;
       });
@@ -38,7 +45,8 @@ export const createCombatSlice: StateCreator<GameStore, [], [], CombatSlice> = (
           ...state,
           heroes: updatedHeroes,
           log: updatedLog,
-          logIdCounter: counter + 1
+          logIdCounter: counter + 1,
+          hasAttackedThisTurn: usedStandardActionForMove ? true : state.hasAttackedThisTurn
         }
       });
     },
@@ -95,7 +103,8 @@ export const createCombatSlice: StateCreator<GameStore, [], [], CombatSlice> = (
           heroes: updatedHeroes,
           monsters: updatedMonsters,
           log: updatedLog,
-          logIdCounter: counter + 1
+          logIdCounter: counter + 1,
+          hasAttackedThisTurn: true
         })
       });
     },

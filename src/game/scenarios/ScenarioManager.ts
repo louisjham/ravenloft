@@ -260,6 +260,11 @@ export class ScenarioManager {
   public static checkDefeat(gameState: GameState): boolean {
     const allNonEscapedDead = gameState.heroes.every(h => h.escaped || h.hp <= 0);
     const noSurges = gameState.healingSurges <= 0;
-    return allNonEscapedDead && noSurges;
+    
+    // Bug 5: A hero starting their turn at 0 HP with 0 surges remaining loses the game for everyone
+    const currentHero = gameState.heroes.find(h => h.id === gameState.currentHeroId);
+    const currentHeroDeadNoSurges = !!(currentHero && currentHero.hp <= 0 && noSurges);
+
+    return (allNonEscapedDead && noSurges) || currentHeroDeadNoSurges;
   }
 }

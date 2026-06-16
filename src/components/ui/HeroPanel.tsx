@@ -3,6 +3,7 @@ import { useGameStore } from '../../store/gameStore';
 import { useUIStore } from '../../store/uiStore';
 import ConditionMarkers from './ConditionMarkers';
 import { GameLogEntry } from '../../game/types';
+import { ExperienceSystem } from '../../game/engine/ExperienceSystem';
 
 export const HeroPanel: React.FC = () => {
   const gameState = useGameStore((state) => state.gameState);
@@ -29,13 +30,15 @@ export const HeroPanel: React.FC = () => {
 
   const handleHealingSurge = () => {
     if (!gameState || gameState.healingSurges <= 0 || currentHero.hp >= currentHero.maxHp) return;
+    if (currentHero.hasUsedSurgeThisTurn) return;
 
-    const newHp = Math.min(currentHero.maxHp, currentHero.hp + 2);
+    const surgeHeal = ExperienceSystem.getSurgeValue(currentHero);
+    const newHp = Math.min(currentHero.maxHp, currentHero.hp + surgeHeal);
     const newState = {
       ...gameState,
       healingSurges: gameState.healingSurges - 1,
       heroes: gameState.heroes.map(h => 
-        h.id === currentHero.id ? { ...h, hp: newHp } : h
+        h.id === currentHero.id ? { ...h, hp: newHp, hasUsedSurgeThisTurn: true } : h
       )
     };
 
@@ -246,7 +249,7 @@ export const HeroPanel: React.FC = () => {
         ))}
         <button 
           onClick={handleHealingSurge}
-          disabled={(gameState?.healingSurges || 0) <= 0 || currentHero.hp >= currentHero.maxHp}
+          disabled={(gameState?.healingSurges || 0) <= 0 || currentHero.hp >= currentHero.maxHp || currentHero.hasUsedSurgeThisTurn}
           style={{
              marginLeft: 'auto',
              fontFamily: 'Cinzel, serif',
@@ -256,8 +259,8 @@ export const HeroPanel: React.FC = () => {
              border: '1px solid #00ff00',
              color: '#00ff00',
              borderRadius: '4px',
-             cursor: (gameState?.healingSurges || 0) <= 0 || currentHero.hp >= currentHero.maxHp ? 'not-allowed' : 'pointer',
-             opacity: (gameState?.healingSurges || 0) <= 0 || currentHero.hp >= currentHero.maxHp ? 0.5 : 1,
+             cursor: ((gameState?.healingSurges || 0) <= 0 || currentHero.hp >= currentHero.maxHp || currentHero.hasUsedSurgeThisTurn) ? 'not-allowed' : 'pointer',
+             opacity: ((gameState?.healingSurges || 0) <= 0 || currentHero.hp >= currentHero.maxHp || currentHero.hasUsedSurgeThisTurn) ? 0.5 : 1,
              transition: 'all 0.2s'
           }}
         >

@@ -41,13 +41,14 @@ export const ActionBar: React.FC<ActionBarProps> = ({ onOpenTreasure }) => {
   const hasUsablePowers = useGameStore(s => {
     if (!s.gameState) return false;
     const hero = s.gameState.heroes.find(h => h.id === s.gameState!.currentHeroId);
-    return hero ? !!hero.hand && hero.hand.length > 0 : false;
+    if (!hero) return false;
+    return (hero.abilities?.length || 0) > 0 || (hero.selectedPowerIds?.length || 0) > 0;
   });
 
   const hasMovement = useGameStore(s => {
     if (!s.gameState) return false;
     const hero = s.gameState.heroes.find(h => h.id === s.gameState!.currentHeroId);
-    return hero ? !hero.isExhausted : false;
+    return hero ? (!hero.isExhausted || !s.gameState.hasAttackedThisTurn) : false;
   });
 
   const canExplore = useGameStore(s => {
@@ -57,7 +58,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({ onOpenTreasure }) => {
 
   const actions = [
     { id: 'move', label: 'Move', key: 'M', isDisabled: !hasMovement },
-    { id: 'attack', label: 'Attack', key: 'A', isDisabled: !anyAliveMonsters },
+    { id: 'attack', label: 'Attack', key: 'A', isDisabled: !anyAliveMonsters || gameState?.hasAttackedThisTurn },
     { id: 'ability', label: 'Ability', key: 'C', isDisabled: !hasUsablePowers },
     { id: 'explore', label: 'Explore', key: 'E', isDisabled: !canExplore },
     { id: 'endTurn', label: 'End Turn', key: 'Space', isDisabled: false },
@@ -103,7 +104,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({ onOpenTreasure }) => {
               padding: '4px 8px',
               fontSize: '0.7rem',
               boxShadow: isActive ? '0 0 8px rgba(0, 255, 255, 0.4)' : 'none',
-              borderColor: isActive ? '#00ffff' : undefined,
+              border: isActive ? '2px solid #00ffff' : undefined,
               color: isActive ? '#00ffff' : undefined,
               opacity: isDisabledState ? 0.4 : 1,
               cursor: isDisabledState ? 'not-allowed' : 'pointer'
@@ -152,7 +153,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({ onOpenTreasure }) => {
             fontSize: '0.7rem',
             opacity: canDisableTrap ? 1 : 0.5,
             cursor: canDisableTrap ? 'pointer' : 'not-allowed',
-            borderColor: '#ff4444',
+            border: '2px solid #ff4444',
             color: '#ff4444'
           }}
           title={canDisableTrap ? 'Attempt to disable the trap on this tile' : 'You must have an attack action remaining to disable traps'}
@@ -194,7 +195,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({ onOpenTreasure }) => {
             alignItems: 'center',
             padding: '4px 8px',
             fontSize: '0.7rem',
-            borderColor: '#ff00ff',
+            border: '2px solid #ff00ff',
             color: '#ff00ff',
             boxShadow: '0 0 8px rgba(255, 0, 255, 0.4)'
           }}

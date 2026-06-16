@@ -1,5 +1,6 @@
 import { Entity, Condition, ConditionType, GameState, Hero, Tile, ActiveCondition } from '../types';
 import { AbilitySystem } from '../ai/AbilitySystem';
+import { ExperienceSystem } from './ExperienceSystem';
 import { isDev } from '../../utils/devEnv';
 
 /**
@@ -76,14 +77,21 @@ export class ConditionSystem {
    * Conditions that reach 0 turns are removed.
    * Bug 1: Restructured to filter already-expired conditions first, then decrement survivors.
    */
-  public static processTurnEnd<T extends Entity>(entity: T): T {
+  public static processTurnEnd<T extends Entity>(entity: T, currentTurnHeroId?: string): T {
     if (isDev()) {
       console.log(`[ConditionSystem] Processing turn end for ${entity.name}, conditions: ${entity.conditions.map(c => c.type).join(', ') || 'none'}`);
     }
 
     const newConditions = entity.conditions
       .filter(c => {
-        if (c.turnsRemaining <= 0 && c.turnsRemaining !== -1) {
+        const shouldProcess = !currentTurnHeroId || 
+                              (entity.type === 'hero' && entity.id === currentTurnHeroId) || 
+                              (entity.type === 'monster' && (c.sourceId === currentTurnHeroId || !c.sourceId));
+
+        if (!shouldProcess) return true;
+
+        // Expire immediately when it drops to 0
+        if (c.turnsRemaining <= 1 && c.turnsRemaining !== -1) {
           if (isDev()) {
             console.log(`[ConditionSystem] Condition '${c.type}' expired on ${entity.name}`);
           }
@@ -92,7 +100,11 @@ export class ConditionSystem {
         return true;
       })
       .map(c => {
-        if (c.turnsRemaining === -1) return c;
+        const shouldProcess = !currentTurnHeroId || 
+                              (entity.type === 'hero' && entity.id === currentTurnHeroId) || 
+                              (entity.type === 'monster' && (c.sourceId === currentTurnHeroId || !c.sourceId));
+
+        if (!shouldProcess || c.turnsRemaining === -1) return c;
         const nextTurns = c.turnsRemaining - 1;
         if (isDev()) {
           console.log(`[ConditionSystem] Condition '${c.type}' on ${entity.name}, turns remaining decremented to: ${nextTurns}`);
@@ -226,6 +238,28 @@ export class ConditionSystem {
         });
         newState.logIdCounter = (newState.logIdCounter ?? 0) + 1;
       }
+    }
+
+    // Bug 4: Auto-force healing surge at 0 HP
+    if (updatedHero.hp <= 0) {
+      if (newState.healingSurges > 0) {
+        const surgeHeal = ExperienceSystem.getSurgeValue(updatedHero);
+        updatedHero = { 
+          ...updatedHero, 
+          hp: Math.min(updatedHero.maxHp, updatedHero.hp + surgeHeal),
+          hasUsedSurgeThisTurn: true
+        };
+        newState.healingSurges -= 1;
+        
+        logs.push({
+          id: String((newState.logIdCounter ?? 0) + 1),
+          timestamp: new Date().toISOString(),
+          message: `${hero.name} is at 0 HP and automatically spends a Healing Surge to recover ${surgeHeal} HP.`,
+          type: 'system' as const
+        });
+        newState.logIdCounter = (newState.logIdCounter ?? 0) + 1;
+      }
+      // If 0 surges, the defeat check in ScenarioManager (which runs immediately after this) will catch it
     }
 
     // Bug 3: Poison processing at turn start

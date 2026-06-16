@@ -116,7 +116,7 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
     const activeHeroButtonStyle: React.CSSProperties = {
         ...heroButtonStyle,
         backgroundColor: '#3a3a6e',
-        borderColor: '#d4af37',
+        border: '2px solid #d4af37',
         fontWeight: 'bold',
         textDecoration: 'underline',
     };
@@ -204,7 +204,7 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
         ...buttonStyle,
         opacity: 0.5,
         cursor: 'not-allowed',
-        borderColor: '#666',
+        border: '2px solid #666',
     };
 
     const confirmButtonStyle: React.CSSProperties = {

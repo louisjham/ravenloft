@@ -67,7 +67,7 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
 
   useFrame((state, delta) => {
     if (groupRef.current) {
-      const lerpFactor = Math.min(10 * delta, 1);
+      const lerpFactor = Math.min(18 * delta, 1);
       groupRef.current.position.lerp(targetPos.current, lerpFactor);
       let diff = targetRotY.current - groupRef.current.rotation.y;
       while (diff < -Math.PI) diff += Math.PI * 2;
@@ -127,4 +127,4 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
   );
 };
 
-export const Hero3D = Hero3DInner;
+export const Hero3D = React.memo(Hero3DInner);

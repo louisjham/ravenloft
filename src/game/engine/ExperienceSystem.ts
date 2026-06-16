@@ -112,6 +112,7 @@ export class ExperienceSystem {
    */
   public static canLevelUp(gameState: GameState, hero: Hero): boolean {
     if (hero.level >= 2) return false;
+    if (!hero.hasRolledNatural20ThisTurn) return false;
     return ExperienceSystem.getTotalXP(gameState) >= XP_COST_LEVEL_UP;
   }
 
@@ -213,6 +214,15 @@ export class ExperienceSystem {
         newState: gameState,
         success: false,
         message: 'Cannot level up: already at max level.',
+        cardsUsed: []
+      };
+    }
+
+    if (!hero.hasRolledNatural20ThisTurn) {
+      return {
+        newState: gameState,
+        success: false,
+        message: 'Cannot level up: you must roll a natural 20 on an attack or disable trap roll this turn.',
         cardsUsed: []
       };
     }

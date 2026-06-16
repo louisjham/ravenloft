@@ -6215,9 +6215,9 @@ export const runFullGameLoopTest = async () => {
       whiteTile.encounterType = 'white';
 
       // Test Case A: No tile placed (exploredThisTurn: false)
-      // Should draw and resolve encounter card
-      // Prowling Spirits: hero discards one Treasure Card. No HP damage.
-      // Give hero a treasure item so the discard can actually occur.
+      // Encounter card drawing is endTurn()'s responsibility (via the pendingEncounter
+      // + dismissCardResolution flow). executeVillainPhase() receives the state AFTER
+      // the encounter has already been resolved, so it must never touch the deck.
       const bug3HeroWithItem = { ...bug3Hero, items: ['tre_sword_of_ruin'] };
       const stateA: GameState = {
         ...createAIState([bug3HeroWithItem], [startTile]),
@@ -6229,21 +6229,21 @@ export const runFullGameLoopTest = async () => {
       };
 
       const resultA = executeVillainPhase(stateA);
-      if (resultA.encounterDeck.length !== 0) {
-        throw new Error(`Bug 3 Test Case A: Expected encounter deck to be empty, got ${resultA.encounterDeck.length}`);
+      // Encounter drawing is endTurn()'s job — deck must be untouched
+      if (resultA.encounterDeck.length !== 1) {
+        throw new Error(`Bug 3 Test Case A: executeVillainPhase should NOT draw encounter cards (endTurn does). Expected deck length 1, got ${resultA.encounterDeck.length}`);
       }
+      // Hero HP should be unchanged — no encounter was resolved here
       const activeHeroA = resultA.heroes.find(h => h.id === 'bug3_hero')!;
-      // Prowling Spirits discards a treasure — no HP damage, item should be gone
       if (activeHeroA.hp !== 10) {
-        throw new Error(`Bug 3 Test Case A: Expected hero HP to be 10 after enc_prowling_spirits resolved (no damage), got ${activeHeroA.hp}`);
-      }
-      if (activeHeroA.items.includes('tre_sword_of_ruin')) {
-        throw new Error(`Bug 3 Test Case A: Expected hero to have discarded 'tre_sword_of_ruin' after enc_prowling_spirits resolved`);
+        throw new Error(`Bug 3 Test Case A: Expected hero HP to remain 10, got ${activeHeroA.hp}`);
       }
 
 
-      // Test Case B: Tile with a black triangle placed (exploredThisTurn: true, encounterType: 'black')
-      // Should draw and resolve encounter card
+      // Test Case B: Black-triangle tile placed (exploredThisTurn: true, encounterType: 'black')
+      // endTurn() detects the black tile and draws the encounter BEFORE calling
+      // executeVillainPhase(). When executeVillainPhase() is called, the deck is
+      // already consumed and the state has exploredThisTurn: true.
       const stateB: GameState = {
         ...createAIState([bug3Hero], [startTile, blackTile]),
         phase: 'villain',
@@ -6254,11 +6254,9 @@ export const runFullGameLoopTest = async () => {
       };
 
       const resultB = executeVillainPhase(stateB);
-      if (resultB.encounterDeck.length !== 0) {
-        throw new Error(`Bug 3 Test Case B: Expected encounter deck to be empty, got ${resultB.encounterDeck.length}`);
-      }
-      if (resultB.activeEnvironmentCard !== 'enc_cackling_skull') {
-        throw new Error(`Bug 3 Test Case B: Expected activeEnvironmentCard to be 'enc_cackling_skull', got ${resultB.activeEnvironmentCard}`);
+      // Encounter drawing is endTurn()'s job — deck must be untouched
+      if (resultB.encounterDeck.length !== 1) {
+        throw new Error(`Bug 3 Test Case B: executeVillainPhase should NOT draw encounter cards (endTurn does). Expected deck length 1, got ${resultB.encounterDeck.length}`);
       }
 
       // Test Case C: Tile with a white triangle placed (exploredThisTurn: true, encounterType: 'white')
@@ -7081,26 +7079,17 @@ export const runFullGameLoopTest = async () => {
           conditions: []
         };
 
-        // Bug 1: Apply a condition with duration: 1. Call processTurnEnd once. Assert the condition is still present with turnsRemaining: 0.
-        // Call processTurnEnd a second time. Assert the condition is now removed.
+        // Bug 1: Apply a condition with duration: 1. Call processTurnEnd once for the active hero. 
+        // Assert the condition is now removed since it drops to 0.
         const heroWithC1 = ConditionSystem.applyCondition(testHero, 'slowed', 'source_a', 1);
         if (heroWithC1.conditions.length !== 1 || heroWithC1.conditions[0].turnsRemaining !== 1) {
           throw new Error(`Bug 1 Test Failed: expected 1 condition with turnsRemaining 1, got duration ${heroWithC1.conditions[0]?.turnsRemaining}`);
         }
 
-        const afterFirstTurn = ConditionSystem.processTurnEnd(heroWithC1);
+        const afterFirstTurn = ConditionSystem.processTurnEnd(heroWithC1, testHero.id);
         const conditionAfterFirst = afterFirstTurn.conditions.find(c => c.type === 'slowed');
-        if (!conditionAfterFirst) {
-          throw new Error('Bug 1 Test Failed: expected condition to survive first processTurnEnd call');
-        }
-        if (conditionAfterFirst.turnsRemaining !== 0) {
-          throw new Error(`Bug 1 Test Failed: expected turnsRemaining to be 0 after first processTurnEnd call, got ${conditionAfterFirst.turnsRemaining}`);
-        }
-
-        const afterSecondTurn = ConditionSystem.processTurnEnd(afterFirstTurn);
-        const conditionAfterSecond = afterSecondTurn.conditions.find(c => c.type === 'slowed');
-        if (conditionAfterSecond) {
-          throw new Error('Bug 1 Test Failed: expected condition to be removed after second processTurnEnd call');
+        if (conditionAfterFirst) {
+          throw new Error('Bug 1 Test Failed: expected condition to be removed immediately after processTurnEnd call');
         }
 
         // Bug 2: Apply condition from source A. Apply same condition again from source B. Assert sourceId on the condition is now source B's ID.
@@ -7164,35 +7153,14 @@ export const runFullGameLoopTest = async () => {
           }
         });
 
-        // Call endTurn (the first turn end). It should decrement to 0 and persist!
+        // Call endTurn (the first turn end). It should decrement to 0 and be removed immediately!
         useGameStore.getState().endTurn();
         
         const stateAfterFirstEnd = useGameStore.getState().gameState!;
         const heroAfterFirstEnd = stateAfterFirstEnd.heroes.find(h => h.id === 'hero_arjhan')!;
         const condAfterFirstEnd = heroAfterFirstEnd.conditions.find(c => c.type === 'slowed');
-        if (!condAfterFirstEnd) {
-          throw new Error('Bug 4 Test Failed: expected slowed condition to persist after first endTurn call');
-        }
-        if (condAfterFirstEnd.turnsRemaining !== 0) {
-          throw new Error(`Bug 4 Test Failed: expected turnsRemaining to be 0 after first endTurn call, got ${condAfterFirstEnd.turnsRemaining}`);
-        }
-
-        // Call endTurn a second time. It should be removed.
-        const preSecondEndState = useGameStore.getState().gameState!;
-        useGameStore.setState({
-          gameState: {
-            ...preSecondEndState,
-            phase: 'hero',
-            currentHeroId: 'hero_arjhan'
-          }
-        });
-
-        useGameStore.getState().endTurn();
-        const stateAfterSecondEnd = useGameStore.getState().gameState!;
-        const heroAfterSecondEnd = stateAfterSecondEnd.heroes.find(h => h.id === 'hero_arjhan')!;
-        const condAfterSecondEnd = heroAfterSecondEnd.conditions.find(c => c.type === 'slowed');
-        if (condAfterSecondEnd) {
-          throw new Error('Bug 4 Test Failed: expected slowed condition to be removed after second endTurn call');
+        if (condAfterFirstEnd) {
+          throw new Error('Bug 4 Test Failed: expected slowed condition to be removed immediately after first endTurn call');
         }
       }
 

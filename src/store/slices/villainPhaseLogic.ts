@@ -412,10 +412,10 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
               monsters: newState.monsters.map(m => m.id === monster!.id ? updatedMonster : m)
             };
             updatedHeroAfterRiposte = {
-              ...updatedHero,
-              flippedPowerIds: [...(updatedHero.flippedPowerIds ?? []), 'rogue_riposte_strike']
+              ...(updatedHero as Hero),
+              flippedPowerIds: [...((updatedHero as Hero).flippedPowerIds ?? []), 'rogue_riposte_strike']
             };
-            updatedHeroesList = updatedHeroesList.map(h => h.id === updatedHeroAfterRiposte.id ? updatedHeroAfterRiposte : h);
+            updatedHeroesList = updatedHeroesList.map(h => h.id === updatedHeroAfterRiposte.id ? (updatedHeroAfterRiposte as Hero) : h);
             riposteLog = `${updatedHero.name} triggers Riposte Strike, counterattacking ${monster.name} and HITS (Roll: ${riposteResult.roll}, Total: ${riposteResult.total}) for ${riposteResult.damage} damage. Riposte Strike flips face-down.`;
           } else {
             riposteLog = `${updatedHero.name} triggers Riposte Strike, counterattacking ${monster.name} and MISSES (Roll: ${riposteResult.roll}, Total: ${riposteResult.total}). Card does not flip.`;
@@ -545,20 +545,13 @@ export function executeVillainPhase(state: GameState): GameState {
     frenzyActiveThisTurn: false // Reset Frenzy
   };
 
-  // Check if an encounter card should be drawn
-  let shouldDrawEncounter = !newState.exploredThisTurn;
-  if (newState.lastPlacedTileId) {
-    const tile = newState.tiles.find(t => t.id === newState.lastPlacedTileId);
-    if (!tile) {
-      console.warn(`[WARNING] executeVillainPhase: lastPlacedTileId "${newState.lastPlacedTileId}" was set but tile not found in state.`);
-    } else if (tile.encounterType === 'black') {
-      shouldDrawEncounter = true;
-    }
-  }
-
-  if (shouldDrawEncounter) {
-    newState = EncounterSystem.drawAndResolve(newState);
-  }
+  // NOTE: Encounter-card drawing is intentionally NOT done here.
+  // endTurn() (coreSlice) is the sole entry point responsible for drawing encounter
+  // cards with full UI (card reveal, dismiss, XP cancel). When an encounter is drawn
+  // there, endTurn() returns early and sets pendingEncounter=true. dismissCardResolution
+  // (cardSlice) then calls executeVillainPhase() to activate monsters AFTER the
+  // encounter is resolved. Having a second draw here would either double-draw or
+  // silently bypass the card UI entirely.
 
   // 4. Return the final state with experience and treasures processed
   return TreasureSystem.processDefeatedMonsters(newState);

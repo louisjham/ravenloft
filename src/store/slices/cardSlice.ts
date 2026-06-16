@@ -257,14 +257,27 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
         const nextId = villainState.turnOrder[nextIndex];
         const stateAfterTurnStart = ConditionSystem.processTurnStart(villainState, nextId);
 
+        // Bug 5: Check defeat right at the start of the next hero's turn
+        if (ScenarioManager.checkDefeat({ ...stateAfterTurnStart, currentHeroId: nextId })) {
+          set({ gameState: { ...stateAfterTurnStart, currentHeroId: nextId, phase: 'defeat' as const } });
+          useUIStore.getState().showModal('defeat');
+          return;
+        }
+
         set({
           gameState: {
             ...stateAfterTurnStart,
             currentHeroId: nextId,
             phase: 'hero' as const,
             hasExploredThisTurn: false,
+            exploredThisTurn: false,
             lastPlacedTileEncounterType: null,
-            turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0)
+            lastPlacedTileId: null,
+            turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0),
+            heroes: stateAfterTurnStart.heroes.map(h => ({
+              ...h,
+              extraActionsThisTurn: 0,
+            }))
           }
         });
       } else {
@@ -445,14 +458,32 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
         const nextId = villainState.turnOrder[nextIndex];
         const stateAfterTurnStart = ConditionSystem.processTurnStart(villainState, nextId);
  
+        // Bug 5: Check defeat right at the start of the next hero's turn
+        if (ScenarioManager.checkDefeat({ ...stateAfterTurnStart, currentHeroId: nextId })) {
+          set({ gameState: { ...stateAfterTurnStart, currentHeroId: nextId, phase: 'defeat' as const } });
+          useUIStore.getState().showModal('defeat');
+          return;
+        }
+
         set({
           gameState: {
             ...stateAfterTurnStart,
             currentHeroId: nextId,
             phase: 'hero' as const,
             hasExploredThisTurn: false,
+            exploredThisTurn: false,
             lastPlacedTileEncounterType: null,
-            turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0)
+            lastPlacedTileId: null,
+            turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0),
+            // Reset per-turn fortune flags on all heroes
+            heroes: stateAfterTurnStart.heroes.map(h => ({
+              ...h,
+              extraActionsThisTurn: 0,
+              hasRolledNatural20ThisTurn: false,
+              hasUsedSurgeThisTurn: false,
+              isExhausted: false,
+            })),
+            hasAttackedThisTurn: false
           }
         });
       } else {

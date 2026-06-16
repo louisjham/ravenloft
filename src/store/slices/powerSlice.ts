@@ -15,6 +15,11 @@ export const createPowerSlice: StateCreator<GameStore, [], [], PowerSlice> = (se
     const card = dataLoader.getCardById(cardId);
     if (!card) return;
 
+    // Guard: Prevent using non-utility powers if the hero has already attacked
+    if (state.hasAttackedThisTurn && card.powerType !== 'utility') {
+      return;
+    }
+
     const hero = state.heroes.find(h => h.id === state.currentHeroId);
     if (!hero) return;
 
@@ -22,6 +27,8 @@ export const createPowerSlice: StateCreator<GameStore, [], [], PowerSlice> = (se
     const result = await PowerSystem.usePowerAsync(hero, card, target, state);
 
     if (result.success) {
+      const consumesAttack = card.powerType !== 'utility';
+      
       const updatedLog: GameLogEntry[] = [
         ...state.log,
         {
@@ -31,7 +38,13 @@ export const createPowerSlice: StateCreator<GameStore, [], [], PowerSlice> = (se
           type: 'action' as const
         }
       ].slice(-100);
-      set({ gameState: { ...result.newState, log: updatedLog } });
+      set({ 
+        gameState: { 
+          ...result.newState, 
+          log: updatedLog,
+          hasAttackedThisTurn: consumesAttack ? true : result.newState.hasAttackedThisTurn
+        } 
+      });
     }
   },
 
@@ -198,6 +211,15 @@ export const createPowerSlice: StateCreator<GameStore, [], [], PowerSlice> = (se
         };
       });
 
-      set({ gameState: { ...state, phase: 'hero', heroes: newHeroes } });
+      set({ 
+        gameState: { 
+          ...state, 
+          phase: 'hero', 
+          heroes: newHeroes,
+          hasAttackedThisTurn: false,
+          hasExploredThisTurn: false,
+          exploredThisTurn: false
+        } 
+      });
     }
 });

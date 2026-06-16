@@ -9,6 +9,7 @@ import { Card } from './game/types';
 
 import { Physics } from '@react-three/cannon';
 import { Dice3D } from './components/3d/Dice3D';
+import { DiceArena } from './components/3d/DiceArena';
 import { PhysicsGroundPlane } from './components/3d/PhysicsGroundPlane';
 import { TableSurface } from './components/3d/TableSurface';
 import { DungeonWalls } from './components/3d/DungeonWalls';
@@ -147,6 +148,7 @@ const App: React.FC = () => {
             </group>
 
             <Dice3D />
+            <DiceArena />
 
             <FireParticles position={[0.5, 0, 0.5]} />
             <MonsterAIIndicator />

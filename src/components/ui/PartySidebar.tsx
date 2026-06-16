@@ -1,6 +1,7 @@
 import React from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { Hero } from '../../game/types';
+import { ExperienceSystem } from '../../game/engine/ExperienceSystem';
 
 export const PartySidebar: React.FC = () => {
   const gameState = useGameStore((state) => state.gameState);
@@ -19,7 +20,8 @@ export const PartySidebar: React.FC = () => {
 
   const handleHealingSurge = (hero: Hero) => {
     if (!gameState || gameState.healingSurges <= 0 || hero.hp >= hero.maxHp) return;
-    const newHp = Math.min(hero.maxHp, hero.hp + 2);
+    const surgeHeal = ExperienceSystem.getSurgeValue(hero);
+    const newHp = Math.min(hero.maxHp, hero.hp + surgeHeal);
     const newState = {
       ...gameState,
       healingSurges: gameState.healingSurges - 1,

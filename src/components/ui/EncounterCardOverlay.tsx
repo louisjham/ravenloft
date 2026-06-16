@@ -56,18 +56,28 @@ const EncounterCardOverlay: React.FC<EncounterCardOverlayProps> = ({
   return (
     <div className="encounter-overlay">
       <div className="encounter-panel">
-        <h2 className="encounter-title">{card.name}</h2>
-        <div className="encounter-type">{card.encounterType ? card.encounterType.replace('-', ' ') : 'Event'}</div>
-        
-        <div className="encounter-token-container">
-          <img src={imageUrl} alt={card.name} className="encounter-token-img" onError={(e) => {
-            (e.target as HTMLImageElement).src = '/assets/tokens/Token_Encounter_Generic.png';
-          }} />
-        </div>
+        {card.image ? (
+          <div className="encounter-card-image-container" style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+            <img src={card.image} alt={card.name} style={{ width: '100%', maxWidth: '300px', borderRadius: '12px', border: '2px solid #555' }} onError={(e) => {
+              (e.target as HTMLImageElement).src = '/assets/cards/Encounter-back.png';
+            }} />
+          </div>
+        ) : (
+          <>
+            <h2 className="encounter-title">{card.name}</h2>
+            <div className="encounter-type">{card.encounterType ? card.encounterType.replace('-', ' ') : 'Event'}</div>
+            
+            <div className="encounter-token-container">
+              <img src={imageUrl} alt={card.name} className="encounter-token-img" onError={(e) => {
+                (e.target as HTMLImageElement).src = '/assets/tokens/Token_Encounter_Generic.png';
+              }} />
+            </div>
 
-        <div className="encounter-description">
-          {card.description}
-        </div>
+            <div className="encounter-description">
+              {card.description}
+            </div>
+          </>
+        )}
 
         {needsTarget && (
           <div style={{ width: '100%', marginTop: '10px' }}>
@@ -109,7 +119,7 @@ const EncounterCardOverlay: React.FC<EncounterCardOverlayProps> = ({
               ) && (
                 <button
                   className="encounter-button-secondary"
-                  style={{ backgroundColor: '#4a3b8c', borderColor: '#6a5acd', marginTop: '10px' }}
+                  style={{ backgroundColor: '#4a3b8c', border: '2px solid #6a5acd', marginTop: '10px' }}
                   onClick={() => {
                     if (card.id) {
                       useGameStore.getState().cancelEncounterWithDispelMagic(card.id);
@@ -131,7 +141,7 @@ const EncounterCardOverlay: React.FC<EncounterCardOverlayProps> = ({
           {resolution.phase === 'complete' && (
             <button
               className="encounter-button-primary"
-              style={{ backgroundColor: '#2d6a2d', borderColor: '#4caf50' }}
+              style={{ backgroundColor: '#2d6a2d', border: '2px solid #4caf50' }}
               onClick={onDismiss}
             >
               {primaryButtonText}

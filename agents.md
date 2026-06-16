@@ -2,6 +2,12 @@
 
 This file provides guidance to agents when working with code in this repository.
 
+## Source of Truth
+- The ultimate source of truth for the game mechanics is the official D&D Adventure System board game rules and the literal text printed on the game cards.
+- The transcribed text for all cards is located in `card-source-truth/` (e.g., `items.md`, `monsters.md`, `environments.md`, `events.md`, `event-attacks.md`, `traps.md`, `powers.md`).
+- The corresponding card art is located in `card-source-truth/cardart/`.
+- Unless explicitly documented otherwise, always implement mechanics exactly as they are written in the physical board game rules and on the card text.
+
 ## Build & Run
 - `npm run dev` — Start dev server on port 3000
 - `npm run build` — TypeScript compile + Vite production build

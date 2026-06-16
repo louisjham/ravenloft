@@ -45,7 +45,7 @@ const TileTexture: React.FC<{ imageUrl: string }> = ({ imageUrl }) => {
 /**
  * 3D component for a Dungeon Tile (4×4 squares).
  */
-export const Tile3D: React.FC<Tile3DProps> = ({ tile, isRevealed, reachableSquares }) => {
+const Tile3DInner: React.FC<Tile3DProps> = ({ tile, isRevealed, reachableSquares }) => {
   const hoveredTile = useGameStore((state) => state.hoveredTile);
   const isHovered = hoveredTile?.id === tile.id;
   const interactionMode = useUIStore((state) => state.interactionMode);
@@ -204,3 +204,5 @@ const MovementSquare3D: React.FC<MovementSquare3DProps> = ({ sqX, sqZ, tile, onM
     </mesh>
   );
 };
+
+export const Tile3D = React.memo(Tile3DInner);

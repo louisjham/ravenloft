@@ -12,27 +12,27 @@ export interface DiceProfile {
   physics: PhysicsProfile;
 }
 
-const DEFAULT_HERO_PHYSICS: PhysicsProfile = {
+export const DEFAULT_HERO_PHYSICS: PhysicsProfile = {
   mass: 1,
   friction: 0.4,
-  restitution: 0.4,
-  impulseMultiplier: 1.2,
+  restitution: 0.15,
+  impulseMultiplier: 1.5,
   dropHeight: 0.6,
 };
 
 const HEAVY_VILLAIN_PHYSICS: PhysicsProfile = {
   mass: 2.5,
   friction: 0.5,
-  restitution: 0.2, // Heavy, thudding
-  impulseMultiplier: 0.8,
+  restitution: 0.1, // Heavy, thudding
+  impulseMultiplier: 1.0,
   dropHeight: 0.5,
 };
 
 const LIGHT_MINION_PHYSICS: PhysicsProfile = {
   mass: 0.5,
   friction: 0.3,
-  restitution: 0.6, // Bouncy, clattery
-  impulseMultiplier: 1.5,
+  restitution: 0.2, // Less bouncy, faster settle
+  impulseMultiplier: 1.8,
   dropHeight: 0.7,
 };
 

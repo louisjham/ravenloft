@@ -8,6 +8,7 @@ import { CombatSystem } from '../../game/engine/CombatSystem';
 import { TreasureSystem } from '../../game/engine/TreasureSystem';
 import { TokenSystem } from '../../game/engine/TokenSystem';
 import { EncounterSystem } from '../../game/engine/EncounterSystem';
+import { ExperienceSystem } from '../../game/engine/ExperienceSystem';
 import { useUIStore } from '../uiStore';
 import { executeVillainPhase } from './villainPhaseLogic';
 import { ObjectiveTracker } from '../../game/scenarios/Objectives';
@@ -27,6 +28,10 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     voiceVolume: 0.8,
     showDevTools: false,
     difficulty: 'normal',
+    quickRoll: false,
+    animationSpeed: 'normal',
+    graphicsQuality: 'high',
+    resolutionScale: 1.0,
   },
 
   setGameState: (gameState: GameState) => set({ gameState }),
@@ -161,6 +166,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
       monsterDeck: (() => {
         const monsterIds = DataLoader.getInstance()
           .getMonsters()
+          .filter(m => !m.isBoss && m.experienceValue > 0)
           .map(m => m.id);
         for (let i = monsterIds.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
@@ -184,6 +190,8 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
       activeConditions: [],
       cardResolution: { phase: 'idle', cardId: null, cardType: null, pendingEffects: [], resolvedEffects: [], targetEntityId: null, result: null },
       exploredThisTurn: false,
+      hasExploredThisTurn: false,
+      hasAttackedThisTurn: false,
       lastPlacedTileId: null,
       activeBlessings: [],
 
@@ -510,6 +518,13 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     const nextId = newState.turnOrder[nextIndex];
     const stateAfterTurnStart = ConditionSystem.processTurnStart(newState, nextId);
 
+    // Bug 5: Check defeat right at the start of the next hero's turn
+    if (ScenarioManager.checkDefeat({ ...stateAfterTurnStart, currentHeroId: nextId })) {
+      set({ gameState: { ...stateAfterTurnStart, currentHeroId: nextId, phase: 'defeat' } as any });
+      useUIStore.getState().showModal('defeat');
+      return;
+    }
+
     set({
       gameState: {
         ...stateAfterTurnStart,
@@ -519,11 +534,15 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
         exploredThisTurn: false,
         lastPlacedTileEncounterType: null,
         lastPlacedTileId: null,
+        hasAttackedThisTurn: false,
         turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0),
         // Reset per-turn fortune flags on all heroes
         heroes: stateAfterTurnStart.heroes.map(h => ({
           ...h,
           extraActionsThisTurn: 0,
+          hasRolledNatural20ThisTurn: false,
+          hasUsedSurgeThisTurn: false,
+          isExhausted: false,
         }))
       } as any
     });
@@ -533,26 +552,29 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     const state = get().gameState;
     if (!state) return;
 
-    const currentHero = state.heroes.find(h => h.id === heroId);
-    if (!currentHero || currentHero.xp < 5) return;
+    const hero = state.heroes.find(h => h.id === heroId);
+    if (!hero) return;
 
-    const updatedHeroes = state.heroes.map(hero => {
-      if (hero.id === heroId) {
-        return {
-          ...hero,
-          level: hero.level + 1,
-          xp: hero.xp - 5,
-          hp: hero.maxHp + 2,
-          maxHp: hero.maxHp + 2,
-          ac: hero.ac + 1,
-          attackBonus: hero.attackBonus ? hero.attackBonus + 1 : 1,
-          abilities: newDailyPowerId ? [...hero.abilities, newDailyPowerId] : hero.abilities
-        };
+    // Delegate to ExperienceSystem which uses the shared experiencePile (card-based XP)
+    const result = ExperienceSystem.levelUpHero(state, hero, newDailyPowerId);
+    if (!result.success) {
+      console.warn('[coreSlice.levelUpHero]', result.message);
+      return;
+    }
+
+    const logEntry: GameLogEntry = {
+      id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      message: result.message,
+      type: 'system' as const
+    };
+
+    set({
+      gameState: {
+        ...result.newState,
+        log: [...result.newState.log, logEntry].slice(-100)
       }
-      return hero;
     });
-
-    set({ gameState: { ...state, heroes: updatedHeroes } });
   },
 
   escapeHero: (heroId: string) => {

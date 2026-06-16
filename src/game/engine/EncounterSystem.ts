@@ -1865,11 +1865,19 @@ export class EncounterSystem {
         };
         const nextLog = [...(gameState.log ?? []), logEntry].slice(-100);
 
+        let finalGameState = { ...gameState, log: nextLog, logIdCounter: nextLogId };
+
+        if (roll === 20) {
+            finalGameState.heroes = finalGameState.heroes.map(h => 
+                h.id === hero.id ? { ...h, hasRolledNatural20ThisTurn: true } : h
+            );
+        }
+
         if (success) {
-            const updatedTraps = gameState.traps.filter(t => t.id !== trap.id);
+            const updatedTraps = finalGameState.traps.filter(t => t.id !== trap.id);
             const updatedDiscardPiles = {
-                ...gameState.discardPiles,
-                encounter: [...(gameState.discardPiles['encounter'] ?? []), card.id]
+                ...finalGameState.discardPiles,
+                encounter: [...(finalGameState.discardPiles['encounter'] ?? []), card.id]
             };
 
             return {
@@ -1877,12 +1885,10 @@ export class EncounterSystem {
                 message: msg,
                 disabled: true,
                 gameState: {
-                    ...gameState,
+                    ...finalGameState,
                     traps: updatedTraps,
                     discardPiles: updatedDiscardPiles,
-                    hasAttackedThisTurn: true,
-                    log: nextLog,
-                    logIdCounter: nextLogId
+                    hasAttackedThisTurn: true
                 }
             };
         } else {
@@ -1891,10 +1897,8 @@ export class EncounterSystem {
                 message: msg,
                 disabled: false,
                 gameState: {
-                    ...gameState,
-                    hasAttackedThisTurn: true,
-                    log: nextLog,
-                    logIdCounter: nextLogId
+                    ...finalGameState,
+                    hasAttackedThisTurn: true
                 }
             };
         }
