@@ -19,6 +19,7 @@ const getIconForType = (type: string): string => {
     case 'marked': return '◎';
     case 'pushed': return '→';
     case 'prone': return '↙';
+    case 'mummy_rot': return '🤕';
     default: return '?';
   }
 };

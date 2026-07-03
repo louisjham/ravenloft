@@ -12,7 +12,6 @@ export function useGameTransition() {
   const hideModal = useUIStore((state) => state.hideModal);
 
   const handleStartGame = useCallback((scenarioId: string, heroIds: string[]) => {
-    console.log('[DEBUG] App.handleStartGame: Called with', scenarioId, heroIds);
     startTransition();
     startNewGame(scenarioId, heroIds);
     hideModal();

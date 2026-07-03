@@ -6,24 +6,26 @@ import * as THREE from 'three';
 
 interface ExplorationArrowProps {
   point: ExplorationPoint;
-  onClick: (point: ExplorationPoint) => void;
+  onClick?: (point: ExplorationPoint) => void;
   isHighlighted: boolean;
+  isSubtle?: boolean;
 }
 
 export const ExplorationArrow: React.FC<ExplorationArrowProps> = ({
   point,
   onClick,
-  isHighlighted
+  isHighlighted,
+  isSubtle = false
 }) => {
   const [hovered, setHovered] = useState(false);
 
   // Pulse animation for active highlights
   const meshRef = useRef<THREE.Mesh>(null);
-  const activeHighlight = isHighlighted || hovered;
-  const scale = activeHighlight ? 1.2 : 1.0; // Base scale for the mesh
+  const activeHighlight = !isSubtle && (isHighlighted || hovered);
+  const scale = isSubtle ? 0.6 : (activeHighlight ? 1.2 : 1.0); // Base scale for the mesh
 
   useFrame((state) => {
-    if (activeHighlight && meshRef.current) {
+    if (!isSubtle && activeHighlight && meshRef.current) {
       const pulseScale = scale * (1 + Math.sin(state.clock.elapsedTime * 4) * 0.1);
       meshRef.current.scale.set(pulseScale, pulseScale, pulseScale);
     } else if (meshRef.current) {
@@ -41,23 +43,34 @@ export const ExplorationArrow: React.FC<ExplorationArrowProps> = ({
     case 'west':  rotY = Math.PI * 0.5; break;
   }
 
+  const arrowColor = isSubtle ? "#999999" : (activeHighlight ? "#00ffff" : "#ffcc00");
+  const emissiveColor = isSubtle ? "#333333" : (activeHighlight ? "#00ffff" : "#ff8800");
+  const emissiveIntensity = isSubtle ? 0.4 : (activeHighlight ? 2.5 : 1.2);
+  const opacity = isSubtle ? 0.35 : 0.9;
+  const baseScale = isSubtle ? 0.35 : 0.6;
+
+  // Pointer event handlers are omitted for subtle arrows to avoid blocking clicks on tiles
+  const interactionHandlers = isSubtle ? {} : {
+    onPointerOver: (e: ThreeEvent<PointerEvent>) => {
+      e.stopPropagation();
+      setHovered(true);
+    },
+    onPointerOut: (e: ThreeEvent<PointerEvent>) => {
+      e.stopPropagation();
+      setHovered(false);
+    },
+    onClick: (e: ThreeEvent<MouseEvent>) => {
+      e.stopPropagation();
+      if (onClick) onClick(point);
+    }
+  };
+
   return (
     <group
       position={[point.worldX, 0.5, point.worldZ]}
       rotation={[0, rotY, 0]}
-      scale={[0.6, 0.6, 0.6]}
-      onPointerOver={(e: ThreeEvent<PointerEvent>) => {
-        e.stopPropagation();
-        setHovered(true);
-      }}
-      onPointerOut={(e: ThreeEvent<PointerEvent>) => {
-        e.stopPropagation();
-        setHovered(false);
-      }}
-      onClick={(e: ThreeEvent<MouseEvent>) => {
-        e.stopPropagation();
-        onClick(point);
-      }}
+      scale={[baseScale, baseScale, baseScale]}
+      {...interactionHandlers}
     >
       {/* 
         A simple flat arrow shape.
@@ -67,11 +80,11 @@ export const ExplorationArrow: React.FC<ExplorationArrowProps> = ({
       <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]}>
         <coneGeometry args={[0.7, 1.5, 4]} />
         <meshStandardMaterial 
-          color={activeHighlight ? "#00ffff" : "#ffcc00"} 
-          emissive={activeHighlight ? "#00ffff" : "#ff8800"}
-          emissiveIntensity={activeHighlight ? 2.5 : 1.2}
+          color={arrowColor} 
+          emissive={emissiveColor}
+          emissiveIntensity={emissiveIntensity}
           transparent
-          opacity={0.9}
+          opacity={opacity}
         />
       </mesh>
     </group>

@@ -36,6 +36,7 @@ export const PowerCardDisplay: React.FC<PowerCardDisplayProps> = ({
   isFlipped,
 }) => {
   const [hovered, setHovered] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
 
   const handleClick = () => {
     if (isFlipped) return;
@@ -89,7 +90,7 @@ export const PowerCardDisplay: React.FC<PowerCardDisplayProps> = ({
       }}
     >
       {/* ── Card Art ── */}
-      {card.image && !isFlipped ? (
+      {card.image && !isFlipped && !imageFailed ? (
         <img
           src={card.image}
           alt={card.name}
@@ -103,8 +104,8 @@ export const PowerCardDisplay: React.FC<PowerCardDisplayProps> = ({
             transition: 'filter 0.3s',
           }}
           draggable={false}
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none';
+          onError={() => {
+            setImageFailed(true);
           }}
         />
       ) : (

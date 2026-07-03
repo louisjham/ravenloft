@@ -12,6 +12,7 @@ import { MonsterAI } from '../game/ai/MonsterAI';
 import { CombatSystem } from '../game/engine/CombatSystem';
 import { ConditionSystem } from '../game/engine/ConditionSystem';
 import { PowerSystem } from '../game/engine/PowerSystem';
+import { ExperienceSystem } from '../game/engine/ExperienceSystem';
 import { useGameStore } from '../store/gameStore';
 import { buildVillainQueue, applyTrapResult, executeVillainPhase } from '../store/slices/villainPhaseLogic';
 import { useUIStore } from '../store/uiStore';
@@ -3424,7 +3425,7 @@ export const runFullGameLoopTest = async () => {
         ...testGameState,
         phase: 'setup',
         currentHeroId: testHeroId,
-        heroes: [{ ...testHero, heroClass: 'fighter', id: testHeroId }],
+        heroes: [{ ...testHero, heroClass: 'ranger', id: testHeroId }],
         powerSelections: [
           { heroId: testHeroId, selectedPowerIds: testCardIds, isConfirmed: true }
         ]
@@ -6750,22 +6751,473 @@ export const runFullGameLoopTest = async () => {
         usedPowers: []
       };
 
-      // Assert Sunsword grants +2 attack bonus against Bodak (undead). Roll of 10 + 2 = 12 >= AC 12, so it hits.
-      const resultBodak = CombatSystem.resolveAttack(heroWithSunsword, undeadBodak, 0, 1, 0, 10);
-      if (!resultBodak.hit) {
-        throw new Error('C1 Test Failed: expected Sunsword to grant +2 attack bonus against undead Bodak and hit');
+      const vampireTarget: Monster = {
+        id: 'c1_vampire',
+        name: 'Vampire',
+        type: 'monster',
+        monsterType: 'Vampire',
+        isUndead: true,
+        behavior: { conditions: [], priorityTargets: [], actions: [] } as any,
+        attackBonus: 0,
+        damage: 1,
+        experienceValue: 1,
+        ownedByHeroId: null,
+        position: { x: 0, z: 0, sqX: 2, sqZ: 2 },
+        hp: 5,
+        maxHp: 5,
+        ac: 12,
+        speed: 1,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const nonAdjacentVampire: Monster = {
+        ...vampireTarget,
+        id: 'c1_vampire_far',
+        position: { x: 2, z: 2, sqX: 2, sqZ: 2 }
+      };
+
+      // Create a game state to test Tome of Strahd (requires heroes in state)
+      const tomeHero: Hero = {
+        id: 'tome_hero',
+        name: 'Tome Hero',
+        type: 'hero',
+        heroClass: 'wizard',
+        level: 1,
+        maxHp: 10,
+        hp: 10,
+        ac: 10,
+        speed: 6,
+        xp: 0,
+        surgeValue: 3,
+        surgeUsed: false,
+        abilities: [],
+        hand: [],
+        items: ['item_tome_of_strahd'],
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+        isExhausted: false,
+        attackBonus: 0,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const nearbyHero: Hero = {
+        id: 'nearby_hero',
+        name: 'Nearby Hero',
+        type: 'hero',
+        heroClass: 'cleric',
+        level: 1,
+        maxHp: 10,
+        hp: 10,
+        ac: 10,
+        speed: 6,
+        xp: 0,
+        surgeValue: 3,
+        surgeUsed: false,
+        abilities: [],
+        hand: [],
+        items: [],
+        position: { x: 0, z: 1, sqX: 1, sqZ: 1 }, // within 1 tile
+        isExhausted: false,
+        attackBonus: 0,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const farHero: Hero = {
+        id: 'far_hero',
+        name: 'Far Hero',
+        type: 'hero',
+        heroClass: 'rogue',
+        level: 1,
+        maxHp: 10,
+        hp: 10,
+        ac: 10,
+        speed: 6,
+        xp: 0,
+        surgeValue: 3,
+        surgeUsed: false,
+        abilities: [],
+        hand: [],
+        items: [],
+        position: { x: 3, z: 3, sqX: 1, sqZ: 1 }, // far away
+        isExhausted: false,
+        attackBonus: 0,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const tomeGameState: GameState = {
+        heroes: [tomeHero, nearbyHero, farHero],
+        log: [],
+        logIdCounter: 0
+      } as any;
+
+      // Assert Sunsword grants +1 damage against adjacent Vampires. Base 1 damage -> 2 damage.
+      const resultSunswordAdjacent = CombatSystem.resolveAttack(heroWithSunsword, vampireTarget, 0, 1, 0, 12, tomeGameState);
+      if (resultSunswordAdjacent.damage !== 2) {
+        throw new Error(`C1 Test Failed: expected Sunsword to grant +1 damage bonus against adjacent Vampire, got ${resultSunswordAdjacent.damage}`);
       }
 
-      // Assert Sunsword does NOT apply against Wolf (non-undead). Roll of 10 + 0 = 10 < AC 12, so it misses.
-      const resultWolf = CombatSystem.resolveAttack(heroWithSunsword, animalWolf, 0, 1, 0, 10);
-      if (resultWolf.hit) {
-        throw new Error('C1 Test Failed: expected Sunsword bonus to not apply against non-undead Wolf');
+      // Assert Sunsword does NOT apply damage bonus against non-adjacent Vampire. Base 1 damage -> 1 damage.
+      const resultSunswordFar = CombatSystem.resolveAttack(heroWithSunsword, nonAdjacentVampire, 0, 1, 0, 12, tomeGameState);
+      if (resultSunswordFar.damage !== 1) {
+        throw new Error(`C1 Test Failed: expected Sunsword to not grant damage bonus against far Vampire, got ${resultSunswordFar.damage}`);
+      }
+
+      // Assert Sunsword does NOT apply against Wolf (non-Vampire). Base 1 damage -> 1 damage.
+      const resultSunswordWolf = CombatSystem.resolveAttack(heroWithSunsword, animalWolf, 0, 1, 0, 12, tomeGameState);
+      if (resultSunswordWolf.damage !== 1) {
+        throw new Error(`C1 Test Failed: expected Sunsword to not grant damage bonus against Wolf, got ${resultSunswordWolf.damage}`);
+      }
+
+      // Assert Tome of Strahd owner gets +2 attack bonus vs Vampires. Roll of 10 + 2 = 12 >= AC 12 (hits).
+      const resultTomeOwner = CombatSystem.resolveAttack(tomeHero, vampireTarget, 0, 1, 0, 10, tomeGameState);
+      if (!resultTomeOwner.hit) {
+        throw new Error('C1 Test Failed: expected Tome of Strahd owner to get +2 attack bonus and hit Vampire');
+      }
+
+      // Assert hero within 1 tile of Tome of Strahd owner gets +2 attack bonus vs Vampires. Roll of 10 + 2 = 12 >= AC 12 (hits).
+      const resultTomeNearby = CombatSystem.resolveAttack(nearbyHero, vampireTarget, 0, 1, 0, 10, tomeGameState);
+      if (!resultTomeNearby.hit) {
+        throw new Error('C1 Test Failed: expected nearby hero to get +2 attack bonus from Tome of Strahd and hit Vampire');
+      }
+
+      // Assert hero far away from Tome of Strahd owner does NOT get +2 attack bonus. Roll of 10 + 0 = 10 < AC 12 (misses).
+      const resultTomeFar = CombatSystem.resolveAttack(farHero, vampireTarget, 0, 1, 0, 10, tomeGameState);
+      if (resultTomeFar.hit) {
+        throw new Error('C1 Test Failed: expected far hero to not get attack bonus from Tome of Strahd');
       }
 
       // Assert Holy Avenger damage bonus (+2 damage vs Undead) applies. Base 1 + 2 = 3 damage.
       const resultHolyAvenger = CombatSystem.resolveAttack(heroWithHolyAvenger, undeadBodak, 0, 1, 0, 12);
       if (resultHolyAvenger.damage !== 3) {
         throw new Error(`C1 Test Failed: expected Holy Avenger to deal 3 damage to undead, got ${resultHolyAvenger.damage}`);
+      }
+
+      // --- Silver Dagger & Wooden Stake Status Effects Tests ---
+      const werewolfTarget: Monster = {
+        id: 'c1_werewolf',
+        name: 'Werewolf',
+        type: 'monster',
+        monsterType: 'Werewolf',
+        isUndead: false,
+        behavior: { conditions: [], priorityTargets: [], actions: [] } as any,
+        attackBonus: 0,
+        damage: 1,
+        experienceValue: 1,
+        ownedByHeroId: 'silver_dagger_hero',
+        position: { x: 0, z: 0, sqX: 2, sqZ: 2 },
+        hp: 8,
+        maxHp: 10,
+        ac: 14,
+        speed: 1,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: [],
+        abilities: [
+          {
+            id: 'regeneration',
+            name: 'Regeneration',
+            description: 'Heals 1 HP at turn start',
+            type: 'passive',
+            trigger: 'on_turn_start',
+            effects: [
+              { type: 'heal', value: 1, target: 'self' }
+            ]
+          }
+        ]
+      };
+
+      const heroWithSilverDagger: Hero = {
+        id: 'silver_dagger_hero',
+        name: 'Silver Dagger Hero',
+        type: 'hero',
+        heroClass: 'fighter',
+        level: 1,
+        maxHp: 10,
+        hp: 10,
+        ac: 10,
+        speed: 6,
+        xp: 0,
+        surgeValue: 3,
+        surgeUsed: false,
+        abilities: [],
+        hand: [],
+        items: ['item_silver_dagger'],
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+        isExhausted: false,
+        attackBonus: 0,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const silverDaggerCard = {
+        id: 'item_silver_dagger',
+        name: 'Silver Dagger',
+        treasureType: 'item'
+      } as any;
+
+      const baseSilverState: GameState = {
+        ...createAIState([heroWithSilverDagger], [{ id: 'start_tile', x: 0, z: 0, isRevealed: true, monsters: ['c1_werewolf'], heroes: ['silver_dagger_hero'], connections: [] } as any]),
+        monsters: [werewolfTarget]
+      };
+
+      // 1. Resolve Silver Dagger usage
+      // Force roll of 10. Attack: 10 + 5 = 15 >= AC 14 (Hits). Damage: 3.
+      AbilitySystem._rollOverride = () => 10;
+      const silverRes = TreasureSystem.useItem(baseSilverState, silverDaggerCard, heroWithSilverDagger, werewolfTarget);
+      AbilitySystem._rollOverride = null;
+
+      if (!silverRes.success) {
+        throw new Error(`Silver Dagger Test Failed: expected success, got ${silverRes.message}`);
+      }
+
+      const postSilverTarget = silverRes.newState.monsters.find(m => m.id === 'c1_werewolf')!;
+      if (postSilverTarget.hp !== 5) {
+        throw new Error(`Silver Dagger Test Failed: expected Werewolf hp to be 5, got ${postSilverTarget.hp}`);
+      }
+      if (postSilverTarget.regenerationDisabled !== true) {
+        throw new Error('Silver Dagger Test Failed: expected regenerationDisabled to be true');
+      }
+
+      // 2. Resolve turn start with disabled regeneration
+      // Execute villain phase to trigger turn start passive
+      const postRegenState = executeVillainPhase(silverRes.newState);
+      const postRegenTarget = postRegenState.monsters.find(m => m.id === 'c1_werewolf')!;
+      if (postRegenTarget.hp !== 5) {
+        throw new Error(`Silver Dagger Test Failed: Werewolf healed to ${postRegenTarget.hp} despite disabled regeneration`);
+      }
+
+      // 3. Wooden Stake skip-activation test
+      const heroWithWoodenStake: Hero = {
+        id: 'wooden_stake_hero',
+        name: 'Wooden Stake Hero',
+        type: 'hero',
+        heroClass: 'fighter',
+        level: 1,
+        maxHp: 10,
+        hp: 10,
+        ac: 10,
+        speed: 6,
+        xp: 0,
+        surgeValue: 3,
+        surgeUsed: false,
+        abilities: [],
+        hand: [],
+        items: ['item_wooden_stake'],
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+        isExhausted: false,
+        attackBonus: 0,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const woodenStakeCard = {
+        id: 'item_wooden_stake',
+        name: 'Wooden Stake',
+        treasureType: 'item'
+      } as any;
+
+      const vampireTargetForStake: Monster = {
+        ...vampireTarget,
+        ownedByHeroId: 'wooden_stake_hero'
+      };
+
+      const baseStakeState: GameState = {
+        ...createAIState([heroWithWoodenStake], [{ id: 'start_tile', x: 0, z: 0, isRevealed: true, monsters: ['c1_vampire'], heroes: ['wooden_stake_hero'], connections: [] } as any]),
+        monsters: [vampireTargetForStake]
+      };
+
+      // Force roll of 10. Attack: 10 + 5 = 15 >= AC 12 (Hits). Damage: 3.
+      AbilitySystem._rollOverride = () => 10;
+      const stakeRes = TreasureSystem.useItem(baseStakeState, woodenStakeCard, heroWithWoodenStake, vampireTargetForStake);
+      AbilitySystem._rollOverride = null;
+
+      if (!stakeRes.success) {
+        throw new Error(`Wooden Stake Test Failed: expected success, got ${stakeRes.message}`);
+      }
+
+      const postStakeTarget = stakeRes.newState.monsters.find(m => m.id === 'c1_vampire')!;
+      if (postStakeTarget.hp !== 2) {
+        throw new Error(`Wooden Stake Test Failed: expected Vampire hp to be 2, got ${postStakeTarget.hp}`);
+      }
+      if (postStakeTarget.skipActivations !== 1) {
+        throw new Error(`Wooden Stake Test Failed: expected skipActivations to be 1, got ${postStakeTarget.skipActivations}`);
+      }
+
+      // Execute villain phase to skip activation and decrement skipActivations
+      const postSkipState = executeVillainPhase(stakeRes.newState);
+      const postSkipTarget = postSkipState.monsters.find(m => m.id === 'c1_vampire')!;
+      if (postSkipTarget.skipActivations !== 0) {
+        throw new Error(`Wooden Stake Test Failed: expected skipActivations to be decremented to 0, got ${postSkipTarget.skipActivations}`);
+      }
+
+      // --- Torch & Wand of Teleportation Spatial Mechanics Tests ---
+      const torchHero: Hero = {
+        id: 'torch_hero',
+        name: 'Torch Hero',
+        type: 'hero',
+        heroClass: 'fighter',
+        level: 1,
+        maxHp: 10,
+        hp: 10,
+        ac: 10,
+        speed: 6,
+        xp: 0,
+        surgeValue: 3,
+        surgeUsed: false,
+        abilities: [],
+        hand: [],
+        items: ['item_torch'],
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+        isExhausted: false,
+        attackBonus: 0,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const torchMonster1: Monster = {
+        id: 'torch_m1',
+        name: 'Torch Monster 1',
+        type: 'monster',
+        monsterType: 'Zombie',
+        behavior: { conditions: [], priorityTargets: [], actions: [] } as any,
+        attackBonus: 0,
+        damage: 1,
+        experienceValue: 1,
+        ownedByHeroId: 'torch_hero',
+        position: { x: 0, z: 0, sqX: 2, sqZ: 2 },
+        hp: 5,
+        maxHp: 5,
+        ac: 12,
+        speed: 1,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const torchMonster2: Monster = {
+        ...torchMonster1,
+        id: 'torch_m2',
+        name: 'Torch Monster 2',
+        position: { x: 0, z: 0, sqX: 3, sqZ: 3 }
+      };
+
+      const torchCard = {
+        id: 'item_torch',
+        name: 'Torch',
+        treasureType: 'item'
+      } as any;
+
+      const baseTorchState: GameState = {
+        ...createAIState([torchHero], [
+          { id: 'start_tile', x: 0, z: 0, isRevealed: true, monsters: ['torch_m1', 'torch_m2'], heroes: ['torch_hero'], connections: [] } as any,
+          { id: 'adj_tile', x: 0, z: 1, isRevealed: true, monsters: [], heroes: [], connections: [] } as any
+        ]),
+        monsters: [torchMonster1, torchMonster2]
+      };
+
+      // Force rolls of 10. Attack: 10 + 5 = 15 >= AC 12 (Hits). Damage: 1.
+      AbilitySystem._rollOverride = () => 10;
+      const torchRes = TreasureSystem.useItem(baseTorchState, torchCard, torchHero);
+      AbilitySystem._rollOverride = null;
+
+      if (!torchRes.success) {
+        throw new Error(`Torch Test Failed: expected success, got ${torchRes.message}`);
+      }
+
+      const postTorchM1 = torchRes.newState.monsters.find(m => m.id === 'torch_m1')!;
+      const postTorchM2 = torchRes.newState.monsters.find(m => m.id === 'torch_m2')!;
+
+      if (postTorchM1.hp !== 4 || postTorchM2.hp !== 4) {
+        throw new Error(`Torch Test Failed: expected hp to be 4, got ${postTorchM1.hp} and ${postTorchM2.hp}`);
+      }
+      // Assert monsters were moved to the adjacent tile (adj_tile, x: 0, z: 1)
+      if (postTorchM1.position.x !== 0 || postTorchM1.position.z !== 1 || postTorchM2.position.x !== 0 || postTorchM2.position.z !== 1) {
+        throw new Error('Torch Test Failed: expected monsters to be placed on adjacent tile');
+      }
+
+      // Wand of Teleportation test
+      const wandHero: Hero = {
+        id: 'wand_hero',
+        name: 'Wand Hero',
+        type: 'hero',
+        heroClass: 'fighter',
+        level: 1,
+        maxHp: 10,
+        hp: 10,
+        ac: 10,
+        speed: 6,
+        xp: 0,
+        surgeValue: 3,
+        surgeUsed: false,
+        abilities: [],
+        hand: [],
+        items: ['item_wand_of_teleportation'],
+        position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+        isExhausted: false,
+        attackBonus: 0,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const wandMonster1: Monster = {
+        id: 'wand_m1',
+        name: 'Wand Monster 1',
+        type: 'monster',
+        monsterType: 'Zombie',
+        behavior: { conditions: [], priorityTargets: [], actions: [] } as any,
+        attackBonus: 0,
+        damage: 1,
+        experienceValue: 1,
+        ownedByHeroId: 'wand_hero',
+        position: { x: 0, z: 1, sqX: 2, sqZ: 2 }, // on adjacent tile
+        hp: 5,
+        maxHp: 5,
+        ac: 12,
+        speed: 1,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: []
+      };
+
+      const wandMonster2: Monster = {
+        ...wandMonster1,
+        id: 'wand_m2',
+        name: 'Wand Monster 2',
+        position: { x: 0, z: 1, sqX: 3, sqZ: 3 }
+      };
+
+      const wandCard = {
+        id: 'item_wand_of_teleportation',
+        name: 'Wand Of Teleportation',
+        treasureType: 'item'
+      } as any;
+
+      const baseWandState: GameState = {
+        ...createAIState([wandHero], [
+          { id: 'start_tile', x: 0, z: 0, isRevealed: true, monsters: [], heroes: ['wand_hero'], connections: [] } as any,
+          { id: 'adj_tile', x: 0, z: 1, isRevealed: true, monsters: ['wand_m1', 'wand_m2'], heroes: [], connections: [] } as any,
+          { id: 'far_tile', x: 1, z: 2, isRevealed: true, monsters: [], heroes: [], connections: [] } as any // within 3 tiles of hero (1 + 2 = 3)
+        ]),
+        monsters: [wandMonster1, wandMonster2]
+      };
+
+      // Use Wand targeting wandMonster1 (representing targeting its tile)
+      const wandRes = TreasureSystem.useItem(baseWandState, wandCard, wandHero, wandMonster1);
+
+      if (!wandRes.success) {
+        throw new Error(`Wand of Teleportation Test Failed: expected success, got ${wandRes.message}`);
+      }
+
+      const postWandM1 = wandRes.newState.monsters.find(m => m.id === 'wand_m1')!;
+      const postWandM2 = wandRes.newState.monsters.find(m => m.id === 'wand_m2')!;
+
+      // Assert monsters were moved to the far tile (far_tile, x: 1, z: 2) since it's the farthest tile within 3 tiles of hero
+      if (postWandM1.position.x !== 1 || postWandM1.position.z !== 2 || postWandM2.position.x !== 1 || postWandM2.position.z !== 2) {
+        throw new Error(`Wand of Teleportation Test Failed: expected monsters to be teleported to far tile (1, 2), got (${postWandM1.position.x}, ${postWandM1.position.z}) and (${postWandM2.position.x}, ${postWandM2.position.z})`);
       }
 
       // C2: targetType Guard for Environment Damage Modifiers
@@ -7524,6 +7976,26 @@ export const runFullGameLoopTest = async () => {
       }
       AbilitySystem._rollOverride = null;
 
+      // Thieves' Tools Trap Disable bonus test
+      AbilitySystem._rollOverride = () => 7; // DC is 10, roll 7 + 4 = 11 >= 10 (should succeed with Thieves' Tools)
+      const heroWithTools = { ...trapHero, items: ['card-item-thieves-tools'] };
+      const disableSuccessWithTools = EncounterSystem.attemptDisableTrap(placeResult.gameState, heroWithTools, trapInstance, alarmCard);
+      if (!disableSuccessWithTools.success) {
+        throw new Error('attemptDisableTrap should succeed when roll + Thieves\' Tools bonus >= DC');
+      }
+      if (disableSuccessWithTools.gameState.traps.length !== 0) {
+        throw new Error('attemptDisableTrap: successful attempt with tools should remove the trap');
+      }
+      AbilitySystem._rollOverride = null;
+
+      // Thieves' Tools failure test
+      AbilitySystem._rollOverride = () => 5; // DC is 10, roll 5 + 4 = 9 < 10 (should still fail even with Thieves' Tools)
+      const disableFailWithTools = EncounterSystem.attemptDisableTrap(placeResult.gameState, heroWithTools, trapInstance, alarmCard);
+      if (disableFailWithTools.success) {
+        throw new Error('attemptDisableTrap should fail when roll + Thieves\' Tools bonus < DC');
+      }
+      AbilitySystem._rollOverride = null;
+
       const alarmTriggerState = {
         ...placeResult.gameState,
         monsterDeck: ['monster_zombie']
@@ -8049,6 +8521,8 @@ export const runFullGameLoopTest = async () => {
 
     // -----------------------------------------------------------------------
 
+    runCardExpansionTests();
+
     console.log('--- INTEGRATION TEST PASSED ---');
     return true;
   } catch (error) {
@@ -8068,5 +8542,126 @@ export const runAIStressTest = async (iterations: number = 50) => {
     // This would call internal engine methods in a real test scenario
   }
   console.log('AI Stress Test Complete.');
+};
+
+export const runCardExpansionTests = () => {
+  console.log('--- CardExpansion (New Monsters) Tests ---');
+
+  const assert = (condition: boolean, msg: string) => {
+    if (!condition) {
+      console.error('FAIL:', msg);
+      throw new Error(`Assertion failed: ${msg}`);
+    }
+  };
+
+  const createTestHeroObj = (id: string, hp = 10, maxHp = 10): Hero => (({
+    id, name: id, type: 'hero',
+    hp, maxHp, ac: 10, speed: 5, surgeValue: 5,
+    xp: 0, level: 1, class: 'fighter', race: 'human',
+    position: { x: 0, z: 0, sqX: 0, sqZ: 0 },
+    abilities: [], items: [], conditions: [],
+    attackBonus: 0, damage: 1, flippedPowerIds: [],
+    startedTurnAdjacentToDreadWarriorIds: []
+  } as unknown) as Hero);
+
+  const createTestMonsterObj = (id: string, name: string, hp = 3, maxHp = 3): Monster => (({
+    id, name, type: 'monster',
+    hp, maxHp, ac: 15, speed: 5, experienceValue: 1,
+    monsterType: 'Undead',
+    behavior: { conditions: [], priorityTargets: [], actions: [] },
+    position: { x: 0, z: 0, sqX: 1, sqZ: 1 },
+    isExhausted: false, conditions: [], usedPowers: [],
+    attackBonus: 7, damage: 1, ownedByHeroId: null
+  } as unknown) as Monster);
+
+  const createTestTileObj = (id: string, x = 0, z = 0): Tile => (({
+    id, name: id, x, z,
+    terrainType: 'corridor', connections: [
+      { edge: 'north', isOpen: true },
+      { edge: 'east', isOpen: true },
+      { edge: 'south', isOpen: true },
+      { edge: 'west', isOpen: true }
+    ],
+    isRevealed: true, monsters: [], heroes: [], items: [],
+    boneSquare: false, isStart: false, isExit: false, rotation: 0
+  } as unknown) as Tile);
+
+  const createTestStateObj = (): GameState => (({
+    logIdCounter: 0,
+    phase: 'hero', currentHeroId: 'h1',
+    heroes: [], monsters: [], tiles: [],
+    dungeonDeck: [], treasureDeck: [], encounterDeck: [], monsterDeck: [],
+    discardPiles: { treasure: [], encounter: [], ability: [], monster: [] },
+    turnOrder: ['h1', 'h2'], healingSurges: 2, turnCount: 1, log: [],
+    activeEnvironmentCard: null, experiencePile: [], treasuresDrawnThisTurn: 0,
+    traps: [], villainPhaseQueue: [], activeVillainId: null, powerSelections: [],
+    activeConditions: [], exploredThisTurn: false, lastPlacedTileId: null,
+    activeBlessings: [],
+    activeScenario: { id: 's1', name: 'Scenario 1', objectives: [], difficulty: 'Easy', description: '' },
+    cardResolution: { phase: 'idle', cardId: null, cardType: null, pendingEffects: [], resolvedEffects: [], targetEntityId: null, result: null }
+  } as unknown) as GameState);
+
+  // 1. Mummy Rot blocks healing
+  console.log('  Testing Mummy Rot healing block...');
+  let hero = createTestHeroObj('h1', 5, 10);
+  hero.conditions = [{ type: 'mummy_rot', turnsRemaining: -1 }];
+  const healedHero = CombatSystem.applyHealing(hero, 3);
+  assert(healedHero.hp === 5, 'Healing should be blocked by Mummy Rot condition');
+
+  // 2. Mummy Rot surge curing (no heal, condition removed)
+  console.log('  Testing Mummy Rot surge cure...');
+  const hasMummyRot = hero.conditions?.some(c => c.type === 'mummy_rot');
+  assert(hasMummyRot, 'Hero should have Mummy Rot initially');
+  const updatedConditions = (hero.conditions || []).filter(c => c.type !== 'mummy_rot');
+  const surgeHero = { ...hero, hp: hero.hp, conditions: updatedConditions };
+  assert(surgeHero.hp === 5, 'Surge should not heal HP under Mummy Rot');
+  assert(!surgeHero.conditions.some(c => c.type === 'mummy_rot'), 'Mummy Rot should be removed');
+
+  // 3. Mummy Rot XP curing
+  console.log('  Testing Mummy Rot XP cure...');
+  let state = createTestStateObj();
+  state.heroes = [hero];
+  state.experiencePile = ['card_monster_zombie_1', 'card_monster_skeleton_1', 'card_monster_ghoul_1', 'card_monster_ratswarm_1', 'card_monster_spider_1'];
+  const cureResult = ExperienceSystem.cureMummyRot(state, hero);
+  assert(cureResult.success, 'Should successfully cure Mummy Rot with 5 XP');
+  assert(!cureResult.newState.heroes[0].conditions.some(c => c.type === 'mummy_rot'), 'Mummy Rot should be cleared from hero state');
+  assert(cureResult.newState.experiencePile.length === 0, 'XP pile should be consumed');
+
+  // 4. Dread Warrior Tireless Pursuit adjacency detection
+  console.log('  Testing Dread Warrior adjacency detection...');
+  let h1 = createTestHeroObj('h1');
+  h1.position = { x: 0, z: 0, sqX: 2, sqZ: 2 };
+  let dw = createTestMonsterObj('dw1', 'Dread Warrior');
+  dw.position = { x: 0, z: 0, sqX: 2, sqZ: 3 };
+
+  let turnState = createTestStateObj();
+  turnState.heroes = [h1];
+  turnState.monsters = [dw];
+  turnState.tiles = [createTestTileObj('tile_0_0', 0, 0)];
+
+  const nextId = 'h1';
+  const updatedHeroes = turnState.heroes.map(h => {
+    let startedTurnAdjacentToDreadWarriorIds: string[] = [];
+    if (h.id === nextId) {
+      const dreadWarriors = turnState.monsters.filter(m => !m.isDefeated && m.hp > 0 && m.name.toLowerCase() === 'dread warrior');
+      for (const mon of dreadWarriors) {
+        const hAbsX = h.position.x * 4 + h.position.sqX;
+        const hAbsZ = h.position.z * 4 + h.position.sqZ;
+        const dwAbsX = mon.position.x * 4 + mon.position.sqX;
+        const dwAbsZ = mon.position.z * 4 + mon.position.sqZ;
+        const isAdjacent = Math.abs(hAbsX - dwAbsX) + Math.abs(hAbsZ - dwAbsZ) === 1;
+        if (isAdjacent) {
+          startedTurnAdjacentToDreadWarriorIds.push(mon.id);
+        }
+      }
+    }
+    return {
+      ...h,
+      startedTurnAdjacentToDreadWarriorIds
+    };
+  });
+  assert(updatedHeroes[0].startedTurnAdjacentToDreadWarriorIds?.includes('dw1'), 'Hero should start turn adjacent to Dread Warrior dw1');
+
+  console.log('  CardExpansion Tests PASSED');
 };
 

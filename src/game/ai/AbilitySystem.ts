@@ -18,6 +18,7 @@ import {
 } from '../types';
 import { findClosestHero } from '../engine/MonsterAI';
 import { TileSystem } from '../engine/TileSystem';
+import { DataLoader } from '../dataLoader';
 
 /**
  * Pure static class for monster ability system.
@@ -290,19 +291,263 @@ export class AbilitySystem {
                 };
             }
 
-            case 'condition':
-            case 'summon':
-                // Log warning and return state unchanged - implement in a later pass
-                console.warn(`AbilitySystem: ${effect.type} effect not yet implemented`);
-                return gameState;
+            case 'condition': {
+                // Apply a status condition to each target entity.
+                // effect.condition holds the ConditionType string (e.g. 'stunned', 'slowed').
+                // effect.duration overrides the default duration of 1 turn.
+                const condType = effect.condition as import('../types').ConditionType | undefined;
+                if (!condType) {
+                    console.warn(`AbilitySystem: condition effect missing 'condition' field`);
+                    return gameState;
+                }
+                const condDuration = effect.duration ?? 1;
+                let condState = gameState;
+                condState = {
+                    ...condState,
+                    heroes: condState.heroes.map(hero => {
+                        if (!targets.find(t => t.id === hero.id)) return hero;
+                        const existing = hero.conditions.find(c => c.type === condType);
+                        if (existing) {
+                            // Refresh duration
+                            return {
+                                ...hero,
+                                conditions: hero.conditions.map(c =>
+                                    c.type === condType ? { ...c, turnsRemaining: condDuration, sourceId: source.id } : c
+                                )
+                            };
+                        }
+                        return {
+                            ...hero,
+                            conditions: [...hero.conditions, { type: condType, turnsRemaining: condDuration, sourceId: source.id }]
+                        };
+                    }),
+                    monsters: condState.monsters.map(monster => {
+                        if (!targets.find(t => t.id === monster.id)) return monster;
+                        if (monster.id === source.id) return monster; // Don't self-apply by accident from 'all_monsters'
+                        const existing = monster.conditions.find(c => c.type === condType);
+                        if (existing) {
+                            return {
+                                ...monster,
+                                conditions: monster.conditions.map(c =>
+                                    c.type === condType ? { ...c, turnsRemaining: condDuration, sourceId: source.id } : c
+                                )
+                            };
+                        }
+                        return {
+                            ...monster,
+                            conditions: [...monster.conditions, { type: condType, turnsRemaining: condDuration, sourceId: source.id }]
+                        };
+                    })
+                };
+                return condState;
+            }
 
-            case 'move':
-            case 'buff':
-            case 'debuff':
-            case 'pull':
-                // Log warning for other unimplemented effect types
-                console.warn(`AbilitySystem: ${effect.type} effect not yet implemented`);
-                return gameState;
+            case 'summon': {
+                // Summon a monster from a template, placing it on the source monster's tile.
+                // effect.monsterId must be set to the template data ID (e.g. 'monster_skeleton').
+                // effect.value controls the number of monsters to spawn (default 1).
+                const templateId = effect.monsterId;
+                if (!templateId) {
+                    console.warn(`AbilitySystem: summon effect missing 'monsterId' field on source ${source.name}`);
+                    return gameState;
+                }
+                const template = DataLoader.getInstance().getMonsterById(templateId);
+                if (!template) {
+                    console.warn(`AbilitySystem: summon could not find monster template '${templateId}'`);
+                    return gameState;
+                }
+
+                const spawnCount = effect.value ?? 1;
+                const sourceTile = gameState.tiles.find(t => t.x === source.position.x && t.z === source.position.z);
+                if (!sourceTile) return gameState;
+
+                const spawnPosition = {
+                    x: sourceTile.x,
+                    z: sourceTile.z,
+                    sqX: sourceTile.boneSquare?.sqX ?? 2,
+                    sqZ: sourceTile.boneSquare?.sqZ ?? 2,
+                };
+
+                const newMonsters: Monster[] = [];
+                for (let i = 0; i < spawnCount; i++) {
+                    const uniqueId = `${templateId}_summoned_${Date.now()}_${i}`;
+                    newMonsters.push({
+                        ...template,
+                        id: uniqueId,
+                        templateId,
+                        position: spawnPosition,
+                        hp: template.maxHp ?? template.hp,
+                        conditions: [],
+                        usedPowers: [],
+                        ownedByHeroId: source.ownedByHeroId,
+                        isBoss: false,
+                        isDefeated: false,
+                        isExhausted: false,
+                    } as Monster);
+                }
+
+                // Place the new monster IDs onto the tile's monsters list
+                const updatedTiles = gameState.tiles.map(t =>
+                    t.id === sourceTile.id
+                        ? { ...t, monsters: [...t.monsters, ...newMonsters.map(m => m.id)] }
+                        : t
+                );
+
+                return {
+                    ...gameState,
+                    monsters: [...gameState.monsters, ...newMonsters],
+                    tiles: updatedTiles,
+                };
+            }
+
+            case 'move': {
+                // Move the source monster by `effect.value` squares toward the closest hero.
+                // Pure positional update — no pathfinding through walls (matches board game simplicity).
+                const moveSteps = effect.value ?? 1;
+                const closestResult = findClosestHero(
+                    gameState.tiles.find(t => t.x === source.position.x && t.z === source.position.z)!,
+                    gameState.heroes,
+                    gameState.tiles
+                );
+                if (!closestResult) return gameState;
+
+                let newPos = { ...source.position };
+                for (let i = 0; i < moveSteps; i++) {
+                    const dx = closestResult.hero.position.x - newPos.x;
+                    const dz = closestResult.hero.position.z - newPos.z;
+                    if (dx === 0 && dz === 0) break;
+                    if (Math.abs(dx) >= Math.abs(dz)) {
+                        newPos = { ...newPos, x: newPos.x + Math.sign(dx) };
+                    } else {
+                        newPos = { ...newPos, z: newPos.z + Math.sign(dz) };
+                    }
+                }
+
+                return {
+                    ...gameState,
+                    monsters: gameState.monsters.map(m =>
+                        m.id === source.id ? { ...m, position: newPos } : m
+                    )
+                };
+            }
+
+            case 'buff': {
+                // Buff: Apply a positive condition to the source monster.
+                // effect.condition specifies the ConditionType (e.g. 'attack_bonus', 'ac_bonus').
+                // effect.value is the numeric bonus amount.
+                // effect.duration is how many turns the buff lasts (default 1).
+                const buffType = effect.condition as import('../types').ConditionType | undefined;
+                if (!buffType) {
+                    // Generic buff with no specific condition (e.g. pack_hunter passive) — no-op state change needed
+                    return gameState;
+                }
+                const buffDuration = effect.duration ?? 1;
+                const buffValue = effect.value ?? 1;
+                return {
+                    ...gameState,
+                    monsters: gameState.monsters.map(m => {
+                        if (m.id !== source.id) return m;
+                        const existing = m.conditions.find(c => c.type === buffType);
+                        if (existing) {
+                            return {
+                                ...m,
+                                conditions: m.conditions.map(c =>
+                                    c.type === buffType ? { ...c, turnsRemaining: buffDuration, value: (c.value ?? 0) + buffValue } : c
+                                )
+                            };
+                        }
+                        return {
+                            ...m,
+                            conditions: [...m.conditions, { type: buffType, turnsRemaining: buffDuration, value: buffValue, sourceId: source.id }]
+                        };
+                    })
+                };
+            }
+
+            case 'debuff': {
+                // Debuff: Apply a negative condition to target entities.
+                // effect.condition specifies the ConditionType (e.g. 'weakened', 'slowed').
+                // effect.duration is how many turns the debuff lasts (default 1).
+                const debuffType = effect.condition as import('../types').ConditionType | undefined;
+                if (!debuffType) {
+                    console.warn(`AbilitySystem: debuff effect missing 'condition' field on source ${source.name}`);
+                    return gameState;
+                }
+                const debuffDuration = effect.duration ?? 1;
+                return {
+                    ...gameState,
+                    heroes: gameState.heroes.map(hero => {
+                        if (!targets.find(t => t.id === hero.id)) return hero;
+                        const existing = hero.conditions.find(c => c.type === debuffType);
+                        if (existing) {
+                            return {
+                                ...hero,
+                                conditions: hero.conditions.map(c =>
+                                    c.type === debuffType ? { ...c, turnsRemaining: debuffDuration, sourceId: source.id } : c
+                                )
+                            };
+                        }
+                        return {
+                            ...hero,
+                            conditions: [...hero.conditions, { type: debuffType, turnsRemaining: debuffDuration, sourceId: source.id }]
+                        };
+                    }),
+                    monsters: gameState.monsters.map(monster => {
+                        if (!targets.find(t => t.id === monster.id) || monster.id === source.id) return monster;
+                        const existing = monster.conditions.find(c => c.type === debuffType);
+                        if (existing) {
+                            return {
+                                ...monster,
+                                conditions: monster.conditions.map(c =>
+                                    c.type === debuffType ? { ...c, turnsRemaining: debuffDuration, sourceId: source.id } : c
+                                )
+                            };
+                        }
+                        return {
+                            ...monster,
+                            conditions: [...monster.conditions, { type: debuffType, turnsRemaining: debuffDuration, sourceId: source.id }]
+                        };
+                    })
+                };
+            }
+
+            case 'pull': {
+                // Pull: move target heroes toward the source monster by `effect.value` tiles.
+                // Opposite of 'push': direction is from target toward source.
+                const pullValue = effect.value ?? 1;
+                return {
+                    ...gameState,
+                    heroes: gameState.heroes.map(hero => {
+                        const target = targets.find(t => t.id === hero.id) as Hero | undefined;
+                        if (!target) return hero;
+
+                        // Determine direction from target toward source
+                        let direction: Direction = 'north';
+                        if (source.position.x > target.position.x) {
+                            direction = 'east';
+                        } else if (source.position.x < target.position.x) {
+                            direction = 'west';
+                        } else if (source.position.z > target.position.z) {
+                            direction = 'south';
+                        } else if (source.position.z < target.position.z) {
+                            direction = 'north';
+                        }
+
+                        let newPosition = { ...target.position };
+                        for (let i = 0; i < pullValue; i++) {
+                            const candidate = TileSystem.getTargetPosition(newPosition, direction);
+                            // Stop pulling if we would land on the same tile as the source
+                            if (candidate.x === source.position.x && candidate.z === source.position.z) {
+                                newPosition = candidate;
+                                break;
+                            }
+                            newPosition = candidate;
+                        }
+
+                        return { ...hero, position: newPosition };
+                    })
+                };
+            }
 
             default:
                 console.warn(`AbilitySystem: Unknown effect type ${effect.type}`);

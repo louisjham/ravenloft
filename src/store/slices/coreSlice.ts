@@ -536,14 +536,30 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
         lastPlacedTileId: null,
         hasAttackedThisTurn: false,
         turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0),
-        // Reset per-turn fortune flags on all heroes
-        heroes: stateAfterTurnStart.heroes.map(h => ({
-          ...h,
-          extraActionsThisTurn: 0,
-          hasRolledNatural20ThisTurn: false,
-          hasUsedSurgeThisTurn: false,
-          isExhausted: false,
-        }))
+        heroes: stateAfterTurnStart.heroes.map(h => {
+          let startedTurnAdjacentToDreadWarriorIds: string[] = [];
+          if (h.id === nextId) {
+            const dreadWarriors = stateAfterTurnStart.monsters.filter(m => !m.isDefeated && m.hp > 0 && m.name.toLowerCase() === 'dread warrior');
+            for (const dw of dreadWarriors) {
+              const hAbsX = h.position.x * 4 + h.position.sqX;
+              const hAbsZ = h.position.z * 4 + h.position.sqZ;
+              const dwAbsX = dw.position.x * 4 + dw.position.sqX;
+              const dwAbsZ = dw.position.z * 4 + dw.position.sqZ;
+              const isAdjacent = Math.abs(hAbsX - dwAbsX) + Math.abs(hAbsZ - dwAbsZ) === 1;
+              if (isAdjacent) {
+                startedTurnAdjacentToDreadWarriorIds.push(dw.id);
+              }
+            }
+          }
+          return {
+            ...h,
+            extraActionsThisTurn: 0,
+            hasRolledNatural20ThisTurn: false,
+            hasUsedSurgeThisTurn: false,
+            isExhausted: false,
+            startedTurnAdjacentToDreadWarriorIds
+          };
+        })
       } as any
     });
   },
@@ -559,6 +575,34 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     const result = ExperienceSystem.levelUpHero(state, hero, newDailyPowerId);
     if (!result.success) {
       console.warn('[coreSlice.levelUpHero]', result.message);
+      return;
+    }
+
+    const logEntry: GameLogEntry = {
+      id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      message: result.message,
+      type: 'system' as const
+    };
+
+    set({
+      gameState: {
+        ...result.newState,
+        log: [...result.newState.log, logEntry].slice(-100)
+      }
+    });
+  },
+
+  cureMummyRot: (heroId: string) => {
+    const state = get().gameState;
+    if (!state) return;
+
+    const hero = state.heroes.find(h => h.id === heroId);
+    if (!hero) return;
+
+    const result = ExperienceSystem.cureMummyRot(state, hero);
+    if (!result.success) {
+      console.warn('[coreSlice.cureMummyRot]', result.message);
       return;
     }
 

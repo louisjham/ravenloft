@@ -136,6 +136,33 @@ export const useGameActions = () => {
   // End Turn
   // ---------------------------------------------------------------------------
   const handleEndTurn = () => {
+    if (gameState && gameState.phase === 'hero' && !gameState.hasExploredThisTurn) {
+      const activeHero = gameState.heroes.find(h => h.id === gameState.currentHeroId);
+      if (activeHero) {
+        const heroPos = activeHero.position;
+        const heroTile = gameState.tiles.find(t => t.x === heroPos.x && t.z === heroPos.z);
+        if (heroTile) {
+          const points = TileSystem.getExplorationPoints(gameState.tiles);
+          const isHeroAtEdgeFor = (edge: string): boolean => {
+            switch (edge) {
+              case 'north': return heroPos.sqZ === 0;
+              case 'south': return heroPos.sqZ === 3;
+              case 'east':  return heroPos.sqX === 3;
+              case 'west':  return heroPos.sqX === 0;
+              default:      return false;
+            }
+          };
+          const explorablePoints = points.filter(p => p.tileId === heroTile.id && isHeroAtEdgeFor(p.edge));
+          
+          if (explorablePoints.length > 0 && gameState.dungeonDeck && gameState.dungeonDeck.length > 0) {
+            useUIStore.getState().setInteractionMode('explore');
+            addNotification('Exploration Required: You must explore the adjacent edge before ending your turn!', 'warning');
+            return;
+          }
+        }
+      }
+    }
+
     storeEndTurn();
     addNotification('End of turn', 'info');
   };

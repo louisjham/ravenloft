@@ -1,145 +1,193 @@
-# AGENTS.md
+Load castle-ravenloft-refactor for any refactor, cleanup, bug fix, performance, or architecture task.
 
-This file provides guidance to agents when working with code in this repository.
+Load castle-ravenloft-source-of-truth for any task involving cards, powers, treasures, encounters, JSON data, image remaps, scans, or source-of-truth verification.
 
-## Source of Truth
-- The ultimate source of truth for the game mechanics is the official D&D Adventure System board game rules and the literal text printed on the game cards.
-- The transcribed text for all cards is located in `card-source-truth/` (e.g., `items.md`, `monsters.md`, `environments.md`, `events.md`, `event-attacks.md`, `traps.md`, `powers.md`).
-- The corresponding card art is located in `card-source-truth/cardart/`.
-- Unless explicitly documented otherwise, always implement mechanics exactly as they are written in the physical board game rules and on the card text.
+If a task touches both architecture and card data, load both skills.
 
-## Build & Run
-- `npm run dev` — Start dev server on port 3000
-- `npm run build` — TypeScript compile + Vite production build
-- `npm run preview` — Preview production build
-- `npm run typecheck` — Run TypeScript type checking (tsc --noEmit)
-- No linter is configured; there is no `npm run lint` command
+For any refactor, cleanup, bug-fix, performance optimization, or architectural change in this repository, load and follow the workspace skill `castle-ravenloft-refactor` before making edits.
 
-## Testing
-- No Jest/Vitest configured; run tests via `npx tsx runTests.ts`
-- Test entry point: `runTests.ts` at repo root (mocks localStorage, calls `runFullGameLoopTest()`)
-- Integration tests are in `src/testing/integrationTests.ts`
-- Suite helpers: `runAbilitySystemTests()` in `src/testing/ability-system-tests.ts`
-- Test utilities (console capture, assertions) in `src/testing/testUtils.ts`
-- Use `throw new Error('message')` for assertions — no assertion library
-- All tests access Zustand stores directly via `useGameStore.getState()`
-- Use `crypto.randomUUID()` for unique IDs in test data
-- Factory functions for test objects: `createAITile()`, `createAIHero()`, `createAIMonster()`, `createAIState()` in integrationTests.ts; `createTestTile()`, `createTestHero()`, `createTestMonster()`, `createTestGameState()` in ability-system-tests.ts
-- Deterministic rolls via `AbilitySystem._rollOverride = () => 14` / `null`
-- Async combat tests: Any test file exercising `attackMonster` or async combat actions must import `useDiceStore` from `../store/diceStore` and initialize it with a stub `requestRoll` that immediately sets a result and calls `onComplete()` (e.g., using `useDiceStore.setState({ requestRoll: (params: any) => { ... params.onComplete(); } })`).
-- Test both success and failure paths; verify immutability of original objects after operations
-- `TileConnection` shorthands: `openEdge(edge)`, `closedEdge(edge)`
+Skill path:
+.agents/skills/castle-ravenloft-refactor/SKILL.md
 
-## Asset Resilience
-- `DUMMY_MODE` in `src/utils/modelLoader.ts` controls asset fallback behavior (currently `true`)
-- When `DUMMY_MODE=true`: GLB model loads return empty `Group()`, audio logs to console instead of playing
-- Components use procedural fallbacks (Cylinders, Boxes, Spheres) when models fail to load
-- This allows development without complete asset pipeline
+This skill is the default architectural guidance layer for this project.
+Do not bypass it unless the user explicitly requests behavior changes that conflict with the skill.
 
-## Critical Patterns
-- **Singletons**: `DataLoader.getInstance()`, `AudioManager.getInstance()` — always use singleton access
-- **Zustand Middleware**: Game store uses `subscribeWithSelector` for fine-grained reactivity; UI store does not use middleware
-- **Position Type**: `{x, z, sqX, sqZ}` — tile coordinates (x,z) + square coordinates (sqX,sqZ) for 4x4 tile grid
-- **Error Boundary**: `GlobalErrorBoundary` wraps entire app in `Root` component
-- **Game Logs**: Stored in localStorage as 'game_logs' (last 50 entries) via `logGameError()`
 
-## Architecture
-- Entry: `src/main.tsx` → `src/App.tsx` (wrapped in `GlobalErrorBoundary`)
-- State: `src/store/gameStore.ts` (game state, sliced), `src/store/uiStore.ts` (UI state)
-  - Game store slices: `coreSlice`, `combatSlice`, `cardSlice`, `powerSlice`, `conditionSlice`, `tokenSlice`
-  - Store types in `src/store/storeTypes.ts`: each slice is an interface, `GameStore extends CoreSlice, CombatSlice, ...`
-  - Slice creator pattern: `StateCreator<GameStore, [], [], SliceName>`
-- 3D: React Three Fiber + Cannon physics, Scene wraps all 3D components
-  - 3D components in `src/components/3d/`, UI overlay in `src/components/ui/`
-  - Event handlers type: `ThreeEvent<MouseEvent>` from `@react-three/fiber`
-- Engine systems (TileSystem, CombatSystem, etc.) are pure functions — they take state and return new state
-  - Class pattern: `export class TileSystem { public static methodName(...): ReturnType { ... } }`
-  - Standalone functions: `MonsterAI` exports pure functions (no class wrapper)
-  - ExplorationStateMachine uses discriminated union state: `{ phase: 'idle' } | { phase: 'positioning'; point; ... }`
-- Logic in `src/game/`, components in `src/components/`, store in `src/store/`
-- Custom hooks in `src/hooks/`: `useGameActions`, `useKeyboard`, `useSelection`
-- Context in `src/contexts/TilePlacementContext.tsx` (minimal, only one context)
+Castle Ravenloft Refactor Architecture Brief
+This project is a digital port of the Castle Ravenloft adventure board game built with React 18, Vite, Three.js, and Zustand slices for state management. The game is mostly implemented; current work focuses on refactoring for performance, clarity, and long-term maintainability without changing gameplay rules.
 
-## Code Style Guidelines
+Core design principles
+The refactor must preserve one-to-one behavior with the physical Castle Ravenloft game wherever feasible, including card effects, movement rules, encounter sequencing, and villain activation. Engine layers should follow the same pure-function discipline already present in systems like CombatSystem, EncounterSystem, TokenSystem, and TreasureSystem: inputs in, outputs out, no hidden mutation. All refactors must keep the code defensible, easy to reason about, and well-logged for future audits.
 
-### TypeScript
-- Strict mode in tsconfig.json (`"strict": true`)
-- Prefer `interface` for object shapes, `type` for unions/mapped types/intersections
-- Avoid `any`; use `unknown` with type guards
-- Export types inline at definition (no separate export statements)
-- Use `import type { ... }` for type-only imports
-- Generics follow `<T extends Constraint>` pattern where needed
-- Import `StateCreator` from `zustand` for slice typing
+The architecture is organized around three layers:
 
-### Imports
-Group in this order with blank lines between:
-1. External libraries (react, three, zustand, cannon-es, etc.)
-2. Internal `../game/` and `../store/` imports
-3. Relative component imports (../components/...)
-4. Relative utility imports (../utils/..., ../hooks/...)
-5. CSS / asset imports
+Engine / rules layer — pure TypeScript modules in src/game/engine/ that implement rules, card resolution, conditions, experience, treasure, tokens, etc.
 
-### Naming Conventions
-- **Components**: PascalCase (HeroPanel.tsx, EncounterCardOverlay.tsx)
-- **Functions/variables**: camelCase (moveHero, currentHeroId)
-- **Types/interfaces**: PascalCase (GameState, TileConnection, CombatSlice)
-- **Constants**: UPPER_SNAKE_CASE (GAME_CONSTANTS, DUMMY_MODE, MODELS)
-- **Files**: PascalCase for components, kebab-case for utilities (modelLoader.ts)
-- **Boolean variables**: Prefix with `is`/`has`/`can` (isRevealed, hasAttackedThisTurn)
+Store layer — Zustand slices (coreSlice, cardSlice, combatSlice, tokenSlice, diceStore, uiStore) that hold game state, connect engine results to React, and mediate async flows like dice rolls.
 
-### Component Patterns
-- `export const ComponentName: React.FC = () => { ... }` for function components
-- `React.memo` for components with stable props
-- `useCallback` for event handlers passed as props
-- `useMemo` for expensive derived values
-- Fine-grained Zustand selectors: `useGameStore((state) => state.field)` to minimize re-renders
-- Direct store access for mutations: `useGameStore.getState().someAction(...)`
-- 3D: `useFrame` from `@react-three/fiber` for animation loops
-- 3D: Wrap model loads in `<Suspense fallback={<Placeholder />}>`
-- 3D: `useRef` for animated values, `useMemo` for cloning/caching models
+UI / rendering layer — React components and hooks (App.tsx, Tile3D, Dice3D, ExplorationLayer, useGameActions, useExplorationControls, etc.) plus Three.js scene logic for board, tokens, and dice.
 
-### Formatting
-- 2-space indentation
-- Semicolons required
-- Trailing commas in multiline objects/arrays
-- Max line length ~100 characters (soft limit)
+Refactors should move logic downward (toward the engine) and side effects upward (toward UI), leaving stores as thin adapters.
 
-### Error Handling
-- `GlobalErrorBoundary` wraps the full React tree
-- Game logs: localStorage key `'game_logs'`, last 50 entries, via `logGameError()`
-- Helper `addLog()` in `gameStore.ts` for structured log entries with `{id, timestamp, message, type}`
-- `console.error()` for unexpected runtime conditions
-- User-facing errors go to UI components, not just the console
-- Test assertions use `throw new Error('message')` — no assertion library
+Refactor goals
+Villain phase modularization
 
-### State Management (Zustand)
-- Game store: `create<GameStore>()(subscribeWithSelector((...a) => ({ ...createCoreSlice(...a), ...combatSlice(...a), ... })))`
-- UI store: `create<UIStore>()((set) => ({ ... }))` — no middleware, no slices, simpler
-- Never mutate state directly — always return new objects/arrays via `{ ...state, field: newValue }`
-- Mutations happen only inside `set()` callbacks
-- Action naming: verb-prefixed (setGameState, moveHero, attackMonster, endTurn, showModal, addNotification)
-- Use `set({ field: value })` for simple updates, `set((state) => ({ ...state, field: derived }))` for computed
+Target file: villainPhaseLogic.ts.
 
-### Game Logic (Pure Functions)
-- Systems are pure static classes: `TileSystem`, `CombatSystem`, `AbilitySystem`
-- Standalone pure functions: `MonsterAI.manhattanDistance()`, etc.
-- Every method takes state and returns new state without mutation
-- No side effects, no I/O, no store access inside game logic
-- Return new entity references: `return { ...entity, hp: newHp }`
+Problem: This file is a large, procedural script that intermixes queue building, movement, attacks, reactions, defeat handling, logging, and state mutation.
 
-### Performance
-- `React.memo` for components with stable props
-- `useCallback` for event handlers passed as props
-- `useMemo` for expensive derived values
-- Zustand `subscribeWithSelector` keeps re-renders scoped to subscribed slices
-- Fine-grained selectors in components prevent unnecessary re-renders
+Goal: Extract pure modules such as:
 
-## CSS
-- Gothic theme with custom fonts: `--font-gothic: 'Cinzel'`, `--font-accent: 'MedievalSharp'`, `--font-body: 'Outfit'`
-- CSS variables in `:root` for colors and effects
-  - Colors: `--color-bg: #050505`, `--color-accent: #8b0000`, `--color-gold: #c0a060`
-  - Vibe: dark, blood-red accents, deep purple secondary
-- `.gothic-panel` class for themed containers with glare overlay
-- Keyframe animations: `slideIn`, `pulse-glow`
-- `.custom-scrollbar` class for styled scrollbars with `::-webkit-scrollbar`
-- Components use extensive inline styles (no CSS modules or styled-components)
+buildVillainQueue(newState, gameState)
+
+resolveVillainMovement(newState, queue)
+
+resolveVillainAttacks(newState, queue)
+
+resolveVillainReactions(newState, queue)
+
+resolveVillainDefeats(newState, queue)
+
+generateVillainPhaseLogs(result)
+
+Each module should accept explicit inputs and return { newState, logEntries, success }-style outputs without directly touching Zustand. The main villain-phase entry point in the store should orchestrate these modules and perform a single set() per end-turn.
+
+Action hook decomposition
+
+Target files: useGameActions.ts, useExplorationControls.ts.
+
+Problem: These hooks currently mix UI concerns (notifications, modals, animation timing) with gameplay validation (movement BFS, exploration rules, token search, attack paths). They also subscribe broadly to store state.
+
+Goal: Split responsibilities into more focused hooks or command modules:
+
+Movement: useHeroMovementActions() — hero movement, reachability, conditions, BFS, monster blocking.
+
+Combat: useCombatActions() — attack selection, attack resolution triggers, post-attack feedback.
+
+Turn & exploration: useTurnActions() — end-turn checks, exploration gating, dungeon tile placement rules.
+
+Tokens: useTokenActions() — search, token reveal, victory checks.
+
+Each hook should:
+
+Subscribe to narrow slices of store state via selectors, not whole gameState.
+
+Call pure engine functions first, then dispatch store actions, then UI notifications/animations.
+
+Avoid mixing React animation delays deeply into gameplay logic: animation delays should be thin wrappers around engine actions, not the other way around.
+
+Board rendering performance and clarity
+
+Target files: Tile3D.tsx, ExplorationLayer.tsx, dice-related components.
+
+Problem: Tiles and dice currently subscribe directly to stores and do work per-instance that could be centralized. This amplifies re-render costs and hurts INP and overall responsiveness.
+
+Goal:
+
+Make Tile3D mostly a pure presentational component: coordinates, visual state, and minimal per-tile props.
+
+Move movement overlays, exploration highlights, and hover-derived state up to a board-level container.
+
+Ensure dice components consume carefully scoped physics profiles from a single source of truth (DiceProfiles.ts), with animation driven by a clear phase machine in diceStore.
+
+Performance constraints:
+
+Keep INP for dice roll and main interactions under 200ms where possible.
+
+Minimize the number of React components that re-render on large state changes (villain phase, end-turn).
+
+Store hygiene and side-effect control
+
+Target files: coreSlice.ts, diceStore.ts, cardSlice.ts, tokenSlice.ts, combatSlice.ts, uiStore.ts.
+
+Problem: Some actions do multiple set() calls per logical operation, some mutate state indirectly, and some rely on debug logs or repeated selectors.
+
+Goal:
+
+Ensure complex operations like end-turn and villain phase use at most one final set() with the computed newState.
+
+Gate all debug logging behind import.meta.env.DEV or equivalent.
+
+Use typed result objects from engine modules ({ newState, message, success, logEntries }) instead of embedding rule logic into slices.
+
+Document each slice action with a short comment about which engine module it expects to call.
+
+Behavioral constraints
+Do not change rules, card effects, phase sequencing, movement or attack math unless explicitly marked as a bug fix.
+
+Treat the physical card text and existing engine modules as the source of truth for behavior; store and UI refactors must adapt around them.
+
+When in doubt, favor predictability over cleverness: explicit state machines and pure functions instead of implicit, reactive flows.
+
+Performance and quality constraints
+Refactors must not introduce TypeScript errors: always maintain strict typing and run npm run build or npx tsc --noEmit after changes.
+
+Maintain test coverage by running npx tsx runTests.ts when available before declaring a refactor complete.
+
+Logs should be structured and minimal, with dev-only verbosity where needed.
+
+Skill ideas for Antigravity / Gemini
+To make this reusable across sessions, it’s worth defining at least two workspace skills in .agents/skills/ (or the Gemini equivalent).
+
+Skill 1: castle-ravenloft-refactor (architecture & behavior)
+Purpose: Teach the agent the refactor goals, constraints, and layering rules for this project.
+
+Contents of SKILL.md (high level):
+
+Short description: “Guides refactors to the Castle Ravenloft React/Three.js/Zustand game to improve structure and performance without changing rules.”
+
+Sections:
+
+Stack overview (React/Vite/Three.js/Zustand).
+
+Layering (engine, store, UI) and pure-function expectations.
+
+Villain-phase modularization rules.
+
+Action hook decomposition rules.
+
+Board performance constraints (INP, re-renders).
+
+Behavioral constraints (physical card fidelity).
+
+Required validation steps (build, tests).
+
+You can paste most of the brief above into that skill, trim it slightly, and add a “Decision tree” section: “If task affects villainPhaseLogic, follow path A; if it affects hooks, follow path B; if it affects store slices, follow path C”.
+
+Skill 2: card-source-truth (data & content workflow)
+Purpose: Encode your source-of-truth workflow for card text and images so the agent always treats manually entered card data and card-scans as authoritative.
+
+Contents of SKILL.md:
+
+Describe:
+
+Manually entered card text in card-source-truth/ is the ultimate source of truth.
+
+JSON data (treasures.json, encounters.json, etc.) must always be updated to match the source-of-truth files, never the reverse.
+
+Image paths are mapped from card-scans directories according to existing conventions.
+
+Agents must show diffs and get approval before modifying JSON.
+
+Provide:
+
+Example workflow steps (like the preamble you already use when starting card-entry sessions).
+
+A simple decision tree: “If asked to change a card, first read the card-source-truth file, then propose JSON changes, then show diff.”
+
+This prevents future refactors or data work from drifting away from the physical game.
+
+Optional Skill 3: dice-performance-tuning
+Purpose: Capture the constraints we identified around dice animation responsiveness and store interactions so agents don’t re-introduce sluggishness.
+
+Contents:
+
+Describe:
+
+Single source of truth for physics profiles in DiceProfiles.ts.
+
+No redeclaration of defaults in diceStore.ts.
+
+Use subscribe-with-selector and phase machine, not timers and polling.
+
+Aim for INP under 200ms; avoid dynamic imports on hot paths.

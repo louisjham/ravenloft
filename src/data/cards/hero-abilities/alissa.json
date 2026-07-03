@@ -1,6 +1,6 @@
 [
   {
-    "id": "alanni_power_1",
+    "id": "alissa_power_1",
     "type": "ability",
     "name": "Aimed Shot",
     "description": "Attack +8 against a monster within 2 tiles. Damage 1.",
@@ -16,7 +16,7 @@
     "powerType": "at-will"
   },
   {
-    "id": "alanni_power_2",
+    "id": "alissa_power_2",
     "type": "ability",
     "name": "Twin Strike",
     "description": "Make two attacks (+6) against the same or different monsters within 1 tile. Damage 1 each.",

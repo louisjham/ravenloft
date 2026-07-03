@@ -150,6 +150,44 @@ export const ExperiencePanel: React.FC = () => {
               You can spend 5 XP to cancel an Encounter card when it is drawn. This option appears during the Encounter phase.
             </p>
           </div>
+
+          {/* Cure Mummy Rot Section */}
+          {currentHero.conditions?.some(c => c.type === 'mummy_rot') && (
+            <div className="option-section" style={{
+              border: '1px solid #333',
+              padding: '15px',
+              borderRadius: '8px',
+              background: 'rgba(0,0,0,0.3)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <h3 className="gothic-title" style={{ margin: 0, fontSize: '1.2rem', color: '#ff4444' }}>Cure Mummy Rot</h3>
+                <div style={{ fontSize: '0.9rem', color: xpCount >= 5 ? 'var(--color-gold)' : '#666' }}>
+                  Cost: 5 XP
+                </div>
+              </div>
+              
+              <p style={{ fontSize: '0.9rem', color: 'var(--color-text-dim)', marginBottom: '15px' }}>
+                Spend 5 XP to cure your Mummy Rot. This will allow you to heal damage normally.
+              </p>
+
+              <button
+                className="gothic-button"
+                disabled={xpCount < 5}
+                onClick={() => {
+                  useGameStore.getState().cureMummyRot(currentHero.id);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  opacity: xpCount >= 5 ? 1 : 0.5,
+                  background: xpCount >= 5 ? 'linear-gradient(to bottom, #d4af37, #8a6d3b)' : '#333',
+                  color: xpCount >= 5 ? '#000' : '#888'
+                }}
+              >
+                Cure Mummy Rot
+              </button>
+            </div>
+          )}
         </div>
 
         <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--color-text-dim)', marginTop: '10px' }}>

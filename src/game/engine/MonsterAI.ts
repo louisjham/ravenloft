@@ -9,6 +9,7 @@ import AbilitySystem from '../ai/AbilitySystem';
 import BossPhases from '../ai/BossPhases';
 import { CombatSystem } from './CombatSystem';
 import { ConditionSystem } from './ConditionSystem';
+import { TileSystem } from './TileSystem';
 
 import { ABILITY_LIBRARY } from '../ai/behaviors/AbilityLibrary';
 import { DataLoader } from '../dataLoader';
@@ -701,6 +702,269 @@ export function resolveTactic(
         if (path.length > 0) {
           return { action: 'move', path };
         }
+      }
+    }
+  }
+
+  // Custom Dark Acolyte tactics override
+  if (monster.name.toLowerCase() === 'dark acolyte') {
+    const heroesOnTile = heroes.filter(h => h.position.x === monster.position.x && h.position.z === monster.position.z);
+    if (heroesOnTile.length > 0) {
+      // Teleport to furthest tile with unexplored edge
+      const expPoints = TileSystem.getExplorationPoints(tiles);
+      let furthestTile: Tile | null = null;
+      let maxDist = -1;
+      const tilesWithExp = Array.from(new Set(expPoints.map(p => p.tileId)));
+      for (const tId of tilesWithExp) {
+        const tile = tiles.find(t => t.id === tId);
+        if (!tile) continue;
+        const dist = getTileGraphDistance(monsterTile, tile, tiles);
+        if (dist > maxDist) {
+          maxDist = dist;
+          furthestTile = tile;
+        }
+      }
+      if (furthestTile) {
+        return { action: 'idle', teleportToTileId: furthestTile.id, passCard: true, acolyteDidNotAttack: true };
+      }
+    }
+
+    // Otherwise attack closest hero within 2 tiles
+    const closestHero = findClosestHero(monsterTile, heroes, tiles, monster.position);
+    if (closestHero !== null && closestHero.distance <= 2) {
+      return {
+        action: 'attack',
+        targetHeroId: closestHero.hero.id,
+        damage: 1,
+        attackBonus: 7,
+        statusEffect: 'slowed',
+        passCard: true
+      };
+    }
+
+    // If did not attack, trigger Dark Chant
+    return { action: 'idle', acolyteDidNotAttack: true };
+  }
+
+  // Custom Dread Warrior tactics override
+  if (monster.name.toLowerCase() === 'dread warrior') {
+    const closestHero = findClosestHero(monsterTile, heroes, tiles, monster.position);
+    if (closestHero !== null) {
+      const { hero: closest, tile: heroTile } = closestHero;
+      const tileDist = getTileGraphDistance(monsterTile, heroTile, tiles);
+
+      if (tileDist <= 1) {
+        // Move adjacent to target and attack
+        const path = tileDist === 0 ? [] : getPathToward(monsterTile, heroTile, tiles, 1);
+        const hAbsX = closest.position.x * 4 + closest.position.sqX;
+        const hAbsZ = closest.position.z * 4 + closest.position.sqZ;
+        const mAbsX = monster.position.x * 4 + monster.position.sqX;
+        const mAbsZ = monster.position.z * 4 + monster.position.sqZ;
+        const isSqAdjacent = Math.abs(hAbsX - mAbsX) + Math.abs(hAbsZ - mAbsZ) === 1;
+
+        if (isSqAdjacent) {
+          return {
+            action: 'attack',
+            targetHeroId: closest.id,
+            damage: 2,
+            attackBonus: 6
+          };
+        } else {
+          return {
+            action: 'move_then_attack',
+            path: path.length > 0 ? path : [monsterTile],
+            targetHeroId: closest.id,
+            damage: 2,
+            attackBonus: 6
+          };
+        }
+      } else {
+        // Otherwise, move 1 tile towards closest hero
+        const path = getPathToward(monsterTile, heroTile, tiles, 1);
+        if (path.length > 0) {
+          return { action: 'move', path };
+        }
+      }
+    }
+    return { action: 'idle' };
+  }
+
+  // Custom Gravehound tactics override
+  if (monster.name.toLowerCase() === 'gravehound') {
+    // Find hero with lowest current HP
+    let lowestHPHero: Hero | null = null;
+    for (const h of heroes) {
+      if (lowestHPHero === null || h.hp < lowestHPHero.hp) {
+        lowestHPHero = h;
+      }
+    }
+    if (lowestHPHero) {
+      const heroTile = tiles.find(t => t.x === lowestHPHero!.position.x && t.z === lowestHPHero!.position.z);
+      if (heroTile) {
+        const dist = getTileGraphDistance(monsterTile, heroTile, tiles);
+        if (dist <= 2) {
+          const path = getPathToward(monsterTile, heroTile, tiles, 2);
+          const hAbsX = lowestHPHero.position.x * 4 + lowestHPHero.position.sqX;
+          const hAbsZ = lowestHPHero.position.z * 4 + lowestHPHero.position.sqZ;
+          const mAbsX = monster.position.x * 4 + monster.position.sqX;
+          const mAbsZ = monster.position.z * 4 + monster.position.sqZ;
+          const isSqAdjacent = Math.abs(hAbsX - mAbsX) + Math.abs(hAbsZ - mAbsZ) === 1;
+
+          if (isSqAdjacent) {
+            return {
+              action: 'attack',
+              targetHeroId: lowestHPHero.id,
+              damage: 1,
+              attackBonus: 9
+            };
+          } else {
+            return {
+              action: 'move_then_attack',
+              path: path.length > 0 ? path : [monsterTile],
+              targetHeroId: lowestHPHero.id,
+              damage: 1,
+              attackBonus: 9
+            };
+          }
+        } else {
+          const path = getPathToward(monsterTile, heroTile, tiles, 2);
+          if (path.length > 0) {
+            return { action: 'move', path };
+          }
+        }
+      }
+    }
+    return { action: 'idle' };
+  }
+
+  // Custom Mummy tactics override
+  if (monster.name.toLowerCase() === 'mummy') {
+    const closestHero = findClosestHero(monsterTile, heroes, tiles, monster.position);
+    if (closestHero !== null) {
+      const { hero: closest, tile: heroTile } = closestHero;
+      const tileDist = getTileGraphDistance(monsterTile, heroTile, tiles);
+
+      if (tileDist <= 1) {
+        const path = tileDist === 0 ? [] : getPathToward(monsterTile, heroTile, tiles, 1);
+        const hAbsX = closest.position.x * 4 + closest.position.sqX;
+        const hAbsZ = closest.position.z * 4 + closest.position.sqZ;
+        const mAbsX = monster.position.x * 4 + monster.position.sqX;
+        const mAbsZ = monster.position.z * 4 + monster.position.sqZ;
+        const isSqAdjacent = Math.abs(hAbsX - mAbsX) + Math.abs(hAbsZ - mAbsZ) === 1;
+
+        if (isSqAdjacent) {
+          return {
+            action: 'attack',
+            targetHeroId: closest.id,
+            damage: 1,
+            attackBonus: 6,
+            passCard: true
+          };
+        } else {
+          return {
+            action: 'move_then_attack',
+            path: path.length > 0 ? path : [monsterTile],
+            targetHeroId: closest.id,
+            damage: 1,
+            attackBonus: 6,
+            passCard: true
+          };
+        }
+      } else {
+        const path = getPathToward(monsterTile, heroTile, tiles, 1);
+        return {
+          action: 'move',
+          path: path.length > 0 ? path : [monsterTile],
+          passCard: true
+        };
+      }
+    }
+    return { action: 'idle', passCard: true };
+  }
+
+  // Custom Skull Lord tactics override
+  if (monster.name.toLowerCase() === 'skull lord') {
+    const closestHero = findClosestHero(monsterTile, heroes, tiles, monster.position);
+    if (closestHero !== null) {
+      const { hero: closest, tile: heroTile } = closestHero;
+      const tileDist = getTileGraphDistance(monsterTile, heroTile, tiles);
+
+      if (tileDist <= 1) {
+        const path = tileDist === 0 ? [] : getPathToward(monsterTile, heroTile, tiles, 1);
+        const hAbsX = closest.position.x * 4 + closest.position.sqX;
+        const hAbsZ = closest.position.z * 4 + closest.position.sqZ;
+        const mAbsX = monster.position.x * 4 + monster.position.sqX;
+        const mAbsZ = monster.position.z * 4 + monster.position.sqZ;
+        const isSqAdjacent = Math.abs(hAbsX - mAbsX) + Math.abs(hAbsZ - mAbsZ) === 1;
+
+        if (isSqAdjacent) {
+          return {
+            action: 'attack',
+            targetHeroId: closest.id,
+            damage: 1,
+            attackBonus: 7,
+            statusEffect: 'slowed',
+            passCard: true
+          };
+        } else {
+          return {
+            action: 'move_then_attack',
+            path: path.length > 0 ? path : [monsterTile],
+            targetHeroId: closest.id,
+            damage: 1,
+            attackBonus: 7,
+            statusEffect: 'slowed',
+            passCard: true
+          };
+        }
+      } else {
+        const path = getPathToward(monsterTile, heroTile, tiles, 1);
+        return {
+          action: 'move',
+          path: path.length > 0 ? path : [monsterTile],
+          passCard: true
+        };
+      }
+    }
+    return { action: 'idle', passCard: true };
+  }
+
+  // Custom Vampire Bat tactics override
+  if (monster.name.toLowerCase() === 'vampire bat') {
+    // 1. If adjacent to a hero, attack
+    let adjacentHero: Hero | null = null;
+    for (const h of heroes) {
+      const hAbsX = h.position.x * 4 + h.position.sqX;
+      const hAbsZ = h.position.z * 4 + h.position.sqZ;
+      const mAbsX = monster.position.x * 4 + monster.position.sqX;
+      const mAbsZ = monster.position.z * 4 + monster.position.sqZ;
+      if (Math.abs(hAbsX - mAbsX) + Math.abs(hAbsZ - mAbsZ) === 1) {
+        adjacentHero = h;
+        break;
+      }
+    }
+    if (adjacentHero) {
+      return {
+        action: 'attack',
+        targetHeroId: adjacentHero.id,
+        damage: 1,
+        attackBonus: 5
+      };
+    }
+
+    // 2. If on a tile with unexplored edge and no heroes, reveal tile
+    const heroesOnTile = heroes.filter(h => h.position.x === monster.position.x && h.position.z === monster.position.z);
+    const expPoints = TileSystem.getExplorationPoints(tiles).filter(p => p.tileId === monsterTile.id);
+    if (heroesOnTile.length === 0 && expPoints.length > 0) {
+      return { action: 'idle', revealTiles: true };
+    }
+
+    // 3. Otherwise, move 1 tile towards closest hero
+    const closestHero = findClosestHero(monsterTile, heroes, tiles, monster.position);
+    if (closestHero) {
+      const path = getPathToward(monsterTile, closestHero.tile, tiles, 1);
+      if (path.length > 0) {
+        return { action: 'move', path };
       }
     }
     return { action: 'idle' };

@@ -23,22 +23,28 @@ export const HeroPanel: React.FC = () => {
     'Immeril': '/ui/immeril.png',
     'Kat': '/ui/kat.png',
     'Thorgrim': '/ui/thorgrim.png',
-    'Alanni': '/ui/alanni.png',
+    'Alissa': '/ui/alissa.png',
   };
 
   const hpPercentage = (currentHero.hp / currentHero.maxHp) * 100;
 
   const handleHealingSurge = () => {
-    if (!gameState || gameState.healingSurges <= 0 || currentHero.hp >= currentHero.maxHp) return;
+    if (!gameState || gameState.healingSurges <= 0) return;
+    const hasMummyRot = currentHero.conditions?.some(c => c.type === 'mummy_rot');
+    if (!hasMummyRot && currentHero.hp >= currentHero.maxHp) return;
     if (currentHero.hasUsedSurgeThisTurn) return;
 
     const surgeHeal = ExperienceSystem.getSurgeValue(currentHero);
-    const newHp = Math.min(currentHero.maxHp, currentHero.hp + surgeHeal);
+    const updatedConditions = hasMummyRot
+      ? (currentHero.conditions || []).filter(c => c.type !== 'mummy_rot')
+      : currentHero.conditions;
+    const newHp = hasMummyRot ? currentHero.hp : Math.min(currentHero.maxHp, currentHero.hp + surgeHeal);
+
     const newState = {
       ...gameState,
       healingSurges: gameState.healingSurges - 1,
       heroes: gameState.heroes.map(h => 
-        h.id === currentHero.id ? { ...h, hp: newHp, hasUsedSurgeThisTurn: true } : h
+        h.id === currentHero.id ? { ...h, hp: newHp, conditions: updatedConditions, hasUsedSurgeThisTurn: true } : h
       )
     };
 
@@ -249,7 +255,7 @@ export const HeroPanel: React.FC = () => {
         ))}
         <button 
           onClick={handleHealingSurge}
-          disabled={(gameState?.healingSurges || 0) <= 0 || currentHero.hp >= currentHero.maxHp || currentHero.hasUsedSurgeThisTurn}
+          disabled={(gameState?.healingSurges || 0) <= 0 || (!currentHero.conditions?.some(c => c.type === 'mummy_rot') && currentHero.hp >= currentHero.maxHp) || currentHero.hasUsedSurgeThisTurn}
           style={{
              marginLeft: 'auto',
              fontFamily: 'Cinzel, serif',
@@ -259,8 +265,8 @@ export const HeroPanel: React.FC = () => {
              border: '1px solid #00ff00',
              color: '#00ff00',
              borderRadius: '4px',
-             cursor: ((gameState?.healingSurges || 0) <= 0 || currentHero.hp >= currentHero.maxHp || currentHero.hasUsedSurgeThisTurn) ? 'not-allowed' : 'pointer',
-             opacity: ((gameState?.healingSurges || 0) <= 0 || currentHero.hp >= currentHero.maxHp || currentHero.hasUsedSurgeThisTurn) ? 0.5 : 1,
+             cursor: ((gameState?.healingSurges || 0) <= 0 || (!currentHero.conditions?.some(c => c.type === 'mummy_rot') && currentHero.hp >= currentHero.maxHp) || currentHero.hasUsedSurgeThisTurn) ? 'not-allowed' : 'pointer',
+             opacity: ((gameState?.healingSurges || 0) <= 0 || (!currentHero.conditions?.some(c => c.type === 'mummy_rot') && currentHero.hp >= currentHero.maxHp) || currentHero.hasUsedSurgeThisTurn) ? 0.5 : 1,
              transition: 'all 0.2s'
           }}
         >

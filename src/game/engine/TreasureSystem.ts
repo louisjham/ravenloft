@@ -1,9 +1,10 @@
-import { Card, Effect, Entity, GameState, Hero, ActiveBlessing, TileEffect, DeckSentinel, Monster, DeckKey, FortuneXpEntry, PendingFortune } from '../types';
+import { Card, Effect, Entity, GameState, Hero, ActiveBlessing, TileEffect, DeckSentinel, Monster, DeckKey, FortuneXpEntry, PendingFortune, Tile } from '../types';
 import { CombatSystem } from './CombatSystem';
 import { ConditionSystem } from './ConditionSystem';
 import { ExperienceSystem } from './ExperienceSystem';
 import { PowerSystem } from './PowerSystem';
 import { DataLoader } from '../dataLoader';
+import { findBestLandingSquare } from './MonsterAI';
 
 const SENTINEL_MOMENTS_RESPITE: DeckSentinel = 'sentinel_moments_respite';
 
@@ -1202,21 +1203,142 @@ export class TreasureSystem {
       if (!target || target.type !== 'monster') {
         return { newState: gameState, message: 'Wooden Stake must target a monster.', success: false };
       }
-      const isVampire = (target as Monster).monsterType?.toLowerCase() === 'vampire';
+      const targetMonster = target as Monster;
+      const isVampire = targetMonster.monsterType?.toLowerCase()?.includes('vampire') || 
+                        targetMonster.name?.toLowerCase()?.includes('vampire') ||
+                        targetMonster.name?.toLowerCase()?.includes('strahd') ||
+                        targetMonster.id?.toLowerCase()?.includes('vampire') ||
+                        targetMonster.id?.toLowerCase()?.includes('strahd');
       if (!isVampire) {
         return { newState: gameState, message: 'Wooden Stake can only target Vampire-type monsters.', success: false };
       }
-      const updatedTarget = { ...target, hp: 0, isDefeated: true };
+      const dx = Math.abs(hero.position.x - target.position.x);
+      const dz = Math.abs(hero.position.z - target.position.z);
+      if (dx + dz > 1) {
+        return { newState: gameState, message: 'Wooden Stake target must be adjacent.', success: false };
+      }
+
+      const attackResult = CombatSystem.resolveAttack(
+        hero,
+        targetMonster,
+        5, // attack bonus
+        3, // damage
+        0, // roll modifier
+        undefined,
+        gameState,
+        1 // miss damage
+      );
+
+      let updatedTarget = CombatSystem.applyDamage(targetMonster, attackResult.damage, gameState) as Monster;
+      updatedTarget = {
+        ...updatedTarget,
+        skipActivations: (updatedTarget.skipActivations ?? 0) + 1
+      };
+
       let updatedHero = { ...hero };
       if (gameState.activeEnvironmentCard === 'enc_spirit_of_doom_env') {
         updatedHero = CombatSystem.applyDamage(updatedHero, 1) as Hero;
       }
       updatedHero = { ...updatedHero, items: updatedHero.items.filter(id => id !== card.id) };
+
       const updatedHeroes = gameState.heroes.map(h => h.id === hero.id ? updatedHero : h);
-      const updatedMonsters = gameState.monsters.map(m => m.id === target.id ? updatedTarget as Monster : m);
+      const updatedMonsters = gameState.monsters.map(m => m.id === target.id ? updatedTarget : m);
+
+      const hitStr = attackResult.hit ? 'HITS' : 'MISSES';
+      const message = `${hero.name} attacks ${target.name} with Wooden Stake (+5 vs AC ${targetMonster.ac}) and ${hitStr} (Roll: ${attackResult.roll}, Total: ${attackResult.total}) for ${attackResult.damage} damage. Vampire does not activate on next phase.`;
+
+      // Log to game history
+      const currentCounter = gameState.logIdCounter ?? 0;
+      const updatedLog = [
+        ...(gameState.log || []),
+        {
+          id: String(currentCounter),
+          timestamp: new Date().toISOString(),
+          message,
+          type: 'combat' as const
+        }
+      ].slice(-100);
+
       return {
-        newState: { ...gameState, heroes: updatedHeroes, monsters: updatedMonsters },
-        message: `${hero.name} drove a wooden stake into ${target.name}, defeating it instantly!`,
+        newState: {
+          ...gameState,
+          heroes: updatedHeroes,
+          monsters: updatedMonsters,
+          log: updatedLog,
+          logIdCounter: currentCounter + 1
+        },
+        message,
+        success: true
+      };
+    }
+
+    if (card.id === 'item_silver_dagger') {
+      if (!target || target.type !== 'monster') {
+        return { newState: gameState, message: 'Silver Dagger must target a monster.', success: false };
+      }
+      const targetMonster = target as Monster;
+      const isWerewolf = targetMonster.monsterType?.toLowerCase()?.includes('werewolf') || 
+                         targetMonster.name?.toLowerCase()?.includes('werewolf') ||
+                         targetMonster.id?.toLowerCase()?.includes('werewolf');
+      if (!isWerewolf) {
+        return { newState: gameState, message: 'Silver Dagger can only target Werewolf-type monsters.', success: false };
+      }
+      const dx = Math.abs(hero.position.x - target.position.x);
+      const dz = Math.abs(hero.position.z - target.position.z);
+      if (dx + dz > 2) {
+        return { newState: gameState, message: 'Silver Dagger target must be within 2 tiles.', success: false };
+      }
+
+      const attackResult = CombatSystem.resolveAttack(
+        hero,
+        targetMonster,
+        5, // attack bonus
+        3, // damage
+        0, // roll modifier
+        undefined,
+        gameState,
+        1 // miss damage
+      );
+
+      let updatedTarget = CombatSystem.applyDamage(targetMonster, attackResult.damage, gameState) as Monster;
+      updatedTarget = {
+        ...updatedTarget,
+        regenerationDisabled: true
+      };
+
+      let updatedHero = { ...hero };
+      if (gameState.activeEnvironmentCard === 'enc_spirit_of_doom_env') {
+        updatedHero = CombatSystem.applyDamage(updatedHero, 1) as Hero;
+      }
+      updatedHero = { ...updatedHero, items: updatedHero.items.filter(id => id !== card.id) };
+
+      const updatedHeroes = gameState.heroes.map(h => h.id === hero.id ? updatedHero : h);
+      const updatedMonsters = gameState.monsters.map(m => m.id === target.id ? updatedTarget : m);
+
+      const hitStr = attackResult.hit ? 'HITS' : 'MISSES';
+      const message = `${hero.name} attacks ${target.name} with Silver Dagger (+5 vs AC ${targetMonster.ac}) and ${hitStr} (Roll: ${attackResult.roll}, Total: ${attackResult.total}) for ${attackResult.damage} damage. Werewolf permanently loses regeneration.`;
+
+      // Log to game history
+      const currentCounter = gameState.logIdCounter ?? 0;
+      const updatedLog = [
+        ...(gameState.log || []),
+        {
+          id: String(currentCounter),
+          timestamp: new Date().toISOString(),
+          message,
+          type: 'combat' as const
+        }
+      ].slice(-100);
+
+      return {
+        newState: {
+          ...gameState,
+          heroes: updatedHeroes,
+          monsters: updatedMonsters,
+          log: updatedLog,
+          logIdCounter: currentCounter + 1
+        },
+        message,
         success: true
       };
     }
@@ -1239,20 +1361,210 @@ export class TreasureSystem {
     }
 
     if (card.id === 'item_torch') {
-      if (!target || target.type !== 'monster') {
-        return { newState: gameState, message: 'Torch must target a monster.', success: false };
+      const heroTile = gameState.tiles.find(t => t.x === hero.position.x && t.z === hero.position.z);
+      if (!heroTile) {
+        return { newState: gameState, message: 'Hero must be on a tile to use Torch.', success: false };
       }
-      const updatedTarget = CombatSystem.applyDamage(target, 1);
+
+      // 1. Identify monsters on the hero's tile
+      const monstersOnTile = gameState.monsters.filter(m =>
+        m.hp > 0 && !m.isDefeated && m.position.x === hero.position.x && m.position.z === hero.position.z
+      );
+
+      let tempState = { ...gameState };
+      let logMessages: string[] = [];
+
+      // Valid tiles within 1 tile of hero, sorted by distance descending (distance 1 first, then distance 0)
+      const validTiles = tempState.tiles.filter(t => {
+        const dist = Math.abs(t.x - hero.position.x) + Math.abs(t.z - hero.position.z);
+        return dist <= 1;
+      });
+      const sortedTiles = [...validTiles].sort((a, b) => {
+        const distA = Math.abs(a.x - hero.position.x) + Math.abs(a.z - hero.position.z);
+        const distB = Math.abs(b.x - hero.position.x) + Math.abs(b.z - hero.position.z);
+        if (distA !== distB) return distB - distA;
+        return a.id.localeCompare(b.id);
+      });
+
+      let updatedMonsters = tempState.monsters;
+
+      for (const monster of monstersOnTile) {
+        tempState.monsters = updatedMonsters;
+        // Resolve attack: +5 vs AC, 1 damage on hit, 0 on miss
+        const attackResult = CombatSystem.resolveAttack(hero, monster, 5, 1, 0, undefined, tempState, 0);
+        let updatedMonster = CombatSystem.applyDamage(monster, attackResult.damage, tempState) as Monster;
+
+        const hitStr = attackResult.hit ? 'HITS' : 'MISSES';
+        let movementLog = '';
+
+        if (updatedMonster.hp > 0 && !updatedMonster.isDefeated) {
+          // Find first tile with free landing square
+          let chosenTile = null;
+          let landingSq = null;
+
+          for (const tile of sortedTiles) {
+            const sq = findBestLandingSquare(updatedMonster, null, tile, false, tempState);
+            const occupied = 
+              tempState.heroes.some(h => h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sq.sqX && h.position.sqZ === sq.sqZ) ||
+              updatedMonsters.some(m => m.id !== monster.id && !m.isDefeated && m.hp > 0 && m.position.x === tile.x && m.position.z === tile.z && m.position.sqX === sq.sqX && m.position.sqZ === sq.sqZ);
+            if (!occupied) {
+              chosenTile = tile;
+              landingSq = sq;
+              break;
+            }
+          }
+
+          if (chosenTile && landingSq) {
+            updatedMonster = {
+              ...updatedMonster,
+              position: { x: chosenTile.x, z: chosenTile.z, sqX: landingSq.sqX, sqZ: landingSq.sqZ }
+            };
+            movementLog = ` and places it on tile ${chosenTile.id} (${landingSq.sqX}, ${landingSq.sqZ})`;
+          }
+        }
+
+        updatedMonsters = updatedMonsters.map(m => m.id === monster.id ? updatedMonster : m);
+        logMessages.push(`${hero.name} attacks ${monster.name} with Torch (+5 vs AC ${monster.ac}) and ${hitStr} (Roll: ${attackResult.roll}, Total: ${attackResult.total}) for ${attackResult.damage} damage${movementLog}.`);
+      }
+
       let updatedHero = { ...hero };
-      if (gameState.activeEnvironmentCard === 'enc_spirit_of_doom_env') {
+      if (tempState.activeEnvironmentCard === 'enc_spirit_of_doom_env') {
         updatedHero = CombatSystem.applyDamage(updatedHero, 1) as Hero;
       }
       updatedHero = { ...updatedHero, items: updatedHero.items.filter(id => id !== card.id) };
-      const updatedHeroes = gameState.heroes.map(h => h.id === hero.id ? updatedHero : h);
-      const updatedMonsters = gameState.monsters.map(m => m.id === target.id ? updatedTarget as Monster : m);
+
+      const updatedHeroes = tempState.heroes.map(h => h.id === hero.id ? updatedHero : h);
+
+      // Log to history
+      let currentCounter = tempState.logIdCounter ?? 0;
+      let newLogs = [...(tempState.log || [])];
+      for (const msg of logMessages) {
+        newLogs.push({
+          id: String(currentCounter++),
+          timestamp: new Date().toISOString(),
+          message: msg,
+          type: 'combat' as const
+        });
+      }
+
       return {
-        newState: { ...gameState, heroes: updatedHeroes, monsters: updatedMonsters },
-        message: `${hero.name} discarded a Torch to deal 1 fire damage to ${target.name}.`,
+        newState: {
+          ...tempState,
+          heroes: updatedHeroes,
+          monsters: updatedMonsters,
+          log: newLogs.slice(-100),
+          logIdCounter: currentCounter
+        },
+        message: logMessages.join(' ') || `${hero.name} used Torch.`,
+        success: true
+      };
+    }
+
+    if (card.id === 'item_wand_of_teleportation') {
+      if (!target) {
+        return { newState: gameState, message: 'Wand of Teleportation requires a target monster or tile.', success: false };
+      }
+
+      let targetTile: Tile | undefined;
+      if (target.type === 'monster') {
+        targetTile = gameState.tiles.find(t => t.x === target.position?.x && t.z === target.position?.z);
+      } else {
+        const maybeTile = target as any;
+        targetTile = gameState.tiles.find(t => t.x === maybeTile.x && t.z === maybeTile.z);
+      }
+
+      if (!targetTile) {
+        return { newState: gameState, message: 'Target tile must exist on the board.', success: false };
+      }
+
+      // Check if targetTile is within 1 tile of hero
+      const dx = Math.abs(hero.position.x - targetTile.x);
+      const dz = Math.abs(hero.position.z - targetTile.z);
+      if (dx + dz > 1) {
+        return { newState: gameState, message: 'Target tile must be within 1 tile of you.', success: false };
+      }
+
+      // 1. Find all monsters on targetTile
+      const monstersOnTile = gameState.monsters.filter(m =>
+        m.hp > 0 && !m.isDefeated && m.position.x === targetTile!.x && m.position.z === targetTile!.z
+      );
+
+      let tempState = { ...gameState };
+      let logMessages: string[] = [];
+
+      // Valid tiles within 3 tiles of hero, sorted by distance descending (farthest first)
+      const validTiles = tempState.tiles.filter(t => {
+        const dist = Math.abs(t.x - hero.position.x) + Math.abs(t.z - hero.position.z);
+        return dist <= 3;
+      });
+      const sortedTiles = [...validTiles].sort((a, b) => {
+        const distA = Math.abs(a.x - hero.position.x) + Math.abs(a.z - hero.position.z);
+        const distB = Math.abs(b.x - hero.position.x) + Math.abs(b.z - hero.position.z);
+        if (distA !== distB) return distB - distA;
+        return a.id.localeCompare(b.id);
+      });
+
+      let updatedMonsters = tempState.monsters;
+
+      for (const monster of monstersOnTile) {
+        tempState.monsters = updatedMonsters;
+        let updatedMonster = { ...monster };
+        let chosenTile = null;
+        let landingSq = null;
+
+        for (const tile of sortedTiles) {
+          const sq = findBestLandingSquare(updatedMonster, null, tile, false, tempState);
+          const occupied = 
+            tempState.heroes.some(h => h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sq.sqX && h.position.sqZ === sq.sqZ) ||
+            updatedMonsters.some(m => m.id !== monster.id && !m.isDefeated && m.hp > 0 && m.position.x === tile.x && m.position.z === tile.z && m.position.sqX === sq.sqX && m.position.sqZ === sq.sqZ);
+          if (!occupied) {
+            chosenTile = tile;
+            landingSq = sq;
+            break;
+          }
+        }
+
+        if (chosenTile && landingSq) {
+          updatedMonster = {
+            ...updatedMonster,
+            position: { x: chosenTile.x, z: chosenTile.z, sqX: landingSq.sqX, sqZ: landingSq.sqZ }
+          };
+          logMessages.push(`${monster.name} is teleported to tile ${chosenTile.id} (${landingSq.sqX}, ${landingSq.sqZ}).`);
+        }
+        updatedMonsters = updatedMonsters.map(m => m.id === monster.id ? updatedMonster : m);
+      }
+
+      let updatedHero = { ...hero };
+      if (tempState.activeEnvironmentCard === 'enc_spirit_of_doom_env') {
+        updatedHero = CombatSystem.applyDamage(updatedHero, 1) as Hero;
+      }
+      updatedHero = { ...updatedHero, items: updatedHero.items.filter(id => id !== card.id) };
+
+      const updatedHeroes = tempState.heroes.map(h => h.id === hero.id ? updatedHero : h);
+
+      // Log to history
+      let currentCounter = tempState.logIdCounter ?? 0;
+      let newLogs = [...(tempState.log || [])];
+      for (const msg of logMessages) {
+        newLogs.push({
+          id: String(currentCounter++),
+          timestamp: new Date().toISOString(),
+          message: `${hero.name} uses Wand of Teleportation: ${msg}`,
+          type: 'system' as const
+        });
+      }
+
+      const summaryMsg = `${hero.name} uses Wand of Teleportation on tile ${targetTile.id}. ` + logMessages.join(' ');
+
+      return {
+        newState: {
+          ...tempState,
+          heroes: updatedHeroes,
+          monsters: updatedMonsters,
+          log: newLogs.slice(-100),
+          logIdCounter: currentCounter
+        },
+        message: summaryMsg,
         success: true
       };
     }

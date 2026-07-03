@@ -979,14 +979,15 @@
     "name": "Gravehound",
     "type": "monster",
     "monsterType": "Undead",
+    "image": "/card-images/monster-gravehound.png",
     "hp": 1,
     "maxHp": 1,
     "ac": 14,
-    "speed": 1,
+    "speed": 2,
     "attackBonus": 9,
     "damage": 1,
     "experienceValue": 1,
-    "moveRange": 1,
+    "moveRange": 2,
     "abilities": [],
     "behavior": {
       "conditions": [
@@ -1019,6 +1020,7 @@
     "name": "Dark Acolyte",
     "type": "monster",
     "monsterType": "Human",
+    "image": "/card-images/monster-darkacolyte.png",
     "hp": 3,
     "maxHp": 3,
     "ac": 14,
@@ -1054,7 +1056,7 @@
     "usedPowers": [],
     "tacticsText": "If a hero is on the same tile, teleport to furthest tile with unexplored edge (pass left). Otherwise, attack closest hero within 2 tiles with necrotic blast (pass left).",
     "specialAbilityText": "Special Ability: Dark chant — If Dark Acolyte did not attack, the closest wounded Undead regains 1 HP.",
-    "passLeft": 1
+    "passLeft": 2
   },
   {
     "id": "monster_skeletal_archer",
@@ -1101,13 +1103,14 @@
     "name": "Mummy",
     "type": "monster",
     "monsterType": "Undead",
+    "image": "/card-images/monster-mummy.png",
     "hp": 4,
     "maxHp": 4,
     "ac": 14,
     "speed": 1,
-    "attackBonus": 7,
-    "damage": 2,
-    "missDamage": 1,
+    "attackBonus": 6,
+    "damage": 1,
+    "missDamage": 0,
     "experienceValue": 4,
     "moveRange": 1,
     "abilities": [
@@ -1137,13 +1140,14 @@
     "usedPowers": [],
     "tacticsText": "If within 1 tile of a hero, move adjacent to closest hero and attack with rotting touch (pass left). Otherwise, move 1 tile towards closest hero (pass left).",
     "specialAbilityText": "Special Ability: Mummy rot — Damage inflicted by Mummy cannot be healed (turn the wound token face down).",
-    "passLeft": 1
+    "passLeft": 2
   },
   {
     "id": "monster_vampire_bat",
     "name": "Vampire Bat",
     "type": "monster",
     "monsterType": "Animal",
+    "image": "/card-images/monster-vampirebat.png",
     "hp": 1,
     "maxHp": 1,
     "ac": 16,
@@ -1184,6 +1188,7 @@
     "name": "Skull Lord",
     "type": "monster",
     "monsterType": "Undead",
+    "image": "/card-images/monster-skulllord.png",
     "hp": 3,
     "maxHp": 3,
     "ac": 15,
@@ -1219,13 +1224,14 @@
     "usedPowers": [],
     "tacticsText": "If within 1 tile of a hero, attack a hero within 1 tile for each remaining HP on Skull Lord (pass left). Otherwise, move 1 tile towards nearest hero (pass left).",
     "specialAbilityText": "Special Ability: Cackling skulls — Any hero that attacks and misses Skull Lord from within 1 tile must flip a daily/utility power or take 1 damage.",
-    "passLeft": 1
+    "passLeft": 2
   },
   {
     "id": "monster_dread_warrior",
     "name": "Dread Warrior",
     "type": "monster",
     "monsterType": "Undead",
+    "image": "/card-images/monster-dreadwarrior.png",
     "hp": 2,
     "maxHp": 2,
     "ac": 16,

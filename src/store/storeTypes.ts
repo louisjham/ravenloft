@@ -60,6 +60,7 @@ export interface CoreSlice {
   hoverTile: (tile: Tile | null) => void;
   endTurn: () => void;
   levelUpHero: (heroId: string, newDailyPowerId?: string) => void;
+  cureMummyRot: (heroId: string) => void;
   escapeHero: (heroId: string) => void;
   discardTreasureForPower: (heroId: string, treasureCardId?: string) => void;
   resolvePendingFortune: (choice: Record<string, unknown>) => Promise<void>;

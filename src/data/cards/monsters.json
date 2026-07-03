@@ -423,6 +423,7 @@
     "id": "card_monster_gravehound_1",
     "name": "Gravehound",
     "type": "monster",
+    "image": "/card-images/monster-gravehound.png",
     "description": "Spawn a Gravehound on the bone pile of the newly revealed tile.",
     "effects": [
       {
@@ -437,6 +438,7 @@
     "id": "card_monster_gravehound_2",
     "name": "Gravehound",
     "type": "monster",
+    "image": "/card-images/monster-gravehound.png",
     "description": "Spawn a Gravehound on the bone pile of the newly revealed tile.",
     "effects": [
       {
@@ -451,6 +453,7 @@
     "id": "card_monster_gravehound_3",
     "name": "Gravehound",
     "type": "monster",
+    "image": "/card-images/monster-gravehound.png",
     "description": "Spawn a Gravehound on the bone pile of the newly revealed tile.",
     "effects": [
       {
@@ -465,6 +468,7 @@
     "id": "card_monster_dark_acolyte_1",
     "name": "Dark Acolyte",
     "type": "monster",
+    "image": "/card-images/monster-darkacolyte.png",
     "description": "Spawn a Dark Acolyte on the bone pile of the newly revealed tile.",
     "effects": [
       {
@@ -521,6 +525,7 @@
     "id": "card_monster_mummy_1",
     "name": "Mummy",
     "type": "monster",
+    "image": "/card-images/monster-mummy.png",
     "description": "Spawn a Mummy on the bone pile of the newly revealed tile.",
     "effects": [
       {
@@ -535,6 +540,7 @@
     "id": "card_monster_vampire_bat_1",
     "name": "Vampire Bat",
     "type": "monster",
+    "image": "/card-images/monster-vampirebat.png",
     "description": "Spawn a Vampire Bat on the bone pile of the newly revealed tile.",
     "effects": [
       {
@@ -549,6 +555,7 @@
     "id": "card_monster_vampire_bat_2",
     "name": "Vampire Bat",
     "type": "monster",
+    "image": "/card-images/monster-vampirebat.png",
     "description": "Spawn a Vampire Bat on the bone pile of the newly revealed tile.",
     "effects": [
       {
@@ -563,6 +570,7 @@
     "id": "card_monster_vampire_bat_3",
     "name": "Vampire Bat",
     "type": "monster",
+    "image": "/card-images/monster-vampirebat.png",
     "description": "Spawn a Vampire Bat on the bone pile of the newly revealed tile.",
     "effects": [
       {
@@ -577,6 +585,7 @@
     "id": "card_monster_skull_lord_1",
     "name": "Skull Lord",
     "type": "monster",
+    "image": "/card-images/monster-skulllord.png",
     "description": "Spawn a Skull Lord on the bone pile of the newly revealed tile.",
     "effects": [
       {
@@ -591,6 +600,7 @@
     "id": "card_monster_dread_warrior_1",
     "name": "Dread Warrior",
     "type": "monster",
+    "image": "/card-images/monster-dreadwarrior.png",
     "description": "Spawn a Dread Warrior on the bone pile of the newly revealed tile.",
     "effects": [
       {
@@ -605,6 +615,7 @@
     "id": "card_monster_dread_warrior_2",
     "name": "Dread Warrior",
     "type": "monster",
+    "image": "/card-images/monster-dreadwarrior.png",
     "description": "Spawn a Dread Warrior on the bone pile of the newly revealed tile.",
     "effects": [
       {
@@ -619,6 +630,7 @@
     "id": "card_monster_dread_warrior_3",
     "name": "Dread Warrior",
     "type": "monster",
+    "image": "/card-images/monster-dreadwarrior.png",
     "description": "Spawn a Dread Warrior on the bone pile of the newly revealed tile.",
     "effects": [
       {

@@ -156,7 +156,17 @@ export const createPowerSlice: StateCreator<GameStore, [], [], PowerSlice> = (se
         h.id === heroId ? updatedHero : h
       );
 
-      set({ gameState: { ...state, heroes: newHeroes } });
+      const newSelections = state.powerSelections?.map(s =>
+        s.heroId === heroId ? confirmResult.selection : s
+      ) ?? [];
+
+      set({ 
+        gameState: { 
+          ...state, 
+          heroes: newHeroes,
+          powerSelections: newSelections
+        } 
+      });
     },
 
   autoSelectPowers: (heroId: string) => {

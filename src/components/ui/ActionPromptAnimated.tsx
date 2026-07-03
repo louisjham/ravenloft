@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { useUIStore } from '../../store/uiStore';
+import { TileSystem } from '../../game/engine/TileSystem';
 
 /**
  * ActionPromptAnimated - Dynamic, animated text prompts that guide the player
@@ -78,6 +79,27 @@ export const ActionPromptAnimated: React.FC = () => {
     );
   });
 
+  const isAdjacentToExplorationPoint = useGameStore(s => {
+    if (!s.gameState || s.gameState.phase !== 'hero') return false;
+    const hero = s.gameState.heroes.find(h => h.id === s.gameState!.currentHeroId);
+    if (!hero) return false;
+    const heroPos = hero.position;
+    const heroTile = s.gameState.tiles.find(t => t.x === heroPos.x && t.z === heroPos.z);
+    if (!heroTile) return false;
+    
+    const points = TileSystem.getExplorationPoints(s.gameState.tiles);
+    const isHeroAtEdgeFor = (edge: string): boolean => {
+      switch (edge) {
+        case 'north': return heroPos.sqZ === 0;
+        case 'south': return heroPos.sqZ === 3;
+        case 'east':  return heroPos.sqX === 3;
+        case 'west':  return heroPos.sqX === 0;
+        default:      return false;
+      }
+    };
+    return points.some(p => p.tileId === heroTile.id && isHeroAtEdgeFor(p.edge));
+  });
+
   useEffect(() => {
     if (phase !== 'hero' || !currentHeroId) {
       clearDismissTimer();
@@ -118,6 +140,8 @@ export const ActionPromptAnimated: React.FC = () => {
         newPrompt = { text: 'ATTACK AVAILABLE', subtext: 'Attack nearby enemies or End Turn', type: 'action' };
       } else if (hasUsablePowers) {
         newPrompt = { text: 'POWERS AVAILABLE', subtext: 'Use a power or End Turn', type: 'action' };
+      } else if (isAdjacentToExplorationPoint && !gameState?.hasExploredThisTurn) {
+        newPrompt = { text: 'EXPLORATION REQUIRED', subtext: 'You must explore the adjacent edge', type: 'action' };
       } else if (hasExplorationPoints) {
         newPrompt = { text: 'EXPLORE OR END TURN', subtext: 'Reveal new areas or end your turn', type: 'info' };
       } else {
@@ -166,7 +190,9 @@ export const ActionPromptAnimated: React.FC = () => {
     currentHeroSpeed, 
     canAttack, 
     hasUsablePowers, 
-    hasExplorationPoints
+    hasExplorationPoints,
+    isAdjacentToExplorationPoint,
+    gameState?.hasExploredThisTurn
   ]);
 
   if (!currentPrompt) return null;

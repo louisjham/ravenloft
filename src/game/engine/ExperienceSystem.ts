@@ -291,4 +291,59 @@ export class ExperienceSystem {
   public static resetExperiencePile(gameState: GameState): GameState {
     return { ...gameState, experiencePile: [] };
   }
+
+  /**
+   * Cures Mummy Rot by spending 5 XP.
+   */
+  public static cureMummyRot(
+    gameState: GameState,
+    hero: Hero
+  ): { newState: GameState; success: boolean; message: string; cardsUsed: string[] } {
+    if (!hero.conditions?.some(c => c.type === 'mummy_rot')) {
+      return {
+        newState: gameState,
+        success: false,
+        message: 'Cannot cure: hero does not have Mummy Rot.',
+        cardsUsed: []
+      };
+    }
+
+    const values = ExperienceSystem.getXpValues(gameState);
+    const indices = ExperienceSystem.findXpSubset(values, 5);
+
+    if (!indices) {
+      return {
+        newState: gameState,
+        success: false,
+        message: `Cannot cure Mummy Rot: not enough XP. Need at least 5 XP worth of monster cards.`,
+        cardsUsed: []
+      };
+    }
+
+    const sortedIndices = [...indices].sort((a, b) => b - a);
+    const cardsToSpend: string[] = [];
+    const pile = [...gameState.experiencePile];
+
+    for (const idx of sortedIndices) {
+      cardsToSpend.push(pile[idx]);
+      pile.splice(idx, 1);
+    }
+
+    // Remove the mummy_rot condition
+    const updatedConditions = hero.conditions.filter(c => c.type !== 'mummy_rot');
+    const updatedHero = { ...hero, conditions: updatedConditions };
+    const updatedHeroes = gameState.heroes.map(h => h.id === hero.id ? updatedHero : h);
+
+    return {
+      newState: {
+        ...gameState,
+        heroes: updatedHeroes,
+        experiencePile: pile,
+        discardPiles: ExperienceSystem.addToDiscard(gameState.discardPiles, 'monster', cardsToSpend)
+      },
+      success: true,
+      message: `Cured ${hero.name}'s Mummy Rot! Spent ${cardsToSpend.length} monster cards (5 XP).`,
+      cardsUsed: cardsToSpend
+    };
+  }
 }

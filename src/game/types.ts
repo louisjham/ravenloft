@@ -1,5 +1,5 @@
 // Condition types
-export type ConditionType = 'slowed' | 'immobilized' | 'poisoned' | 'dazed' | 'weakened' | 'stunned' | 'crippling_miasma' | 'attack_bonus' | 'damage_bonus' | 'ac_bonus';
+export type ConditionType = 'slowed' | 'immobilized' | 'poisoned' | 'dazed' | 'weakened' | 'stunned' | 'crippling_miasma' | 'attack_bonus' | 'damage_bonus' | 'ac_bonus' | 'mummy_rot';
 
 
 
@@ -99,6 +99,7 @@ export interface Hero extends Entity {
   hasRolledNatural20ThisTurn?: boolean;
   hasUsedSurgeThisTurn?: boolean;
   removedFromPlay?: boolean;
+  startedTurnAdjacentToDreadWarriorIds?: string[];
 }
 
 export function isMonsterEntity(entity: Entity): entity is Monster {
@@ -130,6 +131,8 @@ export interface Monster extends Entity {
   specialAbilityText?: string
   /** Fortune: Daze — number of activations to skip (decremented by MonsterAI). */
   skipActivations?: number;
+  /** Silver Dagger — Werewolf HP regeneration is permanently disabled. */
+  regenerationDisabled?: boolean;
 }
 
 export interface MonsterBehavior {
@@ -539,6 +542,8 @@ export interface AbilityEffect {
   duration?: number
   range?: number
   aoe?: boolean
+  /** For 'summon' effects: the monster data ID to spawn (e.g. 'monster_skeleton'). */
+  monsterId?: string
 }
 
 export interface MonsterAbility {
@@ -572,8 +577,8 @@ export interface BossPhase {
 
 // TacticResult type moved from MonsterAI.ts and extended
 export type TacticResult =
-  | { action: 'move'; path: Tile[] }
-  | { action: 'attack'; targetHeroId: string; damage: number; attackBonus?: number; missDamage?: number; statusEffect?: ConditionType; multiTarget?: boolean }
+  | { action: 'move'; path: Tile[]; passCard?: boolean; revealTiles?: boolean; teleportToTileId?: string; acolyteDidNotAttack?: boolean }
+  | { action: 'attack'; targetHeroId: string; damage: number; attackBonus?: number; missDamage?: number; statusEffect?: ConditionType; multiTarget?: boolean; passCard?: boolean; acolyteDidNotAttack?: boolean }
   | {
     action: 'move_then_attack';
     path: Tile[];
@@ -583,13 +588,17 @@ export type TacticResult =
     missDamage?: number;
     statusEffect?: ConditionType;
     multiTarget?: boolean;
+    passCard?: boolean;
+    acolyteDidNotAttack?: boolean;
   }
-  | { action: 'idle' }
+  | { action: 'idle'; passCard?: boolean; acolyteDidNotAttack?: boolean; revealTiles?: boolean; teleportToTileId?: string }
   | {
     action: 'use_ability';
     abilityId: string;
     targetId?: string;
-    effects: AbilityEffect[]
+    effects: AbilityEffect[];
+    passCard?: boolean;
+    acolyteDidNotAttack?: boolean;
   }
 
 // ============================================================================

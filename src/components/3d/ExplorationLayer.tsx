@@ -79,14 +79,30 @@ export const ExplorationLayer: React.FC<ExplorationLayerProps> = ({ tiles, onEdg
 
   return (
     <group name="exploration-layer">
-      {isExploreMode && !showTilePlacer && visiblePoints.map((point) => (
-        <ExplorationArrow
-          key={`${point.tileId}-${point.edge}`}
-          point={point}
-          onClick={onEdgeSelected}
-          isHighlighted={isExploreMode}
-        />
-      ))}
+      {!showTilePlacer && points.map((point) => {
+        const isExplorableNow = isExploreMode && point.tileId === heroTileId && isHeroAtEdgeFor(point.edge);
+        
+        if (isExplorableNow) {
+          return (
+            <ExplorationArrow
+              key={`${point.tileId}-${point.edge}`}
+              point={point}
+              onClick={onEdgeSelected}
+              isHighlighted={true}
+            />
+          );
+        } else if (gameState?.phase === 'hero') {
+          return (
+            <ExplorationArrow
+              key={`${point.tileId}-${point.edge}`}
+              point={point}
+              isHighlighted={false}
+              isSubtle={true}
+            />
+          );
+        }
+        return null;
+      })}
 
       {previewTile && (
         <group

@@ -1849,13 +1849,21 @@ export class EncounterSystem {
         }
 
         const roll = AbilitySystem._rollOverride ? AbilitySystem._rollOverride() : Math.floor(Math.random() * 20) + 1;
+        
+        let trapDisableBonus = 0;
+        if (hero.items?.includes('card-item-thieves-tools') || hero.items?.includes('item_thieves_tools')) {
+            trapDisableBonus = 4;
+        }
+        
+        const totalRoll = roll + trapDisableBonus;
         const disableDC = card.disableDC || 10;
-        const success = roll >= disableDC;
+        const success = totalRoll >= disableDC;
 
         const nextLogId = (gameState.logIdCounter ?? 0) + 1;
+        const rollMathStr = trapDisableBonus ? ` (Roll: ${roll} + ${trapDisableBonus} = ${totalRoll}, DC: ${disableDC})` : ` (Roll: ${roll}, DC: ${disableDC})`;
         const msg = success
-            ? `${hero.name} disabled the trap ${card.name}! (Roll: ${roll}, DC: ${disableDC})`
-            : `${hero.name} failed to disable the trap ${card.name}. (Roll: ${roll}, DC: ${disableDC})`;
+            ? `${hero.name} disabled the trap ${card.name}!${rollMathStr}`
+            : `${hero.name} failed to disable the trap ${card.name}.${rollMathStr}`;
         
         const logEntry: GameLogEntry = {
             id: String(nextLogId),

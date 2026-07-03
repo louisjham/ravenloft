@@ -15,7 +15,7 @@ export const MODELS = {
   HERO_WIZARD: '/models/immeril.glb',      // Immeril (Eladrin Wizard)
   HERO_ROGUE: '/models/kat.glb',           // Kat (Human Rogue)
   HERO_CLERIC: '/models/thorgrim.glb',     // Thorgrim (Dwarf Cleric)
-  HERO_RANGER: '/models/alissa.glb',       // Alanni/Alissa (Human Ranger)
+  HERO_RANGER: '/models/alissa.glb',       // Alissa (Human Ranger)
   
   // Monsters - mapped by monster type
   MONSTER_SKELETON: '/models/burning_skeleton.glb',

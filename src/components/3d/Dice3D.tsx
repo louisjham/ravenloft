@@ -21,12 +21,8 @@ export const Dice3D: React.FC = () => {
   const shouldRenderPhysical = phase === 'rolling' || phase === 'settling' || phase === 'showing_result';
   const shouldRenderDismiss = phase === 'dismissing';
 
-  if (!shouldRenderPhysical && !shouldRenderDismiss) {
-    return null;
-  }
-
   return (
-    <group position={ARENA_POSITION} renderOrder={10}>
+    <group renderOrder={10}>
       {shouldRenderPhysical && (
         <PhysicalDie 
           color={diceColor}
@@ -36,7 +32,9 @@ export const Dice3D: React.FC = () => {
         />
       )}
       {shouldRenderDismiss && (
-        <DiceDismissEffect />
+        <group position={ARENA_POSITION}>
+          <DiceDismissEffect />
+        </group>
       )}
     </group>
   );
@@ -59,19 +57,18 @@ const PhysicalDie: React.FC<PhysicalDieProps> = ({ color, physics, targetResult,
   const velocityRef = useRef<[number, number, number]>([0, 0, 0]);
   const angularVelocityRef = useRef<[number, number, number]>([0, 0, 0]);
   const settledFrames = useRef(0);
-  const settlingStartTime = useRef(0);
-  const initialDropDone = useRef(false);
+  const ageRef = useRef(0);
 
   // Physics body — uses sphere shape for simplicity but needs high damping
   // to compensate for the lack of rolling resistance on a flat plane
   const [ref, api] = useSphere(() => ({
     mass: physics.mass,
     args: [DIE_RADIUS],
-    position: [0, physics.dropHeight + DIE_RADIUS, 0],
+    position: [ARENA_POSITION[0], physics.dropHeight + DIE_RADIUS, ARENA_POSITION[2]],
     rotation: [Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI],
     material: { friction: physics.friction, restitution: Math.min(physics.restitution, 0.2) },
-    linearDamping: 0, // We handle damping manually for frame-rate independence
-    angularDamping: 0, // We handle damping manually for frame-rate independence
+    linearDamping: physics.friction, // Use Cannon's native linear damping
+    angularDamping: Math.min(0.9, physics.friction * 1.5), // Use Cannon's native angular damping
     allowSleep: true,
   }));
 
@@ -121,42 +118,26 @@ const PhysicalDie: React.FC<PhysicalDieProps> = ({ color, physics, targetResult,
     };
   }, [api]);
 
-  // Frame-rate independent friction damping and settlement detection
+  // Settlement detection
   useFrame((_, delta) => {
     if (isSettled) return;
+
+    // Track elapsed time to prevent premature settlement in the first few frames
+    ageRef.current += delta;
+    if (ageRef.current < 0.2) return;
 
     const v = velocityRef.current;
     const w = angularVelocityRef.current;
     
-    // Apply frame-rate independent friction damping
-    // velocity *= Math.pow(1 - friction, dt * 60)
-    const frictionFactor = Math.pow(1 - physics.friction, delta * 60);
-    const angularFrictionFactor = Math.pow(1 - physics.friction * 1.5, delta * 60);
-    
-    api.velocity.set(
-      v[0] * frictionFactor,
-      v[1] * frictionFactor,
-      v[2] * frictionFactor
-    );
-    api.angularVelocity.set(
-      w[0] * angularFrictionFactor,
-      w[1] * angularFrictionFactor,
-      w[2] * angularFrictionFactor
-    );
-
-    // Update refs after damping
-    const newV = velocityRef.current;
-    const newW = angularVelocityRef.current;
-    
-    const speedSq = newV[0]*newV[0] + newV[1]*newV[1] + newV[2]*newV[2];
-    const spinSq = newW[0]*newW[0] + newW[1]*newW[1] + newW[2]*newW[2];
+    const speedSq = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
+    const spinSq = w[0]*w[0] + w[1]*w[1] + w[2]*w[2];
 
     // If moving very slowly
-    if (speedSq < 0.005 && spinSq < 0.005) {
+    if (speedSq < 0.01 && spinSq < 0.01) {
       settledFrames.current++;
       
-      // Quick confirmation — 2 frames (~0.03s at 60fps)
-      if (settledFrames.current > 2) {
+      // Quick confirmation — 5 frames (~0.08s at 60fps)
+      if (settledFrames.current > 5) {
         setIsSettled(true);
         settledRef.current = true;
         

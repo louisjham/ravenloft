@@ -25,7 +25,20 @@ export default class PowerSelectionSystem {
      * MVP returns same values for all hero types.
      */
     public static getConstraints(heroType: string): PowerSelectionConstraints {
-        // Per-hero values can be added here later
+        const type = heroType.toLowerCase();
+        if (type === 'fighter' || type === 'fighter class' || type === 'hero_arjhan') {
+            return { heroType, maxAtWill: 2, maxDaily: 2, maxUtility: 1, totalMax: 5 };
+        }
+        if (type === 'cleric' || type === 'cleric class' || type === 'hero_thorgrim') {
+            return { heroType, maxAtWill: 2, maxDaily: 1, maxUtility: 2, totalMax: 5 };
+        }
+        if (type === 'wizard' || type === 'wizard class' || type === 'hero_immeril') {
+            return { heroType, maxAtWill: 2, maxDaily: 1, maxUtility: 2, totalMax: 5 };
+        }
+        if (type === 'rogue' || type === 'rogue class' || type === 'hero_kat') {
+            return { heroType, maxAtWill: 2, maxDaily: 1, maxUtility: 2, totalMax: 5 };
+        }
+        // ranger / default / hero_alissa
         return {
             heroType,
             maxAtWill: 2,
@@ -203,18 +216,32 @@ export default class PowerSelectionSystem {
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
 
-        const selectedIds: string[] = [];
-        const selected = new Set<string>();
+        const lockedPowersMap: Record<string, string[]> = {
+            fighter: ['fighter_dragons_breath'],
+            cleric: ['cleric_healing_word'],
+            wizard: ['wizard_fey_step'],
+            rogue: ['rogue_sneak_attack'],
+        };
+        const classKey = heroType.toLowerCase();
+        const lockedIds = lockedPowersMap[classKey] ?? [];
+
+        const selectedIds: string[] = [...lockedIds];
+        const selected = new Set<string>(lockedIds);
         let atWillCount = 0;
         let dailyCount = 0;
         let utilityCount = 0;
+
+        for (const id of lockedIds) {
+            if (id === 'fighter_dragons_breath') dailyCount++;
+            else if (id === 'cleric_healing_word' || id === 'wizard_fey_step' || id === 'rogue_sneak_attack') utilityCount++;
+        }
 
         const addByType = (type: PowerType, max: number) => {
             for (const card of shuffled) {
                 if (selectedIds.length >= constraints.totalMax) break;
                 if (!selected.has(card.id) && card.powerType === type) {
                     const typeCount = type === 'at-will' ? atWillCount : type === 'daily' ? dailyCount : utilityCount;
-                    if (typeCount >= max) break;
+                    if (typeCount >= max) continue;
                     selectedIds.push(card.id);
                     selected.add(card.id);
                     if (type === 'at-will') atWillCount++;

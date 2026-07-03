@@ -11,11 +11,6 @@ export function useCardResolution() {
   const selectResolutionTarget = useGameStore((state) => state.selectResolutionTarget);
   const dismissCardResolution = useGameStore((state) => state.dismissCardResolution);
 
-  const allCards = useMemo(() =>
-    DataLoader.getInstance().getAllCards(),
-    []
-  );
-
   const resolvedCard = useMemo(() => {
     if (!cardResolution?.cardId) return null;
     return DataLoader.getInstance().getCardById(cardResolution.cardId) ?? null;
@@ -28,7 +23,6 @@ export function useCardResolution() {
     resolvedCard,
     heroes,
     canCancelEncounter,
-    allCards,
     advanceCardResolution,
     selectResolutionTarget,
     dismissCardResolution,

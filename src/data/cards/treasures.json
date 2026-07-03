@@ -625,11 +625,12 @@
     "name": "Thieves' Tools",
     "type": "item",
     "treasureType": "item",
-    "description": "Grants +2 to disable trap checks.",
+    "description": "You gain a +4 bonus to rolls to disable Traps while this item is in play.",
     "effects": [
       {
         "type": "passive",
         "passiveType": "disable_trap",
+        "value": 4,
         "target": "self"
       }
     ],
@@ -640,14 +641,8 @@
     "name": "Wand Of Teleportation",
     "type": "item",
     "treasureType": "item",
-    "description": "Once per adventure, teleport to any explored tile.",
-    "effects": [
-      {
-        "type": "passive",
-        "passiveType": "teleport",
-        "target": "self"
-      }
-    ],
+    "description": "Choose a tile within 1 tile of you. Place each Monster on that tile on any tile within 3 tiles of you.",
+    "effects": [],
     "image": "/card-images/item-wandofteleportation.png"
   },
   {
@@ -742,7 +737,7 @@
     "id": "item_wooden_stake",
     "name": "Wooden Stake",
     "type": "quest",
-    "description": "Can only be used on Vampire-type villains. Bypasses normal coffin resurrection and instantly defeats the target.",
+    "description": "Attack one adjacent Vampire. Hit or miss, the Vampire does not activate during your next Villain Phase. (Attack: +5, Damage: 3, Miss: 1 Damage)",
     "effects": [],
     "treasureType": "item",
     "image": "/card-images/item-woodenstake.png"
@@ -760,7 +755,7 @@
     "id": "item_torch",
     "name": "Torch",
     "type": "quest",
-    "description": "Serves as light source. Discard to deal 1 fire damage to a monster.",
+    "description": "Attack each Monster on your tile. After resolving the attacks, place each Monster you attacked on a tile within 1 tile of you. (Attack: +5, Damage: 1)",
     "effects": [],
     "treasureType": "item",
     "image": "/card-images/item-torch.png"
@@ -795,13 +790,14 @@
     "id": "item_sunsword",
     "name": "Sunsword",
     "type": "quest",
-    "description": "+2 attack bonus against Undead, serves as light source.",
+    "description": "You deal +1 damage against adjacent Vampires while this item is in play.",
     "effects": [
       {
-        "type": "attack_bonus",
-        "value": 2,
+        "type": "damage_bonus",
+        "value": 1,
         "target": "self",
-        "condition": "undead"
+        "condition": "vampire",
+        "range": "adjacent"
       }
     ],
     "treasureType": "item",
@@ -812,7 +808,7 @@
     "name": "Silver Dagger",
     "type": "scenario_item",
     "treasureType": "item",
-    "description": "A finely crafted silver dagger.",
+    "description": "Attack one Werewolf within 2 tiles of you. Hit or miss, the Werewolf no longer regains Hit Points from its Regeneration ability for the rest of the game. (Attack: +5, Damage: 3, Miss: 1 Damage)",
     "image": "/card-images/item-silverdagger.png",
     "effects": []
   },
@@ -830,8 +826,15 @@
     "name": "Tome of Strahd",
     "type": "scenario_item",
     "treasureType": "item",
-    "description": "A tome containing Strahd's history and secrets.",
+    "description": "You and each Hero within 1 tile of you gain a +2 bonus to attack rolls against Vampires while this item is in play.",
     "image": "/card-images/item-tomeofstrahd.png",
-    "effects": []
+    "effects": [
+      {
+        "type": "attack_bonus",
+        "value": 2,
+        "target": "within_1_tile",
+        "condition": "vampire"
+      }
+    ]
   }
 ]

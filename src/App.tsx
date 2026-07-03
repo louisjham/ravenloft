@@ -56,7 +56,6 @@ const App: React.FC = () => {
     resolvedCard,
     heroes,
     canCancelEncounter,
-    allCards,
     advanceCardResolution,
     selectResolutionTarget,
     dismissCardResolution,

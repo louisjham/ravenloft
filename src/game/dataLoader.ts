@@ -10,7 +10,7 @@ import arjhanAbilities from '../data/cards/hero-abilities/arjhan.json';
 import thorgrimAbilities from '../data/cards/hero-abilities/thorgrim.json';
 import immerilAbilities from '../data/cards/hero-abilities/immeril.json';
 import katAbilities from '../data/cards/hero-abilities/kat.json';
-import alanniAbilities from '../data/cards/hero-abilities/alanni.json';
+import alissaAbilities from '../data/cards/hero-abilities/alissa.json';
 import powerCardsData from '../data/powerCards.json';
 import scenario1 from '../data/scenarios/scenario1.json';
 import scenario2 from '../data/scenarios/scenario2.json';
@@ -72,7 +72,7 @@ export class DataLoader {
     ...(thorgrimAbilities as Card[]),
     ...(immerilAbilities as Card[]),
     ...(katAbilities as Card[]),
-    ...(alanniAbilities as Card[]),
+    ...(alissaAbilities as Card[]),
     ...(powerCardsData as Card[])
   ];
 

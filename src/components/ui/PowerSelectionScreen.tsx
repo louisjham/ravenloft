@@ -27,6 +27,10 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
     const [activeHeroId, setActiveHeroId] = useState<string>(heroes[0]?.id ?? '');
     const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
 
+    const isPowerLocked = (cardId: string): boolean => {
+        return ['fighter_dragons_breath', 'cleric_healing_word', 'wizard_fey_step', 'rogue_sneak_attack'].includes(cardId);
+    };
+
     // DERIVED VALUES (computed inside render)
     const activeHero = heroes.find(h => h.id === activeHeroId);
     const activeSelection = powerSelections.find(s => s.heroId === activeHeroId);
@@ -288,13 +292,17 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
                                                     <PowerCardDisplay
                                                         card={card}
                                                         isSelected={isSelected}
-                                                        isDisabled={isDisabled}
+                                                        isDisabled={isDisabled || isPowerLocked(card.id)}
                                                         showDetails={isExpanded}
                                                         onSelect={(c) => {
+                                                            if (isPowerLocked(c.id)) return;
                                                             setExpandedCardId(null);
                                                             onSelectPower(activeHeroId, c);
                                                         }}
-                                                        onDeselect={(c) => onDeselectPower(activeHeroId, c.id)}
+                                                        onDeselect={(c) => {
+                                                            if (isPowerLocked(c.id)) return;
+                                                            onDeselectPower(activeHeroId, c.id);
+                                                        }}
                                                     />
                                                 </div>
                                             </div>
@@ -312,17 +320,21 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
                         Selected Powers ({activeSelection.selectedPowerIds.length} / {constraints.totalMax})
                     </div>
                     <div style={cardsContainerStyle}>
-                        {activeSelection.selectedPowerIds.map(cardId => {
+                         {activeSelection.selectedPowerIds.map(cardId => {
                             const card = getPowerCard(cardId);
+                            const locked = isPowerLocked(cardId);
                             return (
                                 <PowerCardDisplay
                                     key={cardId}
                                     card={card}
                                     isSelected={true}
-                                    isDisabled={false}
+                                    isDisabled={locked}
                                     showDetails={false}
                                     onSelect={() => { }}
-                                    onDeselect={(c) => onDeselectPower(activeHeroId, c.id)}
+                                    onDeselect={(c) => {
+                                        if (locked) return;
+                                        onDeselectPower(activeHeroId, c.id);
+                                    }}
                                 />
                             );
                         })}

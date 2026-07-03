@@ -96,9 +96,9 @@
     "id": "card-item-thieves-tools",
     "name": "Thieves' Tools",
     "type": "item",
-    "description": "Use when you draw a Trap card: Discard to immediately negate and discard the Trap.",
+    "description": "You gain a +4 bonus to rolls to disable Traps while this item is in play.",
     "effects": [
-      "consume:cancel-trap"
+      "passive:disable_trap,4"
     ],
     "phase": "hero",
     "image": "/card-images/items-thievestools.png"

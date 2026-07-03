@@ -132,7 +132,7 @@ export class CombatSystem {
       }
     }
 
-    const undeadItemResult = CombatSystem.applyUndeadItemBonuses(attacker, target, finalAttackBonus, finalDamage);
+    const undeadItemResult = CombatSystem.applyUndeadItemBonuses(attacker, target, finalAttackBonus, finalDamage, gameState);
     finalAttackBonus = undeadItemResult.attackBonus;
     finalDamage = undeadItemResult.damage;
 
@@ -252,6 +252,10 @@ export class CombatSystem {
    * Pure — does not modify the original entity.
    */
   public static applyHealing<T extends Entity>(entity: T, amount: number): T {
+    if (entity.conditions?.some(c => c.type === 'mummy_rot')) {
+      if (isDev()) console.log(`${LOG_PREFIX} ${entity.name} healing BLOCKED by Mummy Rot!`);
+      return entity;
+    }
     const newHp = Math.min(entity.maxHp, entity.hp + amount);
     if (isDev()) console.log(`${LOG_PREFIX} ${entity.name} healed ${newHp - entity.hp} HP, HP: ${newHp}/${entity.maxHp}`);
     return { ...entity, hp: newHp };
@@ -270,11 +274,30 @@ export class CombatSystem {
     return ConditionSystem.applyCondition(target, conditionType, sourceId, duration);
   }
 
+  private static isVampire(target: Monster): boolean {
+    const typeLower = (target.monsterType ?? '').toLowerCase();
+    const nameLower = (target.name ?? '').toLowerCase();
+    const idLower = (target.id ?? '').toLowerCase();
+    return typeLower.includes('vampire') || 
+           nameLower.includes('vampire') || 
+           nameLower.includes('strahd') ||
+           idLower.includes('vampire') ||
+           idLower.includes('strahd');
+  }
+
+  private static isAdjacent(p1?: { x: number; z: number }, p2?: { x: number; z: number }): boolean {
+    if (!p1 || !p2) return false;
+    const dx = Math.abs(p1.x - p2.x);
+    const dz = Math.abs(p1.z - p2.z);
+    return (dx + dz) <= 1;
+  }
+
   private static applyUndeadItemBonuses(
     attacker: Entity,
     target: Entity,
     attackBonus: number,
-    damage: number
+    damage: number,
+    gameState?: GameState
   ): { attackBonus: number; damage: number } {
     let finalAttackBonus = attackBonus;
     let finalDamage = damage;
@@ -283,11 +306,29 @@ export class CombatSystem {
       const heroAttacker = attacker as Hero;
       const monsterTarget = target as Monster;
 
-      if (monsterTarget.isUndead === true) {
-        if (heroAttacker.items?.includes('item_sunsword')) {
-          finalAttackBonus += 2;
-          if (isDev()) console.log(`${LOG_PREFIX} Sunsword passive attack bonus (+2 vs Undead) applied.`);
+      // 1. Sunsword: +1 damage against adjacent Vampires
+      if (heroAttacker.items?.includes('item_sunsword') || heroAttacker.items?.includes('card-item-sunsword')) {
+        if (CombatSystem.isVampire(monsterTarget) && CombatSystem.isAdjacent(attacker.position, target.position)) {
+          finalDamage += 1;
+          if (isDev()) console.log(`${LOG_PREFIX} Sunsword passive damage bonus (+1 vs adjacent Vampire) applied.`);
         }
+      }
+
+      // 2. Tome of Strahd: +2 attack bonus against Vampires for owner and each hero within 1 tile
+      if (gameState && CombatSystem.isVampire(monsterTarget)) {
+        const hasTomeBonus = gameState.heroes.some(h => {
+          const ownsTome = h.items?.includes('item_tome_of_strahd') || h.items?.includes('card-item-tome-of-strahd');
+          if (!ownsTome) return false;
+          return CombatSystem.isAdjacent(attacker.position, h.position);
+        });
+        if (hasTomeBonus) {
+          finalAttackBonus += 2;
+          if (isDev()) console.log(`${LOG_PREFIX} Tome of Strahd passive attack bonus (+2 vs Vampire) applied to hero.`);
+        }
+      }
+
+      // 3. Holy Avenger: +2 attack and damage vs Undead
+      if (monsterTarget.isUndead === true) {
         if (heroAttacker.items?.includes('item_holy_avenger')) {
           finalAttackBonus += 2;
           finalDamage += 2;

@@ -264,6 +264,118 @@ export class TileSystem {
   }
 
   /**
+   * Orchestrates tile placement from the bottom of the stack (used by Vampire Bat exploration).
+   */
+  public static placeTileFromBottom(
+    gameState: GameState,
+    explorationPoint: { tileId: string; edge: Direction },
+    chosenRotation?: Rotation
+  ): GameState {
+    // 1. Draw from bottom of the deck
+    const drawResult = TileSystem.drawAndPlaceFromBottom(gameState, explorationPoint);
+    if (drawResult.exhausted || !drawResult.tile) {
+      console.warn('[TileSystem] drawAndPlaceFromBottom exhausted or no tile found.');
+      return gameState;
+    }
+
+    const rotation = chosenRotation !== undefined ? chosenRotation : drawResult.validRotations[0];
+    if (rotation === undefined) {
+      console.warn('[TileSystem] No valid rotations found for bottom tile.');
+      return gameState;
+    }
+
+    // 2. Identify parent tile
+    const parentTile = gameState.tiles.find(t => t.id === explorationPoint.tileId);
+    if (!parentTile) {
+      console.warn(`[TileSystem] Parent tile not found for ID: ${explorationPoint.tileId}`);
+      return gameState;
+    }
+
+    // 3. Assign spatial coords relative to parent edge AND generate unique ID
+    const baseTile = drawResult.tile;
+    const instanceId = `${baseTile.id}_${Math.random().toString(36).substr(2, 5)}`;
+    const tileWithId = { ...baseTile, id: instanceId };
+
+    const tile = TileSystem.assignPlacementCoords(
+      tileWithId,
+      parentTile,
+      explorationPoint.edge
+    );
+
+    // 4. Overlap bounds check
+    if (!TileSystem.canPlaceTile(gameState.tiles, tile.x, tile.z)) {
+      console.warn(`[TileSystem] Placement overlap detected at (${tile.x}, ${tile.z}).`);
+      return gameState;
+    }
+
+    // 5. Rotate edges
+    tile.connections = TileSystem.rotateConnections(tile.connections, rotation);
+
+    // 6. Rotate bone square offset
+    if (tile.boneSquare) {
+      tile.boneSquare = TileSystem.rotateBoneSquare(
+        tile.boneSquare.sqX,
+        tile.boneSquare.sqZ,
+        rotation
+      );
+    }
+
+    // 7. Graph connections linkage (returns updated tiles array containing new tile)
+    const newTiles = TileSystem.connectTiles(
+      gameState.tiles,
+      parentTile,
+      tile,
+      explorationPoint.edge
+    );
+
+    // 8. Place coffin token on the new tile (for Scenario 1)
+    const coffinResult = TokenSystem.placeCoffinOnNewTile(gameState, tile.id, tile.x, tile.z);
+
+    // 9. Yield functional state payload
+    const newState = {
+      ...(coffinResult?.newState ?? gameState),
+      tiles: newTiles,
+      dungeonDeck: drawResult.remainingDeck
+    };
+
+    // Include tokens if a coffin was placed
+    let finalTokens = coffinResult?.token ? [...(newState.tokens || []), coffinResult.token] : (newState.tokens || []);
+    let finalState = {
+      ...newState,
+      tokens: finalTokens,
+      strahdsCoffinTokenId: coffinResult?.token?.metadata?.isStrahdsCoffin
+        ? coffinResult.token.id
+        : newState.strahdsCoffinTokenId
+    };
+
+    // Tome of Strahd: drop facedown item token on black triangle tiles
+    if (gameState.activeScenario.id === 'adventure_tome_of_strahd' && tile.encounterType === 'black') {
+      const itemStack = finalState.tomeOfStrahdItemStack ? [...finalState.tomeOfStrahdItemStack] : [];
+      if (itemStack.length > 0) {
+        const poppedItemId = itemStack.shift();
+        const itemToken: import('../types').GameToken = {
+          id: `token_item_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+          type: 'item',
+          name: 'Mysterious Item',
+          position: { x: tile.x, z: tile.z, sqX: 1, sqZ: 1 },
+          tileId: tile.id,
+          isRevealed: false,
+          isSearched: false,
+          metadata: { itemId: poppedItemId }
+        };
+        finalState = {
+          ...finalState,
+          tokens: [...finalState.tokens, itemToken],
+          tomeOfStrahdItemStack: itemStack
+        };
+      }
+    }
+
+    return finalState;
+  }
+
+
+  /**
    * After a tile is placed during exploration, spawn a monster on it if the
    * tile has an encounterType. Draws from the monsterDeck, skipping (discarding)
    * any card whose monster type is already active on the board — per Castle

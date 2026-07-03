@@ -15,18 +15,25 @@ export const PartySidebar: React.FC = () => {
     'Immeril': '/ui/immeril-figure.png',
     'Kat': '/ui/kat-figure.png',
     'Thorgrim': '/ui/thorgrim-figure.png',
-    'Alanni': '/ui/alanni-figure.png',
+    'Alissa': '/ui/alissa-figure.png',
   };
 
   const handleHealingSurge = (hero: Hero) => {
-    if (!gameState || gameState.healingSurges <= 0 || hero.hp >= hero.maxHp) return;
+    if (!gameState || gameState.healingSurges <= 0) return;
+    const hasMummyRot = hero.conditions?.some(c => c.type === 'mummy_rot');
+    if (!hasMummyRot && hero.hp >= hero.maxHp) return;
+
     const surgeHeal = ExperienceSystem.getSurgeValue(hero);
-    const newHp = Math.min(hero.maxHp, hero.hp + surgeHeal);
+    const updatedConditions = hasMummyRot
+      ? (hero.conditions || []).filter(c => c.type !== 'mummy_rot')
+      : hero.conditions;
+    const newHp = hasMummyRot ? hero.hp : Math.min(hero.maxHp, hero.hp + surgeHeal);
+
     const newState = {
       ...gameState,
       healingSurges: gameState.healingSurges - 1,
       heroes: gameState.heroes.map(h =>
-        h.id === hero.id ? { ...h, hp: newHp } : h
+        h.id === hero.id ? { ...h, hp: newHp, conditions: updatedConditions } : h
       )
     };
     useGameStore.getState().setGameState(newState);
@@ -45,7 +52,7 @@ export const PartySidebar: React.FC = () => {
         const isCurrent = hero.id === currentHeroId;
         const hpPercent = (hero.hp / hero.maxHp) * 100;
         const isLow = (hero.hp / hero.maxHp) < 0.3;
-        const canSurge = isCurrent && gameState && gameState.healingSurges > 0 && hero.hp < hero.maxHp;
+        const canSurge = isCurrent && gameState && gameState.healingSurges > 0 && (hero.hp < hero.maxHp || hero.conditions?.some(c => c.type === 'mummy_rot'));
 
         return (
           <div
