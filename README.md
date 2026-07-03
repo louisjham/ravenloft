@@ -1,10 +1,14 @@
 <img width="1002" height="550" alt="image" src="https://github.com/user-attachments/assets/79bf9ba8-6d1b-4370-b8d5-e8c26513c3c8" />
 
-<img width="1584" height="873" alt="image" src="https://github.com/user-attachments/assets/c351c160-39de-45ae-a8e4-e840e003dfc4" />
+<img width="1667" height="913" alt="image" src="https://github.com/user-attachments/assets/18436eba-19b8-4c48-9a31-38e32cf64b82" />
+
 
 # Castle Ravenloft 3D 🧛🏰
 
 An atmospheric 3D digital tabletop adaptation of the cooperative board game **Dungeons & Dragons: Castle Ravenloft**. Command legendary heroes, explore the modular crypts of Barovia, defeat deadly monsters, and defeat Count Strahd von Zarovich in this responsive 3D web experience.
+
+<img width="1243" height="584" alt="image" src="https://github.com/user-attachments/assets/4f8f754b-d85a-410e-831e-756b56ce6333" />
+
 
 ---
 
@@ -17,6 +21,9 @@ An atmospheric 3D digital tabletop adaptation of the cooperative board game **Du
 *   **Power Cards Selection:** Customize your hero with At-Will, Utility, and Daily power cards matching rules limits.
 
 ---
+
+<img width="500" height="524" alt="image" src="https://github.com/user-attachments/assets/99ed9c6c-f60e-4f2f-b696-310e5f02bc2a" />
+
 
 ## 🚀 How to Play Locally
 
@@ -38,6 +45,9 @@ The game runs in two visual modes:
 
 ---
 
+
+<img width="1665" height="913" alt="image" src="https://github.com/user-attachments/assets/c6332610-c60e-4991-b80d-800c6d339ef0" />
+
 ## ⌨️ Controls & Interface
 
 *   **Move Map:** Left-click and drag to rotate the camera; Right-click and drag (or use arrow keys) to pan.
@@ -46,6 +56,9 @@ The game runs in two visual modes:
 *   **Dice Rolling:** Combat rolls automatically trigger a 3D animated physical `d20` physics roll on the board.
 
 ---
+
+<img width="214" height="145" alt="image" src="https://github.com/user-attachments/assets/1f4f6f3b-7913-4044-991b-1b64d0225abf" />
+
 
 ## 🌐 How to Deploy
 
@@ -65,6 +78,9 @@ This generates all production assets inside the `/dist` directory.
 *   **GitHub Pages:** Push the `/dist` folder content to a `gh-pages` branch, or configure GitHub Actions to compile and deploy automatically.
 
 ---
+
+**<img width="691" height="901" alt="image" src="https://github.com/user-attachments/assets/fb112772-585f-4d2c-b940-774716d3275a" />
+**
 
 ## 🧪 Testing the Engine
 Verify rules, monster AI behaviors, scenarios, and movement logic via our headless integration testing suite:
