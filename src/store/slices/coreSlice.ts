@@ -9,7 +9,6 @@ import { TreasureSystem } from '../../game/engine/TreasureSystem';
 import { TokenSystem } from '../../game/engine/TokenSystem';
 import { EncounterSystem } from '../../game/engine/EncounterSystem';
 import { ExperienceSystem } from '../../game/engine/ExperienceSystem';
-import { useUIStore } from '../uiStore';
 import { executeVillainPhase } from './villainPhaseLogic';
 import { ObjectiveTracker } from '../../game/scenarios/Objectives';
 import { ScenarioManager } from '../../game/scenarios/ScenarioManager';
@@ -295,22 +294,23 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
   endTurn: () => {
     const state = get().gameState;
     if (!state) return;
-
+ 
+    let s = { ...state };
+ 
     // Process Freezing Cloud tokens at the end of the Hero Phase
-    let stateForFreezingCloud = { ...state };
-    const freezingCloudTokens = (stateForFreezingCloud.tokens || []).filter(t => t.name === 'Freezing Cloud');
+    const freezingCloudTokens = (s.tokens || []).filter(t => t.name === 'Freezing Cloud');
     if (freezingCloudTokens.length > 0) {
-      let updatedTokens = [...(stateForFreezingCloud.tokens || [])];
-      let updatedMonsters = [...stateForFreezingCloud.monsters];
+      let updatedTokens = [...(s.tokens || [])];
+      let updatedMonsters = [...s.monsters];
       let logsAdded: GameLogEntry[] = [];
-
+ 
       for (const fcToken of freezingCloudTokens) {
-        const fcTile = stateForFreezingCloud.tiles.find(t => t.id === fcToken.tileId);
+        const fcTile = s.tiles.find(t => t.id === fcToken.tileId);
         if (fcTile) {
           const monstersOnTile = updatedMonsters.filter(m =>
             !m.isDefeated && m.hp > 0 && m.position.x === fcTile.x && m.position.z === fcTile.z
           );
-
+ 
           for (const m of monstersOnTile) {
             const damagedMonster = CombatSystem.applyDamage(m, 1);
             updatedMonsters = updatedMonsters.map(mon => mon.id === m.id ? (damagedMonster.hp <= 0 ? { ...damagedMonster, isDefeated: true } : damagedMonster) : mon);
@@ -322,7 +322,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
             });
           }
         }
-
+ 
         const currentTokensCount = (fcToken.metadata?.cloudTokens as number) || 1;
         const newTokensCount = currentTokensCount - 1;
         if (newTokensCount <= 0) {
@@ -337,19 +337,19 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
           updatedTokens = updatedTokens.map(t => t.id === fcToken.id ? { ...t, metadata: { ...t.metadata, cloudTokens: newTokensCount } } : t);
         }
       }
-
-      stateForFreezingCloud = {
-        ...stateForFreezingCloud,
+ 
+      s = {
+        ...s,
         tokens: updatedTokens,
         monsters: updatedMonsters,
-        log: [...stateForFreezingCloud.log, ...logsAdded].slice(-100)
+        log: [...s.log, ...logsAdded].slice(-100)
       };
     }
-
-    const currentEntity = [...stateForFreezingCloud.heroes, ...stateForFreezingCloud.monsters].find(e => e.id === stateForFreezingCloud.currentHeroId);
-    let updatedHeroes = [...stateForFreezingCloud.heroes];
-    let updatedMonsters = [...stateForFreezingCloud.monsters];
-
+ 
+    const currentEntity = [...s.heroes, ...s.monsters].find(e => e.id === s.currentHeroId);
+    let updatedHeroes = [...s.heroes];
+    let updatedMonsters = [...s.monsters];
+ 
     if (currentEntity) {
       const poisonDamage = ConditionSystem.processPoisonDamage(currentEntity);
       if (poisonDamage > 0) {
@@ -359,20 +359,28 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
         }
       }
     }
-
-    const treasuresClearedState = TreasureSystem.resetTreasuresDrawn(
-      TreasureSystem.processDefeatedMonsters({ ...stateForFreezingCloud, heroes: updatedHeroes, monsters: updatedMonsters })
+ 
+    s = TreasureSystem.resetTreasuresDrawn(
+      TreasureSystem.processDefeatedMonsters({ ...s, heroes: updatedHeroes, monsters: updatedMonsters })
     );
-
-    // Bug 4: commit treasuresClearedState first so decrementConditions reads the fresh state,
-    // then retrieve the updated stateAfterDecrement and propagate it to all downstream actions.
-    set({ gameState: treasuresClearedState });
-    get().decrementConditions();
-    let stateAfterDecrement = get().gameState!;
-
-    const expiryResult = TreasureSystem.checkBlessingExpiry(stateAfterDecrement, stateAfterDecrement.currentHeroId);
+ 
+    // Decrement conditions inline (pure state transform, no mid-flow set())
+    const currentHeroId = s.currentHeroId;
+    const updatedHeroesAfterDec = s.heroes.map(h => 
+      h.id === currentHeroId ? ConditionSystem.processTurnEnd(h, currentHeroId) : h
+    );
+    const updatedMonstersAfterDec = s.monsters.map(m => 
+      ConditionSystem.processTurnEnd(m, currentHeroId)
+    );
+    s = ConditionSystem.syncActiveConditions({
+      ...s,
+      heroes: updatedHeroesAfterDec,
+      monsters: updatedMonstersAfterDec
+    });
+ 
+    const expiryResult = TreasureSystem.checkBlessingExpiry(s, s.currentHeroId);
     if (expiryResult.expired) {
-      stateAfterDecrement = {
+      s = {
         ...expiryResult.newState,
         log: [...expiryResult.newState.log, {
           id: crypto.randomUUID(),
@@ -381,15 +389,19 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
           type: 'system'
         } as GameLogEntry].slice(-100)
       };
-      set({ gameState: stateAfterDecrement });
     }
-
+ 
     // Tome of Strahd token reveal logic
-    if (stateAfterDecrement.activeScenario.id === 'adventure_tome_of_strahd') {
-      const activeHero = stateAfterDecrement.heroes.find(h => h.id === stateAfterDecrement.currentHeroId);
-      if (activeHero && stateAfterDecrement.tokens) {
-        const itemTokens = stateAfterDecrement.tokens.filter(t => t.type === 'item' && !t.isRevealed);
-        
+    if (s.activeScenario.id === 'adventure_tome_of_strahd') {
+      const activeHero = s.heroes.find(h => h.id === s.currentHeroId);
+      if (activeHero && s.tokens) {
+        const itemTokens = s.tokens.filter(t => t.type === 'item' && !t.isRevealed);
+        let currentTokens = [...s.tokens];
+        let currentHeroes = [...s.heroes];
+        let logsAdded: GameLogEntry[] = [];
+        let activeHeroItems = [...activeHero.items];
+        let changed = false;
+ 
         for (const token of itemTokens) {
           const dx = (activeHero.position.x * 4 + activeHero.position.sqX) - (token.position.x * 4 + token.position.sqX);
           const dz = (activeHero.position.z * 4 + activeHero.position.sqZ) - (token.position.z * 4 + token.position.sqZ);
@@ -397,95 +409,89 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
           if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
             const itemId = token.metadata?.itemId as string;
             if (itemId) {
-              const updatedTokens = stateAfterDecrement.tokens!.map(t => 
+              currentTokens = currentTokens.map(t => 
                 t.id === token.id ? { ...t, isRevealed: true, isSearched: true } : t
               );
-              
-              const updatedHero = {
-                ...activeHero,
-                items: [...activeHero.items, itemId]
-              };
-
-              stateAfterDecrement = {
-                ...stateAfterDecrement,
-                tokens: updatedTokens,
-                heroes: stateAfterDecrement.heroes.map(h => h.id === updatedHero.id ? updatedHero : h),
-                log: [...stateAfterDecrement.log, {
-                  id: crypto.randomUUID(),
-                  timestamp: new Date().toISOString(),
-                  message: `${activeHero.name} discovered an item token and received a special item!`,
-                  type: 'system' as const
-                }].slice(-100)
-              };
-              set({ gameState: stateAfterDecrement });
+              activeHeroItems.push(itemId);
+              logsAdded.push({
+                id: crypto.randomUUID(),
+                timestamp: new Date().toISOString(),
+                message: `${activeHero.name} discovered an item token and received a special item!`,
+                type: 'system' as const
+              });
+              changed = true;
             }
           }
         }
+ 
+        if (changed) {
+          s = {
+            ...s,
+            tokens: currentTokens,
+            heroes: currentHeroes.map(h => h.id === activeHero.id ? { ...h, items: activeHeroItems } : h),
+            log: [...s.log, ...logsAdded].slice(-100)
+          };
+        }
       }
     }
-
+ 
     // Deadly Shadows Environment Effect
-    if (stateAfterDecrement.activeEnvironmentCard === 'enc_deadly_shadows') {
-      const activeHero = stateAfterDecrement.heroes.find(h => h.id === stateAfterDecrement.currentHeroId);
+    if (s.activeEnvironmentCard === 'enc_deadly_shadows') {
+      const activeHero = s.heroes.find(h => h.id === s.currentHeroId);
       if (activeHero) {
-        const hasOtherHero = stateAfterDecrement.heroes.some(h => h.id !== activeHero.id && h.position.x === activeHero.position.x && h.position.z === activeHero.position.z);
+        const hasOtherHero = s.heroes.some(h => h.id !== activeHero.id && h.position.x === activeHero.position.x && h.position.z === activeHero.position.z);
         if (hasOtherHero) {
-          const damagedHero = CombatSystem.applyDamage(activeHero, 1, stateAfterDecrement);
-          stateAfterDecrement = {
-            ...stateAfterDecrement,
-            heroes: stateAfterDecrement.heroes.map(h => h.id === damagedHero.id ? damagedHero : h),
-            log: [...stateAfterDecrement.log, {
+          const damagedHero = CombatSystem.applyDamage(activeHero, 1, s);
+          s = {
+            ...s,
+            heroes: s.heroes.map(h => h.id === damagedHero.id ? damagedHero : h),
+            log: [...s.log, {
               id: crypto.randomUUID(),
               timestamp: new Date().toISOString(),
               message: `Deadly Shadows deals 1 damage to ${activeHero.name} for ending their turn on a shared tile!`,
               type: 'system' as const
             }].slice(-100)
           };
-          set({ gameState: stateAfterDecrement });
         }
       }
     }
-
+ 
     // Check victory/defeat BEFORE villain phase
-    // This ensures immediate feedback when objectives are met during the hero phase
-    if (stateAfterDecrement.phase !== 'setup') {
-      const updatedObjectives = ObjectiveTracker.checkObjectives(stateAfterDecrement);
+    if (s.phase !== 'setup') {
+      const updatedObjectives = ObjectiveTracker.checkObjectives(s);
       const allObjectivesComplete = updatedObjectives.every(obj => obj.isCompleted);
       const stateWithObjectives = {
-        ...stateAfterDecrement,
-        activeScenario: { ...stateAfterDecrement.activeScenario, objectives: updatedObjectives }
+        ...s,
+        activeScenario: { ...s.activeScenario, objectives: updatedObjectives }
       };
       const isDefeated = ScenarioManager.checkDefeat(stateWithObjectives);
-
+ 
       if (isDefeated) {
         set({ gameState: { ...stateWithObjectives, phase: 'defeat' as const } });
-        useUIStore.getState().showModal('defeat');
         return;
       }
       if (allObjectivesComplete) {
         set({ gameState: { ...stateWithObjectives, phase: 'victory' as const } });
-        useUIStore.getState().showModal('victory');
         return;
       }
       // Fallback: check coffin victory separately (legacy scenario 1 support)
       const coffinVictory = TokenSystem.checkCoffinVictory(stateWithObjectives);
       if (coffinVictory.isVictory) {
-        set({ gameState: stateWithObjectives });
-        useUIStore.getState().showModal('victory');
+        set({ gameState: { ...stateWithObjectives, phase: 'victory' as const } });
         return;
       }
+      s = stateWithObjectives;
     }
-
+ 
     // Check if an encounter card should be drawn (start of villain phase)
-    // Rules: draw encounter if chapel is revealed, no tile was placed, OR if the placed tile has a black triangle
-    const placedType = stateAfterDecrement.lastPlacedTileEncounterType;
-    const chapelRevealed = stateAfterDecrement.chapelRevealed === true;
+    const placedType = s.lastPlacedTileEncounterType;
+    const chapelRevealed = s.chapelRevealed === true;
     const shouldDrawEncounter = chapelRevealed || !placedType || placedType === 'black';
-
-    if (shouldDrawEncounter && stateAfterDecrement.encounterDeck.length > 0) {
-      const respiteResult = TreasureSystem.checkAndDiscardRespite(stateAfterDecrement, 'encounterDeck');
+ 
+    if (shouldDrawEncounter && s.encounterDeck.length > 0) {
+      const respiteResult = TreasureSystem.checkAndDiscardRespite(s, 'encounterDeck');
       const drawResult = EncounterSystem.drawEncounterCard(respiteResult.gameState);
-
+ 
       if (drawResult.card) {
         set({
           gameState: {
@@ -509,22 +515,21 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
         return; // Wait for encounter to be resolved before continuing
       }
     }
-
+ 
     // No encounter needed, or encounter deck empty — proceed with villain phase normally
-    let newState = executeVillainPhase(stateAfterDecrement);
-
+    let newState = executeVillainPhase(s);
+ 
     const currentIndex = newState.turnOrder.indexOf(newState.currentHeroId);
     const nextIndex = (currentIndex + 1) % newState.turnOrder.length;
     const nextId = newState.turnOrder[nextIndex];
     const stateAfterTurnStart = ConditionSystem.processTurnStart(newState, nextId);
-
-    // Bug 5: Check defeat right at the start of the next hero's turn
+ 
+    // Check defeat right at the start of the next hero's turn
     if (ScenarioManager.checkDefeat({ ...stateAfterTurnStart, currentHeroId: nextId })) {
       set({ gameState: { ...stateAfterTurnStart, currentHeroId: nextId, phase: 'defeat' } as any });
-      useUIStore.getState().showModal('defeat');
       return;
     }
-
+ 
     set({
       gameState: {
         ...stateAfterTurnStart,
