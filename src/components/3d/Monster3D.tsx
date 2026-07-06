@@ -1,4 +1,4 @@
-import React, { Suspense, memo, useRef } from 'react';
+import React, { Suspense, memo, useRef, useEffect } from 'react';
 import { Cylinder, Box, Sphere, Billboard } from '@react-three/drei';
 import { Monster } from '../../game/types';
 import { getMonsterModelPath, DUMMY_MODE } from '../../utils/modelLoader';
@@ -52,8 +52,19 @@ const Monster3DInner: React.FC<Monster3DProps> = ({ monster }) => {
   });
 
   const legalRingRef = useRef<THREE.Mesh>(null);
+  const modelRef = useRef<THREE.Group>(null);
+  const prevHp = useRef(monster.hp);
+  const hitTimer = useRef(0);
 
-  useFrame((state) => {
+  useEffect(() => {
+    if (monster.hp < prevHp.current) {
+      hitTimer.current = 0.4; // 0.4s hit animation
+    }
+    prevHp.current = monster.hp;
+  }, [monster.hp]);
+
+  useFrame((state, delta) => {
+    // target selection ring pulsing animation
     if (isLegalTarget && legalRingRef.current) {
       const time = state.clock.getElapsedTime();
       const scale = 1.0 + Math.sin(time * 5) * 0.05;
@@ -62,6 +73,44 @@ const Monster3DInner: React.FC<Monster3DProps> = ({ monster }) => {
       const material = legalRingRef.current.material as THREE.MeshBasicMaterial;
       if (material) {
         material.opacity = 0.5 + Math.sin(time * 5) * 0.2;
+      }
+    }
+
+    // hit reaction animation (jolt + red flash)
+    if (modelRef.current) {
+      if (hitTimer.current > 0) {
+        hitTimer.current -= delta;
+        const progress = Math.max(0, hitTimer.current / 0.4); // 1.0 down to 0.0
+        
+        // Squash and stretch jolt
+        const scaleY = 1.0 + Math.sin(progress * Math.PI) * 0.18;
+        const scaleXZ = 1.0 - Math.sin(progress * Math.PI) * 0.08;
+        modelRef.current.scale.set(scaleXZ, scaleY, scaleXZ);
+
+        // Recoil (vertical jump/hop)
+        modelRef.current.position.y = Math.sin(progress * Math.PI) * 0.25;
+
+        // Red flash (traverses child meshes and adds red emissive tint)
+        modelRef.current.traverse((child: any) => {
+          if (child.isMesh && child.material) {
+            if (child.material.emissive) {
+              child.material.emissive.setRGB(progress * 0.8, 0, 0);
+              child.material.emissiveIntensity = progress * 1.5;
+            }
+          }
+        });
+      } else {
+        // Reset scale and position
+        modelRef.current.scale.set(1, 1, 1);
+        modelRef.current.position.y = 0;
+        
+        // Reset emissive
+        modelRef.current.traverse((child: any) => {
+          if (child.isMesh && child.material && child.material.emissive) {
+            child.material.emissive.setRGB(0, 0, 0);
+            child.material.emissiveIntensity = 0;
+          }
+        });
       }
     }
   });
@@ -138,14 +187,16 @@ const Monster3DInner: React.FC<Monster3DProps> = ({ monster }) => {
         </mesh>
       </Billboard>
 
-      {/* Monster Body with Suspense fallback */}
-      {DUMMY_MODE ? (
-        <MonsterPlaceholder />
-      ) : (
-        <Suspense fallback={<MonsterPlaceholder />}>
-          <GamePiece url={getMonsterModelPath(monster.monsterType)} position={[0, modelYPos, 0]} rotation={[0, 0, 0]} scale={modelScale} />
-        </Suspense>
-      )}
+      {/* Monster Body with Suspense fallback (ref attached for hit recoil) */}
+      <group ref={modelRef}>
+        {DUMMY_MODE ? (
+          <MonsterPlaceholder />
+        ) : (
+          <Suspense fallback={<MonsterPlaceholder />}>
+            <GamePiece url={getMonsterModelPath(monster.monsterType)} position={[0, modelYPos, 0]} rotation={[0, 0, 0]} scale={modelScale} />
+          </Suspense>
+        )}
+      </group>
     </group>
   );
 };

@@ -5,6 +5,81 @@ import { EffectComposer, Vignette, Outline, Selection } from '@react-three/postp
 import { Color } from 'three';
 import { useGameStore } from '../../store/gameStore';
 import { useUIStore } from '../../store/uiStore';
+import * as THREE from 'three';
+
+/**
+ * AtmosphericMist renders a set of slow-drifting, waving gothic mist motes.
+ * Uses a single buffer geometry points drawing call for high performance.
+ */
+const AtmosphericMist: React.FC = () => {
+  const count = 80; // modest count for performance
+  const [positions, velocities] = useMemo(() => {
+    const pos = new Float32Array(count * 3);
+    const vel = [];
+    for (let i = 0; i < count; i++) {
+      // Spread particles across board coordinates (from -12 to 24 units)
+      pos[i * 3] = (Math.random() - 0.3) * 36;
+      pos[i * 3 + 1] = Math.random() * 2.5 + 0.2; // height above the board (0.2 to 2.7 units)
+      pos[i * 3 + 2] = (Math.random() - 0.3) * 36;
+
+      // Slow ambient drift velocity
+      vel.push({
+        x: (Math.random() - 0.5) * 0.15,
+        y: (Math.random() - 0.5) * 0.05,
+        z: (Math.random() - 0.5) * 0.15
+      });
+    }
+    return [pos, vel];
+  }, []);
+
+  const pointsRef = useRef<THREE.Points>(null);
+
+  useFrame((state, delta) => {
+    if (!pointsRef.current) return;
+    const geo = pointsRef.current.geometry;
+    const posAttr = geo.attributes.position;
+    if (!posAttr) return;
+
+    const time = state.clock.getElapsedTime();
+
+    for (let i = 0; i < count; i++) {
+      let x = posAttr.getX(i) + velocities[i].x * delta;
+      let y = posAttr.getY(i) + velocities[i].y * delta;
+      let z = posAttr.getZ(i) + velocities[i].z * delta;
+
+      // Vertical wave bobbing
+      y += Math.sin(time * 0.5 + i) * 0.0015;
+
+      // Boundary check & wrap-around
+      if (Math.abs(x) > 18) x = -x;
+      if (y < 0.1 || y > 3.0) velocities[i].y = -velocities[i].y;
+      if (Math.abs(z) > 18) z = -z;
+
+      posAttr.setXYZ(i, x, y, z);
+    }
+    posAttr.needsUpdate = true;
+  });
+
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          args={[positions, 3]}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        color="#c8a2c8" // lilac / gothic purple tint
+        size={0.12} // tiny dust motes
+        transparent
+        opacity={0.25} // extremely subtle to preserve tactical grid/arrows/highlights
+        sizeAttenuation={true}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </points>
+  );
+};
 
 /**
  * CameraTracker component to smoothly interpolate the camera controls focus target
@@ -26,7 +101,7 @@ const CameraTracker: React.FC<{ controlsRef: React.RefObject<any> }> = ({ contro
     const targetX = activeHeroPos.x * 4 + activeHeroPos.sqX + 0.5;
     const targetZ = activeHeroPos.z * 4 + activeHeroPos.sqZ + 0.5;
 
-    // Smooth lerp tracking (Math.min makes it frame-rate independent)
+    // Smooth lerp tracking
     const speed = Math.min(5 * delta, 1);
     controls.target.x += (targetX - controls.target.x) * speed;
     controls.target.z += (targetZ - controls.target.z) * speed;
@@ -38,7 +113,7 @@ const CameraTracker: React.FC<{ controlsRef: React.RefObject<any> }> = ({ contro
 
 /**
  * Main 3D Scene component.
- * Handles lighting, camera, tracking, and post-processing.
+ * Handles lighting, camera, tracking, mist, and post-processing.
  */
 export const Scene: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const isPaused = useGameStore((state) => state.isPaused);
@@ -133,6 +208,13 @@ export const Scene: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
         <Suspense fallback={null}>
           <Stars radius={100} depth={50} count={500} factor={4} saturation={0} fade speed={1} />
         </Suspense>
+
+        {/* Gothic Atmospheric Mist Motes */}
+        {graphicsQuality !== 'low' && (
+          <Suspense fallback={null}>
+            <AtmosphericMist />
+          </Suspense>
+        )}
           
         <Selection>
           <Suspense fallback={null}>
