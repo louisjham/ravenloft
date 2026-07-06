@@ -120,7 +120,7 @@ export const ExplorationLayer: React.FC<ExplorationLayerProps> = ({ tiles, onEdg
             rotation={[0, -(rotation * Math.PI) / 180, 0]}
           >
             <group position={[-(previewTile.x * TILE_SIZE + TILE_SIZE / 2), 0, -(previewTile.z * TILE_SIZE + TILE_SIZE / 2)]}>
-              <Tile3D tile={previewTile} isRevealed={true} />
+              <Tile3D tile={previewTile} isRevealed={true} onMoveHero={() => {}} />
             </group>
           </group>
         </group>

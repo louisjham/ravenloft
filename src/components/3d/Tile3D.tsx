@@ -1,12 +1,11 @@
-import React, { useRef, useEffect, useState, Suspense } from 'react';
+import React, { useRef, useEffect, useState, Suspense, useCallback } from 'react';
 import { useFrame, ThreeEvent, useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Text } from '@react-three/drei';
 import { useBox } from '@react-three/cannon';
-import { Tile } from '../../game/types';
+import { Tile, Position } from '../../game/types';
 import { useGameStore } from '../../store/gameStore';
 import { useUIStore } from '../../store/uiStore';
-import { useGameActions } from '../../hooks/useGameActions';
 import { MagicalTorches } from './MagicalTorches';
 
 interface Tile3DProps {
@@ -14,6 +13,11 @@ interface Tile3DProps {
   isRevealed: boolean;
   /** Set of "tileId:sqX:sqZ" keys for every square the active hero can reach. */
   reachableSquares?: Set<string>;
+  /**
+   * Stable callback from DungeonBoard (called once) to move the active hero.
+   * Keeping this at board level avoids replicating useGameActions ×41.
+   */
+  onMoveHero: (pos: Position) => void;
 }
 
 /**
@@ -44,13 +48,20 @@ const TileTexture: React.FC<{ imageUrl: string }> = ({ imageUrl }) => {
 
 /**
  * 3D component for a Dungeon Tile (4×4 squares).
+ *
+ * Re-render budget:
+ *  - isHovered: fires only for THIS tile when its hover state flips (boolean selector).
+ *  - interactionMode: fires for all tiles on mode transitions, but unavoidable.
+ *  - reachableSquares prop: controlled by DungeonBoard's useMemo.
+ *  - onMoveHero prop: stable ref from DungeonBoard (useCallback-wrapped there).
  */
-const Tile3DInner: React.FC<Tile3DProps> = ({ tile, isRevealed, reachableSquares }) => {
-  const hoveredTile = useGameStore((state) => state.hoveredTile);
-  const isHovered = hoveredTile?.id === tile.id;
+const Tile3DInner: React.FC<Tile3DProps> = ({ tile, isRevealed, reachableSquares, onMoveHero }) => {
+  // ── Boolean selector: only this tile re-renders when its own hover state flips ──
+  const isHovered = useGameStore((state) => state.hoveredTile?.id === tile.id);
+
+  // ── Interaction mode: string primitive → value equality works correctly ────────
   const interactionMode = useUIStore((state) => state.interactionMode);
   const setInteractionMode = useUIStore((state) => state.setInteractionMode);
-  const { handleMoveHero } = useGameActions();
 
   const groupRef = useRef<THREE.Group>(null);
   const animDoneRef = useRef(false);
@@ -78,6 +89,12 @@ const Tile3DInner: React.FC<Tile3DProps> = ({ tile, isRevealed, reachableSquares
     position: [TILE_SIZE / 2, -0.1, TILE_SIZE / 2],
   }));
 
+  // Stable onMove handler for movement squares — only recreated when dependencies change.
+  const handleMoveSquare = useCallback((pos: Position) => {
+    onMoveHero(pos);
+    setInteractionMode('none');
+  }, [onMoveHero, setInteractionMode]);
+
   if (!isRevealed) return null;
 
   return (
@@ -98,13 +115,18 @@ const Tile3DInner: React.FC<Tile3DProps> = ({ tile, isRevealed, reachableSquares
         </Suspense>
       )}
 
-      {/* Hover highlight */}
-      {isHovered && (
-        <mesh position={[TILE_SIZE / 2, 0.02, TILE_SIZE / 2]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[TILE_SIZE, TILE_SIZE]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.05} />
-        </mesh>
-      )}
+      {/*
+        Hover highlight — always mounted, toggled via `visible`.
+        Avoids Three.js geometry allocation/deallocation on every hover event.
+      */}
+      <mesh
+        position={[TILE_SIZE / 2, 0.02, TILE_SIZE / 2]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        visible={isHovered}
+      >
+        <planeGeometry args={[TILE_SIZE, TILE_SIZE]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.05} />
+      </mesh>
 
       {/*
         Grid lines — centred at TILE_SIZE/2 = 2.0 so that the 4 divisions
@@ -141,10 +163,7 @@ const Tile3DInner: React.FC<Tile3DProps> = ({ tile, isRevealed, reachableSquares
                   sqX={sqX}
                   sqZ={sqZ}
                   tile={tile}
-                  onMove={(pos) => {
-                    handleMoveHero(pos);
-                    setInteractionMode('none');
-                  }}
+                  onMove={handleMoveSquare}
                 />
               );
             })
@@ -168,7 +187,7 @@ interface MovementSquare3DProps {
   sqX: number;
   sqZ: number;
   tile: Tile;
-  onMove: (pos: { x: number; z: number; sqX: number; sqZ: number }) => void;
+  onMove: (pos: Position) => void;
 }
 
 const MovementSquare3D: React.FC<MovementSquare3DProps> = ({ sqX, sqZ, tile, onMove }) => {

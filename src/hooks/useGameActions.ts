@@ -7,16 +7,17 @@ import { TileSystem } from '../game/engine/TileSystem'
 import { ConditionSystem } from '../game/engine/ConditionSystem'
 
 export const useGameActions = () => {
-  const {
-    gameState,
-    moveHero: storeMoveHero,
-    attackMonster: storeAttackMonster,
-    endTurn: storeEndTurn,
-    selectEntity: storeSelectEntity,
-    searchToken,
-    canSearchTokens,
-    getTokensOnTile,
-  } = useGameStore();
+  // ── Narrow selectors — only the fields this hook actually reads ────────────
+  // Each selector is a stable primitive or stable action ref, so this hook
+  // will only re-render its caller when one of these specific values changes.
+  const gameState = useGameStore((state) => state.gameState);
+  const storeMoveHero = useGameStore((state) => state.moveHero);
+  const storeAttackMonster = useGameStore((state) => state.attackMonster);
+  const storeEndTurn = useGameStore((state) => state.endTurn);
+  const storeSelectEntity = useGameStore((state) => state.selectEntity);
+  const searchToken = useGameStore((state) => state.searchToken);
+  const canSearchTokens = useGameStore((state) => state.canSearchTokens);
+  const getTokensOnTile = useGameStore((state) => state.getTokensOnTile);
 
   const { addNotification } = useUIStore();
 

@@ -29,8 +29,10 @@ import { DiceAnnouncementOverlay } from './components/ui/DiceAnnouncementOverlay
 import EncounterCardOverlay from './components/ui/EncounterCardOverlay';
 import TreasureCardPanel from './components/ui/TreasureCardPanel';
 
-// Import diagnostic tools for debugging tile placement
-import './testing/tile-placement-diagnostics';
+// Import diagnostic tools for debugging tile placement (dev only)
+if (import.meta.env.DEV) {
+  import('./testing/tile-placement-diagnostics');
+}
 import { ExplorationLayer } from './components/3d/ExplorationLayer';
 import { RotationPicker } from './components/ui/RotationPicker';
 import { TilePlacementContext } from './contexts/TilePlacementContext';
@@ -41,6 +43,13 @@ import { useExplorationControls } from './hooks/useExplorationControls';
 import { useGameTransition } from './hooks/useGameTransition';
 
 const App: React.FC = () => {
+  // Narrow selector: App re-renders only when `phase` changes, not on every
+  // game-state mutation (hero moves, villain ticks, card draws, etc.).
+  const phase = useGameStore((state) => state.gameState?.phase ?? 'idle');
+  const isSetupPhase = phase === 'setup';
+
+  // Full gameState is only needed for the setup screen and overlay props.
+  // Fetch it lazily — components that need it subscribe in their own scope.
   const gameState = useGameStore((state) => state.gameState);
 
   // Power selection store methods
@@ -98,17 +107,22 @@ const App: React.FC = () => {
     );
   }, []);
 
-  const monsters = gameState?.monsters || [];
+  const monsters = gameState?.monsters ?? [];
+
+  // Memoize context value so identity is stable across App re-renders.
+  // Without this, every App render creates a new object and all context
+  // consumers re-render regardless of whether the handlers changed.
+  const tilePlacementCtxValue = React.useMemo(() => ({
+    confirmPlacement: handlePlacementConfirm,
+    cancelPlacement: handlePlacementCancel,
+  }), [handlePlacementConfirm, handlePlacementCancel]);
 
   return (
-    <TilePlacementContext.Provider value={{
-      confirmPlacement: handlePlacementConfirm,
-      cancelPlacement: handlePlacementCancel,
-    }}>
+    <TilePlacementContext.Provider value={tilePlacementCtxValue}>
     <div className="app-container">
       <AudioReactComponent />
 
-      {gameState && gameState.phase === 'setup' ? (
+      {isSetupPhase && gameState ? (
         <PowerSelectionScreen
           heroes={gameState.heroes}
           powerSelections={gameState.powerSelections ?? []}
@@ -156,7 +170,7 @@ const App: React.FC = () => {
       )}
 
       {/* Show UIOverlay when not in setup phase (includes MainMenu when gameState is null) */}
-      {!(gameState && gameState.phase === 'setup') && (
+      {!isSetupPhase && (
         <UIOverlay onStartGame={handleStartGame} onOpenTreasure={handleOpenTreasure} />
       )}
 
