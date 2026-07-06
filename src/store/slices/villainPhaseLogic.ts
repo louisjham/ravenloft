@@ -10,7 +10,6 @@ import { EncounterSystem } from '../../game/engine/EncounterSystem';
 import { TreasureSystem } from '../../game/engine/TreasureSystem';
 import { DataLoader } from '../../game/dataLoader';
 
-
 export function buildVillainQueue(
   state: GameState,
   activeHeroId: string
@@ -27,7 +26,6 @@ export function buildVillainQueue(
       queue.push(m.id);
     }
   }
-
 
   // Step 2: for each queued monster name, also activate same-named monsters from OTHER owners
   const queuedNames = new Set(
@@ -103,8 +101,7 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
   // Phase transition check BEFORE calling resolveTactic
   if (monster.isBoss && BossPhases.shouldTransitionPhase(monster, newState)) {
     newState = BossPhases.transitionPhase(monster, newState);
-    // Re-fetch monster from newState after transition
-    // so resolveTactic sees the updated currentPhase
+    // Re-fetch monster from newState after transition so resolveTactic sees the updated currentPhase
     const updatedMonster = newState.monsters.find(m => m.id === monster!.id);
     if (updatedMonster) {
       monster = updatedMonster as Monster;
@@ -118,401 +115,42 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
   if (monsterTile) {
     const result = resolveTactic(monster, monsterTile, newState);
 
-    // Apply result to state immutably
+    // 1. Resolve monster movement
     if (result.action === 'move' || result.action === 'move_then_attack') {
-      // Update monster.position to last tile in path
-      const lastTile = result.path[result.path.length - 1];
-      
-      const targetHero = result.action === 'move_then_attack'
-        ? newState.heroes.find(h => h.id === result.targetHeroId)
-        : null;
-        
-      const bestSq = findBestLandingSquare(
-        monster,
-        targetHero || null,
-        lastTile,
-        result.action === 'move_then_attack',
-        newState
-      );
-
-      newState = {
-        ...newState,
-        monsters: newState.monsters.map(m =>
-          m.id === monsterId
-            ? { ...m, position: { x: lastTile.x, z: lastTile.z, sqX: bestSq.sqX, sqZ: bestSq.sqZ } }
-            : m
-        )
-      };
+      newState = resolveMonsterMovement(newState, monster, result);
     }
 
+    // 2. Resolve monster attacks
     if (result.action === 'attack' || result.action === 'move_then_attack') {
       const targetTileX = (result.action === 'move_then_attack') ? result.path[result.path.length - 1].x : monster.position.x;
       const targetTileZ = (result.action === 'move_then_attack') ? result.path[result.path.length - 1].z : monster.position.z;
       
       const isSkullLord = monster.name.toLowerCase() === 'skull lord';
       const attackLoopCount = isSkullLord ? Math.max(1, monster.hp) : 1;
-      for (let aIdx = 0; aIdx < attackLoopCount; aIdx++) {
-        // Re-fetch monster in case its state changed
-        let currentMonster = newState.monsters.find(m => m.id === monsterId) || monster;
-        if (currentMonster.hp <= 0 || currentMonster.isDefeated) break;
- 
-        const targetHeroes = result.multiTarget
-          ? newState.heroes.filter(h => h.position.x === targetTileX && h.position.z === targetTileZ)
-          : [newState.heroes.find(h => h.id === result.targetHeroId)].filter((h): h is Hero => !!h);
- 
-        for (const tHero of targetHeroes) {
-          // Re-fetch targetHero in case they were updated in a previous iteration of the loop (e.g. bodyguard swaps)
-          let targetHero = newState.heroes.find(h => h.id === tHero.id);
-          
-          // If the target is defeated, choose another living hero within 1 tile
-          if (isSkullLord && (!targetHero || targetHero.hp <= 0 || targetHero.isDefeated)) {
-            const mTile = newState.tiles.find(t => t.x === currentMonster.position.x && t.z === currentMonster.position.z);
-            if (mTile) {
-              const nearbyHero = newState.heroes.find(h => {
-                if (h.hp <= 0 || h.isDefeated) return false;
-                const hTile = newState.tiles.find(t => t.x === h.position.x && t.z === h.position.z);
-                return hTile && getTileGraphDistance(mTile, hTile, newState.tiles) <= 1;
-              });
-              if (nearbyHero) {
-                targetHero = nearbyHero;
-              }
-            }
-          }
- 
-          if (!targetHero || targetHero.hp <= 0 || targetHero.isDefeated) continue;
- 
-          // Apply tactic overrides for attack bonus, damage, and miss damage if defined
-          const attackBonus = (result.attackBonus !== undefined) ? result.attackBonus : (currentMonster.attackBonus ?? 0);
-          const damage = (result.damage !== undefined) ? result.damage : (currentMonster.damage ?? 1);
-          const missDamage = (result.missDamage !== undefined) ? result.missDamage : (currentMonster.missDamage ?? 0);
- 
-          const attackResult = CombatSystem.resolveAttack(
-            currentMonster,
-            targetHero,
-            attackBonus,
-            damage,
-            0,
-            undefined,
-            newState,
-            missDamage
-          );
- 
-          let finalDamage = attackResult.damage;
-          let logSuffix = '';
- 
-          if (attackResult.hit) {
-            // Check for Shield first (cancels any monster hit)
-            const hasShield = targetHero.abilities.includes('wizard_shield') || targetHero.hand.includes('wizard_shield');
-            const isShieldAvailable = !(targetHero.flippedPowerIds ?? []).includes('wizard_shield');
- 
-            if (hasShield && isShieldAvailable) {
-              finalDamage = 0;
-              logSuffix = ` Prevented by ${targetHero.name}'s Shield! The attack misses instead.`;
- 
-              // Apply +2 AC bonus condition to the hero until the end of their next Hero Phase (duration: 2)
-              const updatedTargetHero = ConditionSystem.applyCondition(
-                targetHero,
-                'ac_bonus',
-                'wizard_shield',
-                2,
-                2
-              );
- 
-              // Flip the Shield card
-              const updatedTargetHeroFlipped = {
-                ...updatedTargetHero,
-                flippedPowerIds: [...(updatedTargetHero.flippedPowerIds ?? []), 'wizard_shield']
-              };
- 
-              newState = {
-                ...newState,
-                heroes: newState.heroes.map(h => h.id === updatedTargetHeroFlipped.id ? updatedTargetHeroFlipped : h)
-              };
-              targetHero = updatedTargetHeroFlipped;
-            } else {
-              const targetTile = newState.tiles.find(t => t.x === targetHero!.position.x && t.z === targetHero!.position.z);
-              
-              // Find bodyguard hero (another hero within 1 tile with bodyguard available)
-              const bodyguardHero = newState.heroes.find(h => {
-                if (h.id === targetHero!.id) return false;
-                const hasBodyguard = h.abilities.includes('fighter_bodyguard') || h.hand.includes('fighter_bodyguard');
-                const isAvailable = !(h.flippedPowerIds ?? []).includes('fighter_bodyguard');
-                if (hasBodyguard && isAvailable) {
-                  const hTile = newState.tiles.find(t => t.x === h.position.x && t.z === h.position.z);
-                  if (targetTile && hTile) {
-                    return getTileGraphDistance(hTile, targetTile, newState.tiles) <= 1;
-                  }
-                }
-                return false;
-              });
- 
-              if (bodyguardHero) {
-                // Intercept the attack!
-                finalDamage = 0;
-                logSuffix = ` Intercepted by ${bodyguardHero.name}'s Bodyguard! The attack misses instead, and they swap positions.`;
- 
-                // Swap positions
-                const tempPos = { ...targetHero.position };
-                const updatedTargetHero = {
-                  ...targetHero,
-                  position: { ...bodyguardHero.position }
-                };
-                const updatedBodyguardHero = {
-                  ...bodyguardHero,
-                  position: tempPos,
-                  flippedPowerIds: [...(bodyguardHero.flippedPowerIds ?? []), 'fighter_bodyguard']
-                };
- 
-                newState = {
-                  ...newState,
-                  heroes: newState.heroes.map(h => {
-                    if (h.id === updatedTargetHero.id) return updatedTargetHero;
-                    if (h.id === updatedBodyguardHero.id) return updatedBodyguardHero;
-                    return h;
-                  })
-                };
-                targetHero = updatedTargetHero;
-              }
-            }
- 
-            // Check for Unbalancing Parry
-            let currentTarget = newState.heroes.find(h => h.id === targetHero!.id) ?? targetHero;
-            const hasUnbalancingParry = currentTarget.abilities.includes('ranger_unbalancing_parry') || currentTarget.hand.includes('ranger_unbalancing_parry');
-            const isUnbalancingParryAvailable = !(currentTarget.flippedPowerIds ?? []).includes('ranger_unbalancing_parry');
- 
-            if (hasUnbalancingParry && isUnbalancingParryAvailable && finalDamage > 0) {
-              finalDamage = 0;
-              logSuffix += ` Deflected by ${currentTarget.name}'s Unbalancing Parry! The attack misses instead.`;
- 
-              const heroTile = newState.tiles.find(t => t.x === currentTarget.position.x && t.z === currentTarget.position.z);
-              const validTiles = newState.tiles.filter(t => {
-                if (!heroTile) return false;
-                return getTileGraphDistance(heroTile, t, newState.tiles) <= 1;
-              });
- 
-              let foundMonsterPos = null;
-              for (const tile of validTiles) {
-                for (let sqX = 0; sqX < 4; sqX++) {
-                  for (let sqZ = 0; sqZ < 4; sqZ++) {
-                    const occupied = 
-                      newState.heroes.some(h => h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
-                      newState.monsters.some(m => !m.isDefeated && m.hp > 0 && m.position.x === tile.x && m.position.z === tile.z && m.position.sqX === sqX && m.position.sqZ === sqZ);
- 
-                    if (!occupied) {
-                      foundMonsterPos = { x: tile.x, z: tile.z, sqX, sqZ };
-                      break;
-                    }
-                  }
-                  if (foundMonsterPos) break;
-                }
-                if (foundMonsterPos) break;
-              }
- 
-              if (foundMonsterPos) {
-                const updatedMonster = {
-                  ...currentMonster,
-                  position: foundMonsterPos
-                };
-                newState = {
-                  ...newState,
-                  monsters: newState.monsters.map(m => m.id === monsterId ? updatedMonster : m)
-                };
-                currentMonster = updatedMonster;
-              }
- 
-              const updatedTargetHero = {
-                ...currentTarget,
-                flippedPowerIds: [...(currentTarget.flippedPowerIds ?? []), 'ranger_unbalancing_parry']
-              };
-              newState = {
-                ...newState,
-                heroes: newState.heroes.map(h => h.id === updatedTargetHero.id ? updatedTargetHero : h)
-              };
-              targetHero = updatedTargetHero;
-            }
- 
-            // Check for Yield Ground
-            currentTarget = newState.heroes.find(h => h.id === targetHero!.id) ?? targetHero;
-            const hasYieldGround = currentTarget.abilities.includes('ranger_yield_ground') || currentTarget.hand.includes('ranger_yield_ground');
-            const isYieldGroundAvailable = !(currentTarget.flippedPowerIds ?? []).includes('ranger_yield_ground');
- 
-            if (hasYieldGround && isYieldGroundAvailable) {
-              logSuffix += ` ${currentTarget.name} triggers Yield Ground and moves their speed!`;
- 
-              const heroTile = newState.tiles.find(t => t.x === currentTarget.position.x && t.z === currentTarget.position.z);
-              const validTiles = newState.tiles.filter(t => {
-                if (!heroTile) return false;
-                return getTileGraphDistance(heroTile, t, newState.tiles) <= 1;
-              });
- 
-              let foundHeroPos = null;
-              for (const tile of validTiles) {
-                for (let sqX = 0; sqX < 4; sqX++) {
-                  for (let sqZ = 0; sqZ < 4; sqZ++) {
-                    let distance = 0;
-                    if (tile.x === currentTarget.position.x && tile.z === currentTarget.position.z) {
-                      distance = Math.abs(sqX - currentTarget.position.sqX) + Math.abs(sqZ - currentTarget.position.sqZ);
-                    } else {
-                      distance = 4 + Math.abs(sqX - currentTarget.position.sqX) + Math.abs(sqZ - currentTarget.position.sqZ);
-                    }
- 
-                    if (distance <= 6) {
-                      const occupied = 
-                        newState.heroes.some(h => h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
-                        newState.monsters.some(m => !m.isDefeated && m.hp > 0 && m.position.x === tile.x && m.position.z === tile.z && m.position.sqX === sqX && m.position.sqZ === sqZ);
- 
-                      if (!occupied) {
-                        foundHeroPos = { x: tile.x, z: tile.z, sqX, sqZ };
-                        break;
-                      }
-                    }
-                  }
-                  if (foundHeroPos) break;
-                }
-                if (foundHeroPos) break;
-              }
- 
-              const resolvedTarget = newState.heroes.find(h => h.id === currentTarget.id) || currentTarget;
-              const updatedTargetHero = {
-                ...resolvedTarget,
-                position: foundHeroPos ? {
-                  ...resolvedTarget.position,
-                  x: foundHeroPos.x,
-                  z: foundHeroPos.z,
-                  sqX: foundHeroPos.sqX,
-                  sqZ: foundHeroPos.sqZ
-                } : resolvedTarget.position,
-                flippedPowerIds: [...(resolvedTarget.flippedPowerIds ?? []), 'ranger_yield_ground']
-              };
-              newState = {
-                ...newState,
-                heroes: newState.heroes.map(h => h.id === updatedTargetHero.id ? updatedTargetHero : h)
-              };
-              targetHero = updatedTargetHero;
-            }
-          }
- 
-          const resolvedTargetHero = newState.heroes.find(h => h.id === targetHero!.id) || targetHero;
-          let updatedHero = CombatSystem.applyDamage(resolvedTargetHero, finalDamage, newState);
- 
-          if (attackResult.hit && result.statusEffect && finalDamage > 0) {
-            updatedHero = ConditionSystem.applyCondition(updatedHero, result.statusEffect, currentMonster.id, 1);
-          }
- 
-          // Mummy Rot application
-          if (attackResult.hit && currentMonster.name.toLowerCase() === 'mummy' && finalDamage > 0) {
-            updatedHero = ConditionSystem.applyCondition(updatedHero, 'mummy_rot', currentMonster.id, -1);
-          }
- 
-          newState = {
-            ...newState,
-            heroes: newState.heroes.map(h => h.id === targetHero!.id ? updatedHero : h)
-          };
-          targetHero = updatedHero;
- 
-          let statusSuffix = '';
-          if (attackResult.hit && result.statusEffect && finalDamage > 0) {
-            statusSuffix = ` Hero is ${result.statusEffect.toUpperCase()}.`;
-          }
-          if (attackResult.hit && currentMonster.name.toLowerCase() === 'mummy' && finalDamage > 0) {
-            statusSuffix += ` Hero has MUMMY ROT (healing blocked).`;
-          }
- 
-          const logMessage = attackResult.hit
-            ? `${currentMonster.name} attacks ${targetHero.name} (+${attackBonus} vs AC ${targetHero.ac}) and HITS (Roll: ${attackResult.roll}, Total: ${attackResult.total}) for ${attackResult.damage} damage.${statusSuffix}${logSuffix}`
-            : `${currentMonster.name} attacks ${targetHero.name} (+${attackBonus} vs AC ${targetHero.ac}) and MISSES (Roll: ${attackResult.roll}, Total: ${attackResult.total}).${attackResult.damage > 0 ? ` Deals ${attackResult.damage} miss damage.${statusSuffix}` : ''}`;
- 
-          let currentCounter = newState.logIdCounter ?? 0;
- 
-          let updatedLog: GameLogEntry[] = [
-            ...newState.log,
-            {
-              id: String(currentCounter),
-              timestamp: new Date().toISOString(),
-              message: logMessage,
-              type: 'combat' as const
-            }
-          ].slice(-100);
-          currentCounter++;
- 
-          // Check for Riposte Strike
-          const hasRiposte = (targetHero.abilities.includes('rogue_riposte_strike') || targetHero.hand.includes('rogue_riposte_strike')) &&
-                             !(targetHero.flippedPowerIds ?? []).includes('rogue_riposte_strike');
-          
-          const hAbsX = targetHero.position.x * 4 + targetHero.position.sqX;
-          const hAbsZ = targetHero.position.z * 4 + targetHero.position.sqZ;
-          const mAbsX = currentMonster.position.x * 4 + currentMonster.position.sqX;
-          const mAbsZ = currentMonster.position.z * 4 + currentMonster.position.sqZ;
-          const isAdjacent = Math.abs(hAbsX - mAbsX) + Math.abs(hAbsZ - mAbsZ) === 1;
- 
-          if (hasRiposte && isAdjacent && currentMonster.hp > 0 && !currentMonster.isDefeated) {
-            const riposteResult = CombatSystem.resolveAttack(
-              targetHero,
-              currentMonster,
-              7, // attackBonus
-              2, // damage
-              0,
-              undefined,
-              newState
-            );
- 
-            let riposteLog = '';
-            let updatedHeroAfterRiposte = targetHero;
- 
-            if (riposteResult.hit) {
-              const updatedMonster = CombatSystem.applyDamage(currentMonster, riposteResult.damage, newState);
-              newState = {
-                ...newState,
-                monsters: newState.monsters.map(m => m.id === currentMonster!.id ? updatedMonster : m)
-              };
-              currentMonster = updatedMonster;
-              
-              updatedHeroAfterRiposte = {
-                ...(targetHero as Hero),
-                flippedPowerIds: [...((targetHero as Hero).flippedPowerIds ?? []), 'rogue_riposte_strike']
-              };
-              newState = {
-                ...newState,
-                heroes: newState.heroes.map(h => h.id === updatedHeroAfterRiposte.id ? (updatedHeroAfterRiposte as Hero) : h)
-              };
-              targetHero = updatedHeroAfterRiposte;
- 
-              riposteLog = `${targetHero.name} triggers Riposte Strike, counterattacking ${currentMonster.name} and HITS (Roll: ${riposteResult.roll}, Total: ${riposteResult.total}) for ${riposteResult.damage} damage. Riposte Strike flips face-down.`;
-            } else {
-              riposteLog = `${targetHero.name} triggers Riposte Strike, counterattacking ${currentMonster.name} and MISSES (Roll: ${riposteResult.roll}, Total: ${riposteResult.total}). Card does not flip.`;
-            }
- 
-            updatedLog.push({
-              id: String(currentCounter),
-              timestamp: new Date().toISOString(),
-              message: riposteLog,
-              type: 'combat' as const
-            });
-            currentCounter++;
-          }
- 
-          newState = {
-            ...newState,
-            log: updatedLog,
-            logIdCounter: currentCounter
-          };
-        }
-      }
+
+      newState = resolveMonsterAttacks(
+        newState,
+        monsterId,
+        result,
+        monster,
+        targetTileX,
+        targetTileZ,
+        isSkullLord,
+        attackLoopCount
+      );
     }
 
-    // Handle 'use_ability' action
+    // 3. Handle 'use_ability' action
     if (result.action === 'use_ability') {
       const ability = monster.abilities?.find(
         a => a.id === result.abilityId
       );
       if (ability) {
-        newState = AbilitySystem.executeAbility(
-          ability, monster, newState
-        );
+        newState = AbilitySystem.executeAbility(ability, monster, newState);
       }
     }
 
-    // Death check after each ability or attack resolves
+    // 4. Death check after each ability or attack resolves
     newState = {
       ...newState,
       heroes: newState.heroes.map(h =>
@@ -532,169 +170,580 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
       };
     }
 
-    // Cooldown processing at end of each monster's activation
+    // 5. Cooldown processing at end of each monster's activation
     newState = AbilitySystem.processCooldowns(monster, newState);
 
-    // Passive aura processing for each monster
-    const freshMonster = newState.monsters.find(m => m.id === monsterId) || monster;
-    if (freshMonster.abilities && freshMonster.hp > 0 && !freshMonster.isDefeated) {
-      for (const passive of freshMonster.abilities) {
-        if (passive.type === 'passive' && passive.trigger === 'on_turn_start') {
-          if (passive.id === 'regeneration' && freshMonster.regenerationDisabled === true) {
+    // 6. Passive aura processing for each monster (regeneration etc.)
+    newState = resolveMonsterTurnStartPassives(newState, monsterId, monster);
+
+    // 7. Special tactics (teleport, bat exploration, acolyte healing, card passing)
+    newState = resolveSpecialMonsterTactics(newState, monsterId, monster, result, monsterTile);
+  }
+
+  return newState;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXTRACTED HELPER MODULES
+// ─────────────────────────────────────────────────────────────────────────────
+
+function resolveMonsterMovement(state: GameState, monster: Monster, result: any): GameState {
+  const lastTile = result.path[result.path.length - 1];
+  const targetHero = result.action === 'move_then_attack'
+    ? state.heroes.find(h => h.id === result.targetHeroId)
+    : null;
+    
+  const bestSq = findBestLandingSquare(
+    monster,
+    targetHero || null,
+    lastTile,
+    result.action === 'move_then_attack',
+    state
+  );
+
+  return {
+    ...state,
+    monsters: state.monsters.map(m =>
+      m.id === monster.id
+        ? { ...m, position: { x: lastTile.x, z: lastTile.z, sqX: bestSq.sqX, sqZ: bestSq.sqZ } }
+        : m
+    )
+  };
+}
+
+function resolveMonsterAttacks(
+  state: GameState,
+  monsterId: string,
+  result: any,
+  monster: Monster,
+  targetTileX: number,
+  targetTileZ: number,
+  isSkullLord: boolean,
+  attackLoopCount: number
+): GameState {
+  let newState = state;
+
+  for (let aIdx = 0; aIdx < attackLoopCount; aIdx++) {
+    let currentMonster = newState.monsters.find(m => m.id === monsterId) || monster;
+    if (currentMonster.hp <= 0 || currentMonster.isDefeated) break;
+
+    const targetHeroes = result.multiTarget
+      ? newState.heroes.filter(h => h.position.x === targetTileX && h.position.z === targetTileZ)
+      : [newState.heroes.find(h => h.id === result.targetHeroId)].filter((h): h is Hero => !!h);
+
+    for (const tHero of targetHeroes) {
+      let targetHero = newState.heroes.find(h => h.id === tHero.id);
+      
+      // If the target is defeated, choose another living hero within 1 tile
+      if (isSkullLord && (!targetHero || targetHero.hp <= 0 || targetHero.isDefeated)) {
+        const mTile = newState.tiles.find(t => t.x === currentMonster.position.x && t.z === currentMonster.position.z);
+        if (mTile) {
+          const nearbyHero = newState.heroes.find(h => {
+            if (h.hp <= 0 || h.isDefeated) return false;
+            const hTile = newState.tiles.find(t => t.x === h.position.x && t.z === h.position.z);
+            return hTile && getTileGraphDistance(mTile, hTile, newState.tiles) <= 1;
+          });
+          if (nearbyHero) {
+            targetHero = nearbyHero;
+          }
+        }
+      }
+
+      if (!targetHero || targetHero.hp <= 0 || targetHero.isDefeated) continue;
+
+      // Apply tactic overrides for attack bonus, damage, and miss damage if defined
+      const attackBonus = (result.attackBonus !== undefined) ? result.attackBonus : (currentMonster.attackBonus ?? 0);
+      const damage = (result.damage !== undefined) ? result.damage : (currentMonster.damage ?? 1);
+      const missDamage = (result.missDamage !== undefined) ? result.missDamage : (currentMonster.missDamage ?? 0);
+
+      const attackResult = CombatSystem.resolveAttack(
+        currentMonster,
+        targetHero,
+        attackBonus,
+        damage,
+        0,
+        undefined,
+        newState,
+        missDamage
+      );
+
+      let finalDamage = attackResult.damage;
+      let logSuffix = '';
+
+      if (attackResult.hit) {
+        // Check for Shield first (cancels any monster hit)
+        const hasShield = targetHero.abilities.includes('wizard_shield') || targetHero.hand.includes('wizard_shield');
+        const isShieldAvailable = !(targetHero.flippedPowerIds ?? []).includes('wizard_shield');
+
+        if (hasShield && isShieldAvailable) {
+          finalDamage = 0;
+          logSuffix = ` Prevented by ${targetHero.name}'s Shield! The attack misses instead.`;
+
+          // Apply +2 AC bonus condition to the hero until the end of their next Hero Phase (duration: 2)
+          const updatedTargetHero = ConditionSystem.applyCondition(
+            targetHero,
+            'ac_bonus',
+            'wizard_shield',
+            2,
+            2
+          );
+
+          // Flip the Shield card
+          const updatedTargetHeroFlipped = {
+            ...updatedTargetHero,
+            flippedPowerIds: [...(updatedTargetHero.flippedPowerIds ?? []), 'wizard_shield']
+          };
+
+          newState = {
+            ...newState,
+            heroes: newState.heroes.map(h => h.id === updatedTargetHeroFlipped.id ? updatedTargetHeroFlipped : h)
+          };
+          targetHero = updatedTargetHeroFlipped;
+        } else {
+          const targetTile = newState.tiles.find(t => t.x === targetHero!.position.x && t.z === targetHero!.position.z);
+          
+          // Find bodyguard hero (another hero within 1 tile with bodyguard available)
+          const bodyguardHero = newState.heroes.find(h => {
+            if (h.id === targetHero!.id) return false;
+            const hasBodyguard = h.abilities.includes('fighter_bodyguard') || h.hand.includes('fighter_bodyguard');
+            const isAvailable = !(h.flippedPowerIds ?? []).includes('fighter_bodyguard');
+            if (hasBodyguard && isAvailable) {
+              const hTile = newState.tiles.find(t => t.x === h.position.x && t.z === h.position.z);
+              if (targetTile && hTile) {
+                return getTileGraphDistance(hTile, targetTile, newState.tiles) <= 1;
+              }
+            }
+            return false;
+          });
+
+          if (bodyguardHero) {
+            // Intercept the attack!
+            finalDamage = 0;
+            logSuffix = ` Intercepted by ${bodyguardHero.name}'s Bodyguard! The attack misses instead, and they swap positions.`;
+
+            // Swap positions
+            const tempPos = { ...targetHero.position };
+            const updatedTargetHero = {
+              ...targetHero,
+              position: { ...bodyguardHero.position }
+            };
+            const updatedBodyguardHero = {
+              ...bodyguardHero,
+              position: tempPos,
+              flippedPowerIds: [...(bodyguardHero.flippedPowerIds ?? []), 'fighter_bodyguard']
+            };
+
             newState = {
               ...newState,
-              log: [
-                ...newState.log,
-                {
-                  id: String((newState.logIdCounter ?? 0) + 1),
-                  timestamp: new Date().toISOString(),
-                  message: `♻️ ${freshMonster.name}'s Regeneration is disabled and does not heal.`,
-                  type: 'combat' as const
-                }
-              ].slice(-100),
-              logIdCounter: (newState.logIdCounter ?? 0) + 1
+              heroes: newState.heroes.map(h => {
+                if (h.id === updatedTargetHero.id) return updatedTargetHero;
+                if (h.id === updatedBodyguardHero.id) return updatedBodyguardHero;
+                return h;
+              })
             };
-            continue;
-          }
-          for (const effect of passive.effects) {
-            const targets = AbilitySystem.getAbilityTargets(
-              effect, freshMonster, newState
-            );
-            newState = AbilitySystem.applyAbilityEffect(
-              effect, freshMonster, targets, newState
-            );
+            targetHero = updatedTargetHero;
           }
         }
-      }
-    }
 
-    // Teleportation handling
-    if ((result as any).teleportToTileId) {
-      const targetTile = newState.tiles.find(t => t.id === (result as any).teleportToTileId);
-      if (targetTile) {
-        const bestSq = findBestLandingSquare(freshMonster, null, targetTile, false, newState);
-        newState = {
-          ...newState,
-          monsters: newState.monsters.map(m =>
-            m.id === monsterId
-              ? { ...m, position: { x: targetTile.x, z: targetTile.z, sqX: bestSq.sqX, sqZ: bestSq.sqZ } }
-              : m
-          ),
-          log: [
-            ...newState.log,
-            {
-              id: String((newState.logIdCounter ?? 0) + 1),
-              timestamp: new Date().toISOString(),
-              message: `${freshMonster.name} teleports to ${targetTile.name || targetTile.id}!`,
-              type: 'system' as const
-            }
-          ].slice(-100),
-          logIdCounter: (newState.logIdCounter ?? 0) + 1
-        };
-      }
-    }
+        // Check for Unbalancing Parry
+        let currentTarget = newState.heroes.find(h => h.id === targetHero!.id) ?? targetHero;
+        const hasUnbalancingParry = currentTarget.abilities.includes('ranger_unbalancing_parry') || currentTarget.hand.includes('ranger_unbalancing_parry');
+        const isUnbalancingParryAvailable = !(currentTarget.flippedPowerIds ?? []).includes('ranger_unbalancing_parry');
 
-    // Vampire Bat tile exploration
-    if ((result as any).revealTiles) {
-      const unexploredPoints = TileSystem.getExplorationPoints(newState.tiles).filter(p => p.tileId === monsterTile.id);
-      for (const pt of unexploredPoints) {
-        const tileCountBefore = newState.tiles.length;
-        newState = TileSystem.placeTileFromBottom(newState, pt);
-        
-        if (newState.tiles.length > tileCountBefore) {
-          const placedTile = newState.tiles[newState.tiles.length - 1];
-          newState = TileSystem.spawnMonsterForExploration(newState, placedTile);
-          
-          newState = {
-            ...newState,
-            log: [
-              ...newState.log,
-              {
-                id: String((newState.logIdCounter ?? 0) + 1),
-                timestamp: new Date().toISOString(),
-                message: `${freshMonster.name} reveals a tile from the bottom of the deck at ${pt.edge} edge.`,
-                type: 'system' as const
+        if (hasUnbalancingParry && isUnbalancingParryAvailable && finalDamage > 0) {
+          finalDamage = 0;
+          logSuffix += ` Deflected by ${currentTarget.name}'s Unbalancing Parry! The attack misses instead.`;
+
+          const heroTile = newState.tiles.find(t => t.x === currentTarget.position.x && t.z === currentTarget.position.z);
+          const validTiles = newState.tiles.filter(t => {
+            if (!heroTile) return false;
+            return getTileGraphDistance(heroTile, t, newState.tiles) <= 1;
+          });
+
+          let foundMonsterPos = null;
+          for (const tile of validTiles) {
+            for (let sqX = 0; sqX < 4; sqX++) {
+              for (let sqZ = 0; sqZ < 4; sqZ++) {
+                const occupied = 
+                  newState.heroes.some(h => h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
+                  newState.monsters.some(m => !m.isDefeated && m.hp > 0 && m.position.x === tile.x && m.position.z === tile.z && m.position.sqX === sqX && m.position.sqZ === sqZ);
+
+                if (!occupied) {
+                  foundMonsterPos = { x: tile.x, z: tile.z, sqX, sqZ };
+                  break;
+                }
               }
-            ].slice(-100),
-            logIdCounter: (newState.logIdCounter ?? 0) + 1
-          };
-        }
-      }
-    }
-
-    // Dark Chant (Dark Acolyte Undead heal)
-    if ((result as any).acolyteDidNotAttack) {
-      const woundedUndeadList = newState.monsters.filter(m =>
-        m.id !== monsterId &&
-        !m.isDefeated &&
-        m.hp > 0 &&
-        m.hp < m.maxHp &&
-        m.monsterType?.toLowerCase() === 'undead'
-      );
-      
-      if (woundedUndeadList.length > 0) {
-        let closestUndead: Monster | null = null;
-        let minDist = Infinity;
-        for (const und of woundedUndeadList) {
-          const undTile = newState.tiles.find(t => t.x === und.position.x && t.z === und.position.z);
-          if (undTile) {
-            const dist = getTileGraphDistance(monsterTile, undTile, newState.tiles);
-            if (dist < minDist) {
-              minDist = dist;
-              closestUndead = und;
+              if (foundMonsterPos) break;
             }
+            if (foundMonsterPos) break;
           }
-        }
-        
-        if (closestUndead) {
-          const healedHp = Math.min(closestUndead.maxHp, closestUndead.hp + 1);
+
+          if (foundMonsterPos) {
+            const updatedMonster = {
+              ...currentMonster,
+              position: foundMonsterPos
+            };
+            newState = {
+              ...newState,
+              monsters: newState.monsters.map(m => m.id === monsterId ? updatedMonster : m)
+            };
+            currentMonster = updatedMonster;
+          }
+
+          const updatedTargetHero = {
+            ...currentTarget,
+            flippedPowerIds: [...(currentTarget.flippedPowerIds ?? []), 'ranger_unbalancing_parry']
+          };
           newState = {
             ...newState,
-            monsters: newState.monsters.map(m =>
-              m.id === closestUndead!.id ? { ...m, hp: healedHp } : m
-            ),
+            heroes: newState.heroes.map(h => h.id === updatedTargetHero.id ? updatedTargetHero : h)
+          };
+          targetHero = updatedTargetHero;
+        }
+
+        // Check for Yield Ground
+        currentTarget = newState.heroes.find(h => h.id === targetHero!.id) ?? targetHero;
+        const hasYieldGround = currentTarget.abilities.includes('ranger_yield_ground') || currentTarget.hand.includes('ranger_yield_ground');
+        const isYieldGroundAvailable = !(currentTarget.flippedPowerIds ?? []).includes('ranger_yield_ground');
+
+        if (hasYieldGround && isYieldGroundAvailable) {
+          logSuffix += ` ${currentTarget.name} triggers Yield Ground and moves their speed!`;
+
+          const heroTile = newState.tiles.find(t => t.x === currentTarget.position.x && t.z === currentTarget.position.z);
+          const validTiles = newState.tiles.filter(t => {
+            if (!heroTile) return false;
+            return getTileGraphDistance(heroTile, t, newState.tiles) <= 1;
+          });
+
+          let foundHeroPos = null;
+          for (const tile of validTiles) {
+            for (let sqX = 0; sqX < 4; sqX++) {
+              for (let sqZ = 0; sqZ < 4; sqZ++) {
+                let distance = 0;
+                if (tile.x === currentTarget.position.x && tile.z === currentTarget.position.z) {
+                  distance = Math.abs(sqX - currentTarget.position.sqX) + Math.abs(sqZ - currentTarget.position.sqZ);
+                } else {
+                  distance = 4 + Math.abs(sqX - currentTarget.position.sqX) + Math.abs(sqZ - currentTarget.position.sqZ);
+                }
+
+                if (distance <= 6) {
+                  const occupied = 
+                    newState.heroes.some(h => h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
+                    newState.monsters.some(m => !m.isDefeated && m.hp > 0 && m.position.x === tile.x && m.position.z === tile.z && m.position.sqX === sqX && m.position.sqZ === sqZ);
+
+                  if (!occupied) {
+                    foundHeroPos = { x: tile.x, z: tile.z, sqX, sqZ };
+                    break;
+                  }
+                }
+              }
+              if (foundHeroPos) break;
+            }
+            if (foundHeroPos) break;
+          }
+
+          const resolvedTarget = newState.heroes.find(h => h.id === currentTarget.id) || currentTarget;
+          const updatedTargetHero = {
+            ...resolvedTarget,
+            position: foundHeroPos ? {
+              ...resolvedTarget.position,
+              x: foundHeroPos.x,
+              z: foundHeroPos.z,
+              sqX: foundHeroPos.sqX,
+              sqZ: foundHeroPos.sqZ
+            } : resolvedTarget.position,
+            flippedPowerIds: [...(resolvedTarget.flippedPowerIds ?? []), 'ranger_yield_ground']
+          };
+          newState = {
+            ...newState,
+            heroes: newState.heroes.map(h => h.id === updatedTargetHero.id ? updatedTargetHero : h)
+          };
+          targetHero = updatedTargetHero;
+        }
+      }
+
+      const resolvedTargetHero = newState.heroes.find(h => h.id === targetHero!.id) || targetHero;
+      let updatedHero = CombatSystem.applyDamage(resolvedTargetHero, finalDamage, newState);
+
+      if (attackResult.hit && result.statusEffect && finalDamage > 0) {
+        updatedHero = ConditionSystem.applyCondition(updatedHero, result.statusEffect, currentMonster.id, 1);
+      }
+
+      // Mummy Rot application
+      if (attackResult.hit && currentMonster.name.toLowerCase() === 'mummy' && finalDamage > 0) {
+        updatedHero = ConditionSystem.applyCondition(updatedHero, 'mummy_rot', currentMonster.id, -1);
+      }
+
+      newState = {
+        ...newState,
+        heroes: newState.heroes.map(h => h.id === targetHero!.id ? updatedHero : h)
+      };
+      targetHero = updatedHero;
+
+      let statusSuffix = '';
+      if (attackResult.hit && result.statusEffect && finalDamage > 0) {
+        statusSuffix = ` Hero is ${result.statusEffect.toUpperCase()}.`;
+      }
+      if (attackResult.hit && currentMonster.name.toLowerCase() === 'mummy' && finalDamage > 0) {
+        statusSuffix += ` Hero has MUMMY ROT (healing blocked).`;
+      }
+
+      const logMessage = attackResult.hit
+        ? `${currentMonster.name} attacks ${targetHero.name} (+${attackBonus} vs AC ${targetHero.ac}) and HITS (Roll: ${attackResult.roll}, Total: ${attackResult.total}) for ${attackResult.damage} damage.${statusSuffix}${logSuffix}`
+        : `${currentMonster.name} attacks ${targetHero.name} (+${attackBonus} vs AC ${targetHero.ac}) and MISSES (Roll: ${attackResult.roll}, Total: ${attackResult.total}).${attackResult.damage > 0 ? ` Deals ${attackResult.damage} miss damage.${statusSuffix}` : ''}`;
+
+      let currentCounter = newState.logIdCounter ?? 0;
+
+      let updatedLog: GameLogEntry[] = [
+        ...newState.log,
+        {
+          id: String(currentCounter),
+          timestamp: new Date().toISOString(),
+          message: logMessage,
+          type: 'combat' as const
+        }
+      ].slice(-100);
+      currentCounter++;
+
+      // Check for Riposte Strike
+      const hasRiposte = (targetHero.abilities.includes('rogue_riposte_strike') || targetHero.hand.includes('rogue_riposte_strike')) &&
+                         !(targetHero.flippedPowerIds ?? []).includes('rogue_riposte_strike');
+      
+      const hAbsX = targetHero.position.x * 4 + targetHero.position.sqX;
+      const hAbsZ = targetHero.position.z * 4 + targetHero.position.sqZ;
+      const mAbsX = currentMonster.position.x * 4 + currentMonster.position.sqX;
+      const mAbsZ = currentMonster.position.z * 4 + currentMonster.position.sqZ;
+      const isAdjacent = Math.abs(hAbsX - mAbsX) + Math.abs(hAbsZ - mAbsZ) === 1;
+
+      if (hasRiposte && isAdjacent && currentMonster.hp > 0 && !currentMonster.isDefeated) {
+        const riposteResult = CombatSystem.resolveAttack(
+          targetHero,
+          currentMonster,
+          7, // attackBonus
+          2, // damage
+          0,
+          undefined,
+          newState
+        );
+
+        let riposteLog = '';
+        let updatedHeroAfterRiposte = targetHero;
+
+        if (riposteResult.hit) {
+          const updatedMonster = CombatSystem.applyDamage(currentMonster, riposteResult.damage, newState);
+          newState = {
+            ...newState,
+            monsters: newState.monsters.map(m => m.id === currentMonster!.id ? updatedMonster : m)
+          };
+          currentMonster = updatedMonster;
+          
+          updatedHeroAfterRiposte = {
+            ...(targetHero as Hero),
+            flippedPowerIds: [...((targetHero as Hero).flippedPowerIds ?? []), 'rogue_riposte_strike']
+          };
+          newState = {
+            ...newState,
+            heroes: newState.heroes.map(h => h.id === updatedHeroAfterRiposte.id ? (updatedHeroAfterRiposte as Hero) : h)
+          };
+          targetHero = updatedHeroAfterRiposte;
+
+          riposteLog = `${targetHero.name} triggers Riposte Strike, counterattacking ${currentMonster.name} and HITS (Roll: ${riposteResult.roll}, Total: ${riposteResult.total}) for ${riposteResult.damage} damage. Riposte Strike flips face-down.`;
+        } else {
+          riposteLog = `${targetHero.name} triggers Riposte Strike, counterattacking ${currentMonster.name} and MISSES (Roll: ${riposteResult.roll}, Total: ${riposteResult.total}). Card does not flip.`;
+        }
+
+        updatedLog.push({
+          id: String(currentCounter),
+          timestamp: new Date().toISOString(),
+          message: riposteLog,
+          type: 'combat' as const
+        });
+        currentCounter++;
+      }
+
+      newState = {
+        ...newState,
+        log: updatedLog,
+        logIdCounter: currentCounter
+      };
+    }
+  }
+
+  return newState;
+}
+
+function resolveMonsterTurnStartPassives(state: GameState, monsterId: string, monster: Monster): GameState {
+  let newState = state;
+  const freshMonster = newState.monsters.find(m => m.id === monsterId) || monster;
+  if (freshMonster.abilities && freshMonster.hp > 0 && !freshMonster.isDefeated) {
+    for (const passive of freshMonster.abilities) {
+      if (passive.type === 'passive' && passive.trigger === 'on_turn_start') {
+        if (passive.id === 'regeneration' && freshMonster.regenerationDisabled === true) {
+          newState = {
+            ...newState,
             log: [
               ...newState.log,
               {
                 id: String((newState.logIdCounter ?? 0) + 1),
                 timestamp: new Date().toISOString(),
-                message: `Dark Chant: ${freshMonster.name} heals the closest wounded Undead (${closestUndead.name}) for 1 HP.`,
+                message: `♻️ ${freshMonster.name}'s Regeneration is disabled and does not heal.`,
                 type: 'combat' as const
               }
             ].slice(-100),
             logIdCounter: (newState.logIdCounter ?? 0) + 1
           };
+          continue;
+        }
+        for (const effect of passive.effects) {
+          const targets = AbilitySystem.getAbilityTargets(
+            effect, freshMonster, newState
+          );
+          newState = AbilitySystem.applyAbilityEffect(
+            effect, freshMonster, targets, newState
+          );
         }
       }
     }
+  }
+  return newState;
+}
 
-    // Card Passing (pass to 2nd player on left)
-    if ((result as any).passCard) {
-      const currentOwnerId = freshMonster.ownedByHeroId || newState.currentHeroId;
-      const ownerIndex = newState.turnOrder.indexOf(currentOwnerId);
-      if (ownerIndex !== -1 && newState.turnOrder.length > 1) {
-        const nextIndex = (ownerIndex + 2) % newState.turnOrder.length;
-        const nextOwnerId = newState.turnOrder[nextIndex];
-        const nextOwnerHero = newState.heroes.find(h => h.id === nextOwnerId);
-        const ownerHero = newState.heroes.find(h => h.id === currentOwnerId);
+function resolveSpecialMonsterTactics(
+  state: GameState,
+  monsterId: string,
+  monster: Monster,
+  result: any,
+  monsterTile: Tile
+): GameState {
+  let newState = state;
+  const freshMonster = newState.monsters.find(m => m.id === monsterId) || monster;
+
+  // Teleportation handling
+  if (result.teleportToTileId) {
+    const targetTile = newState.tiles.find(t => t.id === result.teleportToTileId);
+    if (targetTile) {
+      const bestSq = findBestLandingSquare(freshMonster, null, targetTile, false, newState);
+      newState = {
+        ...newState,
+        monsters: newState.monsters.map(m =>
+          m.id === monsterId
+            ? { ...m, position: { x: targetTile.x, z: targetTile.z, sqX: bestSq.sqX, sqZ: bestSq.sqZ } }
+            : m
+        ),
+        log: [
+          ...newState.log,
+          {
+            id: String((newState.logIdCounter ?? 0) + 1),
+            timestamp: new Date().toISOString(),
+            message: `${freshMonster.name} teleports to ${targetTile.name || targetTile.id}!`,
+            type: 'system' as const
+          }
+        ].slice(-100),
+        logIdCounter: (newState.logIdCounter ?? 0) + 1
+      };
+    }
+  }
+
+  // Vampire Bat tile exploration
+  if (result.revealTiles) {
+    const unexploredPoints = TileSystem.getExplorationPoints(newState.tiles).filter(p => p.tileId === monsterTile.id);
+    for (const pt of unexploredPoints) {
+      const tileCountBefore = newState.tiles.length;
+      newState = TileSystem.placeTileFromBottom(newState, pt);
+      
+      if (newState.tiles.length > tileCountBefore) {
+        const placedTile = newState.tiles[newState.tiles.length - 1];
+        newState = TileSystem.spawnMonsterForExploration(newState, placedTile);
         
         newState = {
           ...newState,
-          monsters: newState.monsters.map(m =>
-            m.id === monsterId ? { ...m, ownedByHeroId: nextOwnerId } : m
-          ),
           log: [
             ...newState.log,
             {
               id: String((newState.logIdCounter ?? 0) + 1),
               timestamp: new Date().toISOString(),
-              message: `${freshMonster.name} card passed from ${ownerHero?.name || currentOwnerId} to ${nextOwnerHero?.name || nextOwnerId}.`,
+              message: `${freshMonster.name} reveals a tile from the bottom of the deck at ${pt.edge} edge.`,
               type: 'system' as const
             }
           ].slice(-100),
           logIdCounter: (newState.logIdCounter ?? 0) + 1
         };
       }
+    }
+  }
+
+  // Dark Chant (Dark Acolyte Undead heal)
+  if (result.acolyteDidNotAttack) {
+    const woundedUndeadList = newState.monsters.filter(m =>
+      m.id !== monsterId &&
+      !m.isDefeated &&
+      m.hp > 0 &&
+      m.hp < m.maxHp &&
+      m.monsterType?.toLowerCase() === 'undead'
+    );
+    
+    if (woundedUndeadList.length > 0) {
+      let closestUndead: Monster | null = null;
+      let minDist = Infinity;
+      for (const und of woundedUndeadList) {
+        const undTile = newState.tiles.find(t => t.x === und.position.x && t.z === und.position.z);
+        if (undTile) {
+          const dist = getTileGraphDistance(monsterTile, undTile, newState.tiles);
+          if (dist < minDist) {
+            minDist = dist;
+            closestUndead = und;
+          }
+        }
+      }
+      
+      if (closestUndead) {
+        const healedHp = Math.min(closestUndead.maxHp, closestUndead.hp + 1);
+        newState = {
+          ...newState,
+          monsters: newState.monsters.map(m =>
+            m.id === closestUndead!.id ? { ...m, hp: healedHp } : m
+          ),
+          log: [
+            ...newState.log,
+            {
+              id: String((newState.logIdCounter ?? 0) + 1),
+              timestamp: new Date().toISOString(),
+              message: `Dark Chant: ${freshMonster.name} heals the closest wounded Undead (${closestUndead.name}) for 1 HP.`,
+              type: 'combat' as const
+            }
+          ].slice(-100),
+          logIdCounter: (newState.logIdCounter ?? 0) + 1
+        };
+      }
+    }
+  }
+
+  // Card Passing (pass to 2nd player on left)
+  if (result.passCard) {
+    const currentOwnerId = freshMonster.ownedByHeroId || newState.currentHeroId;
+    const ownerIndex = newState.turnOrder.indexOf(currentOwnerId);
+    if (ownerIndex !== -1 && newState.turnOrder.length > 1) {
+      const nextIndex = (ownerIndex + 2) % newState.turnOrder.length;
+      const nextOwnerId = newState.turnOrder[nextIndex];
+      const nextOwnerHero = newState.heroes.find(h => h.id === nextOwnerId);
+      const ownerHero = newState.heroes.find(h => h.id === currentOwnerId);
+      
+      newState = {
+        ...newState,
+        monsters: newState.monsters.map(m =>
+          m.id === monsterId ? { ...m, ownedByHeroId: nextOwnerId } : m
+        ),
+        log: [
+          ...newState.log,
+          {
+            id: String((newState.logIdCounter ?? 0) + 1),
+            timestamp: new Date().toISOString(),
+            message: `${freshMonster.name} card passed from ${ownerHero?.name || currentOwnerId} to ${nextOwnerHero?.name || nextOwnerId}.`,
+            type: 'system' as const
+          }
+        ].slice(-100),
+        logIdCounter: (newState.logIdCounter ?? 0) + 1
+      };
     }
   }
 
@@ -751,14 +800,6 @@ export function executeVillainPhase(state: GameState): GameState {
     frenzyActiveThisTurn: false // Reset Frenzy
   };
 
-  // NOTE: Encounter-card drawing is intentionally NOT done here.
-  // endTurn() (coreSlice) is the sole entry point responsible for drawing encounter
-  // cards with full UI (card reveal, dismiss, XP cancel). When an encounter is drawn
-  // there, endTurn() returns early and sets pendingEncounter=true. dismissCardResolution
-  // (cardSlice) then calls executeVillainPhase() to activate monsters AFTER the
-  // encounter is resolved. Having a second draw here would either double-draw or
-  // silently bypass the card UI entirely.
-
   // 4. Return the final state with experience and treasures processed
   return TreasureSystem.processDefeatedMonsters(newState);
 }
@@ -776,4 +817,4 @@ export function applyTrapResult(
         : hero
     )
   };
-};
+}
