@@ -1,6 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { ExplorationPoint, Direction } from '../../game/types';
-import { TILE_SIZE } from './Tile3D';
+import React, { useState, useRef, useMemo } from 'react';
+import { ExplorationPoint } from '../../game/types';
 import { ThreeEvent, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -19,35 +18,56 @@ export const ExplorationArrow: React.FC<ExplorationArrowProps> = ({
 }) => {
   const [hovered, setHovered] = useState(false);
 
-  // Pulse animation for active highlights
   const meshRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
   const activeHighlight = !isSubtle && (isHighlighted || hovered);
   const scale = isSubtle ? 0.6 : (activeHighlight ? 1.2 : 1.0); // Base scale for the mesh
-
-  useFrame((state) => {
-    if (!isSubtle && activeHighlight && meshRef.current) {
-      const pulseScale = scale * (1 + Math.sin(state.clock.elapsedTime * 4) * 0.1);
-      meshRef.current.scale.set(pulseScale, pulseScale, pulseScale);
-    } else if (meshRef.current) {
-      // Ensure scale resets when not active
-      meshRef.current.scale.set(scale, scale, scale);
-    }
-  });
-
-  // Determine rotation based on outward direction
-  let rotY = 0;
-  switch (point.edge) {
-    case 'north': rotY = Math.PI; break;
-    case 'south': rotY = 0; break;
-    case 'east':  rotY = Math.PI * 1.5; break;
-    case 'west':  rotY = Math.PI * 0.5; break;
-  }
 
   const arrowColor = isSubtle ? "#999999" : (activeHighlight ? "#00ffff" : "#ffcc00");
   const emissiveColor = isSubtle ? "#333333" : (activeHighlight ? "#00ffff" : "#ff8800");
   const emissiveIntensity = isSubtle ? 0.4 : (activeHighlight ? 2.5 : 1.2);
   const opacity = isSubtle ? 0.35 : 0.9;
   const baseScale = isSubtle ? 0.35 : 0.6;
+
+  useFrame((state) => {
+    const time = state.clock.elapsedTime;
+
+    // Bobbing animation: vertical float using sine wave
+    if (groupRef.current) {
+      const bobOffset = Math.sin(time * 3) * 0.12;
+      groupRef.current.position.y = 0.5 + bobOffset;
+    }
+
+    // Scale and glow pulsing
+    if (meshRef.current) {
+      if (!isSubtle && activeHighlight) {
+        const pulseScale = scale * (1 + Math.sin(time * 5) * 0.1);
+        meshRef.current.scale.set(pulseScale, pulseScale, pulseScale);
+        
+        const material = meshRef.current.material as THREE.MeshStandardMaterial;
+        if (material) {
+          material.emissiveIntensity = emissiveIntensity * (1 + Math.sin(time * 5) * 0.25);
+        }
+      } else {
+        meshRef.current.scale.set(scale, scale, scale);
+        const material = meshRef.current.material as THREE.MeshStandardMaterial;
+        if (material) {
+          material.emissiveIntensity = emissiveIntensity;
+        }
+      }
+    }
+  });
+
+  // Determine rotation based on outward direction
+  const rotY = useMemo(() => {
+    switch (point.edge) {
+      case 'north': return Math.PI;
+      case 'south': return 0;
+      case 'east':  return Math.PI * 1.5;
+      case 'west':  return Math.PI * 0.5;
+      default:      return 0;
+    }
+  }, [point.edge]);
 
   // Pointer event handlers are omitted for subtle arrows to avoid blocking clicks on tiles
   const interactionHandlers = isSubtle ? {} : {
@@ -67,6 +87,7 @@ export const ExplorationArrow: React.FC<ExplorationArrowProps> = ({
 
   return (
     <group
+      ref={groupRef}
       position={[point.worldX, 0.5, point.worldZ]}
       rotation={[0, rotY, 0]}
       scale={[baseScale, baseScale, baseScale]}

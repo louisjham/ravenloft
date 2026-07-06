@@ -36,27 +36,27 @@ const TileTexture: React.FC<{ imageUrl: string }> = ({ imageUrl }) => {
 
 /**
  * ClosedEdgeWall renders a physical stone wall on closed connections of revealed tiles.
- * Height is 1.2 units (keeps board visible but gives enclosed dungeon feel).
+ * Height is 2.0 units (keeps board visible but gives enclosed dungeon feel).
  */
 const ClosedEdgeWall: React.FC<{ edge: 'north' | 'south' | 'east' | 'west' }> = ({ edge }) => {
   const size: [number, number, number] = (() => {
     switch (edge) {
       case 'north':
       case 'south':
-        return [TILE_SIZE, 1.2, 0.15];
+        return [TILE_SIZE, 2.0, 0.15];
       case 'east':
       case 'west':
-        return [0.15, 1.2, TILE_SIZE];
+        return [0.15, 2.0, TILE_SIZE];
     }
   })();
 
   const position: [number, number, number] = (() => {
     const half = TILE_SIZE / 2;
     switch (edge) {
-      case 'north': return [half, 0.6, 0.075];
-      case 'south': return [half, 0.6, TILE_SIZE - 0.075];
-      case 'east':  return [TILE_SIZE - 0.075, 0.6, half];
-      case 'west':  return [0.075, 0.6, half];
+      case 'north': return [half, 1.0, 0.075];
+      case 'south': return [half, 1.0, TILE_SIZE - 0.075];
+      case 'east':  return [TILE_SIZE - 0.075, 1.0, half];
+      case 'west':  return [0.075, 1.0, half];
     }
   })();
 

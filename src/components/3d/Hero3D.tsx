@@ -8,6 +8,8 @@ import * as THREE from 'three';
 import { Select } from '@react-three/postprocessing';
 import { ThreeEvent, useFrame } from '@react-three/fiber';
 import { GamePiece } from './GamePiece';
+import { getLegalTargets } from '../ui/TargetSelection';
+import { DataLoader } from '../../game/dataLoader';
 
 interface Hero3DProps {
   hero: Hero;
@@ -18,13 +20,8 @@ const HeroPlaceholder: React.FC = () => (
     <Box args={[0.4, 0.8, 0.4]} position={[0, 0.45, 0]} castShadow>
       <meshStandardMaterial color="#4444aa" />
     </Box>
-    <Sphere args={[0.15]} position={[0, 0.95, 0]} castShadow>
-      <meshStandardMaterial color="#ffccaa" />
-    </Sphere>
   </group>
 );
-
-
 
 const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
   const selectedEntity = useGameStore((state) => state.selectedEntity);
@@ -42,10 +39,19 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
   if (interactionMode === 'attack') outlineColor = '#ff3333';
   if (interactionMode === 'ability') outlineColor = '#ffbb00';
 
+  const isLegalTarget = useGameStore((state) => {
+    if (interactionMode !== 'ability' || !selectedPowerId || !state.gameState) return false;
+    const card = DataLoader.getInstance().getCardById(selectedPowerId);
+    if (!card) return false;
+    const targets = getLegalTargets(card, state.gameState);
+    return targets.some(t => t.entityId === hero.id);
+  });
+
   const worldX = hero.position.x * 4 + hero.position.sqX + 0.5;
   const worldZ = hero.position.z * 4 + hero.position.sqZ + 0.5;
 
   const groupRef = useRef<THREE.Group>(null);
+  const legalRingRef = useRef<THREE.Mesh>(null);
   const targetPos = useRef(new THREE.Vector3(worldX, 0, worldZ));
   const targetRotY = useRef(0);
 
@@ -73,6 +79,18 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
       while (diff < -Math.PI) diff += Math.PI * 2;
       while (diff > Math.PI) diff -= Math.PI * 2;
       groupRef.current.rotation.y += diff * lerpFactor;
+    }
+
+    // target selection ring pulsing animation
+    if (isLegalTarget && legalRingRef.current) {
+      const time = state.clock.getElapsedTime();
+      const scale = 1.0 + Math.sin(time * 5) * 0.05;
+      legalRingRef.current.scale.set(scale, scale, 1);
+      
+      const material = legalRingRef.current.material as THREE.MeshBasicMaterial;
+      if (material) {
+        material.opacity = 0.5 + Math.sin(time * 5) * 0.2;
+      }
     }
   });
 
@@ -102,6 +120,16 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
               <meshBasicMaterial color={outlineColor} transparent opacity={0.8} side={2} />
             </mesh>
             <pointLight color={outlineColor} intensity={2} distance={2} castShadow={false} />
+          </group>
+        )}
+
+        {isLegalTarget && (
+          <group position={[0, 0.012, 0]}>
+            <mesh ref={legalRingRef} rotation={[-Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[0.45, 0.55, 16]} />
+              <meshBasicMaterial color="#ffbb00" transparent opacity={0.6} side={2} depthWrite={false} />
+            </mesh>
+            <pointLight color="#ffbb00" intensity={1.5} distance={1.5} castShadow={false} />
           </group>
         )}
 

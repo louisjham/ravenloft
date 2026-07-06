@@ -1,13 +1,14 @@
-import React, { Suspense, memo } from 'react';
+import React, { Suspense, memo, useRef } from 'react';
 import { Cylinder, Box, Sphere, Billboard } from '@react-three/drei';
 import { Monster } from '../../game/types';
 import { getMonsterModelPath, DUMMY_MODE } from '../../utils/modelLoader';
 import { useGameStore } from '../../store/gameStore';
 import { useUIStore } from '../../store/uiStore';
-
-import { ThreeEvent } from '@react-three/fiber';
+import { ThreeEvent, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { GamePiece } from './GamePiece';
+import { getLegalTargets } from '../ui/TargetSelection';
+import { DataLoader } from '../../game/dataLoader';
 
 interface Monster3DProps {
   monster: Monster;
@@ -29,8 +30,6 @@ const MonsterPlaceholder: React.FC = () => (
   </group>
 );
 
-
-
 /**
  * 3D component for a Monster miniature.
  */
@@ -43,6 +42,29 @@ const Monster3DInner: React.FC<Monster3DProps> = ({ monster }) => {
   const setSelectedPowerId = useUIStore((state) => state.setSelectedPowerId);
   
   const isSelected = selectedEntity?.id === monster.id;
+
+  const isLegalTarget = useGameStore((state) => {
+    if (interactionMode !== 'ability' || !selectedPowerId || !state.gameState) return false;
+    const card = DataLoader.getInstance().getCardById(selectedPowerId);
+    if (!card) return false;
+    const targets = getLegalTargets(card, state.gameState);
+    return targets.some(t => t.entityId === monster.id);
+  });
+
+  const legalRingRef = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    if (isLegalTarget && legalRingRef.current) {
+      const time = state.clock.getElapsedTime();
+      const scale = 1.0 + Math.sin(time * 5) * 0.05;
+      legalRingRef.current.scale.set(scale, scale, 1);
+      
+      const material = legalRingRef.current.material as THREE.MeshBasicMaterial;
+      if (material) {
+        material.opacity = 0.5 + Math.sin(time * 5) * 0.2;
+      }
+    }
+  });
 
   // Center squares are 0.5, 1.5, 2.5, 3.5 relative to tile origin
   const worldX = monster.position.x * 4 + monster.position.sqX + 0.5;
@@ -77,7 +99,7 @@ const Monster3DInner: React.FC<Monster3DProps> = ({ monster }) => {
       userData={{ entity: monster }}
       onClick={handleClick}
     >
-      {/* Target Highlight */}
+      {/* Selected Target Highlight */}
       {isSelected && (
         <group position={[0, 0.01, 0]}>
           <mesh rotation={[-Math.PI / 2, 0, 0]}>
@@ -85,6 +107,17 @@ const Monster3DInner: React.FC<Monster3DProps> = ({ monster }) => {
             <meshBasicMaterial color="#ff0000" transparent opacity={0.6} side={2} />
           </mesh>
           <pointLight color="#ff0000" intensity={2} distance={2} castShadow={false} />
+        </group>
+      )}
+
+      {/* Legal Target Highlight (pulsing gold) */}
+      {isLegalTarget && (
+        <group position={[0, 0.012, 0]}>
+          <mesh ref={legalRingRef} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.45, 0.55, 16]} />
+            <meshBasicMaterial color="#ffbb00" transparent opacity={0.6} side={2} depthWrite={false} />
+          </mesh>
+          <pointLight color="#ffbb00" intensity={1.5} distance={1.5} castShadow={false} />
         </group>
       )}
 
@@ -110,7 +143,7 @@ const Monster3DInner: React.FC<Monster3DProps> = ({ monster }) => {
         <MonsterPlaceholder />
       ) : (
         <Suspense fallback={<MonsterPlaceholder />}>
-          <GamePiece url={getMonsterModelPath(monster.id)} position={[0, modelYPos, 0]} rotation={[0, 0, 0]} scale={modelScale} />
+          <GamePiece url={getMonsterModelPath(monster.monsterType)} position={[0, modelYPos, 0]} rotation={[0, 0, 0]} scale={modelScale} />
         </Suspense>
       )}
     </group>

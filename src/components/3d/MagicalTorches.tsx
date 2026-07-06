@@ -12,13 +12,61 @@ interface MagicalTorchesProps {
   edge: 'north' | 'south' | 'east' | 'west';
 }
 
+/**
+ * TorchFixture renders a lightweight 3D representation of a wall-mounted torch.
+ * Constructed from box, cylinder, and cone primitives.
+ */
+const TorchFixture: React.FC<{ 
+  position: [number, number, number]; 
+  color: string;
+  edge: 'north' | 'south' | 'east' | 'west';
+}> = ({ position, color, edge }) => {
+  const rotY = useMemo(() => {
+    switch (edge) {
+      case 'north': return 0;
+      case 'south': return Math.PI;
+      case 'east':  return -Math.PI / 2;
+      case 'west':  return Math.PI / 2;
+      default:      return 0;
+    }
+  }, [edge]);
+
+  return (
+    <group position={position} rotation={[0, rotY, 0]}>
+      {/* Wall bracket (dark metal plate mounted to wall surface) */}
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[0.15, 0.15, 0.03]} />
+        <meshStandardMaterial color="#2d2d30" roughness={0.7} metalness={0.8} />
+      </mesh>
+      
+      {/* Torch handle (slanted cylinder protruding outward) */}
+      <mesh position={[0, 0.08, 0.05]} rotation={[0.3, 0, 0]}>
+        <cylinderGeometry args={[0.02, 0.015, 0.2, 6]} />
+        <meshStandardMaterial color="#404044" roughness={0.6} metalness={0.9} />
+      </mesh>
+      
+      {/* Torch cup/holder */}
+      <mesh position={[0, 0.18, 0.08]}>
+        <cylinderGeometry args={[0.04, 0.02, 0.06, 6]} />
+        <meshStandardMaterial color="#2a2a2e" roughness={0.5} metalness={0.9} />
+      </mesh>
+
+      {/* Flame (glowing cone) */}
+      <mesh position={[0, 0.23, 0.08]}>
+        <coneGeometry args={[0.03, 0.09, 5]} />
+        <meshBasicMaterial color={color} />
+      </mesh>
+    </group>
+  );
+};
+
 export const MagicalTorches: React.FC<MagicalTorchesProps> = ({ edge }) => {
   const graphicsQuality = useGameStore((state) => state.settings?.graphicsQuality ?? 'high');
   const redLightRef = useRef<PointLight>(null);
   const purpleLightRef = useRef<PointLight>(null);
   const yellowLightRef = useRef<PointLight>(null);
 
-  // Use a unique phase per instance to avoid all torches strobing in sync
+  // Unique strobe phase per instance
   const phases = useMemo(() => ({
     red: Math.random() * Math.PI * 2,
     purple: Math.random() * Math.PI * 2,
@@ -92,13 +140,16 @@ export const MagicalTorches: React.FC<MagicalTorchesProps> = ({ edge }) => {
 
   if (graphicsQuality === 'medium') {
     return (
-      <pointLight 
-        ref={purpleLightRef} 
-        position={lightPositions.purple} 
-        color="#ffaa44" 
-        distance={4.0} 
-        castShadow={false} 
-      />
+      <>
+        <pointLight 
+          ref={purpleLightRef} 
+          position={lightPositions.purple} 
+          color="#ffaa44" 
+          distance={4.0} 
+          castShadow={false} 
+        />
+        <TorchFixture position={lightPositions.purple} color="#ffaa00" edge={edge} />
+      </>
     );
   }
 
@@ -107,6 +158,10 @@ export const MagicalTorches: React.FC<MagicalTorchesProps> = ({ edge }) => {
       <pointLight ref={redLightRef} position={lightPositions.red} color="#ff2222" distance={2.5} castShadow={false} />
       <pointLight ref={purpleLightRef} position={lightPositions.purple} color="#aa22ff" distance={2.5} castShadow={false} />
       <pointLight ref={yellowLightRef} position={lightPositions.yellow} color="#ffdd22" distance={2.5} castShadow={false} />
+
+      <TorchFixture position={lightPositions.red} color="#ff4400" edge={edge} />
+      <TorchFixture position={lightPositions.purple} color="#cc33ff" edge={edge} />
+      <TorchFixture position={lightPositions.yellow} color="#ffaa00" edge={edge} />
     </>
   );
 };

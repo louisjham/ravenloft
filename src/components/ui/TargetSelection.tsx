@@ -8,7 +8,7 @@ export interface LegalTarget {
   reason: string;
 }
 
-function getLegalTargets(card: Card, state: GameState): LegalTarget[] {
+export function getLegalTargets(card: Card, state: GameState): LegalTarget[] {
   const currentHero = state.heroes.find(h => h.id === state.currentHeroId);
   if (!currentHero) return [];
 
