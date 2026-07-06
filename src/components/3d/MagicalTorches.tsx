@@ -31,12 +31,21 @@ const TorchFixture: React.FC<{
     }
   }, [edge]);
 
+  // Height of the torch bulb above the tile plane
+  const torchHeight = position[1];
+
   return (
     <group position={position} rotation={[0, rotY, 0]}>
       {/* Wall bracket (dark metal plate mounted to wall surface) */}
       <mesh position={[0, 0, 0]}>
         <boxGeometry args={[0.15, 0.15, 0.03]} />
         <meshStandardMaterial color="#2d2d30" roughness={0.7} metalness={0.8} />
+      </mesh>
+      
+      {/* Standing iron post (grounds the bracket down to the low stone curb) */}
+      <mesh position={[0, -torchHeight / 2, 0]}>
+        <cylinderGeometry args={[0.015, 0.02, torchHeight, 5]} />
+        <meshStandardMaterial color="#202025" roughness={0.7} metalness={0.9} />
       </mesh>
       
       {/* Torch handle (slanted cylinder protruding outward) */}

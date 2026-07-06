@@ -35,28 +35,28 @@ const TileTexture: React.FC<{ imageUrl: string }> = ({ imageUrl }) => {
 };
 
 /**
- * ClosedEdgeWall renders a physical stone wall on closed connections of revealed tiles.
- * Height is 2.0 units (keeps board visible but gives enclosed dungeon feel).
+ * ClosedEdgeWall renders a physical stone wall curb on closed connections of revealed tiles.
+ * Height is 0.25 units (prevents blocking views of characters and tiles).
  */
 const ClosedEdgeWall: React.FC<{ edge: 'north' | 'south' | 'east' | 'west' }> = ({ edge }) => {
   const size: [number, number, number] = (() => {
     switch (edge) {
       case 'north':
       case 'south':
-        return [TILE_SIZE, 2.0, 0.15];
+        return [TILE_SIZE, 0.25, 0.15];
       case 'east':
       case 'west':
-        return [0.15, 2.0, TILE_SIZE];
+        return [0.15, 0.25, TILE_SIZE];
     }
   })();
 
   const position: [number, number, number] = (() => {
     const half = TILE_SIZE / 2;
     switch (edge) {
-      case 'north': return [half, 1.0, 0.075];
-      case 'south': return [half, 1.0, TILE_SIZE - 0.075];
-      case 'east':  return [TILE_SIZE - 0.075, 1.0, half];
-      case 'west':  return [0.075, 1.0, half];
+      case 'north': return [half, 0.125, 0.075];
+      case 'south': return [half, 0.125, TILE_SIZE - 0.075];
+      case 'east':  return [TILE_SIZE - 0.075, 0.125, half];
+      case 'west':  return [0.075, 0.125, half];
     }
   })();
 
@@ -64,7 +64,7 @@ const ClosedEdgeWall: React.FC<{ edge: 'north' | 'south' | 'east' | 'west' }> = 
     <mesh position={position} castShadow receiveShadow>
       <boxGeometry args={size} />
       <meshStandardMaterial 
-        color="#1b1b22" 
+        color="#15151a" 
         roughness={0.95} 
         metalness={0.05} 
       />
