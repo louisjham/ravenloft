@@ -4,9 +4,9 @@ import { useSphere } from '@react-three/cannon';
 import * as THREE from 'three';
 import { createD20Geometry, createD20Material, getQuaternionForNumber } from './D20Geometry';
 import { useDiceStore } from '../../store/diceStore';
+import { useGameStore } from '../../store/gameStore';
 import { DiceDismissEffect } from './DiceDismissEffect';
 
-const ARENA_POSITION: [number, number, number] = [0, 0, -6];
 const DIE_RADIUS = 0.35;
 const GRAVITY = 9.8;
 
@@ -16,6 +16,22 @@ export const Dice3D: React.FC = () => {
   const diceColor = useDiceStore(s => s.diceColor);
   const physicsProfile = useDiceStore(s => s.physicsProfile);
   const settleResult = useDiceStore(s => s.settleResult);
+
+  const activeHeroPos = useGameStore((state) => {
+    const gs = state.gameState;
+    if (!gs) return null;
+    const hero = gs.heroes.find(h => h.id === gs.currentHeroId);
+    return hero ? hero.position : null;
+  });
+
+  const arenaPosition = useMemo((): [number, number, number] => {
+    if (!activeHeroPos) return [0, 0, -6];
+    const worldX = activeHeroPos.x * 4 + activeHeroPos.sqX + 0.5;
+    const worldZ = activeHeroPos.z * 4 + activeHeroPos.sqZ + 0.5;
+    // Offset the dice drop slightly towards the camera/side (+1.0 in X and Z)
+    // so it is visible and does not drop directly on top of the hero miniature.
+    return [worldX + 1.0, 0.1, worldZ + 1.0];
+  }, [activeHeroPos]);
 
   // We only render the physical die when rolling, settling, or showing result
   const shouldRenderPhysical = phase === 'rolling' || phase === 'settling' || phase === 'showing_result';
@@ -29,10 +45,11 @@ export const Dice3D: React.FC = () => {
           physics={physicsProfile}
           targetResult={result}
           onSettled={settleResult}
+          arenaPosition={arenaPosition}
         />
       )}
       {shouldRenderDismiss && (
-        <group position={ARENA_POSITION}>
+        <group position={arenaPosition}>
           <DiceDismissEffect />
         </group>
       )}
@@ -45,9 +62,10 @@ interface PhysicalDieProps {
   physics: { mass: number; friction: number; restitution: number; impulseMultiplier: number; dropHeight: number };
   targetResult: number | null;
   onSettled: () => void;
+  arenaPosition: [number, number, number];
 }
 
-const PhysicalDie: React.FC<PhysicalDieProps> = ({ color, physics, targetResult, onSettled }) => {
+const PhysicalDie: React.FC<PhysicalDieProps> = ({ color, physics, targetResult, onSettled, arenaPosition }) => {
   const { geometry } = useMemo(() => createD20Geometry(), []);
   const material = useMemo(() => createD20Material(color), [color]);
 
@@ -64,7 +82,7 @@ const PhysicalDie: React.FC<PhysicalDieProps> = ({ color, physics, targetResult,
   const [ref, api] = useSphere(() => ({
     mass: physics.mass,
     args: [DIE_RADIUS],
-    position: [ARENA_POSITION[0], physics.dropHeight + DIE_RADIUS, ARENA_POSITION[2]],
+    position: [arenaPosition[0], physics.dropHeight + DIE_RADIUS, arenaPosition[2]],
     rotation: [Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI],
     material: { friction: physics.friction, restitution: Math.min(physics.restitution, 0.2) },
     linearDamping: physics.friction, // Use Cannon's native linear damping
@@ -79,10 +97,10 @@ const PhysicalDie: React.FC<PhysicalDieProps> = ({ color, physics, targetResult,
   useEffect(() => {
     const angle = Math.random() * Math.PI * 2;
     const baseImpulse = 4 * physics.impulseMultiplier;
-    const speed = baseImpulse; // Angular spin = baseImpulse * impulseMultiplier (NOT divided by mass)
+    const speed = baseImpulse;
     api.applyImpulse([Math.cos(angle) * speed, initialDropVelocity, Math.sin(angle) * speed], [0, 0, 0]);
     
-    const spin = 15 * physics.impulseMultiplier; // Base spin * impulseMultiplier (NOT divided by mass)
+    const spin = 15 * physics.impulseMultiplier;
     api.angularVelocity.set(
       (Math.random() - 0.5) * spin,
       (Math.random() - 0.5) * spin,
@@ -119,7 +137,7 @@ const PhysicalDie: React.FC<PhysicalDieProps> = ({ color, physics, targetResult,
   }, [api]);
 
   // Settlement detection
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     if (isSettled) return;
 
     // Track elapsed time to prevent premature settlement in the first few frames

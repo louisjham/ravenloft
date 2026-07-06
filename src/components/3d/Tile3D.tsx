@@ -8,31 +8,19 @@ import { useGameStore } from '../../store/gameStore';
 import { useUIStore } from '../../store/uiStore';
 import { MagicalTorches } from './MagicalTorches';
 
+export const TILE_SIZE = 4;
+
 interface Tile3DProps {
   tile: Tile;
   isRevealed: boolean;
   /** Set of "tileId:sqX:sqZ" keys for every square the active hero can reach. */
   reachableSquares?: Set<string>;
-  /**
-   * Stable callback from DungeonBoard (called once) to move the active hero.
-   * Keeping this at board level avoids replicating useGameActions ×41.
-   */
+  /** Stable callback from DungeonBoard to move the active hero. */
   onMoveHero: (pos: Position) => void;
 }
 
-/**
- * A tile is 4x4 units in our world scale (1 unit = 1 square).
- * Entity coordinates: worldX = tile.x * TILE_SIZE + sqX + 0.5
- * So tile-local cell centres are at sqX + 0.5 (i.e. 0.5, 1.5, 2.5, 3.5).
- * Visual geometry must be centred at TILE_SIZE/2 = 2.0 so grid lines fall
- * at 0, 1, 2, 3, 4 — exactly framing each cell.
- */
-export const TILE_SIZE = 4;
-
 const TileTexture: React.FC<{ imageUrl: string }> = ({ imageUrl }) => {
   const texture = useLoader(THREE.TextureLoader, imageUrl);
-  // Need to clone the texture or set colorSpace on it, but useLoader caches it so modifying it directly might be okay
-  // Actually, standard is to set colorSpace in useEffect or use clone, but since R3F sets it:
   texture.colorSpace = THREE.SRGBColorSpace;
   return (
     <mesh
@@ -47,19 +35,47 @@ const TileTexture: React.FC<{ imageUrl: string }> = ({ imageUrl }) => {
 };
 
 /**
- * 3D component for a Dungeon Tile (4×4 squares).
- *
- * Re-render budget:
- *  - isHovered: fires only for THIS tile when its hover state flips (boolean selector).
- *  - interactionMode: fires for all tiles on mode transitions, but unavoidable.
- *  - reachableSquares prop: controlled by DungeonBoard's useMemo.
- *  - onMoveHero prop: stable ref from DungeonBoard (useCallback-wrapped there).
+ * ClosedEdgeWall renders a physical stone wall on closed connections of revealed tiles.
+ * Height is 1.2 units (keeps board visible but gives enclosed dungeon feel).
  */
+const ClosedEdgeWall: React.FC<{ edge: 'north' | 'south' | 'east' | 'west' }> = ({ edge }) => {
+  const size: [number, number, number] = (() => {
+    switch (edge) {
+      case 'north':
+      case 'south':
+        return [TILE_SIZE, 1.2, 0.15];
+      case 'east':
+      case 'west':
+        return [0.15, 1.2, TILE_SIZE];
+    }
+  })();
+
+  const position: [number, number, number] = (() => {
+    const half = TILE_SIZE / 2;
+    switch (edge) {
+      case 'north': return [half, 0.6, 0.075];
+      case 'south': return [half, 0.6, TILE_SIZE - 0.075];
+      case 'east':  return [TILE_SIZE - 0.075, 0.6, half];
+      case 'west':  return [0.075, 0.6, half];
+    }
+  })();
+
+  return (
+    <mesh position={position} castShadow receiveShadow>
+      <boxGeometry args={size} />
+      <meshStandardMaterial 
+        color="#1b1b22" 
+        roughness={0.95} 
+        metalness={0.05} 
+      />
+    </mesh>
+  );
+};
+
 const Tile3DInner: React.FC<Tile3DProps> = ({ tile, isRevealed, reachableSquares, onMoveHero }) => {
-  // ── Boolean selector: only this tile re-renders when its own hover state flips ──
+  // Boolean selector: only this tile re-renders when its own hover state flips
   const isHovered = useGameStore((state) => state.hoveredTile?.id === tile.id);
 
-  // ── Interaction mode: string primitive → value equality works correctly ────────
   const interactionMode = useUIStore((state) => state.interactionMode);
   const setInteractionMode = useUIStore((state) => state.setInteractionMode);
 
@@ -89,7 +105,7 @@ const Tile3DInner: React.FC<Tile3DProps> = ({ tile, isRevealed, reachableSquares
     position: [TILE_SIZE / 2, -0.1, TILE_SIZE / 2],
   }));
 
-  // Stable onMove handler for movement squares — only recreated when dependencies change.
+  // Stable onMove handler for movement squares
   const handleMoveSquare = useCallback((pos: Position) => {
     onMoveHero(pos);
     setInteractionMode('none');
@@ -108,17 +124,14 @@ const Tile3DInner: React.FC<Tile3DProps> = ({ tile, isRevealed, reachableSquares
         />
       </mesh>
 
-      {/* Textured face — centred at true tile centre (TILE_SIZE/2) */}
+      {/* Textured face */}
       {tile.imageUrl && (
         <Suspense fallback={null}>
           <TileTexture imageUrl={tile.imageUrl} />
         </Suspense>
       )}
 
-      {/*
-        Hover highlight — always mounted, toggled via `visible`.
-        Avoids Three.js geometry allocation/deallocation on every hover event.
-      */}
+      {/* Hover highlight */}
       <mesh
         position={[TILE_SIZE / 2, 0.02, TILE_SIZE / 2]}
         rotation={[-Math.PI / 2, 0, 0]}
@@ -128,12 +141,6 @@ const Tile3DInner: React.FC<Tile3DProps> = ({ tile, isRevealed, reachableSquares
         <meshBasicMaterial color="#ffffff" transparent opacity={0.05} />
       </mesh>
 
-      {/*
-        Grid lines — centred at TILE_SIZE/2 = 2.0 so that the 4 divisions
-        produce lines at x/z = 0, 1, 2, 3, 4 in tile-local space.
-        This puts cell centres at 0.5, 1.5, 2.5, 3.5 — exactly where
-        entities and movement squares are rendered.
-      */}
       <gridHelper
         args={[TILE_SIZE, 4, 0x444444, 0x333333]}
         position={[TILE_SIZE / 2, 0.01, TILE_SIZE / 2]}
@@ -150,7 +157,7 @@ const Tile3DInner: React.FC<Tile3DProps> = ({ tile, isRevealed, reachableSquares
         {tile.id}
       </Text>
 
-      {/* Reachable movement squares — only render squares present in reachableSquares */}
+      {/* Reachable movement squares */}
       {interactionMode === 'move' && reachableSquares && (
         <group position={[0, 0.105, 0]}>
           {Array.from({ length: 4 }).map((_, sqZ) =>
@@ -171,11 +178,16 @@ const Tile3DInner: React.FC<Tile3DProps> = ({ tile, isRevealed, reachableSquares
         </group>
       )}
 
-      {/* Magical Torches for closed edges (walls) */}
+      {/* Dynamic Walls & Magical Torches for closed edges (walls) */}
       {(['north', 'south', 'east', 'west'] as const).map(edge => {
         const conn = tile.connections.find(c => c.edge === edge);
         if (!conn || (!conn.isOpen && !conn.connectedTileId)) {
-          return <MagicalTorches key={`torch-${edge}`} edge={edge} />;
+          return (
+            <React.Fragment key={`wall-group-${edge}`}>
+              <ClosedEdgeWall edge={edge} />
+              <MagicalTorches edge={edge} />
+            </React.Fragment>
+          );
         }
         return null;
       })}
@@ -192,14 +204,36 @@ interface MovementSquare3DProps {
 
 const MovementSquare3D: React.FC<MovementSquare3DProps> = ({ sqX, sqZ, tile, onMove }) => {
   const [hovered, setHovered] = useState(false);
+  const meshRef = useRef<THREE.Mesh>(null);
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     onMove({ x: tile.x, z: tile.z, sqX, sqZ });
   };
 
+  useFrame((state) => {
+    if (meshRef.current) {
+      const time = state.clock.getElapsedTime();
+      // Pulsing scale: slightly larger and faster pulse on hover
+      const pulseScale = hovered 
+        ? 1.04 + Math.sin(time * 8) * 0.03
+        : 0.96 + Math.sin(time * 3) * 0.04;
+      
+      meshRef.current.scale.set(pulseScale, pulseScale, 1);
+
+      // Pulsing opacity
+      const material = meshRef.current.material as THREE.MeshBasicMaterial;
+      if (material) {
+        material.opacity = hovered
+          ? 0.5 + Math.sin(time * 8) * 0.05
+          : 0.22 + Math.sin(time * 3) * 0.04;
+      }
+    }
+  });
+
   return (
     <mesh
+      ref={meshRef}
       position={[sqX + 0.5, 0, sqZ + 0.5]}
       rotation={[-Math.PI / 2, 0, 0]}
       onClick={handleClick}
@@ -216,7 +250,7 @@ const MovementSquare3D: React.FC<MovementSquare3DProps> = ({ sqX, sqZ, tile, onM
       <meshBasicMaterial
         color={hovered ? '#00ffcc' : '#c0a060'}
         transparent
-        opacity={hovered ? 0.45 : 0.22}
+        opacity={0.22}
         depthWrite={false}
         side={THREE.DoubleSide}
       />
