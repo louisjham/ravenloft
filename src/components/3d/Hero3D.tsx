@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, Suspense } from 'react';
-import { Cylinder, Box, Sphere } from '@react-three/drei';
+import { Cylinder, Box, Sphere, Billboard, Text } from '@react-three/drei';
 import { Hero } from '../../game/types';
 import { getHeroModelPath, DUMMY_MODE } from '../../utils/modelLoader';
 import { useGameStore } from '../../store/gameStore';
@@ -116,6 +116,56 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
             emissiveIntensity={0.5 + hpRatio * 1.5}
           />
         </Sphere>
+ 
+        {/* Diegetic Billboard Stats */}
+        <Billboard position={[0, 1.45, 0]}>
+          {/* Hero Name */}
+          <Text
+            position={[0, 0.22, 0]}
+            fontSize={0.14}
+            color="#4fc3f7"
+            anchorX="center"
+            anchorY="middle"
+          >
+            {hero.name}
+          </Text>
+ 
+          {/* HP Bar Background */}
+          <mesh position={[0, 0.08, 0]}>
+            <planeGeometry args={[0.6, 0.06]} />
+            <meshBasicMaterial color="#222222" />
+          </mesh>
+          {/* HP Bar Foreground */}
+          <mesh position={[-0.3 + (hpRatio * 0.6) / 2, 0.08, 0.005]}>
+            <planeGeometry args={[hpRatio * 0.6, 0.06]} />
+            <meshBasicMaterial color={hpRatio > 0.5 ? "#2e7d32" : hpRatio > 0.25 ? "#f57c00" : "#d32f2f"} />
+          </mesh>
+ 
+          {/* HP Text (e.g. "8/10") */}
+          <Text
+            position={[0, 0.08, 0.01]}
+            fontSize={0.075}
+            color="#ffffff"
+            fontWeight="bold"
+            anchorX="center"
+            anchorY="middle"
+          >
+            {`${hero.hp}/${hero.maxHp}`}
+          </Text>
+ 
+          {/* Conditions */}
+          {hero.conditions && hero.conditions.length > 0 && (
+            <Text
+              position={[0, -0.05, 0]}
+              fontSize={0.09}
+              color="#ffbb00"
+              anchorX="center"
+              anchorY="middle"
+            >
+              {hero.conditions.map(c => c.type.toUpperCase()).join(', ')}
+            </Text>
+          )}
+        </Billboard>
 
         {DUMMY_MODE ? <HeroPlaceholder /> : (
           <Suspense fallback={<HeroPlaceholder />}>

@@ -270,7 +270,7 @@ export const ActionPromptAnimated: React.FC = () => {
       <div
         style={{
           position: 'absolute',
-          top: '50%',
+          top: '20%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
           zIndex: 999,
@@ -286,7 +286,7 @@ export const ActionPromptAnimated: React.FC = () => {
         <div
           style={{
             fontFamily: 'var(--font-gothic)',
-            fontSize: isEndTurn ? '5rem' : '3.5rem',
+            fontSize: isEndTurn ? '2.6rem' : '2.0rem',
             fontWeight: 'bold',
             letterSpacing: '0.3rem',
             textTransform: 'uppercase',
@@ -311,7 +311,7 @@ export const ActionPromptAnimated: React.FC = () => {
           <div
             style={{
               fontFamily: 'var(--font-body)',
-              fontSize: '1.3rem',
+              fontSize: '1.0rem',
               color: isEndTurn ? '#ffb347' : '#e0e0e0',
               textShadow: isEndTurn 
                 ? '0 0 10px rgba(255, 179, 71, 0.8)' 

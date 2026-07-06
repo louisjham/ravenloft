@@ -1,5 +1,5 @@
-import React, { Suspense, useMemo, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
+import React, { Suspense, useMemo, useEffect, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import { EffectComposer, Vignette, Outline, Selection } from '@react-three/postprocessing';
 import { Color } from 'three';
@@ -7,14 +7,46 @@ import { useGameStore } from '../../store/gameStore';
 import { useUIStore } from '../../store/uiStore';
 
 /**
+ * CameraTracker component to smoothly interpolate the camera controls focus target
+ * toward the active hero's world coordinates.
+ */
+const CameraTracker: React.FC<{ controlsRef: React.RefObject<any> }> = ({ controlsRef }) => {
+  const activeHeroPos = useGameStore((state) => {
+    const gs = state.gameState;
+    if (!gs) return null;
+    const hero = gs.heroes.find(h => h.id === gs.currentHeroId);
+    return hero ? hero.position : null;
+  });
+
+  useFrame((_, delta) => {
+    if (!activeHeroPos || !controlsRef.current) return;
+    const controls = controlsRef.current;
+    
+    // Entity world coordinates formula: worldX = tile.x * 4 + sqX + 0.5
+    const targetX = activeHeroPos.x * 4 + activeHeroPos.sqX + 0.5;
+    const targetZ = activeHeroPos.z * 4 + activeHeroPos.sqZ + 0.5;
+
+    // Smooth lerp tracking (Math.min makes it frame-rate independent)
+    const speed = Math.min(5 * delta, 1);
+    controls.target.x += (targetX - controls.target.x) * speed;
+    controls.target.z += (targetZ - controls.target.z) * speed;
+    controls.update();
+  });
+
+  return null;
+};
+
+/**
  * Main 3D Scene component.
- * Handles lighting, camera, and post-processing.
+ * Handles lighting, camera, tracking, and post-processing.
  */
 export const Scene: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const isPaused = useGameStore((state) => state.isPaused);
   const interactionMode = useUIStore((state) => state.interactionMode);
   const graphicsQuality = useGameStore((state) => state.settings?.graphicsQuality ?? 'high');
   const resolutionScale = useGameStore((state) => state.settings?.resolutionScale ?? 1.0);
+
+  const controlsRef = useRef<any>(null);
 
   let outlineColorStr = '#00aaff'; // default / move (BLUE)
   if (interactionMode === 'attack') outlineColorStr = '#ff3333'; // RED
@@ -49,6 +81,7 @@ export const Scene: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
       >
         {/* Camera Setup — locked isometric view but closer */}
         <OrbitControls
+          ref={controlsRef}
           makeDefault
           enablePan={false}
           enableZoom={true}
@@ -64,6 +97,9 @@ export const Scene: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
           dampingFactor={0.15}
           rotateSpeed={0.3}
         />
+
+        {/* Smooth camera target tracking */}
+        <CameraTracker controlsRef={controlsRef} />
 
         {/* Lighting - Gothic Atmosphere (Brighter & More Vivid) */}
         <ambientLight intensity={0.65} color="#8855aa" />
