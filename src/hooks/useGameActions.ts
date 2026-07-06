@@ -7,10 +7,7 @@ import { TileSystem } from '../game/engine/TileSystem'
 import { ConditionSystem } from '../game/engine/ConditionSystem'
 
 export const useGameActions = () => {
-  // ── Narrow selectors — only the fields this hook actually reads ────────────
-  // Each selector is a stable primitive or stable action ref, so this hook
-  // will only re-render its caller when one of these specific values changes.
-  const gameState = useGameStore((state) => state.gameState);
+  // ── Stable actions — do not trigger re-renders because references are stable ──
   const storeMoveHero = useGameStore((state) => state.moveHero);
   const storeAttackMonster = useGameStore((state) => state.attackMonster);
   const storeEndTurn = useGameStore((state) => state.endTurn);
@@ -25,6 +22,8 @@ export const useGameActions = () => {
   // Move hero — validated via square-level BFS (matches Castle Ravenloft 2010 rules)
   // ---------------------------------------------------------------------------
   const handleMoveHero = async (targetPosition: Position) => {
+    // Read state imperatively at execution time
+    const gameState = useGameStore.getState().gameState;
     if (!gameState) return;
 
     const hero = gameState.heroes.find(h => h.id === gameState.currentHeroId);
@@ -115,6 +114,8 @@ export const useGameActions = () => {
   // Attack monster
   // ---------------------------------------------------------------------------
   const handleAttackMonster = async (monsterId: string) => {
+    // Read state imperatively at execution time
+    const gameState = useGameStore.getState().gameState;
     if (!gameState) return;
 
     const monster = gameState.monsters.find(m => m.id === monsterId);
@@ -137,6 +138,8 @@ export const useGameActions = () => {
   // End Turn
   // ---------------------------------------------------------------------------
   const handleEndTurn = () => {
+    // Read state imperatively at execution time
+    const gameState = useGameStore.getState().gameState;
     if (gameState && gameState.phase === 'hero' && !gameState.hasExploredThisTurn) {
       const activeHero = gameState.heroes.find(h => h.id === gameState.currentHeroId);
       if (activeHero) {
@@ -179,6 +182,8 @@ export const useGameActions = () => {
   // Token Search Action
   // ---------------------------------------------------------------------------
   const handleSearchToken = async (tokenId: string): Promise<TokenSearchResult | null> => {
+    // Read state imperatively at execution time
+    const gameState = useGameStore.getState().gameState;
     if (!gameState) return null;
 
     const hero = gameState.heroes.find(h => h.id === gameState.currentHeroId);
@@ -229,6 +234,8 @@ export const useGameActions = () => {
   // Get searchable tokens on current hero's tile
   // ---------------------------------------------------------------------------
   const getSearchableTokens = () => {
+    // Read state imperatively at execution time
+    const gameState = useGameStore.getState().gameState;
     if (!gameState) return [];
 
     const hero = gameState.heroes.find(h => h.id === gameState.currentHeroId);
@@ -247,6 +254,8 @@ export const useGameActions = () => {
   // Check if current hero can search
   // ---------------------------------------------------------------------------
   const canSearch = (): { canSearch: boolean; reason: string } => {
+    // Read state imperatively at execution time
+    const gameState = useGameStore.getState().gameState;
     if (!gameState) return { canSearch: false, reason: 'No game state' };
 
     const hero = gameState.heroes.find(h => h.id === gameState.currentHeroId);

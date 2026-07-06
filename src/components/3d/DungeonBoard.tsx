@@ -9,6 +9,9 @@ import { ConditionSystem } from '../../game/engine/ConditionSystem';
 import { GAME_CONSTANTS } from '../../game/constants';
 import { Position } from '../../game/types';
 
+// Stable empty array reference to prevent redundant re-renders when gameState is null/undefined.
+const EMPTY_ARRAY: any[] = [];
+
 /**
  * Renders the entire dungeon layout from the game state.
  *
@@ -21,10 +24,11 @@ import { Position } from '../../game/types';
  */
 export const DungeonBoard: React.FC = () => {
   // Narrow selectors — only re-render DungeonBoard when these specific fields change.
-  const tiles = useGameStore((state) => state.gameState?.tiles ?? []);
-  const tokens = useGameStore((state) => state.gameState?.tokens ?? []);
-  const heroes = useGameStore((state) => state.gameState?.heroes ?? []);
-  const monsters = useGameStore((state) => state.gameState?.monsters ?? []);
+  // Using stable EMPTY_ARRAY prevents dirty checks on null gameState values.
+  const tiles = useGameStore((state) => state.gameState?.tiles ?? EMPTY_ARRAY);
+  const tokens = useGameStore((state) => state.gameState?.tokens ?? EMPTY_ARRAY);
+  const heroes = useGameStore((state) => state.gameState?.heroes ?? EMPTY_ARRAY);
+  const monsters = useGameStore((state) => state.gameState?.monsters ?? EMPTY_ARRAY);
   const phase = useGameStore((state) => state.gameState?.phase);
   const currentHeroId = useGameStore((state) => state.gameState?.currentHeroId);
   const interactionMode = useUIStore((state) => state.interactionMode);

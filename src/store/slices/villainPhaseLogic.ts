@@ -151,16 +151,15 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
       
       const isSkullLord = monster.name.toLowerCase() === 'skull lord';
       const attackLoopCount = isSkullLord ? Math.max(1, monster.hp) : 1;
-
       for (let aIdx = 0; aIdx < attackLoopCount; aIdx++) {
         // Re-fetch monster in case its state changed
-        const currentMonster = newState.monsters.find(m => m.id === monsterId) || monster;
+        let currentMonster = newState.monsters.find(m => m.id === monsterId) || monster;
         if (currentMonster.hp <= 0 || currentMonster.isDefeated) break;
-
+ 
         const targetHeroes = result.multiTarget
           ? newState.heroes.filter(h => h.position.x === targetTileX && h.position.z === targetTileZ)
           : [newState.heroes.find(h => h.id === result.targetHeroId)].filter((h): h is Hero => !!h);
-
+ 
         for (const tHero of targetHeroes) {
           // Re-fetch targetHero in case they were updated in a previous iteration of the loop (e.g. bodyguard swaps)
           let targetHero = newState.heroes.find(h => h.id === tHero.id);
@@ -179,14 +178,14 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
               }
             }
           }
-
+ 
           if (!targetHero || targetHero.hp <= 0 || targetHero.isDefeated) continue;
-
+ 
           // Apply tactic overrides for attack bonus, damage, and miss damage if defined
           const attackBonus = (result.attackBonus !== undefined) ? result.attackBonus : (currentMonster.attackBonus ?? 0);
           const damage = (result.damage !== undefined) ? result.damage : (currentMonster.damage ?? 1);
           const missDamage = (result.missDamage !== undefined) ? result.missDamage : (currentMonster.missDamage ?? 0);
-
+ 
           const attackResult = CombatSystem.resolveAttack(
             currentMonster,
             targetHero,
@@ -197,20 +196,19 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
             newState,
             missDamage
           );
-
+ 
           let finalDamage = attackResult.damage;
           let logSuffix = '';
-          let updatedHeroesList = [...newState.heroes];
-
+ 
           if (attackResult.hit) {
             // Check for Shield first (cancels any monster hit)
             const hasShield = targetHero.abilities.includes('wizard_shield') || targetHero.hand.includes('wizard_shield');
             const isShieldAvailable = !(targetHero.flippedPowerIds ?? []).includes('wizard_shield');
-
+ 
             if (hasShield && isShieldAvailable) {
               finalDamage = 0;
               logSuffix = ` Prevented by ${targetHero.name}'s Shield! The attack misses instead.`;
-
+ 
               // Apply +2 AC bonus condition to the hero until the end of their next Hero Phase (duration: 2)
               const updatedTargetHero = ConditionSystem.applyCondition(
                 targetHero,
@@ -219,20 +217,24 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
                 2,
                 2
               );
-
+ 
               // Flip the Shield card
               const updatedTargetHeroFlipped = {
                 ...updatedTargetHero,
                 flippedPowerIds: [...(updatedTargetHero.flippedPowerIds ?? []), 'wizard_shield']
               };
-
-              updatedHeroesList = updatedHeroesList.map(h => h.id === updatedTargetHeroFlipped.id ? updatedTargetHeroFlipped : h);
+ 
+              newState = {
+                ...newState,
+                heroes: newState.heroes.map(h => h.id === updatedTargetHeroFlipped.id ? updatedTargetHeroFlipped : h)
+              };
+              targetHero = updatedTargetHeroFlipped;
             } else {
-              const targetTile = newState.tiles.find(t => t.x === targetHero.position.x && t.z === targetHero.position.z);
+              const targetTile = newState.tiles.find(t => t.x === targetHero!.position.x && t.z === targetHero!.position.z);
               
               // Find bodyguard hero (another hero within 1 tile with bodyguard available)
-              const bodyguardHero = updatedHeroesList.find(h => {
-                if (h.id === targetHero.id) return false;
+              const bodyguardHero = newState.heroes.find(h => {
+                if (h.id === targetHero!.id) return false;
                 const hasBodyguard = h.abilities.includes('fighter_bodyguard') || h.hand.includes('fighter_bodyguard');
                 const isAvailable = !(h.flippedPowerIds ?? []).includes('fighter_bodyguard');
                 if (hasBodyguard && isAvailable) {
@@ -243,12 +245,12 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
                 }
                 return false;
               });
-
+ 
               if (bodyguardHero) {
                 // Intercept the attack!
                 finalDamage = 0;
                 logSuffix = ` Intercepted by ${bodyguardHero.name}'s Bodyguard! The attack misses instead, and they swap positions.`;
-
+ 
                 // Swap positions
                 const tempPos = { ...targetHero.position };
                 const updatedTargetHero = {
@@ -260,38 +262,42 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
                   position: tempPos,
                   flippedPowerIds: [...(bodyguardHero.flippedPowerIds ?? []), 'fighter_bodyguard']
                 };
-
-                updatedHeroesList = updatedHeroesList.map(h => {
-                  if (h.id === updatedTargetHero.id) return updatedTargetHero;
-                  if (h.id === updatedBodyguardHero.id) return updatedBodyguardHero;
-                  return h;
-                });
+ 
+                newState = {
+                  ...newState,
+                  heroes: newState.heroes.map(h => {
+                    if (h.id === updatedTargetHero.id) return updatedTargetHero;
+                    if (h.id === updatedBodyguardHero.id) return updatedBodyguardHero;
+                    return h;
+                  })
+                };
+                targetHero = updatedTargetHero;
               }
             }
-
+ 
             // Check for Unbalancing Parry
-            let currentTarget = updatedHeroesList.find(h => h.id === targetHero.id) ?? targetHero;
+            let currentTarget = newState.heroes.find(h => h.id === targetHero!.id) ?? targetHero;
             const hasUnbalancingParry = currentTarget.abilities.includes('ranger_unbalancing_parry') || currentTarget.hand.includes('ranger_unbalancing_parry');
             const isUnbalancingParryAvailable = !(currentTarget.flippedPowerIds ?? []).includes('ranger_unbalancing_parry');
-
+ 
             if (hasUnbalancingParry && isUnbalancingParryAvailable && finalDamage > 0) {
               finalDamage = 0;
               logSuffix += ` Deflected by ${currentTarget.name}'s Unbalancing Parry! The attack misses instead.`;
-
+ 
               const heroTile = newState.tiles.find(t => t.x === currentTarget.position.x && t.z === currentTarget.position.z);
               const validTiles = newState.tiles.filter(t => {
                 if (!heroTile) return false;
                 return getTileGraphDistance(heroTile, t, newState.tiles) <= 1;
               });
-
+ 
               let foundMonsterPos = null;
               for (const tile of validTiles) {
                 for (let sqX = 0; sqX < 4; sqX++) {
                   for (let sqZ = 0; sqZ < 4; sqZ++) {
                     const occupied = 
-                      updatedHeroesList.some(h => h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
+                      newState.heroes.some(h => h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
                       newState.monsters.some(m => !m.isDefeated && m.hp > 0 && m.position.x === tile.x && m.position.z === tile.z && m.position.sqX === sqX && m.position.sqZ === sqZ);
-
+ 
                     if (!occupied) {
                       foundMonsterPos = { x: tile.x, z: tile.z, sqX, sqZ };
                       break;
@@ -301,7 +307,7 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
                 }
                 if (foundMonsterPos) break;
               }
-
+ 
               if (foundMonsterPos) {
                 const updatedMonster = {
                   ...currentMonster,
@@ -311,29 +317,34 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
                   ...newState,
                   monsters: newState.monsters.map(m => m.id === monsterId ? updatedMonster : m)
                 };
+                currentMonster = updatedMonster;
               }
-
+ 
               const updatedTargetHero = {
                 ...currentTarget,
                 flippedPowerIds: [...(currentTarget.flippedPowerIds ?? []), 'ranger_unbalancing_parry']
               };
-              updatedHeroesList = updatedHeroesList.map(h => h.id === updatedTargetHero.id ? updatedTargetHero : h);
+              newState = {
+                ...newState,
+                heroes: newState.heroes.map(h => h.id === updatedTargetHero.id ? updatedTargetHero : h)
+              };
+              targetHero = updatedTargetHero;
             }
-
+ 
             // Check for Yield Ground
-            currentTarget = updatedHeroesList.find(h => h.id === targetHero.id) ?? targetHero;
+            currentTarget = newState.heroes.find(h => h.id === targetHero!.id) ?? targetHero;
             const hasYieldGround = currentTarget.abilities.includes('ranger_yield_ground') || currentTarget.hand.includes('ranger_yield_ground');
             const isYieldGroundAvailable = !(currentTarget.flippedPowerIds ?? []).includes('ranger_yield_ground');
-
+ 
             if (hasYieldGround && isYieldGroundAvailable) {
               logSuffix += ` ${currentTarget.name} triggers Yield Ground and moves their speed!`;
-
+ 
               const heroTile = newState.tiles.find(t => t.x === currentTarget.position.x && t.z === currentTarget.position.z);
               const validTiles = newState.tiles.filter(t => {
                 if (!heroTile) return false;
                 return getTileGraphDistance(heroTile, t, newState.tiles) <= 1;
               });
-
+ 
               let foundHeroPos = null;
               for (const tile of validTiles) {
                 for (let sqX = 0; sqX < 4; sqX++) {
@@ -344,12 +355,12 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
                     } else {
                       distance = 4 + Math.abs(sqX - currentTarget.position.sqX) + Math.abs(sqZ - currentTarget.position.sqZ);
                     }
-
+ 
                     if (distance <= 6) {
                       const occupied = 
-                        updatedHeroesList.some(h => h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
+                        newState.heroes.some(h => h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
                         newState.monsters.some(m => !m.isDefeated && m.hp > 0 && m.position.x === tile.x && m.position.z === tile.z && m.position.sqX === sqX && m.position.sqZ === sqZ);
-
+ 
                       if (!occupied) {
                         foundHeroPos = { x: tile.x, z: tile.z, sqX, sqZ };
                         break;
@@ -360,8 +371,8 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
                 }
                 if (foundHeroPos) break;
               }
-
-              const resolvedTarget = updatedHeroesList.find(h => h.id === currentTarget.id) || currentTarget;
+ 
+              const resolvedTarget = newState.heroes.find(h => h.id === currentTarget.id) || currentTarget;
               const updatedTargetHero = {
                 ...resolvedTarget,
                 position: foundHeroPos ? {
@@ -373,24 +384,32 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
                 } : resolvedTarget.position,
                 flippedPowerIds: [...(resolvedTarget.flippedPowerIds ?? []), 'ranger_yield_ground']
               };
-              updatedHeroesList = updatedHeroesList.map(h => h.id === updatedTargetHero.id ? updatedTargetHero : h);
+              newState = {
+                ...newState,
+                heroes: newState.heroes.map(h => h.id === updatedTargetHero.id ? updatedTargetHero : h)
+              };
+              targetHero = updatedTargetHero;
             }
           }
-
-          const resolvedTargetHero = updatedHeroesList.find(h => h.id === targetHero.id) || targetHero;
+ 
+          const resolvedTargetHero = newState.heroes.find(h => h.id === targetHero!.id) || targetHero;
           let updatedHero = CombatSystem.applyDamage(resolvedTargetHero, finalDamage, newState);
-
+ 
           if (attackResult.hit && result.statusEffect && finalDamage > 0) {
             updatedHero = ConditionSystem.applyCondition(updatedHero, result.statusEffect, currentMonster.id, 1);
           }
-
+ 
           // Mummy Rot application
           if (attackResult.hit && currentMonster.name.toLowerCase() === 'mummy' && finalDamage > 0) {
             updatedHero = ConditionSystem.applyCondition(updatedHero, 'mummy_rot', currentMonster.id, -1);
           }
-
-          updatedHeroesList = updatedHeroesList.map(h => h.id === targetHero.id ? updatedHero : h);
-
+ 
+          newState = {
+            ...newState,
+            heroes: newState.heroes.map(h => h.id === targetHero!.id ? updatedHero : h)
+          };
+          targetHero = updatedHero;
+ 
           let statusSuffix = '';
           if (attackResult.hit && result.statusEffect && finalDamage > 0) {
             statusSuffix = ` Hero is ${result.statusEffect.toUpperCase()}.`;
@@ -398,13 +417,13 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
           if (attackResult.hit && currentMonster.name.toLowerCase() === 'mummy' && finalDamage > 0) {
             statusSuffix += ` Hero has MUMMY ROT (healing blocked).`;
           }
-
+ 
           const logMessage = attackResult.hit
             ? `${currentMonster.name} attacks ${targetHero.name} (+${attackBonus} vs AC ${targetHero.ac}) and HITS (Roll: ${attackResult.roll}, Total: ${attackResult.total}) for ${attackResult.damage} damage.${statusSuffix}${logSuffix}`
             : `${currentMonster.name} attacks ${targetHero.name} (+${attackBonus} vs AC ${targetHero.ac}) and MISSES (Roll: ${attackResult.roll}, Total: ${attackResult.total}).${attackResult.damage > 0 ? ` Deals ${attackResult.damage} miss damage.${statusSuffix}` : ''}`;
-
+ 
           let currentCounter = newState.logIdCounter ?? 0;
-
+ 
           let updatedLog: GameLogEntry[] = [
             ...newState.log,
             {
@@ -415,20 +434,20 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
             }
           ].slice(-100);
           currentCounter++;
-
+ 
           // Check for Riposte Strike
-          const hasRiposte = (updatedHero.abilities.includes('rogue_riposte_strike') || updatedHero.hand.includes('rogue_riposte_strike')) &&
-                             !(updatedHero.flippedPowerIds ?? []).includes('rogue_riposte_strike');
+          const hasRiposte = (targetHero.abilities.includes('rogue_riposte_strike') || targetHero.hand.includes('rogue_riposte_strike')) &&
+                             !(targetHero.flippedPowerIds ?? []).includes('rogue_riposte_strike');
           
-          const hAbsX = updatedHero.position.x * 4 + updatedHero.position.sqX;
-          const hAbsZ = updatedHero.position.z * 4 + updatedHero.position.sqZ;
+          const hAbsX = targetHero.position.x * 4 + targetHero.position.sqX;
+          const hAbsZ = targetHero.position.z * 4 + targetHero.position.sqZ;
           const mAbsX = currentMonster.position.x * 4 + currentMonster.position.sqX;
           const mAbsZ = currentMonster.position.z * 4 + currentMonster.position.sqZ;
           const isAdjacent = Math.abs(hAbsX - mAbsX) + Math.abs(hAbsZ - mAbsZ) === 1;
-
+ 
           if (hasRiposte && isAdjacent && currentMonster.hp > 0 && !currentMonster.isDefeated) {
             const riposteResult = CombatSystem.resolveAttack(
-              updatedHero,
+              targetHero,
               currentMonster,
               7, // attackBonus
               2, // damage
@@ -436,26 +455,33 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
               undefined,
               newState
             );
-
+ 
             let riposteLog = '';
-            let updatedHeroAfterRiposte = updatedHero;
-
+            let updatedHeroAfterRiposte = targetHero;
+ 
             if (riposteResult.hit) {
               const updatedMonster = CombatSystem.applyDamage(currentMonster, riposteResult.damage, newState);
               newState = {
                 ...newState,
                 monsters: newState.monsters.map(m => m.id === currentMonster!.id ? updatedMonster : m)
               };
+              currentMonster = updatedMonster;
+              
               updatedHeroAfterRiposte = {
-                ...(updatedHero as Hero),
-                flippedPowerIds: [...((updatedHero as Hero).flippedPowerIds ?? []), 'rogue_riposte_strike']
+                ...(targetHero as Hero),
+                flippedPowerIds: [...((targetHero as Hero).flippedPowerIds ?? []), 'rogue_riposte_strike']
               };
-              updatedHeroesList = updatedHeroesList.map(h => h.id === updatedHeroAfterRiposte.id ? (updatedHeroAfterRiposte as Hero) : h);
-              riposteLog = `${updatedHero.name} triggers Riposte Strike, counterattacking ${currentMonster.name} and HITS (Roll: ${riposteResult.roll}, Total: ${riposteResult.total}) for ${riposteResult.damage} damage. Riposte Strike flips face-down.`;
+              newState = {
+                ...newState,
+                heroes: newState.heroes.map(h => h.id === updatedHeroAfterRiposte.id ? (updatedHeroAfterRiposte as Hero) : h)
+              };
+              targetHero = updatedHeroAfterRiposte;
+ 
+              riposteLog = `${targetHero.name} triggers Riposte Strike, counterattacking ${currentMonster.name} and HITS (Roll: ${riposteResult.roll}, Total: ${riposteResult.total}) for ${riposteResult.damage} damage. Riposte Strike flips face-down.`;
             } else {
-              riposteLog = `${updatedHero.name} triggers Riposte Strike, counterattacking ${currentMonster.name} and MISSES (Roll: ${riposteResult.roll}, Total: ${riposteResult.total}). Card does not flip.`;
+              riposteLog = `${targetHero.name} triggers Riposte Strike, counterattacking ${currentMonster.name} and MISSES (Roll: ${riposteResult.roll}, Total: ${riposteResult.total}). Card does not flip.`;
             }
-
+ 
             updatedLog.push({
               id: String(currentCounter),
               timestamp: new Date().toISOString(),
@@ -464,10 +490,9 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
             });
             currentCounter++;
           }
-
+ 
           newState = {
             ...newState,
-            heroes: updatedHeroesList,
             log: updatedLog,
             logIdCounter: currentCounter
           };
