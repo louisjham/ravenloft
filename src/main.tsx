@@ -4,10 +4,12 @@ import App from './App'
 import './index.css'
 import { useGameStore } from './store/gameStore'
 import { preloadModels } from './utils/modelLoader'
+import { preloadAssets } from './utils/assetPreloader'
 import { isDev } from './utils/devEnv'
 
-// Preload all GLTF models so they're cached before the game starts
+// Preload all GLTF models and key textures so they're cached before the game starts
 preloadModels();
+preloadAssets();
 
 if (isDev()) {
   console.log('[DEBUG] main.tsx: App starting...');

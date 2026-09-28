@@ -188,6 +188,29 @@ Single source of truth for physics profiles in DiceProfiles.ts.
 
 No redeclaration of defaults in diceStore.ts.
 
-Use subscribe-with-selector and phase machine, not timers and polling.
-
 Aim for INP under 200ms; avoid dynamic imports on hot paths.
+
+### WebXR Locomotion & Spatial Interaction Architecture
+1. **Unified World Playspace (`XRTabletopRig.tsx`)**:
+   - Single-grip on empty air performs "Grasp & Pull" locomotion (1:1 spatial translation of the entire virtual environment).
+   - Dual-grip performs midpoint translation, hand-twist rotation, and pinch-to-scale.
+   - Right thumbstick (X) executes a 360-degree fixed-circle orbit around the table center.
+   - Right thumbstick (Y) raises or lowers table elevation.
+   - Left thumbstick executes smooth planar translation (push/pull & strafe).
+   - Artificial legs, pedestals, and fixed table slabs are disabled in VR to allow clean passthrough and tabletop alignment.
+
+2. **6DoF Hero Grab-and-Drop (`Hero3D.tsx`)**:
+   - Active hero can be picked up with controller middle grip or mouse drag.
+   - Reachable squares illuminate in vibrant emerald/gold runes across the entire board.
+   - Dropping onto a legal reachable square commits movement.
+   - Dropping onto an enemy monster commits an attack.
+   - Dropping onto an illegal square triggers an error haptic and springs the hero back to their starting position.
+
+3. **Automatic Room Exploration (`useGameActions.ts` & `ExplorationLayer.tsx`)**:
+   - When a hero moves/drops onto any square on an unexplored tile edge, the adjacent dungeon tile is automatically drawn, oriented, validated, and placed, with monster spawns and scenario rules evaluated seamlessly.
+   - Exploration arrows on open edges remain interactive and highlighted during the hero's turn.
+
+4. **In-Hand Miniature & Card Scaling (`GrabbablePiece3D.tsx` & `PhysicalCard3D.tsx`)**:
+   - Figures held in hand in the Gallery / Showcase can be magnified up to 6.5x life-size using the thumbstick Y-axis or mouse wheel.
+   - 6DoF cards feature authentic front/back textures with no diagonal wireframe artifacts.
+

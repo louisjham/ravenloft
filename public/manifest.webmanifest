@@ -1,0 +1,32 @@
+{
+  "name": "Castle Ravenloft: 3D VR Board Game",
+  "short_name": "Ravenloft VR",
+  "description": "Authentic 3D virtual tabletop adaptation of the Castle Ravenloft board game with 6DoF interaction.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#0c0814",
+  "theme_color": "#1a0f2e",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ]
+}

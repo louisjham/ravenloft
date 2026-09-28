@@ -1,0 +1,26 @@
+{
+  "packageId": "com.castleravenloft.app",
+  "host": "localhost",
+  "name": "Castle Ravenloft: 3D VR Board Game",
+  "launcherName": "Ravenloft VR",
+  "themeColor": "#1a0f2e",
+  "navigationColor": "#0c0814",
+  "backgroundColor": "#0c0814",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "/icons/icon-512.png",
+  "maskableIconUrl": "/icons/icon-512-maskable.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "signingKey": {
+    "path": "android.keystore",
+    "alias": "android"
+  },
+  "splashScreenFadeOutDuration": 300,
+  "enableSiteSettingsShortcut": false,
+  "orientation": "landscape",
+  "minSdkVersion": 29,
+  "targetSdkVersion": 34,
+  "horizonOSAppMode": "immersive",
+  "applicationId": "0"
+}

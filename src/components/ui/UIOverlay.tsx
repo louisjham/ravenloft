@@ -78,7 +78,23 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
     }
   }, [gameState?.phase, interactionMode]);
 
+  const isUnboxingMode = useUIStore((state) => state.isUnboxingMode);
+  const setIsUnboxingMode = useUIStore((state) => state.setIsUnboxingMode);
+
   if (!gameState) {
+    if (isUnboxingMode) {
+      return (
+        <div style={{ position: 'fixed', top: '20px', left: '20px', zIndex: 3000 }}>
+          <button
+            className="gothic-button"
+            style={{ padding: '10px 20px', fontSize: '1rem', background: 'rgba(20, 10, 30, 0.9)' }}
+            onClick={() => setIsUnboxingMode(false)}
+          >
+            ← Return to Main Menu
+          </button>
+        </div>
+      );
+    }
     if (showSetup) {
       return (
         <ScenarioSetupScreen

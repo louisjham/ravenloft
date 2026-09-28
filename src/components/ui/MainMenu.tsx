@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { LoadJourneyOverlay } from './LoadJourneyOverlay';
 import { HallOfHeroesOverlay } from './HallOfHeroesOverlay';
 import { OptionsOverlay } from './OptionsOverlay';
+import { useUIStore } from '../../store/uiStore';
 
 interface MainMenuProps {
   onStart: () => void;
@@ -31,7 +32,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStart, onGameLoaded }) => 
           left: 0,
           width: '100%',
           height: '100%',
-          backgroundImage: 'linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.7)), url(/ui/boxast.png)',
+          backgroundImage: 'linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.7)), url(/ui/box_art.webp)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           display: 'flex',
@@ -86,6 +87,18 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStart, onGameLoaded }) => 
               }}
             >
               Begin Adventure
+            </button>
+
+            {/* Unboxing Showcase */}
+            <button
+              id="menu-unboxing-showcase"
+              className="gothic-button"
+              style={{ fontSize: '1.4rem', padding: '15px', color: 'var(--color-gold)' }}
+              onClick={() => {
+                useUIStore.getState().setIsUnboxingMode(true);
+              }}
+            >
+              Unboxing Showcase
             </button>
 
             {/* Load Journey */}

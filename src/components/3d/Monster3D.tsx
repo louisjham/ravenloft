@@ -1,5 +1,6 @@
 import React, { Suspense, memo, useRef, useEffect } from 'react';
 import { Cylinder, Box, Sphere, Billboard } from '@react-three/drei';
+import { Interactive } from '@react-three/xr';
 import { Monster } from '../../game/types';
 import { getMonsterModelPath, DUMMY_MODE } from '../../utils/modelLoader';
 import { useGameStore } from '../../store/gameStore';
@@ -92,25 +93,23 @@ const Monster3DInner: React.FC<Monster3DProps> = ({ monster }) => {
 
         // Red flash (traverses child meshes and adds red emissive tint)
         modelRef.current.traverse((child: any) => {
-          if (child.isMesh && child.material) {
-            if (child.material.emissive) {
-              child.material.emissive.setRGB(progress * 0.8, 0, 0);
-              child.material.emissiveIntensity = progress * 1.5;
-            }
-          }
-        });
-      } else {
-        // Reset scale and position
-        modelRef.current.scale.set(1, 1, 1);
-        modelRef.current.position.y = 0;
-        
-        // Reset emissive
-        modelRef.current.traverse((child: any) => {
           if (child.isMesh && child.material && child.material.emissive) {
-            child.material.emissive.setRGB(0, 0, 0);
-            child.material.emissiveIntensity = 0;
+            child.material.emissive.setRGB(progress * 0.8, 0, 0);
+            child.material.emissiveIntensity = progress * 1.5;
           }
         });
+
+        // If hit animation just completed, reset emissive once
+        if (hitTimer.current <= 0) {
+          modelRef.current.scale.set(1, 1, 1);
+          modelRef.current.position.y = 0;
+          modelRef.current.traverse((child: any) => {
+            if (child.isMesh && child.material && child.material.emissive) {
+              child.material.emissive.setRGB(0, 0, 0);
+              child.material.emissiveIntensity = 0;
+            }
+          });
+        }
       }
     }
   });
@@ -120,6 +119,17 @@ const Monster3DInner: React.FC<Monster3DProps> = ({ monster }) => {
   const worldZ = monster.position.z * 4 + monster.position.sqZ + 0.5;
 
   if (monster.isDefeated) return null;
+
+  const handleTriggerAction = () => {
+    if (interactionMode === 'attack') {
+      attackMonster(monster.id);
+      setInteractionMode('none');
+    } else if (interactionMode === 'ability' && selectedPowerId) {
+      useGameStore.getState().usePower(selectedPowerId, monster.id);
+      setInteractionMode('none');
+      setSelectedPowerId(null);
+    }
+  };
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     if (interactionMode === 'attack') {
@@ -143,61 +153,61 @@ const Monster3DInner: React.FC<Monster3DProps> = ({ monster }) => {
   const barX = -0.25 + barWidth / 2;
 
   return (
-    <group 
-      position={[worldX, 0, worldZ]} 
-      userData={{ entity: monster }}
-      onClick={handleClick}
-    >
-      {/* Selected Target Highlight */}
-      {isSelected && (
-        <group position={[0, 0.01, 0]}>
-          <mesh rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[0.45, 0.55, 16]} />
-            <meshBasicMaterial color="#ff0000" transparent opacity={0.6} side={2} />
-          </mesh>
-          <pointLight color="#ff0000" intensity={2} distance={2} castShadow={false} />
-        </group>
-      )}
-
-      {/* Legal Target Highlight (pulsing gold) */}
-      {isLegalTarget && (
-        <group position={[0, 0.012, 0]}>
-          <mesh ref={legalRingRef} rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[0.45, 0.55, 16]} />
-            <meshBasicMaterial color="#ffbb00" transparent opacity={0.6} side={2} depthWrite={false} />
-          </mesh>
-          <pointLight color="#ffbb00" intensity={1.5} distance={1.5} castShadow={false} />
-        </group>
-      )}
-
-      {/* Monster Base */}
-      <Cylinder args={[0.4, 0.4, 0.05, 16]} position={[0, 0.025, 0]}>
-        <meshStandardMaterial color={isSelected ? "#442222" : "#222222"} />
-      </Cylinder>
-
-      {/* Threat Level or HP Bar (Diegetic) */}
-      <Billboard position={[0, 1.2, 0]}>
-        <mesh>
-          <planeGeometry args={[0.5, 0.05]} />
-          <meshBasicMaterial color="#333" />
-        </mesh>
-        <mesh position={[barX, 0, 0.01]}>
-          <planeGeometry args={[barWidth, 0.05]} />
-          <meshBasicMaterial color={hpRatio < 0.3 ? "#ff4400" : "#ff0000"} />
-        </mesh>
-      </Billboard>
-
-      {/* Monster Body with Suspense fallback (ref attached for hit recoil) */}
-      <group ref={modelRef}>
-        {DUMMY_MODE ? (
-          <MonsterPlaceholder />
-        ) : (
-          <Suspense fallback={<MonsterPlaceholder />}>
-            <GamePiece url={getMonsterModelPath(monster.monsterType)} position={[0, modelYPos, 0]} rotation={[0, 0, 0]} scale={modelScale} />
-          </Suspense>
+    <Interactive onSelect={handleTriggerAction}>
+      <group 
+        position={[worldX, 0, worldZ]} 
+        userData={{ entity: monster }}
+        onClick={handleClick}
+      >
+        {/* Selected Target Highlight */}
+        {isSelected && (
+          <group position={[0, 0.01, 0]}>
+            <mesh rotation={[-Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[0.45, 0.55, 16]} />
+              <meshBasicMaterial color="#ff0000" transparent opacity={0.6} side={2} />
+            </mesh>
+          </group>
         )}
+
+        {/* Legal Target Highlight (pulsing gold) */}
+        {isLegalTarget && (
+          <group position={[0, 0.012, 0]}>
+            <mesh ref={legalRingRef} rotation={[-Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[0.45, 0.55, 16]} />
+              <meshBasicMaterial color="#ffbb00" transparent opacity={0.6} side={2} depthWrite={false} />
+            </mesh>
+          </group>
+        )}
+
+        {/* Monster Base */}
+        <Cylinder args={[0.4, 0.4, 0.05, 16]} position={[0, 0.025, 0]}>
+          <meshStandardMaterial color={isSelected ? "#442222" : "#222222"} />
+        </Cylinder>
+
+        {/* Threat Level or HP Bar (Diegetic) */}
+        <Billboard position={[0, 1.2, 0]}>
+          <mesh>
+            <planeGeometry args={[0.5, 0.05]} />
+            <meshBasicMaterial color="#333" />
+          </mesh>
+          <mesh position={[barX, 0, 0.01]}>
+            <planeGeometry args={[barWidth, 0.05]} />
+            <meshBasicMaterial color={hpRatio < 0.3 ? "#ff4400" : "#ff0000"} />
+          </mesh>
+        </Billboard>
+
+        {/* Monster Body with Suspense fallback (ref attached for hit recoil) */}
+        <group ref={modelRef}>
+          {DUMMY_MODE ? (
+            <MonsterPlaceholder />
+          ) : (
+            <Suspense fallback={<MonsterPlaceholder />}>
+              <GamePiece url={getMonsterModelPath(monster.monsterType)} position={[0, modelYPos, 0]} rotation={[0, 0, 0]} scale={modelScale} />
+            </Suspense>
+          )}
+        </group>
       </group>
-    </group>
+    </Interactive>
   );
 };
 

@@ -3,6 +3,7 @@ import { useSelection } from '../../hooks/useSelection'
 import { useKeyboard } from '../../hooks/useKeyboard'
 import { useThree } from '@react-three/fiber'
 import { useDiceStore } from '../../store/diceStore'
+import { useCombatEncounterEvaluator } from '../../hooks/useCombatEncounterEvaluator'
 
 /**
  * GameController is a non-rendering component that manages 
@@ -12,6 +13,7 @@ import { useDiceStore } from '../../store/diceStore'
 export const GameController: React.FC = () => {
   // Initialize keyboard listeners
   useKeyboard();
+  useCombatEncounterEvaluator();
 
   // Get selection helpers
   const { handleClick, handlePointerMove } = useSelection();

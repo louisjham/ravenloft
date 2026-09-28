@@ -36,8 +36,16 @@ interface UIStore {
   interactionMode: InteractionMode
   selectedPowerId: string | null
   explorationState: ExplorationState
+  isUnboxingMode: boolean
+  xrTableTransform: {
+    position: [number, number, number]
+    rotationY: number
+    scale: number
+  }
 
   // Actions
+  setIsUnboxingMode: (enabled: boolean) => void
+  setXRTableTransform: (transform: { position: [number, number, number]; rotationY: number; scale: number }) => void
   setExplorationState: (state: ExplorationState) => void
   setInteractionMode: (mode: InteractionMode) => void
   setSelectedPowerId: (id: string | null) => void
@@ -58,6 +66,14 @@ interface UIStore {
 
 export const useUIStore = create<UIStore>()((set) => ({
   activeModal: 'none',
+  isUnboxingMode: false,
+  setIsUnboxingMode: (enabled) => set({ isUnboxingMode: enabled }),
+  xrTableTransform: {
+    position: [0, 0.75, -1.0],
+    rotationY: 0,
+    scale: 0.08,
+  },
+  setXRTableTransform: (transform) => set({ xrTableTransform: transform }),
   notifications: [],
   cameraState: { ...DEFAULT_CAMERA },
   isTransitioning: false,

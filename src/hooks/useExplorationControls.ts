@@ -27,13 +27,66 @@ export function useExplorationControls() {
     }
     const curExploration = useUIStore.getState().explorationState;
     const drawResult = TileSystem.drawAndPlace(gameState, point);
+    
+    // Auto-placement logic: if a tile was drawn and has a valid rotation, place it immediately
+    if (drawResult.tile && drawResult.validRotations.length > 0) {
+      const autoRotation = drawResult.validRotations[0];
+      
+      const pt = gameState.tiles.find(t => t.id === point.tileId);
+      if (pt) {
+        let targetX = pt.x;
+        let targetZ = pt.z;
+        if (point.edge === 'north') targetZ -= 1;
+        else if (point.edge === 'south') targetZ += 1;
+        else if (point.edge === 'east') targetX += 1;
+        else if (point.edge === 'west') targetX -= 1;
+
+        const validation = TileSystem.validateEdgeAlignment(
+          gameState.tiles,
+          drawResult.tile,
+          targetX,
+          targetZ,
+          autoRotation,
+          point.edge
+        );
+
+        if (validation.valid) {
+          const finalState = TileSystem.placeTile(gameState, point, autoRotation);
+          const placedTile = finalState.tiles.find(t => t.x === targetX && t.z === targetZ);
+          
+          if (placedTile) {
+            const stateWithMonster = TileSystem.spawnMonsterForExploration(finalState, placedTile);
+            const stateWithRules = ScenarioManager.processPostExplore(stateWithMonster, placedTile);
+            setGameState({
+              ...stateWithRules,
+              hasExploredThisTurn: true,
+              exploredThisTurn: true,
+              lastPlacedTileEncounterType: placedTile.encounterType ?? null,
+              lastPlacedTileId: placedTile.id
+            });
+          } else {
+            setGameState({
+              ...finalState,
+              hasExploredThisTurn: true,
+              exploredThisTurn: true,
+              lastPlacedTileEncounterType: null,
+              lastPlacedTileId: null
+            });
+          }
+          setExploration({ phase: 'idle' });
+          return;
+        }
+      }
+    }
+
+    // Fallback if auto-placement fails (e.g. no valid rotation, or deck exhausted)
     const newState = onArrowClicked(curExploration, point, drawResult);
     setExploration(newState);
     if (newState.phase === 'positioning') {
       useUIStore.getState().openTilePlacer();
       useUIStore.setState({ pendingTileRotation: newState.currentRotation });
     }
-  }, [gameState, setExploration]);
+  }, [gameState, setExploration, setGameState]);
 
   const handlePlacementConfirm = useCallback(() => {
     const curExploration = useUIStore.getState().explorationState;

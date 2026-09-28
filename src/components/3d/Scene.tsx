@@ -1,7 +1,16 @@
 import React, { Suspense, useMemo, useEffect, useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import { EffectComposer, Vignette, Outline, Selection } from '@react-three/postprocessing';
+import { XR, Controllers, Hands, useXR } from '@react-three/xr';
+import { XRTabletopRig } from '../../xr/XRTabletopRig';
+import { XRInteractionBridge } from '../../xr/XRInteractionBridge';
+import { CardHandDock3D } from '../../xr/cards/CardHandDock3D';
+import { SpatialCardPresenter3D } from '../../xr/cards/SpatialCardPresenter3D';
+import { XRMainMenu3D } from '../../xr/menus/XRMainMenu3D';
+import { XRSetupStage3D } from '../../xr/menus/XRSetupStage3D';
+import { XRUnboxingStage3D } from '../../xr/unboxing/XRUnboxingStage3D';
+import { XRTabletopHUD3D } from '../../xr/hud/XRTabletopHUD3D';
 import { Color } from 'three';
 import { useGameStore } from '../../store/gameStore';
 import { useUIStore } from '../../store/uiStore';
@@ -83,7 +92,7 @@ const AtmosphericMist: React.FC = () => {
 
 /**
  * CameraTracker component to smoothly interpolate the camera controls focus target
- * toward the active hero's world coordinates.
+ * toward the active hero's world coordinates in desktop mode.
  */
 const CameraTracker: React.FC<{ controlsRef: React.RefObject<any> }> = ({ controlsRef }) => {
   const activeHeroPos = useGameStore((state) => {
@@ -112,8 +121,161 @@ const CameraTracker: React.FC<{ controlsRef: React.RefObject<any> }> = ({ contro
 };
 
 /**
- * Main 3D Scene component.
- * Handles lighting, camera, tracking, mist, and post-processing.
+ * Inner scene manager inside XR context. Adapts camera, lighting, tabletop scale,
+ * controllers, and post-processing between desktop and immersive XR sessions.
+ */
+const XRSceneContent: React.FC<{
+  controlsRef: React.RefObject<any>;
+  graphicsQuality: string;
+  outlineThreeColor: THREE.Color;
+  children?: React.ReactNode;
+}> = ({ controlsRef, graphicsQuality, outlineThreeColor, children }) => {
+  const { isPresenting, session } = useXR();
+  const { gl } = useThree();
+  const isAR = session?.environmentBlendMode === 'additive' || session?.environmentBlendMode === 'alpha-blend';
+
+  // 1. Enable Meta Quest Fixed Foveated Rendering (FFR) for maximum GPU fill-rate efficiency
+  useEffect(() => {
+    if (gl && (gl as any).xr) {
+      const xr = (gl as any).xr;
+      if (typeof xr.setFoveation === 'function') {
+        xr.setFoveation(1.0);
+      }
+    }
+  }, [gl, isPresenting]);
+
+  // 2. Request high frame rate (90Hz on Quest 3 / 72Hz on Quest 2)
+  useEffect(() => {
+    if (session && typeof (session as any).updateTargetFrameRate === 'function') {
+      const supportedRates: number[] = (session as any).supportedFrameRates
+        ? Array.from((session as any).supportedFrameRates)
+        : [];
+      if (supportedRates.includes(90)) {
+        (session as any).updateTargetFrameRate(90).catch(() => {});
+      } else if (supportedRates.includes(72)) {
+        (session as any).updateTargetFrameRate(72).catch(() => {});
+      }
+    }
+  }, [session]);
+
+  return (
+    <>
+      {/* 6DoF Controllers & Hand Tracking models */}
+      <Controllers />
+      <Hands />
+
+      {/* Desktop Orbit Controls */}
+      {!isPresenting && (
+        <>
+          <OrbitControls
+            ref={controlsRef}
+            makeDefault
+            enablePan={false}
+            enableZoom={true}
+            /* Vertical: ~35° to ~60° from top — never below the table */
+            minPolarAngle={Math.PI / 5}
+            maxPolarAngle={Math.PI / 3}
+            /* Horizontal: narrow ±20° so the board feels locked */
+            minAzimuthAngle={-Math.PI / 9}
+            maxAzimuthAngle={Math.PI / 9}
+            minDistance={5}
+            maxDistance={13}
+            enableDamping={true}
+            dampingFactor={0.15}
+            rotateSpeed={0.3}
+          />
+          <CameraTracker controlsRef={controlsRef} />
+        </>
+      )}
+
+      {/* Lighting - Gothic Atmosphere */}
+      <ambientLight intensity={isAR ? 0.9 : 0.65} color={isAR ? '#ffffff' : '#8855aa'} />
+      
+      {/* "Moonlight" */}
+      <directionalLight
+        position={[-10, 15, -5]}
+        intensity={1.5}
+        color="#cceeff"
+        castShadow={graphicsQuality === 'high' && !isPresenting}
+        shadow-mapSize={graphicsQuality === 'high' ? [512, 512] : [256, 256]}
+        shadow-camera-near={0.5}
+        shadow-camera-far={50}
+        shadow-camera-left={-15}
+        shadow-camera-right={15}
+        shadow-camera-top={15}
+        shadow-camera-bottom={-15}
+      />
+
+      {/* Fill light from opposite side */}
+      <directionalLight
+        position={[8, 5, 8]}
+        intensity={0.4}
+        color="#8866aa"
+        castShadow={false}
+      />
+
+      {/* Atmosphere (Desktop/VR only, transparent in AR passthrough) */}
+      {!isAR && <fog attach="fog" args={['#1a0f2e', 20, 38]} />}
+
+      {!isAR && (
+        <Suspense fallback={null}>
+          <Stars radius={100} depth={50} count={500} factor={4} saturation={0} fade speed={1} />
+        </Suspense>
+      )}
+
+      {/* Gothic Atmospheric Mist Motes */}
+      {graphicsQuality !== 'low' && !isAR && (
+        <Suspense fallback={null}>
+          <AtmosphericMist />
+        </Suspense>
+      )}
+        
+      {/* XR Interaction Bridge for controller shortcuts & haptics */}
+      <XRInteractionBridge />
+        
+      {/* Master XR Playspace & Unified Locomotion Rig */}
+      <XRTabletopRig>
+        {/* WebXR 3D Opening Main Menu, Character/Power Setup Stage & Unboxing Showcase */}
+        <XRMainMenu3D />
+        <XRSetupStage3D />
+        <XRUnboxingStage3D />
+
+        {/* Board & In-Game 3D Pieces (Scaled and positioned on tabletop during XR) */}
+        <group position={isPresenting ? [0, 0.72, -1.0] : [0, 0, 0]} scale={isPresenting ? 0.08 : 1.0}>
+          <Selection>
+            <Suspense fallback={null}>
+              {children}
+            </Suspense>
+          </Selection>
+        </group>
+
+        {/* In-World 3D Spatial HUD, Hand Dock & Card Resolution Presenter */}
+        <CardHandDock3D />
+        <SpatialCardPresenter3D />
+        <XRTabletopHUD3D />
+      </XRTabletopRig>
+
+      {/* Post-processing (Disabled during XR presentation for stereo performance) */}
+      {!isPresenting && graphicsQuality !== 'low' ? (
+        <EffectComposer multisampling={graphicsQuality === 'high' ? 4 : 0} autoClear={false}>
+          {graphicsQuality === 'high' ? (
+            <Outline 
+              visibleEdgeColor={outlineThreeColor as any}
+              hiddenEdgeColor={outlineThreeColor as any}
+              blur
+              edgeStrength={10} 
+              width={1000} 
+            />
+          ) : <></>}
+          <Vignette eskil={false} offset={0.1} darkness={0.9} />
+        </EffectComposer>
+      ) : null}
+    </>
+  );
+};
+
+/**
+ * Main 3D Scene component with WebXR Support.
  */
 export const Scene: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const isPaused = useGameStore((state) => state.isPaused);
@@ -130,7 +292,7 @@ export const Scene: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
   const outlineThreeColor = useMemo(() => new Color(outlineColorStr), [outlineColorStr]);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', background: '#050505' }}>
+    <div style={{ width: '100vw', height: '100vh', background: '#050505', position: 'relative' }}>
       <Canvas
         frameloop={isPaused ? 'never' : 'always'}
         shadows={graphicsQuality === 'high'}
@@ -142,7 +304,8 @@ export const Scene: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
           failIfMajorPerformanceCaveat: false
         }}
         onCreated={({ gl }) => {
-          console.log('Max texture units:', gl.capabilities.maxTextures);
+          gl.toneMapping = THREE.ACESFilmicToneMapping;
+          gl.outputColorSpace = THREE.SRGBColorSpace;
           const onLost = (e: Event) => {
             e.preventDefault();
             console.warn('WebGL context lost. Attempting recovery...');
@@ -154,90 +317,17 @@ export const Scene: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
           gl.domElement.addEventListener('webglcontextrestored', onRestored);
         }}
       >
-        {/* Camera Setup — locked isometric view but closer */}
-        <OrbitControls
-          ref={controlsRef}
-          makeDefault
-          enablePan={false}
-          enableZoom={true}
-          /* Vertical: ~35° to ~60° from top — never below the table */
-          minPolarAngle={Math.PI / 5}
-          maxPolarAngle={Math.PI / 3}
-          /* Horizontal: narrow ±20° so the board feels locked */
-          minAzimuthAngle={-Math.PI / 9}
-          maxAzimuthAngle={Math.PI / 9}
-          minDistance={5}
-          maxDistance={13}
-          enableDamping={true}
-          dampingFactor={0.15}
-          rotateSpeed={0.3}
-        />
-
-        {/* Smooth camera target tracking */}
-        <CameraTracker controlsRef={controlsRef} />
-
-        {/* Lighting - Gothic Atmosphere (Brighter & More Vivid) */}
-        <ambientLight intensity={0.65} color="#8855aa" />
-        
-        {/* "Moonlight" (Brighter) */}
-        <directionalLight
-          position={[-10, 15, -5]}
-          intensity={1.5}
-          color="#cceeff"
-          castShadow={graphicsQuality === 'high'}
-          shadow-mapSize={graphicsQuality === 'high' ? [512, 512] : [256, 256]}
-          shadow-camera-near={0.5}
-          shadow-camera-far={50}
-          shadow-camera-left={-15}
-          shadow-camera-right={15}
-          shadow-camera-top={15}
-          shadow-camera-bottom={-15}
-        />
-
-        {/* Fill light from opposite side (Brighter) */}
-        <directionalLight
-          position={[8, 5, 8]}
-          intensity={0.4}
-          color="#8866aa"
-          castShadow={false}
-        />
-
-        {/* Atmosphere */}
-        <fog attach="fog" args={['#1a0f2e', 20, 38]} />
-
-        <Suspense fallback={null}>
-          <Stars radius={100} depth={50} count={500} factor={4} saturation={0} fade speed={1} />
-        </Suspense>
-
-        {/* Gothic Atmospheric Mist Motes */}
-        {graphicsQuality !== 'low' && (
-          <Suspense fallback={null}>
-            <AtmosphericMist />
-          </Suspense>
-        )}
-          
-        <Selection>
-          <Suspense fallback={null}>
+        <XR referenceSpace="local-floor">
+          <XRSceneContent
+            controlsRef={controlsRef}
+            graphicsQuality={graphicsQuality}
+            outlineThreeColor={outlineThreeColor}
+          >
             {children}
-          </Suspense>
-        </Selection>
-
-        {/* Post-processing */}
-        {graphicsQuality !== 'low' ? (
-          <EffectComposer multisampling={graphicsQuality === 'high' ? 4 : 0} autoClear={false}>
-            {graphicsQuality === 'high' ? (
-              <Outline 
-                visibleEdgeColor={outlineThreeColor as any}
-                hiddenEdgeColor={outlineThreeColor as any}
-                blur
-                edgeStrength={10} 
-                width={1000} 
-              />
-            ) : <></>}
-            <Vignette eskil={false} offset={0.1} darkness={0.9} />
-          </EffectComposer>
-        ) : null}
+          </XRSceneContent>
+        </XR>
       </Canvas>
     </div>
   );
 };
+

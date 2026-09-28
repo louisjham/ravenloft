@@ -139,7 +139,42 @@ export const HeroPanel: React.FC = () => {
   };
 
   return (
-    <div className="hero-panel gothic-panel" style={{ alignSelf: 'start', padding: '15px' }}>
+    <div className="hero-panel gothic-panel" style={{ alignSelf: 'start', padding: '15px', position: 'relative' }}>
+      {currentHero.isAutoFollow && gameState?.phase === 'hero' && (
+        <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.6)',
+          zIndex: 10,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--color-gold)',
+          fontFamily: 'Cinzel, serif',
+          textShadow: '0 0 10px black',
+          borderRadius: 'inherit'
+        }}>
+          <div style={{ fontSize: '2rem', marginBottom: '10px' }}>🤖</div>
+          <h3 style={{ margin: 0 }}>Companion Acting</h3>
+          <p style={{ fontSize: '0.8rem', color: '#ccc' }}>Auto-follow is enabled</p>
+          <button 
+            onClick={() => useGameStore.getState().toggleAutoFollow(currentHero.id)}
+            style={{
+              marginTop: '15px',
+              fontFamily: 'var(--font-body)',
+              padding: '4px 12px',
+              background: 'rgba(100, 100, 100, 0.4)',
+              border: '1px solid #aaa',
+              color: 'white',
+              cursor: 'pointer',
+              borderRadius: '4px'
+            }}
+          >
+            Take Manual Control
+          </button>
+        </div>
+      )}
       <div className="hero-header" style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
         <div className="hero-portrait-container" style={{ 
           width: '80px', 

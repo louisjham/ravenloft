@@ -1,14 +1,23 @@
 import React, { useRef, useEffect, useState, Suspense, useCallback } from 'react';
 import { useFrame, ThreeEvent, useLoader } from '@react-three/fiber';
+import { Interactive } from '@react-three/xr';
 import * as THREE from 'three';
 import { Text } from '@react-three/drei';
 import { useBox } from '@react-three/cannon';
 import { Tile, Position } from '../../game/types';
 import { useGameStore } from '../../store/gameStore';
 import { useUIStore } from '../../store/uiStore';
-import { MagicalTorches } from './MagicalTorches';
+
 
 export const TILE_SIZE = 4;
+
+// Shared static geometries to eliminate GC churn and improve draw call performance
+const slabGeometry = new THREE.BoxGeometry(0.88, 0.06, 0.88);
+const borderGeometry = new THREE.BoxGeometry(0.90, 0.065, 0.90);
+const chevronGeometry = new THREE.ConeGeometry(0.08, 0.16, 4);
+const hoverPlaneGeometry = new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE);
+const tileBaseGeometry = new THREE.BoxGeometry(TILE_SIZE, 0.2, TILE_SIZE);
+const tilePlaneGeometry = new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE);
 
 interface Tile3DProps {
   tile: Tile;
@@ -26,9 +35,9 @@ const TileTexture: React.FC<{ imageUrl: string }> = ({ imageUrl }) => {
     <mesh
       position={[TILE_SIZE / 2, 0.101, TILE_SIZE / 2]}
       rotation={[-Math.PI / 2, 0, 0]}
+      geometry={tilePlaneGeometry}
       receiveShadow
     >
-      <planeGeometry args={[TILE_SIZE, TILE_SIZE]} />
       <meshStandardMaterial map={texture} roughness={0.9} transparent={true} />
     </mesh>
   );
@@ -115,8 +124,7 @@ const Tile3DInner: React.FC<Tile3DProps> = ({ tile, isRevealed, reachableSquares
 
   return (
     <group ref={groupRef} position={[tile.x * TILE_SIZE, 0, tile.z * TILE_SIZE]} userData={{ tile }}>
-      <mesh ref={ref as any} receiveShadow>
-        <boxGeometry args={[TILE_SIZE, 0.2, TILE_SIZE]} />
+      <mesh ref={ref as any} geometry={tileBaseGeometry} receiveShadow>
         <meshStandardMaterial
           color={isHovered ? '#3a3a3a' : '#1a1a1a'}
           roughness={0.9}
@@ -135,9 +143,9 @@ const Tile3DInner: React.FC<Tile3DProps> = ({ tile, isRevealed, reachableSquares
       <mesh
         position={[TILE_SIZE / 2, 0.02, TILE_SIZE / 2]}
         rotation={[-Math.PI / 2, 0, 0]}
+        geometry={hoverPlaneGeometry}
         visible={isHovered}
       >
-        <planeGeometry args={[TILE_SIZE, TILE_SIZE]} />
         <meshBasicMaterial color="#ffffff" transparent opacity={0.05} />
       </mesh>
 
@@ -178,16 +186,11 @@ const Tile3DInner: React.FC<Tile3DProps> = ({ tile, isRevealed, reachableSquares
         </group>
       )}
 
-      {/* Dynamic Walls & Magical Torches for closed edges (walls) */}
+      {/* Dynamic Walls for closed edges (walls) */}
       {(['north', 'south', 'east', 'west'] as const).map(edge => {
         const conn = tile.connections.find(c => c.edge === edge);
         if (!conn || (!conn.isOpen && !conn.connectedTileId)) {
-          return (
-            <React.Fragment key={`wall-group-${edge}`}>
-              <ClosedEdgeWall edge={edge} />
-              <MagicalTorches edge={edge} />
-            </React.Fragment>
-          );
+          return <ClosedEdgeWall key={`wall-${edge}`} edge={edge} />;
         }
         return null;
       })}
@@ -204,7 +207,7 @@ interface MovementSquare3DProps {
 
 const MovementSquare3D: React.FC<MovementSquare3DProps> = ({ sqX, sqZ, tile, onMove }) => {
   const [hovered, setHovered] = useState(false);
-  const meshRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
@@ -212,49 +215,68 @@ const MovementSquare3D: React.FC<MovementSquare3DProps> = ({ sqX, sqZ, tile, onM
   };
 
   useFrame((state) => {
-    if (meshRef.current) {
+    if (groupRef.current) {
       const time = state.clock.getElapsedTime();
-      // Pulsing scale: slightly larger and faster pulse on hover
-      const pulseScale = hovered 
-        ? 1.04 + Math.sin(time * 8) * 0.03
-        : 0.96 + Math.sin(time * 3) * 0.04;
-      
-      meshRef.current.scale.set(pulseScale, pulseScale, 1);
+      const pulseScale = hovered
+        ? 1.05 + Math.sin(time * 8) * 0.03
+        : 0.97 + Math.sin(time * 3) * 0.03;
 
-      // Pulsing opacity
-      const material = meshRef.current.material as THREE.MeshBasicMaterial;
-      if (material) {
-        material.opacity = hovered
-          ? 0.5 + Math.sin(time * 8) * 0.05
-          : 0.22 + Math.sin(time * 3) * 0.04;
-      }
+      groupRef.current.scale.set(pulseScale, hovered ? 1.2 : 1.0, pulseScale);
+      groupRef.current.position.y = hovered ? 0.04 + Math.sin(time * 6) * 0.01 : 0.02;
     }
   });
 
+  const handleTriggerMove = () => {
+    onMove({ x: tile.x, z: tile.z, sqX, sqZ });
+  };
+
   return (
-    <mesh
-      ref={meshRef}
-      position={[sqX + 0.5, 0, sqZ + 0.5]}
-      rotation={[-Math.PI / 2, 0, 0]}
-      onClick={handleClick}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        setHovered(true);
-      }}
-      onPointerOut={(e) => {
-        e.stopPropagation();
-        setHovered(false);
-      }}
+    <Interactive
+      onSelect={handleTriggerMove}
+      onHover={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
     >
-      <planeGeometry args={[0.9, 0.9]} />
-      <meshBasicMaterial
-        color={hovered ? '#00ffcc' : '#c0a060'}
-        transparent
-        opacity={0.22}
-        depthWrite={false}
-        side={THREE.DoubleSide}
-      />
-    </mesh>
+      <group
+        ref={groupRef}
+        position={[sqX + 0.5, 0.02, sqZ + 0.5]}
+        onClick={handleClick}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setHovered(true);
+        }}
+        onPointerOut={(e) => {
+          e.stopPropagation();
+          setHovered(false);
+        }}
+      >
+        {/* Raised 3D Waypoint Slab */}
+        <mesh geometry={slabGeometry} castShadow receiveShadow>
+          <meshStandardMaterial
+            color={hovered ? '#00e5ff' : '#1b6e4d'}
+            emissive={hovered ? '#00e5ff' : '#0d402b'}
+            emissiveIntensity={hovered ? 0.8 : 0.3}
+            transparent
+            opacity={hovered ? 0.85 : 0.55}
+            roughness={0.3}
+            metalness={0.2}
+          />
+        </mesh>
+
+        {/* Luminous Outer Border */}
+        <mesh position={[0, 0, 0]} geometry={borderGeometry}>
+          <meshBasicMaterial color={hovered ? '#ffffff' : '#55ffaa'} wireframe transparent opacity={0.7} />
+        </mesh>
+
+        {/* Hover Floating Chevron Down Arrow */}
+        {hovered && (
+          <group position={[0, 0.28, 0]}>
+            <mesh rotation={[0, 0, Math.PI]} geometry={chevronGeometry}>
+              <meshBasicMaterial color="#00ffff" />
+            </mesh>
+          </group>
+        )}
+      </group>
+    </Interactive>
   );
 };
 

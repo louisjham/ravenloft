@@ -1,0 +1,267 @@
+/* ── Slim HUD: shown during ongoing combat, passes clicks through to board ── */
+.combat-encounter-hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 16px;
+  background: rgba(15, 10, 10, 0.80);
+  border-bottom: 1px solid rgba(200, 160, 90, 0.35);
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem;
+  color: #c9a45c;
+  /* Critical: let all pointer events fall through to the board */
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+
+.hud-label {
+  font-weight: bold;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  color: #ff6644;
+}
+
+.hud-entities {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hud-hero-chip {
+  background: rgba(30, 60, 100, 0.6);
+  border: 1px solid rgba(80, 140, 220, 0.4);
+  border-radius: 4px;
+  padding: 2px 8px;
+  color: #aad0ff;
+}
+
+.hud-hero-chip em,
+.hud-monster-chip em {
+  font-style: normal;
+  color: inherit;
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+.hud-vs {
+  font-weight: bold;
+  color: rgba(200, 160, 90, 0.6);
+}
+
+.hud-monster-chip {
+  background: rgba(80, 20, 20, 0.6);
+  border: 1px solid rgba(200, 60, 60, 0.4);
+  border-radius: 4px;
+  padding: 2px 8px;
+  color: #ffaaaa;
+}
+
+/* ── Full resolving overlay (unchanged, only shown for victory/defeat/fled) ── */
+.combat-encounter-overlay {
+  position: absolute;
+  top: 10%;
+  left: 10%;
+  width: 80%;
+  height: 80%;
+  background: rgba(15, 10, 10, 0.95);
+  border: 2px solid var(--color-accent, #c9a45c);
+  border-radius: 12px;
+  z-index: 50; /* Above exploration board, below modals */
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), inset 0 0 50px rgba(80, 20, 20, 0.3);
+  pointer-events: auto; /* Catch clicks */
+  animation: combatFadeIn 0.4s ease-out forwards;
+}
+
+@keyframes combatFadeIn {
+  from { opacity: 0; transform: scale(0.95) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.combat-encounter-header {
+  padding: 1rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(200, 160, 90, 0.3);
+  position: relative;
+}
+
+.combat-encounter-header h2 {
+  margin: 0;
+  font-size: 2rem;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(200, 50, 50, 0.8);
+}
+
+.resolution-banner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0.5rem 2rem;
+  font-size: 2.5rem;
+  font-weight: bold;
+  font-family: 'Cinzel', serif;
+  text-transform: uppercase;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.8);
+  animation: bannerStamp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  z-index: 10;
+}
+
+@keyframes bannerStamp {
+  from { transform: translate(-50%, -50%) scale(3); opacity: 0; }
+  to { transform: translate(-50%, -50%) scale(1) rotate(-5deg); opacity: 1; }
+}
+
+.resolution-banner.victory {
+  color: #d4af37;
+  border-color: #d4af37;
+  text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+}
+
+.resolution-banner.defeat {
+  color: #cc0000;
+  border-color: #cc0000;
+  text-shadow: 0 0 20px rgba(204, 0, 0, 0.5);
+}
+
+.resolution-banner.fled {
+  color: #88aaee;
+  border-color: #88aaee;
+  transform: translate(-50%, -50%) scale(1) rotate(0deg); /* No rotation for retreat */
+  animation: bannerStampStraight 0.5s ease-out forwards;
+}
+
+@keyframes bannerStampStraight {
+  from { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+  to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+.combat-encounter-arena {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  position: relative;
+}
+
+.combat-side {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.heroes-side {
+  background: linear-gradient(to right, rgba(20, 40, 80, 0.2), transparent);
+}
+
+.monsters-side {
+  background: linear-gradient(to left, rgba(80, 20, 20, 0.2), transparent);
+}
+
+.combat-vs-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  font-family: 'Cinzel', serif;
+  font-weight: bold;
+  font-size: 1.5rem;
+  color: rgba(200, 160, 90, 0.5);
+  border-left: 1px dashed rgba(200, 160, 90, 0.2);
+  border-right: 1px dashed rgba(200, 160, 90, 0.2);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.side-title {
+  text-align: center;
+  font-family: 'Cinzel', serif;
+  color: #c9a45c;
+  border-bottom: 1px solid rgba(200, 160, 90, 0.3);
+  padding-bottom: 0.5rem;
+  margin-top: 0;
+}
+
+.combatants-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.combatant-card {
+  background: rgba(30, 30, 30, 0.8);
+  border: 1px solid rgba(200, 160, 90, 0.4);
+  border-radius: 6px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+}
+
+.combatant-card:hover {
+  background: rgba(50, 50, 50, 0.9);
+  border-color: rgba(200, 160, 90, 0.8);
+}
+
+.combatant-card.defeated {
+  opacity: 0.5;
+  filter: grayscale(100%);
+  border-color: #555;
+}
+
+.combatant-card.defeated .combatant-name {
+  text-decoration: line-through;
+}
+
+.combatant-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: #eee;
+}
+
+.combatant-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.combat-encounter-footer {
+  padding: 1rem;
+  text-align: center;
+  border-top: 1px solid rgba(200, 160, 90, 0.3);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.combat-instructions {
+  color: #ccc;
+  font-style: italic;
+}
+
+.encounter-btn.primary {
+  background: #c9a45c;
+  color: #111;
+  border: none;
+  padding: 0.5rem 2rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.encounter-btn.primary:hover {
+  background: #e3bc75;
+  transform: scale(1.05);
+}

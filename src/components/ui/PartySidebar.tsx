@@ -115,25 +115,44 @@ export const PartySidebar: React.FC = () => {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.6rem', color: 'var(--color-text-dim)' }}>
               <span style={{ color: isLow ? '#ff4444' : 'white' }}>{hero.hp}/{hero.maxHp}</span>
-              {canSurge && (
+              <div style={{ display: 'flex', gap: '4px' }}>
                 <button
-                  onClick={() => handleHealingSurge(hero)}
+                  onClick={() => useGameStore.getState().toggleAutoFollow(hero.id)}
                   style={{
-                    fontFamily: 'Cinzel, serif',
+                    fontFamily: 'var(--font-body)',
                     fontSize: '0.55rem',
                     padding: '1px 5px',
-                    background: 'rgba(0, 255, 0, 0.15)',
-                    border: '1px solid rgba(0, 255, 0, 0.4)',
-                    color: '#66ff66',
+                    background: hero.isAutoFollow ? 'rgba(100, 150, 255, 0.2)' : 'rgba(100, 100, 100, 0.2)',
+                    border: hero.isAutoFollow ? '1px solid rgba(100, 150, 255, 0.5)' : '1px solid rgba(100, 100, 100, 0.5)',
+                    color: hero.isAutoFollow ? '#88ccff' : '#aaa',
                     borderRadius: '3px',
                     cursor: 'pointer',
                     lineHeight: '1.2'
                   }}
-                  title={`Healing Surge (${gameState?.healingSurges} remaining)`}
+                  title={hero.isAutoFollow ? 'Auto-follow is ON (AI handles turn)' : 'Auto-follow is OFF (Manual control)'}
                 >
-                  +Surge
+                  {hero.isAutoFollow ? '🤖 Auto' : '👤 Manual'}
                 </button>
-              )}
+                {canSurge && (
+                  <button
+                    onClick={() => handleHealingSurge(hero)}
+                    style={{
+                      fontFamily: 'Cinzel, serif',
+                      fontSize: '0.55rem',
+                      padding: '1px 5px',
+                      background: 'rgba(0, 255, 0, 0.15)',
+                      border: '1px solid rgba(0, 255, 0, 0.4)',
+                      color: '#66ff66',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      lineHeight: '1.2'
+                    }}
+                    title={`Healing Surge (${gameState?.healingSurges} remaining)`}
+                  >
+                    +Surge
+                  </button>
+                )}
+              </div>
             </div>
 
             {hero.conditions && hero.conditions.length > 0 && (

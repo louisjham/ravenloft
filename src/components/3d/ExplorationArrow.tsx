@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { ExplorationPoint } from '../../game/types';
 import { ThreeEvent, useFrame } from '@react-three/fiber';
+import { Interactive } from '@react-three/xr';
 import * as THREE from 'three';
 
 interface ExplorationArrowProps {
@@ -26,7 +27,7 @@ export const ExplorationArrow: React.FC<ExplorationArrowProps> = ({
   const arrowColor = isSubtle ? "#999999" : (activeHighlight ? "#00ffff" : "#ffcc00");
   const emissiveColor = isSubtle ? "#333333" : (activeHighlight ? "#00ffff" : "#ff8800");
   const emissiveIntensity = isSubtle ? 0.4 : (activeHighlight ? 2.5 : 1.2);
-  const opacity = isSubtle ? 0.35 : 0.9;
+  const opacity = isSubtle ? 0.45 : 0.95;
   const baseScale = isSubtle ? 0.35 : 0.6;
 
   useFrame((state) => {
@@ -69,8 +70,7 @@ export const ExplorationArrow: React.FC<ExplorationArrowProps> = ({
     }
   }, [point.edge]);
 
-  // Pointer event handlers are omitted for subtle arrows to avoid blocking clicks on tiles
-  const interactionHandlers = isSubtle ? {} : {
+  const interactionHandlers = {
     onPointerOver: (e: ThreeEvent<PointerEvent>) => {
       e.stopPropagation();
       setHovered(true);
@@ -86,28 +86,34 @@ export const ExplorationArrow: React.FC<ExplorationArrowProps> = ({
   };
 
   return (
-    <group
-      ref={groupRef}
-      position={[point.worldX, 0.5, point.worldZ]}
-      rotation={[0, rotY, 0]}
-      scale={[baseScale, baseScale, baseScale]}
-      {...interactionHandlers}
+    <Interactive
+      onSelect={() => {
+        if (onClick) onClick(point);
+      }}
+      onHover={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
     >
-      {/* 
-        A simple flat arrow shape.
-        Pointing "North" initially means negative Z direction in Three.js,
-        so we rotate the cone so its tip points along -Z.
-      */}
-      <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[0.7, 1.5, 4]} />
-        <meshStandardMaterial 
-          color={arrowColor} 
-          emissive={emissiveColor}
-          emissiveIntensity={emissiveIntensity}
-          transparent
-          opacity={opacity}
-        />
-      </mesh>
-    </group>
+      <group
+        ref={groupRef}
+        position={[point.worldX, 0.5, point.worldZ]}
+        rotation={[0, rotY, 0]}
+        scale={[baseScale, baseScale, baseScale]}
+        {...interactionHandlers}
+      >
+        {/* Flat arrow shape pointing outward */}
+        <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]}>
+          <coneGeometry args={[0.7, 1.5, 4]} />
+          <meshStandardMaterial 
+            color={arrowColor} 
+            emissive={emissiveColor} 
+            emissiveIntensity={emissiveIntensity} 
+            transparent 
+            opacity={opacity} 
+          />
+        </mesh>
+      </group>
+    </Interactive>
   );
 };
+
+export default ExplorationArrow;

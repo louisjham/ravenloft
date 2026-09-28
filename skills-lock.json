@@ -1,6 +1,180 @@
 {
   "version": 1,
   "skills": {
+    "hz-android-2d-porting": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-android-2d-porting/SKILL.md",
+      "computedHash": "d16c663e6dba10da91ab66aece768597a024047f10880957b008aa9064ded381"
+    },
+    "hz-api-upgrade": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-api-upgrade/SKILL.md",
+      "computedHash": "f39da970d8ac33b38ddb89923facdff54c55fd4b03e7090d313bf4a7cceebe38"
+    },
+    "hz-immersive-designer": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-immersive-designer/SKILL.md",
+      "computedHash": "8917009b20412586dfa80193da04212ced059af6c470289b9f7ef365eca45a09"
+    },
+    "hz-iwsdk-webxr": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-iwsdk-webxr/SKILL.md",
+      "computedHash": "06d48f6818c2b47ffd59e3ccea3d81f4bef4c1a3fcbe3508db1c6648c9eee952"
+    },
+    "hz-new-project-creation": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-new-project-creation/SKILL.md",
+      "computedHash": "b7f39ae5e41ebde2317f20a772fadb93d9f5656f4208dd9f936aefe4927892cd"
+    },
+    "hz-perfetto-debug": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-perfetto-debug/SKILL.md",
+      "computedHash": "1a3041994ed638d9f0c47e59413bb9088389f34aa46a9523553e2abaaf0b1962"
+    },
+    "hz-platform-sdk": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-platform-sdk/SKILL.md",
+      "computedHash": "308e5084877c90dad3a767acdbb70d4f64ace09e3e9cdfd9b9bd526c1d58a8ad"
+    },
+    "hz-psdk-integration": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-psdk-integration/SKILL.md",
+      "computedHash": "3001da264da3ea24dad3d3b61a484d666ab679af542fc678064314b9ee9fbe24"
+    },
+    "hz-quest-verify-first": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-quest-verify-first/SKILL.md",
+      "computedHash": "2cb640899f78243719ae1a1ae53fc3ce59aff1b823c70b76bb749c1623194583"
+    },
+    "hz-simpleperf-debug": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-simpleperf-debug/SKILL.md",
+      "computedHash": "434f1527137170684b07f6a208facb5bdf79c0b00bbdaa40bc553b90fb7a0c2b"
+    },
+    "hz-spatial-sdk": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-spatial-sdk/SKILL.md",
+      "computedHash": "41ef9e2a4556b8e81c16f865105bd3be8120908359d03280bff61ca64560b8c1"
+    },
+    "hz-store-pwa": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-store-pwa/SKILL.md",
+      "computedHash": "75dd71044402f670c0164c843172314e7b00eb17ea423d7f6e8051a766fb1604"
+    },
+    "hz-store-submit": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-store-submit/SKILL.md",
+      "computedHash": "5b96c049ce8d7aee66d0d861e60a783e585a1bb34bd99dbf69bed983562f4dd7"
+    },
+    "hz-unity-code-review": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-unity-code-review/SKILL.md",
+      "computedHash": "a5918a3d345d12a07ee0ab2fe8cbcb2ee0de0b9a862699f115dcb677c5ddb8f2"
+    },
+    "hz-unity-face-tracking": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-unity-face-tracking/SKILL.md",
+      "computedHash": "5e860f35e6e2fc71dd6aec461a4344869cce6333a06f43255815f2e32e8e48e7"
+    },
+    "hz-unity-fbx-import": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-unity-fbx-import/SKILL.md",
+      "computedHash": "63c7183ab67701ed584380e78a4a0214f1af3de26313614c4674a3d5aeb8923c"
+    },
+    "hz-unity-meta-core-sdk": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-unity-meta-core-sdk/SKILL.md",
+      "computedHash": "5c1b1df49769a9f38cd7aab494a8a223e1c1b0308a39b94949d4897a5592f77f"
+    },
+    "hz-unity-meta-mixed-reality-utility-kit": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-unity-meta-mixed-reality-utility-kit/SKILL.md",
+      "computedHash": "5b9d783655c4c032b87e2566af75336ed00928e9a3f4f3256635ba31d1a7b006"
+    },
+    "hz-unity-meta-movement-sdk-retargeting": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-unity-meta-movement-sdk-retargeting/SKILL.md",
+      "computedHash": "5625c8564d674404af8811b5aef4db84c7e3fd9c12cb4a494145b8eff063b3b5"
+    },
+    "hz-unity-meta-quest-ui": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-unity-meta-quest-ui/SKILL.md",
+      "computedHash": "661f3636c3d858743d7d61ff6fd96de4a1af0d9199ff4c5dade4fa864fd265a6"
+    },
+    "hz-unity-passthrough-camera-access": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-unity-passthrough-camera-access/SKILL.md",
+      "computedHash": "9c612a0bcec49cf8f7d95c8dfae34fd0a76de0992209f727aa9b93270552c472"
+    },
+    "hz-unity-placement": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-unity-placement/SKILL.md",
+      "computedHash": "d4af56f548d5d028c156c977d10853d4af8fde674222b778b1a2811e47a735d2"
+    },
+    "hz-unity-platform-sdk": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-unity-platform-sdk/SKILL.md",
+      "computedHash": "1b0e1dbcddb4936b22249b48de0e3b1f3b79694cc956514783c4eec34d77dfea"
+    },
+    "hz-unity-project-analyzer": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-unity-project-analyzer/SKILL.md",
+      "computedHash": "0da510b2243b1c146d1a3a315c210d3309c56a5e8e2fedcf297dfdf034819813"
+    },
+    "hz-unity-tmp-resources": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-unity-tmp-resources/SKILL.md",
+      "computedHash": "76c0b67e65f6de4f90463cf81817ddf52251ec4a9732879779e5c53d66f5ac32"
+    },
+    "hz-vr-debug": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-vr-debug/SKILL.md",
+      "computedHash": "2a60116da6c5ee781b0bde570ac8b5eb525670d4a8666f44010cfc5e31d09690"
+    },
+    "hz-xr-simulator-setup": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/hz-xr-simulator-setup/SKILL.md",
+      "computedHash": "834910754fdfe01ad3a79b9af12afee37db6e7a7ffd87bfe482883db31c3aa74"
+    },
+    "metavr-cli": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/metavr-cli/SKILL.md",
+      "computedHash": "b1d96f57472b04f926ea3bb0313ee400d8badcfff64c1fb1bbca3bda89b5b201"
+    },
+    "portal": {
+      "source": "meta-quest/agentic-tools",
+      "sourceType": "github",
+      "skillPath": "skills/portal/SKILL.md",
+      "computedHash": "ed5b588fe01dfd7241919a85413b3796c61514bf3771b68c69ad7c4b4eec8e6b"
+    },
     "threejs-geometry": {
       "source": "cloudai-x/threejs-skills",
       "sourceType": "github",

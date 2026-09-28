@@ -100,6 +100,7 @@ export interface Hero extends Entity {
   hasUsedSurgeThisTurn?: boolean;
   removedFromPlay?: boolean;
   startedTurnAdjacentToDreadWarriorIds?: string[];
+  isAutoFollow?: boolean; // Solo-first: toggle companion AI
 }
 
 export function isMonsterEntity(entity: Entity): entity is Monster {
@@ -380,6 +381,13 @@ export interface MachineSpecialRule {
   [key: string]: unknown
 }
 
+export interface ActiveCombatEncounter {
+  isActive: boolean;
+  engagedMonsterIds: string[];
+  engagedHeroIds: string[];
+  status: 'ongoing' | 'victory' | 'defeat' | 'fled';
+}
+
 export interface GameState {
   logIdCounter: number;
   phase: GamePhase;
@@ -452,6 +460,9 @@ export interface GameState {
   // Encounter card in villain phase
   pendingEncounter?: boolean; // Whether an encounter draw is pending for this villain phase
   frenzyActiveThisTurn?: boolean;
+
+  // Dedicated combat encounter tracking
+  activeCombatEncounter?: ActiveCombatEncounter | null;
 }
 
 export interface Trap {

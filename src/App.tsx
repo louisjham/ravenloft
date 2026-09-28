@@ -15,19 +15,21 @@ import { TableSurface } from './components/3d/TableSurface';
 import { DungeonWalls } from './components/3d/DungeonWalls';
 import { FireParticles } from './components/3d/Effects';
 import { GameController } from './components/interaction/GameController';
+import { CompanionAIController } from './components/interaction/CompanionAIController';
 import { MonsterAIIndicator } from './components/3d/MonsterAIIndicator';
 import { AudioReactComponent } from './audio/AudioReactComponent';
 
 import { UIOverlay } from './components/ui/UIOverlay';
 import VillainPhaseOverlay from './components/ui/VillainPhaseOverlay';
 import PowerSelectionScreen from './components/ui/PowerSelectionScreen';
-
 import { GlobalErrorBoundary } from './utils/errorHandling';
 import { SceneTransition, PhaseTransition } from './components/effects/Transitions';
 import { TutorialOverlay, HelpOverlay } from './components/tutorial/TutorialSystem';
 import { DiceAnnouncementOverlay } from './components/ui/DiceAnnouncementOverlay';
 import EncounterCardOverlay from './components/ui/EncounterCardOverlay';
 import TreasureCardPanel from './components/ui/TreasureCardPanel';
+import { CombatEncounterView } from './components/ui/CombatEncounterView';
+import { XRControlsOverlay } from './components/ui/XRControlsOverlay';
 
 // Import diagnostic tools for debugging tile placement (dev only)
 if (import.meta.env.DEV) {
@@ -122,7 +124,47 @@ const App: React.FC = () => {
     <div className="app-container">
       <AudioReactComponent />
 
-      {isSetupPhase && gameState ? (
+      <Scene>
+        <Physics>
+          <GameController />
+          <CompanionAIController />
+          <PhysicsGroundPlane />
+          <React.Suspense fallback={null}>
+            <TableSurface />
+            <DungeonWalls />
+          </React.Suspense>
+
+          {gameState && !isSetupPhase && (
+            <>
+              <DungeonBoard />
+              <ExplorationLayer
+                tiles={gameState.tiles}
+                explorationState={exploration}
+                onEdgeSelected={onEdgeSelected}
+              />
+
+              <group name="entities">
+                {heroes.filter(h => !h.escaped).map((hero) => (
+                  <Hero3D key={hero.id} hero={hero} />
+                ))}
+
+                {monsters.map((monster) => (
+                  <Monster3D key={monster.id} monster={monster} />
+                ))}
+              </group>
+
+              <Dice3D />
+              <DiceArena />
+
+              <FireParticles position={[0.5, 0, 0.5]} />
+              <MonsterAIIndicator />
+            </>
+          )}
+        </Physics>
+      </Scene>
+
+      {/* Desktop 2D Setup Screen (when in setup phase) */}
+      {isSetupPhase && gameState && (
         <PowerSelectionScreen
           heroes={gameState.heroes}
           powerSelections={gameState.powerSelections ?? []}
@@ -132,41 +174,6 @@ const App: React.FC = () => {
           onAutoSelect={(heroId: string) => autoSelectPowers(heroId)}
           onConfirmAll={() => beginAdventure()}
         />
-      ) : (
-        <Scene>
-          <Physics>
-            <GameController />
-            <PhysicsGroundPlane />
-            <React.Suspense fallback={null}>
-              <TableSurface />
-              <DungeonWalls />
-            </React.Suspense>
-            <DungeonBoard />
-            {gameState && (
-              <ExplorationLayer
-                tiles={gameState.tiles}
-                explorationState={exploration}
-                onEdgeSelected={onEdgeSelected}
-              />
-            )}
-
-            <group name="entities">
-              {heroes.filter(h => !h.escaped).map((hero) => (
-                <Hero3D key={hero.id} hero={hero} />
-              ))}
-
-              {monsters.map((monster) => (
-                <Monster3D key={monster.id} monster={monster} />
-              ))}
-            </group>
-
-            <Dice3D />
-            <DiceArena />
-
-            <FireParticles position={[0.5, 0, 0.5]} />
-            <MonsterAIIndicator />
-          </Physics>
-        </Scene>
       )}
 
       {/* Show UIOverlay when not in setup phase (includes MainMenu when gameState is null) */}
@@ -183,6 +190,9 @@ const App: React.FC = () => {
           isVillainPhaseActive={gameState.villainPhaseQueue.length > 0}
         />
       )}
+
+      {/* Render the Combat Encounter overlay on top if active */}
+      <CombatEncounterView />
 
       {exploration.phase === 'exhausted' && (
         <div
@@ -257,6 +267,7 @@ const App: React.FC = () => {
       )}
 
       <DiceAnnouncementOverlay />
+      <XRControlsOverlay />
     </div>
     </TilePlacementContext.Provider>
   );

@@ -53,6 +53,7 @@ export interface CoreSlice {
 
   setGameState: (state: GameState) => void;
   startNewGame: (scenarioId: string, heroIds: string[]) => void;
+  evaluateCombatEncounter: () => void;
   loadGame: (saveId: string) => void;
   saveGame: () => void;
   selectEntity: (entity: Entity | null) => void;
@@ -62,6 +63,7 @@ export interface CoreSlice {
   levelUpHero: (heroId: string, newDailyPowerId?: string) => void;
   cureMummyRot: (heroId: string) => void;
   escapeHero: (heroId: string) => void;
+  toggleAutoFollow: (heroId: string) => void;
   discardTreasureForPower: (heroId: string, treasureCardId?: string) => void;
   resolvePendingFortune: (choice: Record<string, unknown>) => Promise<void>;
   

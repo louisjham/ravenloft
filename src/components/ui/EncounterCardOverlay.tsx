@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CardResolutionState, Card, Hero } from '../../game/types';
 import { useGameStore } from '../../store/gameStore';
 import './EncounterCardOverlay.css';
@@ -23,6 +23,8 @@ const EncounterCardOverlay: React.FC<EncounterCardOverlayProps> = ({
   onSelectTarget,
   onDismiss
 }) => {
+  const [collapsed, setCollapsed] = useState(false);
+
   // Only show when resolving an encounter
   if (resolution.phase === 'idle' || !card) return null;
 
@@ -54,101 +56,119 @@ const EncounterCardOverlay: React.FC<EncounterCardOverlayProps> = ({
   const imageUrl = card.image || '/assets/tokens/Token_Encounter_Generic.png';
 
   return (
-    <div className="encounter-overlay">
-      <div className="encounter-panel">
-        {card.image ? (
-          <div className="encounter-card-image-container" style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-            <img src={card.image} alt={card.name} style={{ width: '100%', maxWidth: '300px', borderRadius: '12px', border: '2px solid #555' }} onError={(e) => {
-              (e.target as HTMLImageElement).src = '/assets/cards/Encounter-back.png';
-            }} />
-          </div>
-        ) : (
-          <>
-            <h2 className="encounter-title">{card.name}</h2>
-            <div className="encounter-type">{card.encounterType ? card.encounterType.replace('-', ' ') : 'Event'}</div>
-            
-            <div className="encounter-token-container">
-              <img src={imageUrl} alt={card.name} className="encounter-token-img" onError={(e) => {
-                (e.target as HTMLImageElement).src = '/assets/tokens/Token_Encounter_Generic.png';
-              }} />
-            </div>
+    <div className={`encounter-side-panel ${collapsed ? 'encounter-side-panel--collapsed' : ''}`}>
+      {/* Collapse toggle tab */}
+      <button
+        className="encounter-collapse-tab"
+        onClick={() => setCollapsed(c => !c)}
+        aria-label={collapsed ? 'Expand encounter card' : 'Collapse encounter card'}
+        title={collapsed ? 'Show encounter card' : 'Hide panel (board remains interactive)'}
+      >
+        {collapsed ? '⚡' : '◀'}
+        {collapsed && <span className="encounter-collapse-label">Encounter</span>}
+      </button>
 
-            <div className="encounter-description">
-              {card.description}
+      {!collapsed && (
+        <div className="encounter-panel">
+          {card.image ? (
+            <div className="encounter-card-image-container">
+              <img
+                src={card.image}
+                alt={card.name}
+                style={{ width: '100%', maxWidth: '300px', borderRadius: '12px', border: '2px solid #555' }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/assets/cards/Encounter-back.png';
+                }}
+              />
             </div>
-          </>
-        )}
-
-        {needsTarget && (
-          <div style={{ width: '100%', marginTop: '10px' }}>
-            <div style={{ color: '#aaa', fontSize: '0.9rem', marginBottom: '8px', textAlign: 'center' }}>Select a target:</div>
-            <div className="encounter-targets">
-              {heroes.map(hero => (
-                <button
-                  key={hero.id}
-                  className="encounter-target-btn"
-                  onClick={() => onSelectTarget(hero.id)}
-                >
-                  {hero.heroClass}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="encounter-button-container">
-          {resolution.phase === 'revealing' && (!needsTarget || resolution.targetEntityId) && (
+          ) : (
             <>
-              <button className="encounter-button-primary" onClick={onAdvance}>
-                {primaryButtonText}
-              </button>
-              
-              <button 
-                className="encounter-button-secondary"
-                disabled={!canCancelEncounter}
-                title={!canCancelEncounter ? 'Need monster cards totaling 5 XP to cancel' : 'Spend 5 XP to cancel this encounter'}
-                onClick={handleCancel}
-              >
-                Cancel Encounter (Spend 5 XP)
-              </button>
+              <h2 className="encounter-title">{card.name}</h2>
+              <div className="encounter-type">{card.encounterType ? card.encounterType.replace('-', ' ') : 'Event'}</div>
 
-              {heroes.some(h =>
-                h.heroClass === 'wizard' &&
-                (h.abilities.includes('wizard_dispel_magic') || h.hand.includes('wizard_dispel_magic')) &&
-                !(h.flippedPowerIds ?? []).includes('wizard_dispel_magic')
-              ) && (
-                <button
-                  className="encounter-button-secondary"
-                  style={{ backgroundColor: '#4a3b8c', border: '2px solid #6a5acd', marginTop: '10px' }}
-                  onClick={() => {
-                    if (card.id) {
-                      useGameStore.getState().cancelEncounterWithDispelMagic(card.id);
-                    }
-                  }}
-                >
-                  Cancel Encounter (Use Dispel Magic)
-                </button>
-              )}
+              <div className="encounter-token-container">
+                <img src={imageUrl} alt={card.name} className="encounter-token-img" onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/assets/tokens/Token_Encounter_Generic.png';
+                }} />
+              </div>
+
+              <div className="encounter-description">
+                {card.description}
+              </div>
             </>
           )}
 
-          {resolution.phase === 'resolving' && (
-            <button className="encounter-button-primary" onClick={onAdvance}>
-              {primaryButtonText}
-            </button>
+          {needsTarget && (
+            <div style={{ width: '100%', marginTop: '10px' }}>
+              <div style={{ color: '#aaa', fontSize: '0.9rem', marginBottom: '8px', textAlign: 'center' }}>Select a target:</div>
+              <div className="encounter-targets">
+                {heroes.map(hero => (
+                  <button
+                    key={hero.id}
+                    className="encounter-target-btn"
+                    onClick={() => onSelectTarget(hero.id)}
+                  >
+                    {hero.heroClass}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
-          {resolution.phase === 'complete' && (
-            <button
-              className="encounter-button-primary"
-              style={{ backgroundColor: '#2d6a2d', border: '2px solid #4caf50' }}
-              onClick={onDismiss}
-            >
-              {primaryButtonText}
-            </button>
-          )}
+          <div className="encounter-button-container">
+            {resolution.phase === 'revealing' && (!needsTarget || resolution.targetEntityId) && (
+              <>
+                <button className="encounter-button-primary" onClick={onAdvance}>
+                  {primaryButtonText}
+                </button>
+
+                <button
+                  className="encounter-button-secondary"
+                  disabled={!canCancelEncounter}
+                  title={!canCancelEncounter ? 'Need monster cards totaling 5 XP to cancel' : 'Spend 5 XP to cancel this encounter'}
+                  onClick={handleCancel}
+                >
+                  Cancel Encounter (Spend 5 XP)
+                </button>
+
+                {heroes.some(h =>
+                  h.heroClass === 'wizard' &&
+                  (h.abilities.includes('wizard_dispel_magic') || h.hand.includes('wizard_dispel_magic')) &&
+                  !(h.flippedPowerIds ?? []).includes('wizard_dispel_magic')
+                ) && (
+                  <button
+                    className="encounter-button-secondary"
+                    style={{ backgroundColor: '#4a3b8c', border: '2px solid #6a5acd', marginTop: '10px' }}
+                    onClick={() => {
+                      if (card.id) {
+                        useGameStore.getState().cancelEncounterWithDispelMagic(card.id);
+                      }
+                    }}
+                  >
+                    Cancel Encounter (Use Dispel Magic)
+                  </button>
+                )}
+              </>
+            )}
+
+            {resolution.phase === 'resolving' && (
+              <button className="encounter-button-primary" onClick={onAdvance}>
+                {primaryButtonText}
+              </button>
+            )}
+
+            {resolution.phase === 'complete' && (
+              <button
+                className="encounter-button-primary"
+                style={{ backgroundColor: '#2d6a2d', border: '2px solid #4caf50' }}
+                onClick={onDismiss}
+              >
+                {primaryButtonText}
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

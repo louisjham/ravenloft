@@ -185,6 +185,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
       traps: [],
       villainPhaseQueue: [],
       activeVillainId: null,
+      activeCombatEncounter: null,
       powerSelections: selectedHeroes.map(hero => ({ heroId: hero.id, selectedPowerIds: [], isConfirmed: false })),
       activeConditions: [],
       cardResolution: { phase: 'idle', cardId: null, cardType: null, pendingEffects: [], resolvedEffects: [], targetEntityId: null, result: null },
@@ -636,6 +637,16 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     });
   },
 
+  toggleAutoFollow: (heroId: string) => {
+    set((state) => {
+      if (!state.gameState) return {};
+      const heroes = state.gameState.heroes.map(h =>
+        h.id === heroId ? { ...h, isAutoFollow: !h.isAutoFollow } : h
+      );
+      return { gameState: { ...state.gameState, heroes } };
+    });
+  },
+
   discardTreasureForPower: (heroId: string) => {
     console.log('discardTreasureForPower called for', heroId);
     // TODO: implement discard treasure for power upgrade
@@ -667,5 +678,19 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
 
   pauseGame: () => set({ isPaused: true }),
   unpauseGame: () => set({ isPaused: false }),
-  updateSettings: (newSettings: Partial<GameSettings>) => set(state => ({ settings: { ...state.settings, ...newSettings } }))
+  updateSettings: (newSettings: Partial<GameSettings>) => set(state => ({ settings: { ...state.settings, ...newSettings } })),
+
+  evaluateCombatEncounter: async () => {
+    const s = get().gameState;
+    if (!s || s.phase === 'setup' || s.phase === 'victory' || s.phase === 'defeat') return;
+
+    // Use dynamic import to avoid circular dependencies if any
+    const { CombatEncounterSystem } = await import('../../game/engine/CombatEncounterSystem');
+    const currentS = get().gameState;
+    if (!currentS) return;
+    const newState = CombatEncounterSystem.evaluateState(currentS);
+    if (newState !== currentS) {
+      set({ gameState: newState });
+    }
+  }
 });

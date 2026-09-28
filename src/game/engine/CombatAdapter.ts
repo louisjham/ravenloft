@@ -1,6 +1,7 @@
 import { Entity, AttackResult, GameState, isMonsterEntity } from '../types';
 import { CombatSystem } from './CombatSystem';
 import { isDev } from '../../utils/devEnv';
+import { useDiceStore } from '../../store/diceStore';
 
 const LOG_PREFIX = '[CombatAdapter]';
 const ASYNC_TIMEOUT_MS = 15_000;
@@ -22,7 +23,7 @@ export class CombatAdapter {
   ): Promise<AttackResult> {
     const isMonster = isMonsterEntity(attacker);
     const rollType = isMonster ? 'monster_attack' : 'hero_attack';
-    const store = (await import('../../store/diceStore')).useDiceStore;
+    const store = useDiceStore;
 
     return new Promise<AttackResult>((resolve) => {
       let resolved = false;

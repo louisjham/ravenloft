@@ -1,13 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useXR } from '@react-three/xr';
 import * as THREE from 'three';
-import { useLoader } from '@react-three/fiber';
 
 const TABLE_SIZE = 28;
 const TABLE_THICKNESS = 0.4;
 const BEVEL_SIZE = 0.15;
 
 export const TableSurface: React.FC = () => {
-  const texture = useLoader(THREE.TextureLoader, '/ui/stone-wall.png');
+  const { isPresenting } = useXR();
+  const [texture, setTexture] = useState<THREE.Texture | null>(null);
+
+  useEffect(() => {
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      '/ui/stone-wall.png',
+      (tex) => {
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(4, 4);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        setTexture(tex);
+      },
+      undefined,
+      () => {
+        // Fallback gracefully to procedural dark stone material on load error
+        console.warn('Could not load stone-wall texture; using procedural gothic stone material.');
+      }
+    );
+  }, []);
+
+  // In WebXR presentation mode, the game pieces and board float directly in VR/AR without a giant artificial slab
+  if (isPresenting) {
+    return null;
+  }
 
   const half = TABLE_SIZE / 2;
 
@@ -16,10 +41,10 @@ export const TableSurface: React.FC = () => {
       <mesh receiveShadow position={[0, 0, 0]}>
         <boxGeometry args={[TABLE_SIZE, TABLE_THICKNESS, TABLE_SIZE]} />
         <meshStandardMaterial
-          map={texture}
-          roughness={0.9}
-          metalness={0.1}
-          color={texture ? '#ffffff' : '#ff0000'}
+          map={texture ?? undefined}
+          color={texture ? '#ffffff' : '#18141c'}
+          roughness={0.88}
+          metalness={0.12}
         />
       </mesh>
 

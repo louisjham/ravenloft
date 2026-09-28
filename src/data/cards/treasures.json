@@ -4,12 +4,13 @@
     "name": "Heroic Stand",
     "type": "consumable",
     "treasureType": "blessing",
-    "description": "All heroes gain +1 AC until the end of their next turn.",
+    "trigger": "Play this Blessing immediately.",
+    "description": "Until the end of your next Hero Phase, each Hero gains a bonus to attack rolls equal to the monsters on his or her tile. Discard this card at the end of your next Hero Phase.",
     "effects": [
       {
-        "type": "ac_bonus",
-        "value": 1,
-        "target": "all_heroes"
+        "type": "attack_bonus_per_monster_on_tile",
+        "target": "all_heroes",
+        "duration": "until_end_of_next_hero_phase"
       }
     ],
     "image": "/card-images/blessing-heroicstand.png"
@@ -19,12 +20,14 @@
     "name": "Guided Strikes",
     "type": "consumable",
     "treasureType": "blessing",
-    "description": "Play this Blessing immediately. Until the end of your next Hero Phase, each Hero gains a +2 bonus to attack rolls. Discard this card at the end of your next Hero phase.",
+    "trigger": "Play this Blessing immediately.",
+    "description": "Until the end of your next Hero Phase, each Hero gains a +2 bonus to attack rolls. Discard this card at the end of your next Hero phase.",
     "effects": [
       {
         "type": "attack_bonus",
         "value": 2,
-        "target": "all_heroes"
+        "target": "all_heroes",
+        "duration": "until_end_of_next_hero_phase"
       }
     ],
     "image": "/card-images/blessing-guidedstrikes.png"
@@ -34,17 +37,14 @@
     "name": "Rejuvenating Onslaught",
     "type": "consumable",
     "treasureType": "blessing",
-    "description": "All heroes heal 1 HP and gain +1 damage until the end of their next turn.",
+    "trigger": "Play this Blessing immediately.",
+    "description": "Until the end of your next Hero Phase, whenever a Hero hits a monster with an attack, that Hero regains 1 hit point. Discard this card at the end of your next Hero Phase.",
     "effects": [
       {
-        "type": "heal",
+        "type": "heal_on_hit",
         "value": 1,
-        "target": "all_heroes"
-      },
-      {
-        "type": "damage_bonus",
-        "value": 1,
-        "target": "all_heroes"
+        "target": "all_heroes",
+        "duration": "until_end_of_next_hero_phase"
       }
     ],
     "image": "/card-images/blessing-rejuvenatingonslaught.png"
@@ -54,12 +54,14 @@
     "name": "Run!",
     "type": "consumable",
     "treasureType": "blessing",
-    "description": "All heroes gain +2 speed until the end of their next turn.",
+    "trigger": "Play this Blessing immediately.",
+    "description": "Until the end of your next Hero phase, each Hero gains +2 speed. Discard this card at the end of your next Hero Phase.",
     "effects": [
       {
         "type": "speed_bonus",
         "value": 2,
-        "target": "all_heroes"
+        "target": "all_heroes",
+        "duration": "until_end_of_next_hero_phase"
       }
     ],
     "image": "/card-images/blessing-run.png"
@@ -69,12 +71,13 @@
     "name": "Surround Them!",
     "type": "consumable",
     "treasureType": "blessing",
-    "description": "All heroes gain +1 damage against monsters until the end of their next turn.",
+    "trigger": "Play this Blessing immediately.",
+    "description": "Until the end of your next Hero phase, each Hero gains a bonus to attack rolls equal to the number of Heroes on his or her tile. Discard this card at the end of your next Hero Phase.",
     "effects": [
       {
-        "type": "damage_bonus",
-        "value": 1,
-        "target": "all_heroes"
+        "type": "attack_bonus_per_hero_on_tile",
+        "target": "all_heroes",
+        "duration": "until_end_of_next_hero_phase"
       }
     ],
     "image": "/card-images/blessing-surroundthem.png"
@@ -84,8 +87,15 @@
     "name": "Action Surge",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "You can move your speed or make an attack (one extra action this turn).",
-    "effects": [],
+    "trigger": "Play this fortune immediately.",
+    "description": "You can move your speed or make an attack.",
+    "effects": [
+      {
+        "type": "extra_action_choice",
+        "options": ["move_speed", "attack"],
+        "target": "self"
+      }
+    ],
     "image": "/card-images/fortune-actionsurge.png"
   },
   {
@@ -93,6 +103,7 @@
     "name": "Breath Of Life",
     "type": "consumable",
     "treasureType": "fortune",
+    "trigger": "Play this fortune immediately.",
     "description": "Your Hero regains one hit point.",
     "effects": [
       {
@@ -108,6 +119,7 @@
     "name": "Breath Of Life",
     "type": "consumable",
     "treasureType": "fortune",
+    "trigger": "Play this fortune immediately.",
     "description": "Your Hero regains one hit point.",
     "effects": [
       {
@@ -123,6 +135,7 @@
     "name": "Breath Of Life",
     "type": "consumable",
     "treasureType": "fortune",
+    "trigger": "Play this fortune immediately.",
     "description": "Your Hero regains one hit point.",
     "effects": [
       {
@@ -138,11 +151,11 @@
     "name": "Burst Of Speed",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "Gain +2 speed this turn.",
+    "trigger": "Play this fortune immediately.",
+    "description": "Your Hero can move his or her speed.",
     "effects": [
       {
-        "type": "speed_bonus",
-        "value": 2,
+        "type": "move_speed",
         "target": "self"
       }
     ],
@@ -153,6 +166,7 @@
     "name": "Distant Sounds",
     "type": "consumable",
     "treasureType": "fortune",
+    "trigger": "Play this fortune immediately.",
     "description": "Look at the top 3 cards of the monster deck and put them back in any order.",
     "effects": [
       {
@@ -167,11 +181,11 @@
     "name": "Clear The Air",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "Remove all conditions from all heroes.",
+    "trigger": "Play this fortune immediately.",
+    "description": "Discard an Environment card in play.",
     "effects": [
       {
-        "type": "remove_conditions",
-        "target": "all_heroes"
+        "type": "discard_environment_in_play"
       }
     ],
     "image": "/card-images/fortune-cleartheair.png"
@@ -181,6 +195,7 @@
     "name": "Daze",
     "type": "consumable",
     "treasureType": "fortune",
+    "trigger": "Play this fortune immediately.",
     "description": "Put this card face-up on a monster card. The next time that monster would activate, discard this card instead.",
     "effects": [
       {
@@ -195,6 +210,7 @@
     "name": "Eagle Eyes",
     "type": "consumable",
     "treasureType": "fortune",
+    "trigger": "Play this fortune immediately.",
     "description": "Place one tile from the top of the Dungeon Tile stack adjacent to any unexplored edge. Place any new monsters on that tile as normal but do not draw an encounter card.",
     "effects": [
       {
@@ -208,6 +224,7 @@
     "name": "Glimpse Of The Future",
     "type": "consumable",
     "treasureType": "fortune",
+    "trigger": "Play this fortune immediately.",
     "description": "Look at the top 3 cards of the Encounter Deck and put them back on the top of the deck in any order.",
     "effects": [
       {
@@ -222,7 +239,8 @@
     "name": "Harrowed Experience",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "This card counts as 1 experience point. Put in the XP pile, and discard this card when the party uses it for experience.",
+    "trigger": "Play this fortune immediately.",
+    "description": "This card counts as 1 experience point. Put in the XP pile, and discard this card when the party uses it for experience. 1 EXPERIENCE",
     "effects": [
       {
         "type": "add_xp_to_pile",
@@ -236,7 +254,8 @@
     "name": "Harrowed Experience",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "This card counts as 1 experience point. Put in the XP pile, and discard this card when the party uses it for experience.",
+    "trigger": "Play this fortune immediately.",
+    "description": "This card counts as 1 experience point. Put in the XP pile, and discard this card when the party uses it for experience. 1 EXPERIENCE",
     "effects": [
       {
         "type": "add_xp_to_pile",
@@ -250,6 +269,7 @@
     "name": "Intimidating Bellow",
     "type": "consumable",
     "treasureType": "fortune",
+    "trigger": "Play this fortune immediately.",
     "description": "Place one monster on a tile 2 tiles away from its tile.",
     "effects": [
       {
@@ -264,8 +284,15 @@
     "name": "Level Up",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "You level up immediately without needing a natural 20.",
-    "effects": [],
+    "trigger": "Play this fortune immediately.",
+    "description": "You can spend 5 experience points to have your Hero become 2nd level.",
+    "effects": [
+      {
+        "type": "spend_xp_level_up",
+        "cost": 5,
+        "target": "self"
+      }
+    ],
     "image": "/card-images/fortune-levelup.png"
   },
   {
@@ -273,6 +300,7 @@
     "name": "Lucky Find",
     "type": "consumable",
     "treasureType": "fortune",
+    "trigger": "Play this fortune immediately.",
     "description": "Draw three treasure cards and keep one. Discard the others.",
     "effects": [
       {
@@ -287,6 +315,7 @@
     "name": "Lucky Find",
     "type": "consumable",
     "treasureType": "fortune",
+    "trigger": "Play this fortune immediately.",
     "description": "Draw three treasure cards and keep one. Discard the others.",
     "effects": [
       {
@@ -301,6 +330,7 @@
     "name": "Moment's Respite",
     "type": "consumable",
     "treasureType": "fortune",
+    "trigger": "Play this fortune immediately.",
     "description": "Place this card face-up on top of either the Encounter Deck or the Monster Deck. The next time a card would be drawn from the chosen deck, discard this card instead.",
     "effects": [
       {
@@ -314,6 +344,7 @@
     "name": "Shake It Off",
     "type": "consumable",
     "treasureType": "fortune",
+    "trigger": "Play this fortune immediately.",
     "description": "Choose one Hero. That Hero can end one condition affecting him or her.",
     "effects": [
       {
@@ -328,8 +359,14 @@
     "name": "Short Rest",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "Refresh one of your used powers.",
-    "effects": [],
+    "trigger": "Play this fortune immediately.",
+    "description": "Flip up one of your used powers.",
+    "effects": [
+      {
+        "type": "flip_up_power",
+        "target": "self"
+      }
+    ],
     "image": "/card-images/fortune-shortrest.png"
   },
   {
@@ -337,8 +374,14 @@
     "name": "Short Rest",
     "type": "consumable",
     "treasureType": "fortune",
-    "description": "Refresh one of your used powers.",
-    "effects": [],
+    "trigger": "Play this fortune immediately.",
+    "description": "Flip up one of your used powers.",
+    "effects": [
+      {
+        "type": "flip_up_power",
+        "target": "self"
+      }
+    ],
     "image": "/card-images/fortune-shortrest.png"
   },
   {
@@ -346,12 +389,14 @@
     "name": "Amulet Of Protection",
     "type": "item",
     "treasureType": "item",
-    "description": "A protective amulet that grants +2 AC.",
+    "trigger": "Play this item immediately.",
+    "description": "You gain a +1 bonus to AC while this item is in play.",
     "effects": [
       {
         "type": "ac_bonus",
-        "value": 2,
-        "target": "self"
+        "value": 1,
+        "target": "self",
+        "duration": "permanent"
       }
     ],
     "image": "/card-images/item-amuletofprotection.png"
@@ -361,12 +406,14 @@
     "name": "Boots Of Striding",
     "type": "item",
     "treasureType": "item",
-    "description": "Enchanted boots that grant +1 speed.",
+    "trigger": "Play this item immediately.",
+    "description": "You gain a +1 bonus to Speed while this item is in play.",
     "effects": [
       {
         "type": "speed_bonus",
         "value": 1,
-        "target": "self"
+        "target": "self",
+        "duration": "permanent"
       }
     ],
     "image": "/card-images/item-bootsofstriding.png"
@@ -374,14 +421,14 @@
   {
     "id": "item_crystal_ball",
     "name": "Crystal Ball",
-    "type": "item",
+    "type": "consumable",
     "treasureType": "item",
-    "description": "A crystal ball that lets you preview the top 3 cards of any deck.",
+    "trigger": "Use this item during your Hero Phase instead of attacking.",
+    "description": "Reveal the top card of any card deck or the top tile of any tile stack.",
     "effects": [
       {
-        "type": "passive",
-        "passiveType": "crystal_ball",
-        "target": "self"
+        "type": "reveal_top_card_or_tile",
+        "target": "any_deck_or_stack"
       }
     ],
     "image": "/card-images/item-crystalball.png"
@@ -391,12 +438,15 @@
     "name": "Dragon's Breath Elixir",
     "type": "consumable",
     "treasureType": "item",
-    "description": "Deal 1 damage to all monsters on your tile.",
+    "trigger": "Use this item during your Hero Phase.",
+    "description": "Attack each Monster on your tile. This attack does not count as an attack action. (Attack: +4, Damage: 1)",
     "effects": [
       {
-        "type": "damage",
-        "value": 1,
-        "target": "all_monsters"
+        "type": "attack_all_on_tile",
+        "attackBonus": 4,
+        "damage": 1,
+        "countsAsAttackAction": false,
+        "target": "all_monsters_on_tile"
       }
     ],
     "image": "/card-images/items-dragonsbreathelixir.png"
@@ -406,12 +456,15 @@
     "name": "Glyph Of Warding",
     "type": "consumable",
     "treasureType": "item",
-    "description": "Place this glyph on a tile to block monsters from entering it.",
+    "trigger": "Use this item during your Hero Phase instead of attacking.",
+    "description": "Place the Glyph of Warding marker on your tile. The first Monster that moves to that tile takes 1 damage.",
     "effects": [
       {
-        "type": "tile_effect",
-        "value": "warded",
-        "target": "tile"
+        "type": "place_marker",
+        "markerType": "glyph_of_warding",
+        "target": "self_tile",
+        "triggerOn": "first_monster_enters",
+        "triggerDamage": 1
       }
     ],
     "image": "/card-images/item-glyphofwarding.png"
@@ -421,14 +474,16 @@
     "name": "Holy Water",
     "type": "consumable",
     "treasureType": "item",
-    "description": "+7 to hit, deals 2 damage to an undead target.",
+    "trigger": "Use this item during your Hero Phase instead of attacking.",
+    "description": "Choose an Undead Monster within 1 tile of you. It takes 1 damage.",
     "effects": [
       {
         "type": "damage",
-        "value": 2,
+        "value": 1,
         "target": "single",
         "range": 1,
-        "condition": "undead"
+        "condition": "undead",
+        "requiresAttackRoll": false
       }
     ],
     "image": "/card-images/item-holywater.png"
@@ -436,21 +491,26 @@
   {
     "id": "item_holy_avenger",
     "name": "Holy Avenger",
-    "type": "weapon",
+    "type": "item",
     "treasureType": "item",
-    "description": "+2 attack bonus and +2 damage against undead.",
+    "trigger": "Play this item immediately.",
+    "description": "You gain a +1 bonus to attack rolls against adjacent Monsters while this item is in play. Increase the bonus to +3 against Undead Monsters.",
     "effects": [
       {
         "type": "attack_bonus",
-        "value": 2,
+        "value": 1,
         "target": "self",
-        "condition": "undead"
+        "range": "adjacent",
+        "duration": "permanent"
       },
       {
-        "type": "damage_bonus",
-        "value": 2,
+        "type": "attack_bonus",
+        "value": 3,
         "target": "self",
-        "condition": "undead"
+        "range": "adjacent",
+        "condition": "undead",
+        "duration": "permanent",
+        "note": "Replaces the base +1 bonus against Undead Monsters; total is +3 not +4"
       }
     ],
     "image": "/card-images/item-holyavenger.png"
@@ -475,11 +535,11 @@
     "name": "Lucky Charm",
     "type": "item",
     "treasureType": "item",
-    "description": "Once per adventure, you may reroll a d20.",
+    "trigger": "Use this item after any die roll.",
+    "description": "Reroll the die.",
     "effects": [
       {
-        "type": "passive",
-        "passiveType": "reroll",
+        "type": "reroll_die",
         "target": "self"
       }
     ],
@@ -490,11 +550,11 @@
     "name": "Lucky Charm",
     "type": "item",
     "treasureType": "item",
-    "description": "Once per adventure, you may reroll a d20.",
+    "trigger": "Use this item after any die roll.",
+    "description": "Reroll the die.",
     "effects": [
       {
-        "type": "passive",
-        "passiveType": "reroll",
+        "type": "reroll_die",
         "target": "self"
       }
     ],
@@ -503,14 +563,17 @@
   {
     "id": "item_magic_sword",
     "name": "Magic Sword",
-    "type": "weapon",
+    "type": "item",
     "treasureType": "item",
-    "description": "A magic sword that grants +2 attack bonus.",
+    "trigger": "Play this item immediately.",
+    "description": "You gain a +1 bonus to attack rolls against adjacent Monsters while this item is in play.",
     "effects": [
       {
         "type": "attack_bonus",
-        "value": 2,
-        "target": "self"
+        "value": 1,
+        "target": "self",
+        "range": "adjacent",
+        "duration": "permanent"
       }
     ],
     "image": "/card-images/item-magicsword.png"
@@ -518,14 +581,17 @@
   {
     "id": "item_necklace_fireballs",
     "name": "Necklace Of Fireballs",
-    "type": "item",
+    "type": "consumable",
     "treasureType": "item",
-    "description": "A necklace with 3 charges that can unleash area-of-effect fire damage.",
+    "trigger": "Use this item during your Hero Phase instead of attacking.",
+    "description": "Attack each Monster on a tile 1 tile away from you. (Attack: +5, Damage: 1)",
     "effects": [
       {
-        "type": "passive",
-        "passiveType": "necklace_fireballs",
-        "target": "self"
+        "type": "attack_all_on_tile",
+        "attackBonus": 5,
+        "damage": 1,
+        "range": 1,
+        "target": "tile_1_away"
       }
     ],
     "image": "/card-images/item-necklaceoffireballs.png"
@@ -535,12 +601,13 @@
     "name": "Potion Of Healing",
     "type": "consumable",
     "treasureType": "item",
-    "description": "Drink to restore 2 HP.",
+    "trigger": "Use this item during your Hero Phase.",
+    "description": "You or an adjacent Hero regains 2 Hit Points.",
     "effects": [
       {
         "type": "heal",
         "value": 2,
-        "target": "self"
+        "target": "self_or_adjacent_hero"
       }
     ],
     "image": "/card-images/item-potionofhealing.png"
@@ -550,12 +617,13 @@
     "name": "Potion Of Healing",
     "type": "consumable",
     "treasureType": "item",
-    "description": "Drink to restore 2 HP.",
+    "trigger": "Use this item during your Hero Phase.",
+    "description": "You or an adjacent Hero regains 2 Hit Points.",
     "effects": [
       {
         "type": "heal",
         "value": 2,
-        "target": "self"
+        "target": "self_or_adjacent_hero"
       }
     ],
     "image": "/card-images/item-potionofhealing.png"
@@ -565,11 +633,11 @@
     "name": "Potion Of Rejuvenation",
     "type": "consumable",
     "treasureType": "item",
-    "description": "Drink to restore 4 HP.",
+    "trigger": "Use this item during your Hero Phase.",
+    "description": "Flip up one of your used powers.",
     "effects": [
       {
-        "type": "heal",
-        "value": 4,
+        "type": "flip_up_power",
         "target": "self"
       }
     ],
@@ -580,12 +648,15 @@
     "name": "Ring Of Accuracy",
     "type": "item",
     "treasureType": "item",
-    "description": "A ring that grants +1 attack bonus.",
+    "trigger": "Play this item immediately.",
+    "description": "You gain a +1 bonus to attack rolls against Monsters that aren't adjacent to your Hero while this item is in play.",
     "effects": [
       {
         "type": "attack_bonus",
         "value": 1,
-        "target": "self"
+        "target": "self",
+        "range": "non_adjacent",
+        "duration": "permanent"
       }
     ],
     "image": "/card-images/item-ringofaccuracy.png"
@@ -593,15 +664,16 @@
   {
     "id": "item_ring_of_regeneration",
     "name": "Ring Of Regeneration",
-    "type": "item",
+    "type": "consumable",
     "treasureType": "item",
-    "description": "Heal 1 HP at the start of each of your turns.",
+    "trigger": "Use this item when you would draw a Treasure Card.",
+    "description": "You can regain 1 Hit Point instead of drawing the Treasure Card.",
     "effects": [
       {
-        "type": "passive",
-        "passiveType": "regeneration",
+        "type": "heal_instead_of_draw",
         "value": 1,
-        "target": "self"
+        "target": "self",
+        "replaces": "treasure_draw"
       }
     ],
     "image": "/card-images/item-ringofregeneration.png"
@@ -611,11 +683,13 @@
     "name": "Scroll Of Teleportation",
     "type": "consumable",
     "treasureType": "item",
-    "description": "Teleport to any explored tile.",
+    "trigger": "Use this item during your Hero Phase.",
+    "description": "Choose any number of Heroes on your tile and place them on another tile.",
     "effects": [
       {
-        "type": "teleport",
-        "target": "self"
+        "type": "teleport_heroes",
+        "target": "any_heroes_on_tile",
+        "destination": "any_tile"
       }
     ],
     "image": "/card-images/item-scrollofteleportation.png"
@@ -625,13 +699,15 @@
     "name": "Thieves' Tools",
     "type": "item",
     "treasureType": "item",
+    "trigger": "Play this item immediately.",
     "description": "You gain a +4 bonus to rolls to disable Traps while this item is in play.",
     "effects": [
       {
         "type": "passive",
         "passiveType": "disable_trap",
         "value": 4,
-        "target": "self"
+        "target": "self",
+        "duration": "permanent"
       }
     ],
     "image": "/card-images/items-thievestools.png"
@@ -639,10 +715,17 @@
   {
     "id": "item_wand_of_teleportation",
     "name": "Wand Of Teleportation",
-    "type": "item",
+    "type": "consumable",
     "treasureType": "item",
-    "description": "Choose a tile within 1 tile of you. Place each Monster on that tile on any tile within 3 tiles of you.",
-    "effects": [],
+    "trigger": "Use this item during your Hero Phase instead of attacking.",
+    "description": "Choose a tile within 1 tile of you. Place each Monster on the chosen tile on a tile within 3 tiles of you.",
+    "effects": [
+      {
+        "type": "move_monsters_on_tile",
+        "targetTileRange": 1,
+        "destinationTileRange": 3
+      }
+    ],
     "image": "/card-images/item-wandofteleportation.png"
   },
   {
@@ -736,46 +819,91 @@
   {
     "id": "item_wooden_stake",
     "name": "Wooden Stake",
-    "type": "quest",
-    "description": "Attack one adjacent Vampire. Hit or miss, the Vampire does not activate during your next Villain Phase. (Attack: +5, Damage: 3, Miss: 1 Damage)",
-    "effects": [],
+    "type": "consumable",
     "treasureType": "item",
+    "trigger": "Use this item during your Hero Phase instead of attacking.",
+    "description": "Attack one adjacent Vampire. Hit or miss, the Vampire does not activate during your next Villain Phase. (Attack: +5, Damage: 3, Miss: 1 Damage)",
+    "effects": [
+      {
+        "type": "attack_single_target",
+        "attackBonus": 5,
+        "damage": 3,
+        "missDamage": 1,
+        "range": "adjacent",
+        "condition": "vampire",
+        "onHitOrMiss": "disable_vampire_next_villain_phase"
+      }
+    ],
     "image": "/card-images/item-woodenstake.png"
   },
   {
     "id": "item_feywalk_amulet",
     "name": "Feywalk Amulet",
-    "type": "quest",
-    "description": "Use to teleport to any square on any tile.",
-    "effects": [],
+    "type": "item",
     "treasureType": "item",
+    "trigger": "Play this item immediately.",
+    "description": "While this item is in play, whenever a power or effect teleports your Hero, you can choose any square on any tile as the destination square.",
+    "effects": [
+      {
+        "type": "passive",
+        "passiveType": "feywalk_amulet",
+        "target": "self",
+        "duration": "permanent"
+      }
+    ],
     "image": "/card-images/item-feywalkamulet.png"
   },
   {
     "id": "item_torch",
     "name": "Torch",
-    "type": "quest",
-    "description": "Attack each Monster on your tile. After resolving the attacks, place each Monster you attacked on a tile within 1 tile of you. (Attack: +5, Damage: 1)",
-    "effects": [],
+    "type": "consumable",
     "treasureType": "item",
+    "trigger": "Use this item during your Hero Phase instead of attacking.",
+    "description": "Attack each Monster on your tile. Hit or miss, place each Monster on your tile on a tile within 1 tile of you. (Attack: +5, Damage: 1)",
+    "effects": [
+      {
+        "type": "attack_all_on_tile",
+        "attackBonus": 5,
+        "damage": 1,
+        "target": "all_monsters_on_tile",
+        "onHitOrMiss": "relocate_monsters_within_1_tile"
+      }
+    ],
     "image": "/card-images/item-torch.png"
   },
   {
     "id": "item_dimensional_shackles",
     "name": "Dimensional Shackles",
-    "type": "quest",
-    "description": "Use to immobilize a monster on your tile for a full round.",
-    "effects": [],
+    "type": "consumable",
     "treasureType": "item",
+    "trigger": "Use this item during your Hero Phase instead of attacking.",
+    "description": "Choose one adjacent Monster. For the rest of the game, that Monster takes 1 damage whenever it teleports.",
+    "effects": [
+      {
+        "type": "permanent_debuff",
+        "debuffType": "teleport_damage",
+        "value": 1,
+        "target": "single_adjacent_monster",
+        "duration": "permanent"
+      }
+    ],
     "image": "/card-images/item-dimensionalshackles.png"
   },
   {
     "id": "item_holy_symbol_of_ravenkind",
     "name": "Holy Symbol of Ravenkind",
-    "type": "quest",
-    "description": "Deals damage to all Undead on your tile and adjacent tiles (+7 vs AC, 1 damage).",
-    "effects": [],
+    "type": "consumable",
     "treasureType": "item",
+    "trigger": "Use this item during your Hero Phase instead of attacking.",
+    "description": "Choose one Undead Monster on your tile. It takes 2 damage.",
+    "effects": [
+      {
+        "type": "damage",
+        "value": 2,
+        "target": "single_undead_on_tile",
+        "requiresAttackRoll": false
+      }
+    ],
     "image": "/card-images/item-holysymbolofravenkind.png"
   },
   {
@@ -789,7 +917,9 @@
   {
     "id": "item_sunsword",
     "name": "Sunsword",
-    "type": "quest",
+    "type": "item",
+    "treasureType": "item",
+    "trigger": "Play this item immediately.",
     "description": "You deal +1 damage against adjacent Vampires while this item is in play.",
     "effects": [
       {
@@ -797,20 +927,31 @@
         "value": 1,
         "target": "self",
         "condition": "vampire",
-        "range": "adjacent"
+        "range": "adjacent",
+        "duration": "permanent"
       }
     ],
-    "treasureType": "item",
     "image": "/card-images/item-sunsword.png"
   },
   {
     "id": "item_silver_dagger",
     "name": "Silver Dagger",
-    "type": "scenario_item",
+    "type": "consumable",
     "treasureType": "item",
+    "trigger": "Use this item during your Hero Phase instead of attacking.",
     "description": "Attack one Werewolf within 2 tiles of you. Hit or miss, the Werewolf no longer regains Hit Points from its Regeneration ability for the rest of the game. (Attack: +5, Damage: 3, Miss: 1 Damage)",
     "image": "/card-images/item-silverdagger.png",
-    "effects": []
+    "effects": [
+      {
+        "type": "attack_single_target",
+        "attackBonus": 5,
+        "damage": 3,
+        "missDamage": 1,
+        "range": 2,
+        "condition": "werewolf",
+        "onHitOrMiss": "disable_werewolf_regeneration"
+      }
+    ]
   },
   {
     "id": "item_gravestorms_phylactery",
@@ -824,8 +965,9 @@
   {
     "id": "item_tome_of_strahd",
     "name": "Tome of Strahd",
-    "type": "scenario_item",
+    "type": "item",
     "treasureType": "item",
+    "trigger": "Play this item immediately.",
     "description": "You and each Hero within 1 tile of you gain a +2 bonus to attack rolls against Vampires while this item is in play.",
     "image": "/card-images/item-tomeofstrahd.png",
     "effects": [
@@ -833,7 +975,8 @@
         "type": "attack_bonus",
         "value": 2,
         "target": "within_1_tile",
-        "condition": "vampire"
+        "condition": "vampire",
+        "duration": "permanent"
       }
     ]
   }

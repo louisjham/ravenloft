@@ -108,6 +108,66 @@ export const useGameActions = () => {
       `${hero.name} moves to ${destTile.name || destTile.id}${slowedSuffix}.`,
       'success'
     );
+
+    // ── Check for Edge Exploration (Castle Ravenloft 2010 rules) ──────────────
+    // When a hero moves to an edge square with an unexplored open edge, automatically explore!
+    const currentState = useGameStore.getState().gameState;
+    if (currentState && !currentState.hasExploredThisTurn && currentState.dungeonDeck && currentState.dungeonDeck.length > 0) {
+      const points = TileSystem.getExplorationPoints(currentState.tiles);
+      const isAtEdge = (edge: string): boolean => {
+        switch (edge) {
+          case 'north': return targetPosition.sqZ === 0;
+          case 'south': return targetPosition.sqZ === 3;
+          case 'east':  return targetPosition.sqX === 3;
+          case 'west':  return targetPosition.sqX === 0;
+          default:      return false;
+        }
+      };
+
+      const explorablePoint = points.find(p => p.tileId === destTile.id && isAtEdge(p.edge));
+      if (explorablePoint) {
+        const drawResult = TileSystem.drawAndPlace(currentState, explorablePoint);
+        if (drawResult.tile && drawResult.validRotations.length > 0) {
+          const autoRotation = drawResult.validRotations[0];
+          const pt = currentState.tiles.find(t => t.id === explorablePoint.tileId);
+          if (pt) {
+            let targetX = pt.x;
+            let targetZ = pt.z;
+            if (explorablePoint.edge === 'north') targetZ -= 1;
+            else if (explorablePoint.edge === 'south') targetZ += 1;
+            else if (explorablePoint.edge === 'east') targetX += 1;
+            else if (explorablePoint.edge === 'west') targetX -= 1;
+
+            const validation = TileSystem.validateEdgeAlignment(
+              currentState.tiles,
+              drawResult.tile,
+              targetX,
+              targetZ,
+              autoRotation,
+              explorablePoint.edge
+            );
+
+            if (validation.valid) {
+              const finalState = TileSystem.placeTile(currentState, explorablePoint, autoRotation);
+              const placedTile = finalState.tiles.find(t => t.x === targetX && t.z === targetZ);
+              if (placedTile) {
+                const stateWithMonster = TileSystem.spawnMonsterForExploration(finalState, placedTile);
+                const { ScenarioManager } = await import('../game/scenarios/ScenarioManager');
+                const stateWithRules = ScenarioManager.processPostExplore(stateWithMonster, placedTile);
+                useGameStore.getState().setGameState({
+                  ...stateWithRules,
+                  hasExploredThisTurn: true,
+                  exploredThisTurn: true,
+                  lastPlacedTileEncounterType: placedTile.encounterType ?? null,
+                  lastPlacedTileId: placedTile.id
+                });
+                addNotification(`Explored new room: ${placedTile.name || placedTile.id}!`, 'success');
+              }
+            }
+          }
+        }
+      }
+    }
   };
 
   // ---------------------------------------------------------------------------
