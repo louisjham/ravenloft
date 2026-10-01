@@ -9,6 +9,10 @@ An atmospheric, responsive 3D and WebXR digital tabletop adaptation of the coope
 
 Command legendary heroes, explore the modular crypts of Barovia in full 3D desktop mode or immersive 6DoF WebXR Passthrough/VR, defeat deadly monsters, and conquer Count Strahd von Zarovich!
 
+> **From web to XR:** This project began as a TypeScript + three.js web app. Because every game rule lived in sliced Zustand stores — fully separated from rendering — the entire WebXR port was built as a new presentation layer (`src/xr`). No core game files were rewritten.
+
+> 🚧 **Status:** The desktop web game is fully playable. The WebXR layer is in active development — it renders beautifully in AR/passthrough, and the **unboxing gallery** already has every card, model, token, and board piece available to pick up and marvel over. Full XR gameplay is still being wired up.
+
 <img width="1243" height="584" alt="image" src="https://github.com/user-attachments/assets/4f8f754b-d85a-410e-831e-756b56ce6333" />
 
 > 🎬 *Note: Updated WebXR 6DoF interaction gameplay videos and screenshots coming soon!*
@@ -24,6 +28,7 @@ The codebase has undergone a comprehensive refactor to transform the experience 
 * **6DoF Hero Grab-and-Drop (`Hero3D`):** Pick up heroes in 6DoF using VR motion controllers or mouse drag. Legal reachable tiles glow with vibrant runic highlights. Dropping onto an enemy triggers combat, while illegal drops play error haptic feedback and spring back.
 * **Automatic Dungeon Exploration (`ExplorationLayer`):** Moving or dropping heroes on unexplored tile edges automatically draws, validates, places, and rotates adjacent crypt tiles, triggering monster spawns and scenario rules seamlessly.
 * **In-Hand Miniature & Card Scaling (`PhysicalCard3D`, `GrabbablePiece3D`):** 6DoF dual-sided physical cards and held miniatures can be magnified up to 6.5x in-hand using thumbstick Y-axis or mouse wheel. Includes 3D spatial card hand docks (`CardHandDock3D`).
+* **Unboxing Gallery (`XRUnboxingStage3D`):** Every card, model, token, and board piece in the game is physically present and pick-up-able — open the box, grab the whole collection, and marvel at it.
 * **Spatial Audio & 3D HUD:** Dynamic spatial audio soundscapes and 3D spatial UI overlays (`XRTabletopHUD3D`, `XRMainMenu3D`, `XRSetupStage3D`).
 
 ### 🏗️ Pure Engine & State Slice Modularization
@@ -115,3 +120,7 @@ Verify rule integrity, monster AI behaviors, scenario logic, and state transitio
 ```bash
 npx tsx runTests.ts
 ```
+
+---
+
+*Unofficial fan project. Not affiliated with Wizards of the Coast. Dungeons & Dragons and Castle Ravenloft are trademarks of Wizards of the Coast.*
