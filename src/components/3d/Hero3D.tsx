@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo, Suspense } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback, Suspense } from 'react';
 import { Cylinder, Box, Sphere, Billboard, Text } from '@react-three/drei';
 import { Interactive, useXR } from '@react-three/xr';
 import { Hero, Position } from '../../game/types';
@@ -222,10 +222,20 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
     }
   });
 
+  const hpRatio = hero.hp / hero.maxHp;
+  const orbColor = useMemo(
+    () => (hpRatio > 0.5 ? "#00ff00" : hpRatio > 0.25 ? "#ffaa00" : "#ff2200"),
+    [hpRatio]
+  );
+  const hpBarColor = useMemo(
+    () => (hpRatio > 0.5 ? "#2e7d32" : hpRatio > 0.25 ? "#f57c00" : "#d32f2f"),
+    [hpRatio]
+  );
+
   // ---------------------------------------------------------------------------
   // Grab / Pick-Up Handlers
   // ---------------------------------------------------------------------------
-  const handleGrabStart = (e: any) => {
+  const handleGrabStart = useCallback((e: any) => {
     if (!isActive) return;
 
     playHapticProfile('hover');
@@ -238,12 +248,12 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
     if (ctrlObj) {
       grabbingControllerRef.current = ctrlObj;
     }
-  };
+  }, [isActive, hero.position, setInteractionMode]);
 
   // ---------------------------------------------------------------------------
   // Release / Drop Handlers
   // ---------------------------------------------------------------------------
-  const handleGrabEnd = () => {
+  const handleGrabEnd = useCallback(() => {
     if (!isDragging) return;
 
     setIsDragging(false);
@@ -283,14 +293,15 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
       addNotification('Cannot place hero on an illegal square — returned to start.', 'warning');
       targetPos.current.set(worldX, 0, worldZ);
     }
-  };
+  }, [isDragging, hoveredSquare, hoveredMonsterId, reachableSet, worldX, worldZ,
+      handleAttackMonster, handleMoveHero, setInteractionMode, addNotification]);
 
-  const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
+  const handlePointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
     if (!isActive) return;
     e.stopPropagation();
     handleGrabStart(e);
 
-    const onPointerMove = (moveEvt: PointerEvent) => {
+    const onPointerMove = (_moveEvt: PointerEvent) => {
       // Desktop raycast tracking
     };
 
@@ -302,19 +313,16 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
 
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
-  };
+  }, [isActive, handleGrabStart, handleGrabEnd]);
 
-  const handleClick = (e: ThreeEvent<MouseEvent>) => {
+  const handleClick = useCallback((e: ThreeEvent<MouseEvent>) => {
     if (interactionMode === 'ability' && selectedPowerId) {
       e.stopPropagation();
       useGameStore.getState().usePower(selectedPowerId, hero.id);
       setInteractionMode('none');
       setSelectedPowerId(null);
     }
-  };
-
-  const hpRatio = hero.hp / hero.maxHp;
-  const orbColor = hpRatio > 0.5 ? "#00ff00" : hpRatio > 0.25 ? "#ffaa00" : "#ff2200";
+  }, [interactionMode, selectedPowerId, hero.id, setInteractionMode, setSelectedPowerId]);
 
   return (
     <Interactive
@@ -411,7 +419,7 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
             {/* HP Bar Foreground */}
             <mesh position={[-0.3 + (hpRatio * 0.6) / 2, 0.08, 0.005]}>
               <planeGeometry args={[hpRatio * 0.6, 0.06]} />
-              <meshBasicMaterial color={hpRatio > 0.5 ? "#2e7d32" : hpRatio > 0.25 ? "#f57c00" : "#d32f2f"} />
+              <meshBasicMaterial color={hpBarColor} />
             </mesh>
    
             {/* HP Text (e.g. "8/10") */}

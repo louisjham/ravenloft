@@ -17,21 +17,27 @@ export const Dice3D: React.FC = () => {
   const physicsProfile = useDiceStore(s => s.physicsProfile);
   const settleResult = useDiceStore(s => s.settleResult);
 
-  const activeHeroPos = useGameStore((state) => {
+  // Select hero world position as two stable primitives so the useMemo below only
+  // recomputes when the hero actually moves, not on every state change.
+  const heroWorldX = useGameStore((state) => {
     const gs = state.gameState;
     if (!gs) return null;
     const hero = gs.heroes.find(h => h.id === gs.currentHeroId);
-    return hero ? hero.position : null;
+    return hero ? hero.position.x * 4 + hero.position.sqX + 0.5 : null;
+  });
+  const heroWorldZ = useGameStore((state) => {
+    const gs = state.gameState;
+    if (!gs) return null;
+    const hero = gs.heroes.find(h => h.id === gs.currentHeroId);
+    return hero ? hero.position.z * 4 + hero.position.sqZ + 0.5 : null;
   });
 
   const arenaPosition = useMemo((): [number, number, number] => {
-    if (!activeHeroPos) return [0, 0, -6];
-    const worldX = activeHeroPos.x * 4 + activeHeroPos.sqX + 0.5;
-    const worldZ = activeHeroPos.z * 4 + activeHeroPos.sqZ + 0.5;
+    if (heroWorldX === null || heroWorldZ === null) return [0, 0, -6];
     // Offset the dice drop slightly towards the camera/side (+1.0 in X and Z)
     // so it is visible and does not drop directly on top of the hero miniature.
-    return [worldX + 1.0, 0.1, worldZ + 1.0];
-  }, [activeHeroPos]);
+    return [heroWorldX + 1.0, 0.1, heroWorldZ + 1.0];
+  }, [heroWorldX, heroWorldZ]);
 
   // We only render the physical die when rolling, settling, or showing result
   const shouldRenderPhysical = phase === 'rolling' || phase === 'settling' || phase === 'showing_result';

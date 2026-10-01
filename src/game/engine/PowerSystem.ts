@@ -4,6 +4,7 @@ import { CombatAdapter } from './CombatAdapter';
 import { ConditionSystem } from './ConditionSystem';
 import { getTileGraphDistance } from './MonsterAI';
 import { isDev } from '../../utils/devEnv';
+import { CARD_IDS } from '../constants';
 
 /**
  * Power System - Manages Daily, At-Will, and Utility powers
@@ -165,8 +166,8 @@ export class PowerSystem {
             }
 
             // Cackling Skull environment check
-            if (currentState.activeEnvironmentCard === 'enc_cackling_skull') {
-                console.log(`[PowerSystem] Cackling Skull active: ${currentHero.name} takes 1 damage for using a ${powerCard.powerType} power.`);
+            if (currentState.activeEnvironmentCard === CARD_IDS.ENC_CACKLING_SKULL) {
+                if (isDev()) console.log(`[PowerSystem] Cackling Skull active: ${currentHero.name} takes 1 damage for using a ${powerCard.powerType} power.`);
                 const damagedHero = CombatSystem.applyDamage(currentHero, 1) as Hero;
                 currentState = this.updateEntityInState(currentState, damagedHero);
                 currentHero = damagedHero;

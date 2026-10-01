@@ -12,6 +12,8 @@ import { useUIStore } from '../uiStore';
 import { isDev } from '../../utils/devEnv';
 import { ConditionSystem } from '../../game/engine/ConditionSystem';
 import { getTileGraphDistance } from '../../game/engine/MonsterAI';
+import { resetHeroTurnFlags } from '../../game/engine/HeroTurnUtils';
+import { CARD_IDS } from '../../game/constants';
 
 export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set, get) => ({
   playCard: (cardId: string, targetId: string) => {
@@ -96,8 +98,8 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
       const otherRogue = drawState.heroes.find(h =>
         h.id !== activeHeroId &&
         h.heroClass === 'rogue' &&
-        (h.abilities.includes('rogue_spring_away') || h.hand.includes('rogue_spring_away')) &&
-        !(h.flippedPowerIds ?? []).includes('rogue_spring_away')
+        (h.abilities.includes(CARD_IDS.ROGUE_SPRING_AWAY) || h.hand.includes(CARD_IDS.ROGUE_SPRING_AWAY)) &&
+        !(h.flippedPowerIds ?? []).includes(CARD_IDS.ROGUE_SPRING_AWAY)
       );
 
       if (otherRogue) {
@@ -129,7 +131,7 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
             const updatedRogue = {
               ...otherRogue,
               position: foundPos,
-              flippedPowerIds: [...(otherRogue.flippedPowerIds ?? []), 'rogue_spring_away']
+              flippedPowerIds: [...(otherRogue.flippedPowerIds ?? []), CARD_IDS.ROGUE_SPRING_AWAY]
             };
 
             const springAwayLog: GameLogEntry = {
@@ -202,14 +204,14 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
 
       const wizard = state.heroes.find(h =>
           h.heroClass === 'wizard' &&
-          (h.abilities.includes('wizard_dispel_magic') || h.hand.includes('wizard_dispel_magic')) &&
-          !(h.flippedPowerIds ?? []).includes('wizard_dispel_magic')
+          (h.abilities.includes(CARD_IDS.WIZARD_DISPEL_MAGIC) || h.hand.includes(CARD_IDS.WIZARD_DISPEL_MAGIC)) &&
+          !(h.flippedPowerIds ?? []).includes(CARD_IDS.WIZARD_DISPEL_MAGIC)
       );
       if (!wizard) return;
 
       const updatedWizard = {
           ...wizard,
-          flippedPowerIds: [...(wizard.flippedPowerIds ?? []), 'wizard_dispel_magic']
+          flippedPowerIds: [...(wizard.flippedPowerIds ?? []), CARD_IDS.WIZARD_DISPEL_MAGIC]
       };
 
       const logEntry: GameLogEntry = {
@@ -241,43 +243,32 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
 
         const villainState = executeVillainPhase(stateWithIdleCard);
 
-        if (villainState.phase !== 'setup') {
-          const isDefeated = ScenarioManager.checkDefeat(villainState);
-          if (isDefeated) {
-            set({
-              gameState: { ...villainState, phase: 'defeat' as const }
-            });
-            useUIStore.getState().showModal('defeat');
-            return;
-          }
-        }
-
         const currentIndex = villainState.turnOrder.indexOf(villainState.currentHeroId);
         const nextIndex = (currentIndex + 1) % villainState.turnOrder.length;
         const nextId = villainState.turnOrder[nextIndex];
         const stateAfterTurnStart = ConditionSystem.processTurnStart(villainState, nextId);
 
-        // Bug 5: Check defeat right at the start of the next hero's turn
-        if (ScenarioManager.checkDefeat({ ...stateAfterTurnStart, currentHeroId: nextId })) {
-          set({ gameState: { ...stateAfterTurnStart, currentHeroId: nextId, phase: 'defeat' as const } });
+        // Compute phase for single set() commit — checks defeat after villain phase and at turn start
+        const postVillainDefeated = villainState.phase !== 'setup' && ScenarioManager.checkDefeat(villainState);
+        const nextTurnDefeated = !postVillainDefeated && ScenarioManager.checkDefeat({ ...stateAfterTurnStart, currentHeroId: nextId });
+        const nextPhase = (postVillainDefeated || nextTurnDefeated) ? ('defeat' as const) : ('hero' as const);
+
+        if (nextPhase === 'defeat') {
           useUIStore.getState().showModal('defeat');
-          return;
         }
 
         set({
           gameState: {
             ...stateAfterTurnStart,
             currentHeroId: nextId,
-            phase: 'hero' as const,
+            phase: nextPhase,
             hasExploredThisTurn: false,
             exploredThisTurn: false,
+            hasAttackedThisTurn: false,
             lastPlacedTileEncounterType: null,
             lastPlacedTileId: null,
             turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0),
-            heroes: stateAfterTurnStart.heroes.map(h => ({
-              ...h,
-              extraActionsThisTurn: 0,
-            }))
+            heroes: stateAfterTurnStart.heroes.map(resetHeroTurnFlags)
           }
         });
       } else {
@@ -287,8 +278,8 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
             discardPiles,
             cardResolution: {
                 phase: 'idle' as const,
-                cardId: '',
-                cardType: 'encounter' as const,
+                cardId: null,
+                cardType: null,
                 pendingEffects: [],
                 resolvedEffects: [],
                 targetEntityId: null,
@@ -475,14 +466,7 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
             lastPlacedTileEncounterType: null,
             lastPlacedTileId: null,
             turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0),
-            // Reset per-turn fortune flags on all heroes
-            heroes: stateAfterTurnStart.heroes.map(h => ({
-              ...h,
-              extraActionsThisTurn: 0,
-              hasRolledNatural20ThisTurn: false,
-              hasUsedSurgeThisTurn: false,
-              isExhausted: false,
-            })),
+            heroes: stateAfterTurnStart.heroes.map(resetHeroTurnFlags),
             hasAttackedThisTurn: false
           }
         });

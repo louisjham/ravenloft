@@ -1468,9 +1468,10 @@ export class TreasureSystem {
       let targetTile: Tile | undefined;
       if (target.type === 'monster') {
         targetTile = gameState.tiles.find(t => t.x === target.position?.x && t.z === target.position?.z);
-      } else {
-        const maybeTile = target as any;
-        targetTile = gameState.tiles.find(t => t.x === maybeTile.x && t.z === maybeTile.z);
+      } else if ('x' in target && 'z' in target) {
+        // target was passed as a Tile object (x/z grid coordinates)
+        const t = target as unknown as { x: number; z: number };
+        targetTile = gameState.tiles.find(tile => tile.x === t.x && tile.z === t.z);
       }
 
       if (!targetTile) {

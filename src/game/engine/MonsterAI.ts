@@ -419,7 +419,7 @@ function evaluateCondition(
       return monster.hp / monster.maxHp < 0.3;
 
     default:
-      console.warn(`MonsterAI: Unrecognised condition string "${condition}"`);
+      if (isDev()) console.warn(`MonsterAI: Unrecognised condition string "${condition}"`);
       return false;
   }
 }

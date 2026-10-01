@@ -13,6 +13,18 @@ import { executeVillainPhase } from './villainPhaseLogic';
 import { ObjectiveTracker } from '../../game/scenarios/Objectives';
 import { ScenarioManager } from '../../game/scenarios/ScenarioManager';
 import { isDev } from '../../utils/devEnv';
+import { resetHeroTurnFlags } from '../../game/engine/HeroTurnUtils';
+import { SCENARIO_IDS, TILE_IDS } from '../../game/constants';
+
+/** Fisher-Yates shuffle — returns a new shuffled array, does not mutate the input. */
+function shuffled<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set, get) => ({
   gameState: null,
@@ -43,7 +55,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     const selectedHeroes = heroIds.map(id => allHeroes.find(h => h.id === id)).filter(Boolean) as Hero[];
 
     if (!scenario) {
-      console.error('[ERROR] gameStore.startNewGame: Scenario not found for ID:', scenarioId);
+      if (isDev()) console.error('[ERROR] gameStore.startNewGame: Scenario not found for ID:', scenarioId);
       return;
     }
 
@@ -56,7 +68,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
       tiles: (() => {
         const startTileTemplate = DataLoader.getInstance().getTileById(scenario.startTileId);
         if (!startTileTemplate) {
-          console.error('[ERROR] Start tile template not found:', scenario.startTileId);
+          if (isDev()) console.error('[ERROR] Start tile template not found:', scenario.startTileId);
           return [];
         }
         return [{
@@ -112,13 +124,13 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
         // If the scenario uses a lair packet system (Adventure 7), handle it
         if (scenario.lairPacketSize && scenario.lairCount && scenario.villainLairPairings) {
           const lairTileIds = scenario.villainLairPairings.map(p => p.lairTileId);
-          const shuffledLairTiles = [...lairTileIds].sort(() => Math.random() - 0.5);
+          const shuffledLairTiles = shuffled(lairTileIds);
           const selectedLairTiles = shuffledLairTiles.slice(0, scenario.lairCount);
 
           // Build the lair packet: selected lair tiles shuffled into `lairPacketSize` pool tiles
           const packetSize = scenario.lairPacketSize;
           const packetPool = poolTileIds.splice(0, packetSize - selectedLairTiles.length);
-          const lairPacket = [...packetPool, ...selectedLairTiles].sort(() => Math.random() - 0.5);
+          const lairPacket = shuffled([...packetPool, ...selectedLairTiles]);
 
           // Insert lair packet near the beginning of the deck
           poolTileIds.splice(0, 0, ...lairPacket);
@@ -131,9 +143,9 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
           poolTileIds.splice(insertAt, 0, placement.tileId);
         }
 
-        if (scenario.id === 'adventure_tome_of_strahd') {
+        if (scenario.id === SCENARIO_IDS.ADVENTURE_TOME_OF_STRAHD) {
           const top3 = poolTileIds.splice(0, 3);
-          const tomePacket = [...top3, 'crypt_barov_ravenovia'].sort(() => Math.random() - 0.5);
+          const tomePacket = shuffled([...top3, TILE_IDS.CRYPT_BAROV_RAVENOVIA]);
           poolTileIds.splice(12, 0, ...tomePacket);
         }
 
@@ -245,7 +257,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
           extra.defeatedVillainIds = [];
         }
 
-        if (scenario.id === 'adventure_tome_of_strahd') {
+        if (scenario.id === SCENARIO_IDS.ADVENTURE_TOME_OF_STRAHD) {
           const itemTokens = [
             'item_silver_dagger',
             'item_dimensional_shackles',
@@ -256,7 +268,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
             'item_gravestorms_phylactery',
             'item_tome_of_strahd'
           ];
-          extra.tomeOfStrahdItemStack = itemTokens.sort(() => Math.random() - 0.5);
+          extra.tomeOfStrahdItemStack = shuffled(itemTokens);
 
           const villainTokens = [
             'monster_werewolf',
@@ -267,7 +279,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
             'monster_kobold_sorcerer',
             'monster_young_vampire'
           ];
-          extra.tomeOfStrahdVillainStack = villainTokens.sort(() => Math.random() - 0.5);
+          extra.tomeOfStrahdVillainStack = shuffled(villainTokens);
         }
 
         return extra;
@@ -393,7 +405,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     }
  
     // Tome of Strahd token reveal logic
-    if (s.activeScenario.id === 'adventure_tome_of_strahd') {
+    if (s.activeScenario.id === SCENARIO_IDS.ADVENTURE_TOME_OF_STRAHD) {
       const activeHero = s.heroes.find(h => h.id === s.currentHeroId);
       if (activeHero && s.tokens) {
         const itemTokens = s.tokens.filter(t => t.type === 'item' && !t.isRevealed);
@@ -511,7 +523,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
               result: null
             },
             pendingEncounter: true
-          } as any
+          }
         });
         return; // Wait for encounter to be resolved before continuing
       }
@@ -525,17 +537,16 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     const nextId = newState.turnOrder[nextIndex];
     const stateAfterTurnStart = ConditionSystem.processTurnStart(newState, nextId);
  
-    // Check defeat right at the start of the next hero's turn
-    if (ScenarioManager.checkDefeat({ ...stateAfterTurnStart, currentHeroId: nextId })) {
-      set({ gameState: { ...stateAfterTurnStart, currentHeroId: nextId, phase: 'defeat' } as any });
-      return;
-    }
- 
+    // Compute the final committed state (single set() call for normal turn transition)
+    const nextTurnPhase = ScenarioManager.checkDefeat({ ...stateAfterTurnStart, currentHeroId: nextId })
+      ? ('defeat' as const)
+      : ('hero' as const);
+
     set({
       gameState: {
         ...stateAfterTurnStart,
         currentHeroId: nextId,
-        phase: 'hero',
+        phase: nextTurnPhase,
         hasExploredThisTurn: false,
         exploredThisTurn: false,
         lastPlacedTileEncounterType: null,
@@ -543,6 +554,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
         hasAttackedThisTurn: false,
         turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0),
         heroes: stateAfterTurnStart.heroes.map(h => {
+          // Compute Dread Warrior adjacency for the incoming hero only
           let startedTurnAdjacentToDreadWarriorIds: string[] = [];
           if (h.id === nextId) {
             const dreadWarriors = stateAfterTurnStart.monsters.filter(m => !m.isDefeated && m.hp > 0 && m.name.toLowerCase() === 'dread warrior');
@@ -551,22 +563,14 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
               const hAbsZ = h.position.z * 4 + h.position.sqZ;
               const dwAbsX = dw.position.x * 4 + dw.position.sqX;
               const dwAbsZ = dw.position.z * 4 + dw.position.sqZ;
-              const isAdjacent = Math.abs(hAbsX - dwAbsX) + Math.abs(hAbsZ - dwAbsZ) === 1;
-              if (isAdjacent) {
+              if (Math.abs(hAbsX - dwAbsX) + Math.abs(hAbsZ - dwAbsZ) === 1) {
                 startedTurnAdjacentToDreadWarriorIds.push(dw.id);
               }
             }
           }
-          return {
-            ...h,
-            extraActionsThisTurn: 0,
-            hasRolledNatural20ThisTurn: false,
-            hasUsedSurgeThisTurn: false,
-            isExhausted: false,
-            startedTurnAdjacentToDreadWarriorIds
-          };
+          return { ...resetHeroTurnFlags(h), startedTurnAdjacentToDreadWarriorIds };
         })
-      } as any
+      }
     });
   },
 
@@ -580,7 +584,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     // Delegate to ExperienceSystem which uses the shared experiencePile (card-based XP)
     const result = ExperienceSystem.levelUpHero(state, hero, newDailyPowerId);
     if (!result.success) {
-      console.warn('[coreSlice.levelUpHero]', result.message);
+      if (isDev()) console.warn('[coreSlice.levelUpHero]', result.message);
       return;
     }
 
@@ -608,7 +612,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
 
     const result = ExperienceSystem.cureMummyRot(state, hero);
     if (!result.success) {
-      console.warn('[coreSlice.cureMummyRot]', result.message);
+      if (isDev()) console.warn('[coreSlice.cureMummyRot]', result.message);
       return;
     }
 
@@ -647,8 +651,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     });
   },
 
-  discardTreasureForPower: (heroId: string) => {
-    console.log('discardTreasureForPower called for', heroId);
+  discardTreasureForPower: (_heroId: string) => {
     // TODO: implement discard treasure for power upgrade
   },
 
@@ -656,10 +659,13 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     const state = get().gameState;
     if (!state) return;
     if (!state.pendingFortune) {
-      console.warn('[resolvePendingFortune] Called with no pendingFortune in state.');
+      if (isDev()) console.warn('[resolvePendingFortune] Called with no pendingFortune in state.');
       return;
     }
-    const { newState, message } = await TreasureSystem.resolvePendingFortuneAsync(state, choice as any);
+    const { newState, message } = await TreasureSystem.resolvePendingFortuneAsync(
+      state,
+      choice as Parameters<typeof TreasureSystem.resolvePendingFortuneAsync>[1]
+    );
     const syncedState = ConditionSystem.syncActiveConditions(newState);
     const updatedState = {
       ...syncedState,

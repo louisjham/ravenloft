@@ -14,15 +14,25 @@ export function buildVillainQueue(
   state: GameState,
   activeHeroId: string
 ): string[] {
+  // Use a Set for O(1) deduplication instead of O(n) Array.includes inside loops
+  const queueSet = new Set<string>();
   const queue: string[] = [];
+
+  const addToQueue = (id: string) => {
+    if (!queueSet.has(id)) {
+      queueSet.add(id);
+      queue.push(id);
+    }
+  };
 
   // Step 1: collect monsters owned by the active hero (alive only, insertion order)
   const ownedMonsters = state.monsters.filter(
     m => m.hp > 0 && m.ownedByHeroId === activeHeroId
   );
   for (const m of ownedMonsters) {
-    queue.push(m.id);
+    addToQueue(m.id);
     if (state.frenzyActiveThisTurn) {
+      // Frenzy adds the monster a second time; bypass dedup by pushing directly
       queue.push(m.id);
     }
   }
@@ -39,19 +49,16 @@ export function buildVillainQueue(
       monster.ownedByHeroId !== null &&
       !monster.isBoss &&
       monster.name &&
-      queuedNames.has(monster.name) &&
-      !queue.includes(monster.id)
+      queuedNames.has(monster.name)
     ) {
-      queue.push(monster.id);
+      addToQueue(monster.id);
     }
   }
 
   // Add unowned boss monsters (they act every villain phase regardless of whose turn it is)
   for (const monster of state.monsters) {
     if (monster.hp > 0 && monster.ownedByHeroId === null && monster.isBoss) {
-      if (!queue.includes(monster.id)) {
-        queue.push(monster.id);
-      }
+      addToQueue(monster.id);
     }
   }
 
@@ -118,6 +125,9 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
     // 1. Resolve monster movement
     if (result.action === 'move' || result.action === 'move_then_attack') {
       newState = resolveMonsterMovement(newState, monster, result);
+      // Re-fetch after movement so subsequent steps see the updated position
+      const movedMonster = newState.monsters.find(m => m.id === monsterId);
+      if (movedMonster) monster = movedMonster;
     }
 
     // 2. Resolve monster attacks

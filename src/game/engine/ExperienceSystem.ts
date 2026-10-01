@@ -1,6 +1,7 @@
 import { GameState, Hero } from '../types';
 import { PowerSystem } from './PowerSystem';
 import { DataLoader } from '../dataLoader';
+import { isDev } from '../../utils/devEnv';
 
 // Both costs are 5 per rulebook — separate constants in case they ever diverge
 const XP_COST_CANCEL = 5;
@@ -45,7 +46,7 @@ export class ExperienceSystem {
     if (template && template.experienceValue) {
       return template.experienceValue;
     }
-    console.warn(`[ExperienceSystem] No monster template found for ID "${monsterCardId}", defaulting to 1 XP`);
+    if (isDev()) console.warn(`[ExperienceSystem] No monster template found for ID "${monsterCardId}", defaulting to 1 XP`);
     return 1;
   }
 

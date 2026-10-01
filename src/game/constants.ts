@@ -37,8 +37,23 @@ export const GAME_CONSTANTS = {
 export type GamePhaseType = typeof GAME_CONSTANTS.PHASES[number];
 
 export const CARD_IDS = {
+  // Blessings
   BLESSING_HEROIC_STAND: 'treasure_blessing_heroic_stand_151',
   BLESSING_REJUVENATING_ONSLAUGHT: 'treasure_blessing_rejuvenating_onslaught_153',
   BLESSING_RUN: 'treasure_blessing_run_154',
   BLESSING_SURROUND_THEM: 'treasure_blessing_surround_them_155',
+  // Power cards referenced across multiple slices
+  WIZARD_DISPEL_MAGIC: 'wizard_dispel_magic',
+  ROGUE_SPRING_AWAY: 'rogue_spring_away',
+  // Environment encounter cards referenced across engine + store
+  ENC_CACKLING_SKULL: 'enc_cackling_skull',
+  ENC_DEADLY_SHADOWS: 'enc_deadly_shadows',
+};
+
+export const SCENARIO_IDS = {
+  ADVENTURE_TOME_OF_STRAHD: 'adventure_tome_of_strahd',
+};
+
+export const TILE_IDS = {
+  CRYPT_BAROV_RAVENOVIA: 'crypt_barov_ravenovia',
 };

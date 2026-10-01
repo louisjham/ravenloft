@@ -38,9 +38,9 @@ export class CardResolutionSystem {
         if (res.cardId === 'encounter-volcanic-smoke') {
           pendingEffects.push({ type: 'status_effect', statusEffect: 'frightened' as ConditionType, duration: 1, target: 'single' });
         } else if (res.cardId === 'event_test') {
-          pendingEffects.push({ type: 'damage' as any, value: 2, target: 'single' });
+          pendingEffects.push({ type: 'damage', value: 2, target: 'single' });
         } else if (res.cardType === 'treasure') {
-          pendingEffects.push({ type: 'heal' as any, value: 1, target: 'self' });
+          pendingEffects.push({ type: 'heal', value: 1, target: 'self' });
         }
         return {
           ...state,

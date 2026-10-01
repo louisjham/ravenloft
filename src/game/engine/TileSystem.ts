@@ -1,8 +1,9 @@
 import { Tile, Position, TileConnection, Direction, Rotation, GameState, ExplorationPoint, EdgeConflict, ValidationResult, Monster } from '../types';
-import { GAME_CONSTANTS } from '../constants';
+import { GAME_CONSTANTS, SCENARIO_IDS, TILE_IDS } from '../constants';
 import { DataLoader } from '../dataLoader';
 import { TokenSystem } from './TokenSystem';
 import { getTileGraphDistance } from './MonsterAI';
+import { isDev } from '../../utils/devEnv';
 
 /**
  * Handles tile placement, exploration edge detection, and grid management.
@@ -169,14 +170,14 @@ export class TileSystem {
     // 1. Draw from deck
     const drawResult = TileSystem.drawAndPlace(gameState, explorationPoint);
     if (drawResult.exhausted || !drawResult.tile) {
-      console.warn('[TileSystem] drawAndPlace exhausted or no tile found.');
+      if (isDev()) console.warn('[TileSystem] drawAndPlace exhausted or no tile found.');
       return gameState;
     }
 
     // 2. Identify parent tile
     const parentTile = gameState.tiles.find(t => t.id === explorationPoint.tileId);
     if (!parentTile) {
-      console.warn(`[TileSystem] Parent tile not found for ID: ${explorationPoint.tileId}`);
+      if (isDev()) console.warn(`[TileSystem] Parent tile not found for ID: ${explorationPoint.tileId}`);
       return gameState;
     }
 
@@ -193,7 +194,7 @@ export class TileSystem {
 
     // 4. Overlap bounds check
     if (!TileSystem.canPlaceTile(gameState.tiles, tile.x, tile.z)) {
-      console.warn(`[TileSystem] Placement overlap detected at (${tile.x}, ${tile.z}).`);
+      if (isDev()) console.warn(`[TileSystem] Placement overlap detected at (${tile.x}, ${tile.z}).`);
       return gameState;
     }
 
@@ -238,7 +239,7 @@ export class TileSystem {
     };
 
     // Tome of Strahd: drop facedown item token on black triangle tiles
-    if (gameState.activeScenario.id === 'adventure_tome_of_strahd' && tile.encounterType === 'black') {
+    if (gameState.activeScenario.id === SCENARIO_IDS.ADVENTURE_TOME_OF_STRAHD && tile.encounterType === 'black') {
       const itemStack = finalState.tomeOfStrahdItemStack ? [...finalState.tomeOfStrahdItemStack] : [];
       if (itemStack.length > 0) {
         const poppedItemId = itemStack.shift();
@@ -274,20 +275,20 @@ export class TileSystem {
     // 1. Draw from bottom of the deck
     const drawResult = TileSystem.drawAndPlaceFromBottom(gameState, explorationPoint);
     if (drawResult.exhausted || !drawResult.tile) {
-      console.warn('[TileSystem] drawAndPlaceFromBottom exhausted or no tile found.');
+      if (isDev()) console.warn('[TileSystem] drawAndPlaceFromBottom exhausted or no tile found.');
       return gameState;
     }
 
     const rotation = chosenRotation !== undefined ? chosenRotation : drawResult.validRotations[0];
     if (rotation === undefined) {
-      console.warn('[TileSystem] No valid rotations found for bottom tile.');
+      if (isDev()) console.warn('[TileSystem] No valid rotations found for bottom tile.');
       return gameState;
     }
 
     // 2. Identify parent tile
     const parentTile = gameState.tiles.find(t => t.id === explorationPoint.tileId);
     if (!parentTile) {
-      console.warn(`[TileSystem] Parent tile not found for ID: ${explorationPoint.tileId}`);
+      if (isDev()) console.warn(`[TileSystem] Parent tile not found for ID: ${explorationPoint.tileId}`);
       return gameState;
     }
 
@@ -304,7 +305,7 @@ export class TileSystem {
 
     // 4. Overlap bounds check
     if (!TileSystem.canPlaceTile(gameState.tiles, tile.x, tile.z)) {
-      console.warn(`[TileSystem] Placement overlap detected at (${tile.x}, ${tile.z}).`);
+      if (isDev()) console.warn(`[TileSystem] Placement overlap detected at (${tile.x}, ${tile.z}).`);
       return gameState;
     }
 
@@ -349,7 +350,7 @@ export class TileSystem {
     };
 
     // Tome of Strahd: drop facedown item token on black triangle tiles
-    if (gameState.activeScenario.id === 'adventure_tome_of_strahd' && tile.encounterType === 'black') {
+    if (gameState.activeScenario.id === SCENARIO_IDS.ADVENTURE_TOME_OF_STRAHD && tile.encounterType === 'black') {
       const itemStack = finalState.tomeOfStrahdItemStack ? [...finalState.tomeOfStrahdItemStack] : [];
       if (itemStack.length > 0) {
         const poppedItemId = itemStack.shift();
@@ -404,7 +405,7 @@ export class TileSystem {
     let isTomeGuardian = false;
     let updatedVillainStack = gameState.tomeOfStrahdVillainStack ? [...gameState.tomeOfStrahdVillainStack] : [];
 
-    if (gameState.activeScenario.id === 'adventure_tome_of_strahd' && tile.id === 'crypt_barov_ravenovia' && updatedVillainStack.length > 0) {
+    if (gameState.activeScenario.id === SCENARIO_IDS.ADVENTURE_TOME_OF_STRAHD && tile.id === TILE_IDS.CRYPT_BAROV_RAVENOVIA && updatedVillainStack.length > 0) {
       drawnTemplateId = updatedVillainStack.shift();
       isTomeGuardian = true;
     } else {

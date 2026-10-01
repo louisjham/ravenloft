@@ -5,6 +5,7 @@ import { PowerSystem } from '../../game/engine/PowerSystem';
 import PowerSelectionSystem from '../../game/engine/PowerSelectionSystem';
 import { getAllPowerCards } from '../../data/powerCardLoader';
 import { Card, GameLogEntry } from '../../game/types';
+import { isDev } from '../../utils/devEnv';
 
 export const createPowerSlice: StateCreator<GameStore, [], [], PowerSlice> = (set, get) => ({
   usePower: async (cardId: string, targetId: string) => {

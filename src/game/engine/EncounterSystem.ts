@@ -6,6 +6,7 @@ import { TreasureSystem } from './TreasureSystem';
 import { TileSystem } from './TileSystem';
 import { AbilitySystem } from '../ai/AbilitySystem';
 import { getPathToward, activateMonsterEntity, getTileGraphDistance } from './MonsterAI';
+import { isDev } from '../../utils/devEnv';
 
 
 
@@ -521,14 +522,14 @@ export class EncounterSystem {
         }
 
         // -----------------------------------------------------------------------
-        // Cyrus Belview — draw bottom tile adjacent to first unexplored edge, place 2 monsters, place all heroes there
+        // Cyrus Belview — draw bottom tile adjacent to a random unexplored edge, place 2 monsters, relocate all heroes there
         // -----------------------------------------------------------------------
         if (card.id === 'enc_cyrus_belview') {
             const points = TileSystem.getExplorationPoints(gameState.tiles);
             if (points.length === 0) {
                 return { success: true, message: 'Cyrus Belview: No unexplored edges. Card discarded.', gameState: discard(gameState) };
             }
-            const targetPoint = points[0];
+            const targetPoint = points[Math.floor(Math.random() * points.length)];
             const drawResult = TileSystem.drawAndPlaceFromBottom(gameState, targetPoint);
             if (!drawResult.tile) {
                 return { success: true, message: 'Cyrus Belview: Could not place tile. Card discarded.', gameState: discard(gameState) };
@@ -1094,80 +1095,6 @@ export class EncounterSystem {
                 message: `Cowardly Flight: The closest monster (${closestMonster.name}) flees to the new tile. A new monster has also spawned there.`,
                 gameState: discard({ ...gameState, tiles: updatedTiles, monsters: finalMonsters, monsterDeck: finalMonsterDeck, dungeonDeck: drawResult.remainingDeck })
             };
-        }
-
-        // -----------------------------------------------------------------------
-        // Cyrus Belview — draw bottom tile adjacent to any unexplored edge; spawn 2 monsters; move active hero there; others may follow
-        // -----------------------------------------------------------------------
-        if (card.id === 'enc_cyrus_belview') {
-            const points = TileSystem.getExplorationPoints(gameState.tiles);
-            if (points.length === 0) {
-                return { success: true, message: 'Cyrus Belview: No unexplored edges. Card discarded.', gameState: discard(gameState) };
-            }
-            const targetPoint = points[Math.floor(Math.random() * points.length)];
-            const drawResult = TileSystem.drawAndPlaceFromBottom(gameState, targetPoint);
-            if (!drawResult.tile) {
-                return { success: true, message: 'Cyrus Belview: Could not place tile. Card discarded.', gameState: discard(gameState) };
-            }
-            const parentTile = gameState.tiles.find(t => t.id === targetPoint.tileId)!;
-            const targetCoords = TileSystem.getTargetCoords(parentTile.x, parentTile.z, targetPoint.edge);
-            const newTileInstance: Tile = {
-                ...drawResult.tile,
-                id: `${drawResult.tile.id}_${Math.random().toString(36).substr(2, 5)}`,
-                x: targetCoords.x, z: targetCoords.z,
-                rotation: drawResult.validRotations[0],
-                isRevealed: true, monsters: [], heroes: [], items: []
-            };
-            let updatedTiles = TileSystem.connectTiles(gameState.tiles, parentTile, newTileInstance, targetPoint.edge);
-            let monsterDeck = drawResult.remainingDeck;
-            let updatedMonsters = [...gameState.monsters];
-            // Spawn 2 monsters
-            for (let i = 0; i < 2; i++) {
-                const spawnResult = this.spawnMonsterOnTile({ ...gameState, tiles: updatedTiles, monsters: updatedMonsters, monsterDeck, dungeonDeck: drawResult.remainingDeck }, newTileInstance);
-                if (spawnResult.monster) {
-                    updatedMonsters = [...updatedMonsters, { ...spawnResult.monster, ownedByHeroId: activeHero.id }];
-                    monsterDeck = spawnResult.monsterDeck;
-                }
-            }
-            // Move all heroes to new tile (auto-follow per card: "each other Hero can place himself or herself")
-            const updatedHeroes = gameState.heroes.map(h => ({
-                ...h, position: { ...h.position, x: newTileInstance.x, z: newTileInstance.z }
-            }));
-            updatedTiles = updatedTiles.map(t => {
-                if (t.x === newTileInstance.x && t.z === newTileInstance.z) {
-                    return { ...t, heroes: gameState.heroes.map(h => h.id) };
-                }
-                return { ...t, heroes: t.heroes.filter(id => !gameState.heroes.find(h => h.id === id)) };
-            });
-            return { success: true, message: `Cyrus Belview: All heroes move to new tile (${newTileInstance.x},${newTileInstance.z}) with 2 new monsters.`, gameState: discard({ ...gameState, tiles: updatedTiles, heroes: updatedHeroes, monsters: updatedMonsters, monsterDeck, dungeonDeck: drawResult.remainingDeck }) };
-        }
-
-        // -----------------------------------------------------------------------
-        // Strahd's Whispers — DEFERRED (requires player to choose power to attack adjacent hero)
-        // -----------------------------------------------------------------------
-        if (card.id === 'enc_strahds_whispers') {
-            const otherHeroes = gameState.heroes.filter(h => h.id !== activeHero.id);
-            if (otherHeroes.length === 0) {
-                return { success: true, message: "Strahd's Whispers: No other heroes to target.", gameState: discard(gameState) };
-            }
-            // Find closest other hero
-            let closestHero = otherHeroes[0];
-            let minDist = manhattanDistance(activeHero.position, closestHero.position);
-            for (const h of otherHeroes) {
-                const d = manhattanDistance(activeHero.position, h.position);
-                if (d < minDist) { minDist = d; closestHero = h; }
-            }
-            // Move active hero adjacent to closest hero
-            const updatedHeroes = gameState.heroes.map(h =>
-                h.id === activeHero.id ? { ...h, position: { ...h.position, x: closestHero.position.x, z: closestHero.position.z } } : h
-            );
-            const updatedTiles = gameState.tiles.map(t => {
-                let heroes = [...t.heroes];
-                if (t.x === activeHero.position.x && t.z === activeHero.position.z) heroes = heroes.filter(id => id !== activeHero.id);
-                if (t.x === closestHero.position.x && t.z === closestHero.position.z) heroes = [...new Set([...heroes, activeHero.id])];
-                return { ...t, heroes };
-            });
-            return { success: true, message: `Strahd's Whispers: ${activeHero.name} placed adjacent to ${closestHero.name}. (At-will attack deferred — requires player selection.)`, gameState: discard({ ...gameState, heroes: updatedHeroes, tiles: updatedTiles }) };
         }
 
         // -----------------------------------------------------------------------
@@ -2209,7 +2136,7 @@ export class EncounterSystem {
 
     private static spawnMonsterOnTile(gameState: GameState, tile: Tile): { monster: Monster | null; monsterDeck: string[] } {
         if (gameState.monsterDeck.length === 0) {
-            console.error('[EncounterSystem] Monster deck is empty!');
+            if (isDev()) console.error('[EncounterSystem] Monster deck is empty!');
             return { monster: null, monsterDeck: gameState.monsterDeck };
         }
 
@@ -2219,7 +2146,7 @@ export class EncounterSystem {
 
         const template = DataLoader.getInstance().getMonsterById(monsterTemplateId);
         if (!template) {
-            console.error(`[EncounterSystem] Failed to find monster template: ${monsterTemplateId}`);
+            if (isDev()) console.error(`[EncounterSystem] Failed to find monster template: ${monsterTemplateId}`);
             return { monster: null, monsterDeck: deck };
         }
 

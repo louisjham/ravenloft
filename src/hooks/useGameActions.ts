@@ -1,8 +1,8 @@
+import { useCallback } from 'react'
 import { useGameStore } from '../store/gameStore'
 import { useUIStore } from '../store/uiStore'
 import { animationQueue } from '../utils/animationQueue'
-import { Position, Entity, Tile, TokenSearchResult } from '../game/types'
-import { TokenSystem } from '../game/engine/TokenSystem'
+import { Position, Entity, TokenSearchResult } from '../game/types'
 import { TileSystem } from '../game/engine/TileSystem'
 import { ConditionSystem } from '../game/engine/ConditionSystem'
 
@@ -21,7 +21,7 @@ export const useGameActions = () => {
   // ---------------------------------------------------------------------------
   // Move hero — validated via square-level BFS (matches Castle Ravenloft 2010 rules)
   // ---------------------------------------------------------------------------
-  const handleMoveHero = async (targetPosition: Position) => {
+  const handleMoveHero = useCallback(async (targetPosition: Position) => {
     // Read state imperatively at execution time
     const gameState = useGameStore.getState().gameState;
     if (!gameState) return;
@@ -168,12 +168,13 @@ export const useGameActions = () => {
         }
       }
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Attack monster
   // ---------------------------------------------------------------------------
-  const handleAttackMonster = async (monsterId: string) => {
+  const handleAttackMonster = useCallback(async (monsterId: string) => {
     // Read state imperatively at execution time
     const gameState = useGameStore.getState().gameState;
     if (!gameState) return;
@@ -182,7 +183,6 @@ export const useGameActions = () => {
     if (!monster) return;
 
     await animationQueue.enqueue('HeroAttack', async () => {
-      console.log('Playing attack animation on:', monsterId);
       const animSpeed = useGameStore.getState().settings?.animationSpeed ?? 'normal';
       const delay = animSpeed === 'instant' ? 0 : animSpeed === 'fast' ? 70 : 200;
       if (delay > 0) {
@@ -192,12 +192,13 @@ export const useGameActions = () => {
 
     storeAttackMonster(monsterId);
     addNotification(`Attacked ${monster.name}!`, 'info');
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ---------------------------------------------------------------------------
   // End Turn
   // ---------------------------------------------------------------------------
-  const handleEndTurn = () => {
+  const handleEndTurn = useCallback(() => {
     // Read state imperatively at execution time
     const gameState = useGameStore.getState().gameState;
     if (gameState && gameState.phase === 'hero' && !gameState.hasExploredThisTurn) {
@@ -229,19 +230,20 @@ export const useGameActions = () => {
 
     storeEndTurn();
     addNotification('End of turn', 'info');
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Entity selection
   // ---------------------------------------------------------------------------
-  const handleSelectEntity = (entity: Entity | null) => {
+  const handleSelectEntity = useCallback((entity: Entity | null) => {
     storeSelectEntity(entity);
-  };
+  }, [storeSelectEntity]);
 
   // ---------------------------------------------------------------------------
   // Token Search Action
   // ---------------------------------------------------------------------------
-  const handleSearchToken = async (tokenId: string): Promise<TokenSearchResult | null> => {
+  const handleSearchToken = useCallback(async (tokenId: string): Promise<TokenSearchResult | null> => {
     // Read state imperatively at execution time
     const gameState = useGameStore.getState().gameState;
     if (!gameState) return null;
@@ -288,12 +290,13 @@ export const useGameActions = () => {
     }
 
     return searchRes;
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Get searchable tokens on current hero's tile
   // ---------------------------------------------------------------------------
-  const getSearchableTokens = () => {
+  const getSearchableTokens = useCallback(() => {
     // Read state imperatively at execution time
     const gameState = useGameStore.getState().gameState;
     if (!gameState) return [];
@@ -308,12 +311,13 @@ export const useGameActions = () => {
     if (!heroTile) return [];
 
     return getTokensOnTile(heroTile.id).filter(t => !t.isSearched);
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Check if current hero can search
   // ---------------------------------------------------------------------------
-  const canSearch = (): { canSearch: boolean; reason: string } => {
+  const canSearch = useCallback((): { canSearch: boolean; reason: string } => {
     // Read state imperatively at execution time
     const gameState = useGameStore.getState().gameState;
     if (!gameState) return { canSearch: false, reason: 'No game state' };
@@ -322,7 +326,8 @@ export const useGameActions = () => {
     if (!hero) return { canSearch: false, reason: 'No current hero' };
 
     return canSearchTokens(hero.id);
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     handleMoveHero,

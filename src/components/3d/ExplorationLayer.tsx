@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Tile, ExplorationPoint, Direction } from '../../game/types';
+import { Tile, ExplorationPoint, Direction, Position } from '../../game/types';
 import { TileSystem } from '../../game/engine/TileSystem';
 import { ExplorationArrow } from './ExplorationArrow';
 import { ExplorationState } from '../../game/engine/ExplorationStateMachine';
@@ -15,6 +15,21 @@ interface ExplorationLayerProps {
   explorationState?: ExplorationState;
 }
 
+/**
+ * Pure helper — extracted outside the component so it is never re-allocated on render.
+ * Returns true when the hero's square is on the outer row/column facing the given edge.
+ * (Castle Ravenloft 2010: "If Hero at edge of tile, draw new tile.")
+ */
+function isHeroAtEdgeFor(edge: Direction, heroPos: Position): boolean {
+  switch (edge) {
+    case 'north': return heroPos.sqZ === 0;
+    case 'south': return heroPos.sqZ === 3;
+    case 'east':  return heroPos.sqX === 3;
+    case 'west':  return heroPos.sqX === 0;
+    default:      return false;
+  }
+}
+
 export const ExplorationLayer: React.FC<ExplorationLayerProps> = ({ tiles, onEdgeSelected, explorationState }) => {
   const { confirmPlacement } = useTilePlacement();
   const points = useMemo(() => TileSystem.getExplorationPoints(tiles), [tiles]);
@@ -23,37 +38,23 @@ export const ExplorationLayer: React.FC<ExplorationLayerProps> = ({ tiles, onEdg
   const interactionMode = useUIStore(s => s.interactionMode);
   const isExploreMode = interactionMode === 'explore';
 
-  // ── Exploration constraint: board-game rule ────────────────────────────────
-  // Only show explore arrows for open edges on the active hero's CURRENT tile,
-  // and only when the hero occupies a border square adjacent to that edge.
-  // (Castle Ravenloft 2010: "If Hero at edge of tile, draw new tile.")
-  const gameState = useGameStore(s => s.gameState);
-  const activeHero = gameState?.heroes.find(h => h.id === gameState?.currentHeroId);
-  const heroPos = activeHero?.position;
+  // ── Narrow subscriptions — only the fields needed for exploration gating ──
+  const heroPos = useGameStore(s => {
+    const gs = s.gameState;
+    if (!gs) return null;
+    const hero = gs.heroes.find(h => h.id === gs.currentHeroId);
+    return hero?.position ?? null;
+  });
+  const gamePhase = useGameStore(s => s.gameState?.phase);
 
   // Find which tile the hero is standing on
   const heroTileId = heroPos
     ? tiles.find(t => t.x === heroPos.x && t.z === heroPos.z)?.id
     : undefined;
 
-  /**
-   * Returns true when the hero's square is on the outer row/column
-   * that faces the given edge — i.e. they're physically at that tile edge.
-   */
-  const isHeroAtEdgeFor = (edge: Direction): boolean => {
-    if (!heroPos) return false;
-    switch (edge) {
-      case 'north': return heroPos.sqZ === 0;
-      case 'south': return heroPos.sqZ === 3;
-      case 'east':  return heroPos.sqX === 3;
-      case 'west':  return heroPos.sqX === 0;
-      default:      return false;
-    }
-  };
-
   // Only show arrows for edges the hero can actually explore right now
   const visiblePoints = isExploreMode
-    ? points.filter(p => p.tileId === heroTileId && isHeroAtEdgeFor(p.edge))
+    ? points.filter(p => p.tileId === heroTileId && heroPos && isHeroAtEdgeFor(p.edge, heroPos))
     : [];
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -80,7 +81,7 @@ export const ExplorationLayer: React.FC<ExplorationLayerProps> = ({ tiles, onEdg
   return (
     <group name="exploration-layer">
       {!showTilePlacer && points.map((point) => {
-        const isExplorableNow = point.tileId === heroTileId && isHeroAtEdgeFor(point.edge);
+        const isExplorableNow = point.tileId === heroTileId && !!heroPos && isHeroAtEdgeFor(point.edge, heroPos);
         
         if (isExplorableNow) {
           return (
@@ -91,7 +92,7 @@ export const ExplorationLayer: React.FC<ExplorationLayerProps> = ({ tiles, onEdg
               isHighlighted={true}
             />
           );
-        } else if (gameState?.phase === 'hero') {
+        } else if (gamePhase === 'hero') {
           return (
             <ExplorationArrow
               key={`${point.tileId}-${point.edge}`}

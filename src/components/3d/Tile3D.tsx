@@ -11,6 +11,9 @@ import { useUIStore } from '../../store/uiStore';
 
 export const TILE_SIZE = 4;
 
+/** Stable constant — avoids allocating a new array on every Tile3D render. */
+const TILE_EDGES = ['north', 'south', 'east', 'west'] as const;
+
 // Shared static geometries to eliminate GC churn and improve draw call performance
 const slabGeometry = new THREE.BoxGeometry(0.88, 0.06, 0.88);
 const borderGeometry = new THREE.BoxGeometry(0.90, 0.065, 0.90);
@@ -187,7 +190,7 @@ const Tile3DInner: React.FC<Tile3DProps> = ({ tile, isRevealed, reachableSquares
       )}
 
       {/* Dynamic Walls for closed edges (walls) */}
-      {(['north', 'south', 'east', 'west'] as const).map(edge => {
+      {TILE_EDGES.map(edge => {
         const conn = tile.connections.find(c => c.edge === edge);
         if (!conn || (!conn.isOpen && !conn.connectedTileId)) {
           return <ClosedEdgeWall key={`wall-${edge}`} edge={edge} />;
@@ -208,22 +211,24 @@ interface MovementSquare3DProps {
 const MovementSquare3D: React.FC<MovementSquare3DProps> = ({ sqX, sqZ, tile, onMove }) => {
   const [hovered, setHovered] = useState(false);
   const groupRef = useRef<THREE.Group>(null);
+  const frameCount = useRef(0);
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     onMove({ x: tile.x, z: tile.z, sqX, sqZ });
   };
 
+  // Pulse animation throttled to every other frame (~30fps) — imperceptible to players
+  // and halves the number of scale.set / position writes across all visible squares.
   useFrame((state) => {
-    if (groupRef.current) {
-      const time = state.clock.getElapsedTime();
-      const pulseScale = hovered
-        ? 1.05 + Math.sin(time * 8) * 0.03
-        : 0.97 + Math.sin(time * 3) * 0.03;
-
-      groupRef.current.scale.set(pulseScale, hovered ? 1.2 : 1.0, pulseScale);
-      groupRef.current.position.y = hovered ? 0.04 + Math.sin(time * 6) * 0.01 : 0.02;
-    }
+    frameCount.current++;
+    if (!groupRef.current || frameCount.current % 2 !== 0) return;
+    const time = state.clock.getElapsedTime();
+    const pulseScale = hovered
+      ? 1.05 + Math.sin(time * 8) * 0.03
+      : 0.97 + Math.sin(time * 3) * 0.03;
+    groupRef.current.scale.set(pulseScale, hovered ? 1.2 : 1.0, pulseScale);
+    groupRef.current.position.y = hovered ? 0.04 + Math.sin(time * 6) * 0.01 : 0.02;
   });
 
   const handleTriggerMove = () => {

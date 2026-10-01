@@ -2,6 +2,7 @@ import { GameState, Hero, Monster, Position, AttackResult, Card } from '../types
 import { CombatSystem } from './CombatSystem';
 import { TileSystem } from './TileSystem';
 import { ConditionSystem } from './ConditionSystem';
+import { isDev } from '../../utils/devEnv';
 
 /**
  * Validates and resolves game actions.
@@ -14,9 +15,8 @@ export class ActionResolver {
     const entity = [...gameState.heroes, ...gameState.monsters].find(e => e.id === entityId);
     if (!entity) return false;
 
-    // DEBUG: Check if entity is immobilized
     if (ConditionSystem.hasCondition(entity, 'immobilized')) {
-      console.log(`[DEBUG ActionResolver] ${entity.name} is immobilized and cannot move`);
+      if (isDev()) console.log(`[ActionResolver] ${entity.name} is immobilized and cannot move`);
       return false;
     }
 

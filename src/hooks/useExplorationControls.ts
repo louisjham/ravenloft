@@ -13,18 +13,19 @@ import { ScenarioManager } from '../game/scenarios/ScenarioManager';
 import { ExplorationPoint } from '../game/types';
 
 export function useExplorationControls() {
-  const gameState = useGameStore((state) => state.gameState);
+  // All gameState reads are done imperatively inside callbacks via useGameStore.getState()
+  // so this hook only subscribes to the stable store actions it needs.
   const setGameState = useGameStore((state) => state.setGameState);
 
   const exploration = useUIStore((state) => state.explorationState);
   const setExploration = useUIStore((state) => state.setExplorationState);
 
   const onEdgeSelected = useCallback((point: ExplorationPoint) => {
+    // Read gameState imperatively so this callback doesn't need gameState as a dep
+    const gameState = useGameStore.getState().gameState;
     if (!gameState || gameState.phase !== 'hero') return;
-    if (gameState.hasExploredThisTurn) {
-      console.log('[Explore] Already explored this turn');
-      return;
-    }
+    if (gameState.hasExploredThisTurn) return;
+
     const curExploration = useUIStore.getState().explorationState;
     const drawResult = TileSystem.drawAndPlace(gameState, point);
     
@@ -86,15 +87,18 @@ export function useExplorationControls() {
       useUIStore.getState().openTilePlacer();
       useUIStore.setState({ pendingTileRotation: newState.currentRotation });
     }
-  }, [gameState, setExploration, setGameState]);
+  }, [setExploration, setGameState]);
 
   const handlePlacementConfirm = useCallback(() => {
+    // Read gameState imperatively so this callback doesn't need gameState as a dep
+    const gameState = useGameStore.getState().gameState;
     const curExploration = useUIStore.getState().explorationState;
     if (!gameState || (curExploration.phase !== 'positioning' && curExploration.phase !== 'placement_blocked')) return;
 
     const { pendingTileRotation } = useUIStore.getState();
 
-    const pt = gameState.tiles.find(t => t.id === curExploration.point.tileId)!;
+    const pt = gameState.tiles.find(t => t.id === curExploration.point.tileId);
+    if (!pt) return;
     let targetX = pt.x;
     let targetZ = pt.z;
     if (curExploration.point.edge === 'north') targetZ -= 1;
@@ -165,9 +169,11 @@ export function useExplorationControls() {
     } else {
       setExploration(newState);
     }
-  }, [gameState, setGameState, setExploration]);
+  }, [setGameState, setExploration]);
 
   const handlePlacementCancel = useCallback(() => {
+    // Read gameState imperatively so this callback doesn't need gameState as a dep
+    const gameState = useGameStore.getState().gameState;
     const curExploration = useUIStore.getState().explorationState;
     if (!gameState || (curExploration.phase !== 'positioning' && curExploration.phase !== 'placement_blocked')) return;
 
@@ -180,7 +186,7 @@ export function useExplorationControls() {
     }
     useUIStore.getState().closeTilePlacer();
     setExploration(newState);
-  }, [gameState, setGameState, setExploration]);
+  }, [setGameState, setExploration]);
 
   const onAcceptFate = useCallback(() => {
     setExploration({ phase: 'idle' });

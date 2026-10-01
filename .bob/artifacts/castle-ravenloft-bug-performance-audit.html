@@ -1,0 +1,356 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Castle Ravenloft — Bug &amp; Performance Audit</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; font-size: 14px; line-height: 1.6; background: #fff; color: #1f2328; padding: 2rem 1rem; }
+  .container { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .subtitle { color: #57606a; font-size: 0.9rem; margin-bottom: 2rem; }
+  h2 { font-size: 1.05rem; font-weight: 700; margin: 2rem 0 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid #e5e7eb; }
+  h3 { font-size: 0.95rem; font-weight: 600; margin: 1.25rem 0 0.4rem; color: #1f2328; }
+  p { margin-bottom: 0.5rem; color: #1f2328; }
+  code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: 0.82em; background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 3px; padding: 0.1em 0.35em; }
+  .badge { display: inline-block; font-size: 0.72em; font-weight: 700; padding: 0.2em 0.6em; border-radius: 3px; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.03em; }
+  .critical { background: #fde8e8; color: #c0392b; }
+  .high     { background: #fef3cd; color: #7d4e00; }
+  .medium   { background: #e8f0fd; color: #1a4fa0; }
+  .low      { background: #f7f8fa; color: #57606a; border: 1px solid #e5e7eb; }
+  .finding { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 5px; padding: 0.85rem 1rem; margin-bottom: 0.75rem; }
+  .finding-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem; }
+  .finding-title { font-weight: 600; font-size: 0.93rem; }
+  .file-loc { font-size: 0.8rem; color: #57606a; font-family: "SFMono-Regular", Consolas, monospace; }
+  .summary-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; margin-top: 0.5rem; }
+  .summary-table th { background: #f7f8fa; padding: 0.45rem 0.6rem; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600; }
+  .summary-table td { padding: 0.4rem 0.6rem; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+  .summary-table tr:last-child td { border-bottom: none; }
+  .stats { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
+  .stat-box { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 5px; padding: 0.65rem 1rem; min-width: 110px; text-align: center; }
+  .stat-num { font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
+  .stat-label { font-size: 0.75rem; color: #57606a; }
+  .stat-num.c { color: #c0392b; }
+  .stat-num.h { color: #7d4e00; }
+  .stat-num.m { color: #1a4fa0; }
+  .stat-num.l { color: #57606a; }
+  footer { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; text-align: center; font-size: 12px; color: #57606a; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Castle Ravenloft — Bug &amp; Performance Audit</h1>
+  <p class="subtitle">Codebase analysis covering engine, store slices, hooks, and rendering layers · June 2025</p>
+
+  <div class="stats">
+    <div class="stat-box"><div class="stat-num c">2</div><div class="stat-label">Critical Bugs</div></div>
+    <div class="stat-box"><div class="stat-num h">8</div><div class="stat-label">High Issues</div></div>
+    <div class="stat-box"><div class="stat-num m">14</div><div class="stat-label">Medium Issues</div></div>
+    <div class="stat-box"><div class="stat-num l">9</div><div class="stat-label">Low / Code Smell</div></div>
+  </div>
+
+  
+  <h2>🔴 Critical Bugs</h2>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge critical">Critical</span>
+      <span class="finding-title">Duplicate card handlers — dead code in EncounterSystem</span>
+    </div>
+    <p class="file-loc">src/game/engine/EncounterSystem.ts · Lines 526 and 1102 (Cyrus Belview) · Lines 788 and 1148 (Strahd's Whispers)</p>
+    <p>Both <code>'enc_cyrus_belview'</code> and <code>'enc_strahds_whispers'</code> have two separate <code>if (card.id === ...)</code> handlers inside the same resolution function. Because the first match hits a <code>return</code>, the second handler (at lines 1102 and 1148) is unreachable dead code. The second implementations are actually different from the first — the Cyrus Belview second pass picks a <em>random</em> unexplored edge instead of always <code>points[0]</code>, and the Strahd's Whispers second pass uses a deferred power-select flow. The intended behavior is silently discarded every time these cards are drawn.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge critical">Critical</span>
+      <span class="finding-title">Missing <code>hasAttackedThisTurn</code> reset in cancelEncounterWithDispelMagic</span>
+    </div>
+    <p class="file-loc">src/store/slices/cardSlice.ts · Lines 277–280 vs. dismissCardResolution at Line 479</p>
+    <p>The <code>cancelEncounterWithDispelMagic</code> path that handles a <code>pendingEncounter</code> resets per-turn hero flags (<code>extraActionsThisTurn: 0</code>) but does not reset <code>hasAttackedThisTurn</code>. The sibling function <code>dismissCardResolution</code> correctly resets it at line 479. This means a hero can gain a free second attack after dispelling an encounter card in the same turn.</p>
+  </div>
+
+  
+  <h2>🟠 High Issues</h2>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge high">High</span>
+      <span class="finding-title">Multiple <code>set()</code> calls in <code>endTurn</code> — up to 4 commits per turn</span>
+    </div>
+    <p class="file-loc">src/store/slices/coreSlice.ts · Lines 295–571</p>
+    <p><code>endTurn</code> uses an intermediate <code>let s = { ...state }</code> correctly for most of its logic, but then early-returns with separate <code>set()</code> calls at lines 471 (defeat), 475 (victory), 481 (coffin victory), 497–515 (encounter draw), and 530 (defeat at next-turn start). Each early return triggers a full React reconciliation and re-render of every subscriber before the flow is complete. Unifying all paths to a single <code>set()</code> at the end with a computed <code>nextPhase</code> would eliminate the extra renders.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge high">High</span>
+      <span class="finding-title">Two separate <code>set()</code> calls in <code>cancelEncounterWithDispelMagic</code></span>
+    </div>
+    <p class="file-loc">src/store/slices/cardSlice.ts · Lines 199–301</p>
+    <p>The <code>if (pendingEncounter)</code> branch calls <code>set()</code> at line 242–282 and the <code>else</code> branch calls <code>set()</code> again at line 299. Both paths should build a new state object and commit it in a single <code>set()</code> call to avoid two reconciliation cycles.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge high">High</span>
+      <span class="finding-title">Unguarded production <code>console.log</code> / <code>console.error</code> in engine and store</span>
+    </div>
+    <p class="file-loc">CombatSystem.ts:87 · ActionResolver.ts:19 · PowerSystem.ts:169 · ConditionSystem.ts:82, 96, 110 · EncounterSystem.ts:2212, 2222 · coreSlice.ts:46, 59, 583, 611, 651, 659 · powerSlice.ts:143, 206 · TileSystem.ts:172, 179, 196, 277, 283, 290, 307 · ExperienceSystem.ts:48 · MonsterAI.ts:195, 422, 1029</p>
+    <p>Dozens of <code>console.log</code>, <code>console.warn</code>, and <code>console.error</code> statements fire in production builds because they lack an <code>isDev()</code> guard. Notably: <code>CombatSystem.ts:87</code> fires on every Bat Swarm roll; <code>ActionResolver.ts:19</code> fires on every movement check for an immobilised hero; <code>PowerSystem.ts:169</code> fires on every power card play with the Cackling Skull environment; <code>ConditionSystem.ts:82/96/110</code> fire every turn-end for every entity with conditions; <code>TileSystem</code> warns on every failed tile draw.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge high">High</span>
+      <span class="finding-title">Broad <code>gameState</code> subscription in <code>useExplorationControls</code> defeats memoisation</span>
+    </div>
+    <p class="file-loc">src/hooks/useExplorationControls.ts · Line 16</p>
+    <p><code>const gameState = useGameStore((state) =&gt; state.gameState)</code> subscribes to the entire game state object, so the hook re-renders on every state change anywhere in the game. All three <code>useCallback</code>s include <code>gameState</code> in their dependency arrays, meaning they are recreated on every re-render, defeating memoisation entirely. The hook only needs <code>phase</code>, <code>hasExploredThisTurn</code>, and <code>tiles</code>.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge high">High</span>
+      <span class="finding-title">Heavy per-frame work in <code>Hero3D</code> <code>useFrame</code> loop</span>
+    </div>
+    <p class="file-loc">src/components/3d/Hero3D.tsx · Lines 130–223</p>
+    <p>The <code>useFrame</code> callback performs on every frame: world/local matrix updates, a <code>gameState</code> query + full monster array traversal to find threat targets, continuous <code>sin()</code>-based material mutations, and a <code>traverse()</code> call over the entire model graph with per-mesh material mutations. At 60 fps this is ~3600 monster-array scans per minute per hero instance. Threat target selection should be derived once outside the frame loop and passed as a prop, with the frame loop responsible only for interpolation toward that already-computed target.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge high">High</span>
+      <span class="finding-title">Handler functions not memoised with <code>useCallback</code> in <code>useGameActions</code></span>
+    </div>
+    <p class="file-loc">src/hooks/useGameActions.ts · Lines 24, 176, 200, 237, 244, 296, 316</p>
+    <p>All primary handler functions (<code>handleMoveHero</code>, <code>handleAttackMonster</code>, <code>handleEndTurn</code>, <code>handleSelectEntity</code>, <code>handleSearchToken</code>, <code>getSearchableTokens</code>, <code>canSearch</code>) are recreated on every render. Components that receive these as props will see new references every render, negating any <code>React.memo</code> on those components.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge high">High</span>
+      <span class="finding-title">Incomplete implementation — <code>discardTreasureForPower</code> is a stub</span>
+    </div>
+    <p class="file-loc">src/store/slices/coreSlice.ts · Lines 650–653</p>
+    <p>The action body is: <code>console.log('discardTreasureForPower called for', heroId); // TODO: implement</code>. Any call site that relies on this action silently does nothing, and the unguarded <code>console.log</code> fires in production.</p>
+  </div>
+
+  
+  <h2>🟡 Medium Issues</h2>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge medium">Medium</span>
+      <span class="finding-title">Null dereference risk on <code>targetTile</code> in <code>TreasureSystem</code></span>
+    </div>
+    <p class="file-loc">src/game/engine/TreasureSystem.ts · Line 1048</p>
+    <p><code>const targetTile = base.tiles.find(...)</code> can return <code>undefined</code>, but the result is immediately used as <code>targetTile.x</code> and <code>targetTile.z</code> without a null check. A missing tile ID in the fortune choice will throw a runtime TypeError.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge medium">Medium</span>
+      <span class="finding-title">Inconsistent <code>cardId: ''</code> vs <code>cardId: null</code> in idle card resolution state</span>
+    </div>
+    <p class="file-loc">src/store/slices/cardSlice.ts · Line 290 vs Lines 437, 494</p>
+    <p>The <code>cancelEncounterWithDispelMagic</code> else-branch sets <code>cardId: ''</code> for the idle card resolution reset, while <code>dismissCardResolution</code> and other idle resets use <code>cardId: null</code>. Consumers that check <code>if (!cardResolution.cardId)</code> will behave differently depending on which code path was taken.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge medium">Medium</span>
+      <span class="finding-title">Unsafe <code>as Hero</code> cast without type guard in <code>CombatSystem</code></span>
+    </div>
+    <p class="file-loc">src/game/engine/CombatSystem.ts · Line 306</p>
+    <p><code>const heroAttacker = attacker as Hero</code> is performed before any type check, so if a monster is passed as <code>attacker</code> in a future call path, hero-specific property accesses will silently return <code>undefined</code> rather than throwing early. A discriminated union check on <code>attacker.type === 'hero'</code> should precede the cast.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge medium">Medium</span>
+      <span class="finding-title">Multiple <code>as any</code> casts hiding type errors in store and engine</span>
+    </div>
+    <p class="file-loc">coreSlice.ts:514, 530, 569 · TreasureSystem.ts:1048, 1085, 1472 · CardResolutionSystem.ts:41, 43</p>
+    <p>Several state objects are cast to <code>any</code> before being passed to <code>set()</code> or stored. This bypasses TypeScript's structural checking at the most important boundaries and can mask missing required properties on <code>GameState</code>.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge medium">Medium</span>
+      <span class="finding-title">Per-frame monster array traversal in <code>Dice3D</code> even when dice are hidden</span>
+    </div>
+    <p class="file-loc">src/components/3d/Dice3D.tsx · Lines 20–25</p>
+    <p>The <code>activeHeroPos</code> selector performs a deep <code>gameState</code> traversal on every render, and its result — a new object — is used as the <code>useMemo</code> dependency at line 27, causing the arena position to be recomputed on every render rather than only when the hero position changes. The selector should return a stable primitive pair (e.g. <code>[x, z]</code>) or be skipped entirely when <code>phase !== 'rolling'</code>.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge medium">Medium</span>
+      <span class="finding-title"><code>React.memo</code> protection bypassed on <code>Tile3D</code> and <code>Hero3D</code></span>
+    </div>
+    <p class="file-loc">src/components/3d/Tile3D.tsx · Line 283 · src/components/3d/Hero3D.tsx · Line 457</p>
+    <p>Both components are wrapped with <code>React.memo</code>, but their parents pass callbacks (<code>onMoveHero</code>, event handlers) that are not wrapped in <code>useCallback</code>. Every parent render produces new function references, causing <code>memo</code> to always consider props changed and re-render all tile and hero instances.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge medium">Medium</span>
+      <span class="finding-title">Stale <code>monster</code> reference after state mutation in villain phase</span>
+    </div>
+    <p class="file-loc">src/store/slices/villainPhaseLogic.ts · Line 74 vs. Line 116</p>
+    <p>The variable <code>monster</code> is fetched from <code>newState</code> at the top of the loop, then <code>newState</code> is mutated (monster HP, position) by helper calls before <code>monster</code> is referenced again at line 116. Some paths defensively refetch (<code>newState.monsters.find(...)</code> at line 227), but the top-level loop does not, creating a window where stale data drives movement/attack decisions.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge medium">Medium</span>
+      <span class="finding-title">O(n²) <code>Array.includes</code> inside villain queue construction loop</span>
+    </div>
+    <p class="file-loc">src/store/slices/villainPhaseLogic.ts · Lines 43, 52</p>
+    <p>The queue is built by calling <code>!queue.includes(monster.id)</code> inside a loop over all monsters. With <em>n</em> monsters the inner check is O(n) giving O(n²) overall. At typical counts this is harmless but degrades as encounters stack monsters; replacing <code>queue</code> with a <code>Set</code> makes it O(n).</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge medium">Medium</span>
+      <span class="finding-title"><code>useFrame</code> on <code>MovementSquare3D</code> runs every frame with no throttle</span>
+    </div>
+    <p class="file-loc">src/components/3d/Tile3D.tsx · Lines 217–227</p>
+    <p>Every visible movement square runs a continuous scale animation that reads <code>clock.getElapsedTime()</code> and mutates the mesh scale 60 times per second. With 16 squares per tile and multiple revealed tiles this scales badly. Since the animation is purely visual (a slow pulse), the scale update could be driven by a shared clock value computed once per frame at a parent level and passed down, or the component could share a single AnimationMixer.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge medium">Medium</span>
+      <span class="finding-title">Non-null assertion without prior guard in <code>useExplorationControls</code></span>
+    </div>
+    <p class="file-loc">src/hooks/useExplorationControls.ts · Line 97 (handlePlacementConfirm)</p>
+    <p>Inside <code>handlePlacementConfirm</code>, <code>const pt = gameState.tiles.find(...)</code> returns <code>undefined</code> if the tile is missing, but the result is immediately used without a null check. This would throw a TypeError in any edge case where the referenced tile has been removed from state before the placement is confirmed.</p>
+  </div>
+
+  
+  <h2>⚪ Low / Code Smell</h2>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge low">Low</span>
+      <span class="finding-title">Duplicate hero turn-reset literal in three locations</span>
+    </div>
+    <p class="file-loc">cardSlice.ts:277–280 · cardSlice.ts:479–486 · coreSlice.ts:545–568</p>
+    <p>The pattern of resetting <code>extraActionsThisTurn: 0</code>, <code>hasRolledNatural20ThisTurn: false</code>, etc. is copy-pasted in three places. One authoritative <code>resetHeroTurnState(h: Hero): Hero</code> utility would prevent future drift (and is what allowed the <code>hasAttackedThisTurn</code> omission to go unnoticed).</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge low">Low</span>
+      <span class="finding-title">Biased shuffle — <code>.sort(() =&gt; Math.random() - 0.5)</code></span>
+    </div>
+    <p class="file-loc">src/store/slices/coreSlice.ts · Line 115 (and other deck-shuffle sites)</p>
+    <p>Sorting with a random comparator is not a uniform shuffle — it produces a statistically biased ordering because the sort algorithm makes assumptions that are violated by non-deterministic comparators. A standard Fisher-Yates in-place shuffle should be used instead, and the project already has one written in some paths — it should be extracted as a shared utility.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge low">Low</span>
+      <span class="finding-title">Hardcoded scenario and card ID string literals scattered across slices</span>
+    </div>
+    <p class="file-loc">coreSlice.ts · cardSlice.ts · EncounterSystem.ts</p>
+    <p>Strings like <code>'adventure_tome_of_strahd'</code>, <code>'enc_cackling_skull'</code>, <code>'rogue_spring_away'</code>, <code>'wizard_dispel_magic'</code> appear in multiple files without being imported from a constants module. A typo in any one of them silently breaks the affected card's behaviour.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge low">Low</span>
+      <span class="finding-title">Inline array literal <code>['north','south','east','west']</code> allocated each render in <code>Tile3D</code></span>
+    </div>
+    <p class="file-loc">src/components/3d/Tile3D.tsx · Line 190</p>
+    <p>A new array is created on every render. It should be a <code>const</code> declared outside the component.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge low">Low</span>
+      <span class="finding-title">Inline material objects created on every render in <code>Hero3D</code></span>
+    </div>
+    <p class="file-loc">src/components/3d/Hero3D.tsx · Lines 316, 337–342, 345–348, 356–357, 366–372</p>
+    <p><code>orbColor</code>, outline material color, and emissive values are computed inline on every render. These should be wrapped in <code>useMemo</code> or <code>useCallback</code> with appropriate dependencies to prevent Three.js from regenerating GPU material descriptors on each React reconciliation.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge low">Low</span>
+      <span class="finding-title">Inconsistent log-counter increment pattern in <code>villainPhaseLogic</code></span>
+    </div>
+    <p class="file-loc">src/store/slices/villainPhaseLogic.ts · Lines 91, 97 vs. 495</p>
+    <p>Some sections use the clean <code>let counter = newState.logIdCounter ?? 0; counter++</code> idiom; others repeat the verbose <code>String((newState.logIdCounter ?? 0) + 1)</code> expression inline, which doesn't increment the stored counter. The inconsistency means log IDs from different code paths may collide.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge low">Low</span>
+      <span class="finding-title"><code>CardSystem</code> class is unused</span>
+    </div>
+    <p class="file-loc">src/game/engine/CardSystem.ts · Line 6</p>
+    <p>A comment at the top of the file states the class is "currently unused since all slices manage decks directly." The file should either be removed or the responsibility it was intended to own should be formally assigned to it.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge low">Low</span>
+      <span class="finding-title">Inline dynamic import for <code>ConditionType</code> in <code>TreasureSystem</code></span>
+    </div>
+    <p class="file-loc">src/game/engine/TreasureSystem.ts · Lines 846, 964</p>
+    <p><code>import('../types').ConditionType</code> is used as an inline type reference instead of a top-level import. This is a code smell and may confuse bundlers or type checkers.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge low">Low</span>
+      <span class="finding-title"><code>ExplorationLayer</code> — pure helper function defined inside component</span>
+    </div>
+    <p class="file-loc">src/components/3d/ExplorationLayer.tsx · Lines 43–52</p>
+    <p><code>isHeroAtEdgeFor()</code> is a pure calculation that depends only on its arguments but is redefined on every render. Moving it outside the component (or to a shared utility) removes the allocation and keeps the component body focused on rendering logic.</p>
+  </div>
+
+  
+  <h2>Summary</h2>
+  <table class="summary-table">
+    <thead>
+      <tr><th>Severity</th><th>File</th><th>Lines</th><th>Issue</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="badge critical">Critical</span></td><td>EncounterSystem.ts</td><td>526/1102, 788/1148</td><td>Duplicate card handlers — second unreachable</td></tr>
+      <tr><td><span class="badge critical">Critical</span></td><td>cardSlice.ts</td><td>277–280 vs 479</td><td>Missing hasAttackedThisTurn reset in dispel path</td></tr>
+      <tr><td><span class="badge high">High</span></td><td>coreSlice.ts</td><td>471, 475, 481, 497, 530</td><td>Multiple set() calls in endTurn</td></tr>
+      <tr><td><span class="badge high">High</span></td><td>cardSlice.ts</td><td>242, 299</td><td>Two set() calls in cancelEncounterWithDispelMagic</td></tr>
+      <tr><td><span class="badge high">High</span></td><td>Multiple engine/store files</td><td>Various</td><td>Unguarded production console.log/warn/error</td></tr>
+      <tr><td><span class="badge high">High</span></td><td>useExplorationControls.ts</td><td>16, 89, 168, 183</td><td>Broad gameState subscription defeats memoisation</td></tr>
+      <tr><td><span class="badge high">High</span></td><td>Hero3D.tsx</td><td>130–223</td><td>Expensive per-frame monster traversal in useFrame</td></tr>
+      <tr><td><span class="badge high">High</span></td><td>useGameActions.ts</td><td>24, 176, 200, 237, 244</td><td>Handlers not memoised with useCallback</td></tr>
+      <tr><td><span class="badge high">High</span></td><td>coreSlice.ts</td><td>650–653</td><td>discardTreasureForPower is an unimplemented stub</td></tr>
+      <tr><td><span class="badge medium">Medium</span></td><td>TreasureSystem.ts</td><td>1048</td><td>Null dereference on targetTile from .find()</td></tr>
+      <tr><td><span class="badge medium">Medium</span></td><td>cardSlice.ts</td><td>290 vs 437, 494</td><td>cardId: '' vs cardId: null inconsistency</td></tr>
+      <tr><td><span class="badge medium">Medium</span></td><td>CombatSystem.ts</td><td>306</td><td>Unsafe Hero cast without type guard</td></tr>
+      <tr><td><span class="badge medium">Medium</span></td><td>coreSlice.ts / TreasureSystem.ts</td><td>Various</td><td>Multiple as any casts hiding type errors</td></tr>
+      <tr><td><span class="badge medium">Medium</span></td><td>Dice3D.tsx</td><td>20–25, 27</td><td>Deep gameState traversal returns new object each render</td></tr>
+      <tr><td><span class="badge medium">Medium</span></td><td>Tile3D.tsx / Hero3D.tsx</td><td>283, 457</td><td>React.memo bypassed by non-memoised parent callbacks</td></tr>
+      <tr><td><span class="badge medium">Medium</span></td><td>villainPhaseLogic.ts</td><td>74 vs 116</td><td>Stale monster reference after state mutation</td></tr>
+      <tr><td><span class="badge medium">Medium</span></td><td>villainPhaseLogic.ts</td><td>43, 52</td><td>O(n²) Array.includes in queue construction</td></tr>
+      <tr><td><span class="badge medium">Medium</span></td><td>Tile3D.tsx</td><td>217–227</td><td>Unthrottled useFrame per movement square</td></tr>
+      <tr><td><span class="badge medium">Medium</span></td><td>useExplorationControls.ts</td><td>97</td><td>Non-null assertion without null guard</td></tr>
+      <tr><td><span class="badge low">Low</span></td><td>cardSlice.ts / coreSlice.ts</td><td>Various</td><td>Duplicate hero turn-reset literal in three places</td></tr>
+      <tr><td><span class="badge low">Low</span></td><td>coreSlice.ts</td><td>115</td><td>Biased shuffle via .sort(() =&gt; Math.random())</td></tr>
+      <tr><td><span class="badge low">Low</span></td><td>Multiple files</td><td>—</td><td>Hardcoded card/scenario ID string literals</td></tr>
+      <tr><td><span class="badge low">Low</span></td><td>Tile3D.tsx</td><td>190</td><td>Inline array allocated per render</td></tr>
+      <tr><td><span class="badge low">Low</span></td><td>Hero3D.tsx</td><td>316–372</td><td>Inline material objects created per render</td></tr>
+      <tr><td><span class="badge low">Low</span></td><td>villainPhaseLogic.ts</td><td>91, 97 vs 495</td><td>Inconsistent log counter pattern / possible ID collision</td></tr>
+      <tr><td><span class="badge low">Low</span></td><td>CardSystem.ts</td><td>—</td><td>Class is documented as unused</td></tr>
+      <tr><td><span class="badge low">Low</span></td><td>ExplorationLayer.tsx</td><td>43–52</td><td>Pure helper defined inside component body</td></tr>
+    </tbody>
+  </table>
+
+  <footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>
