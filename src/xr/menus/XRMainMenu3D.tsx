@@ -136,7 +136,7 @@ export const XRMainMenu3D: React.FC = () => {
   const autoSelectPowers = useGameStore((state) => state.autoSelectPowers);
   const beginAdventure = useGameStore((state) => state.beginAdventure);
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [boxHovered, setBoxHovered] = useState(false);
   const lidHingeRef = useRef<THREE.Group>(null);
 
@@ -224,7 +224,7 @@ export const XRMainMenu3D: React.FC = () => {
   };
 
   return (
-    <group position={[0, 0.82, -0.88]} rotation={[-Math.PI / 16, 0, 0]}>
+    <group position={[0, 0.05, 0]} rotation={[0, 0, 0]}>
       {/* ================= BOX BOTTOM TRAY ================= */}
       <group position={[0, 0, 0]}>
         {/* Tray Outer Walls with scanned bottom and side textures */}
@@ -318,26 +318,26 @@ export const XRMainMenu3D: React.FC = () => {
           {/* Action Menu Buttons */}
           <group position={[0, 0.02, 0]}>
             <MenuButton3D
-              text="BEGIN ADVENTURE"
-              subtext="Scenario I: Escape the Tomb"
+              text="QUICK START (EMBARK NOW)"
+              subtext="Scenario I: Escape the Tomb (Auto-Equipped)"
               position={[0, 0.065, 0]}
               primary={true}
+              onClick={handleQuickStart}
+            />
+
+            <MenuButton3D
+              text="BEGIN ADVENTURE (SETUP HEROES)"
+              subtext="Custom Hero & Power Card Selection"
+              position={[0, -0.025, 0]}
               onClick={() => handleBeginAdventure('adventure_01')}
             />
 
             <MenuButton3D
               text="UNBOXING SHOWCASE"
               subtext="Examine 3D Figures, Cards & Tokens"
-              position={[0, -0.025, 0]}
+              position={[0, -0.115, 0]}
               highlight={true}
               onClick={handleOpenUnboxing}
-            />
-
-            <MenuButton3D
-              text="QUICK START (AUTO-PARTY)"
-              subtext="Standard Rulebook Decks & Embark"
-              position={[0, -0.115, 0]}
-              onClick={handleQuickStart}
             />
 
             <MenuButton3D

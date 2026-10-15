@@ -3,9 +3,11 @@ import { useGameStore } from '../store/gameStore'
 import { useUIStore } from '../store/uiStore'
 import { useTilePlacement } from '../contexts/TilePlacementContext'
 import { useDiceStore } from '../store/diceStore'
+import { useGameActions } from './useGameActions'
 
 export const useKeyboard = () => {
-  const { isPaused, pauseGame, unpauseGame, endTurn, gameState } = useGameStore()
+  const { isPaused, pauseGame, unpauseGame, gameState } = useGameStore()
+  const { handleEndTurn } = useGameActions()
   const { showModal, activeModal, hideModal, setInteractionMode, interactionMode } = useUIStore()
   const { confirmPlacement, cancelPlacement } = useTilePlacement()
 
@@ -17,10 +19,8 @@ export const useKeyboard = () => {
           hideModal();
         } else if (!isPaused) {
           pauseGame();
-          showModal('settings');
         } else {
           unpauseGame();
-          hideModal();
           setInteractionMode('none');
         }
       }
@@ -63,14 +63,14 @@ export const useKeyboard = () => {
               // We need to dynamically check the dice store here because we don't want to add it to dependencies and cause re-renders
               const isDiceActive = useDiceStore.getState().isActive();
               if (!isDiceActive) {
-                endTurn();
+                handleEndTurn();
                 setInteractionMode('none');
               }
             }
             break;
           case 't':
             // Toggle treasure/end turn legacy
-            endTurn();
+            handleEndTurn();
             setInteractionMode('none');
             break;
         }
@@ -79,5 +79,5 @@ export const useKeyboard = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPaused, pauseGame, unpauseGame, endTurn, gameState, activeModal, showModal, hideModal, interactionMode, setInteractionMode]);
+  }, [isPaused, pauseGame, unpauseGame, handleEndTurn, gameState, activeModal, showModal, hideModal, interactionMode, setInteractionMode]);
 }

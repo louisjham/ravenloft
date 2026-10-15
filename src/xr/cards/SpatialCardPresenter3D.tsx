@@ -40,7 +40,7 @@ export const SpatialCardPresenter3D: React.FC = () => {
   };
 
   return (
-    <group position={[0, 1.18, -0.65]} rotation={[-Math.PI / 16, 0, 0]}>
+    <group position={[0, 0.28, 0]} rotation={[-Math.PI / 16, 0, 0]}>
       {/* 3D Physical Card */}
       <PhysicalCard3D
         card={card}

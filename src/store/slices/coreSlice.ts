@@ -15,6 +15,7 @@ import { ScenarioManager } from '../../game/scenarios/ScenarioManager';
 import { isDev } from '../../utils/devEnv';
 import { resetHeroTurnFlags } from '../../game/engine/HeroTurnUtils';
 import { SCENARIO_IDS, TILE_IDS } from '../../game/constants';
+import { useUIStore } from '../uiStore';
 
 /** Fisher-Yates shuffle — returns a new shuffled array, does not mutate the input. */
 function shuffled<T>(arr: T[]): T[] {
@@ -43,6 +44,8 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     animationSpeed: 'normal',
     graphicsQuality: 'high',
     resolutionScale: 1.0,
+    aiControlMode: 'solo',
+    aiTurnApprovalRequired: false,
   },
 
   setGameState: (gameState: GameState) => set({ gameState }),
@@ -52,7 +55,18 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     const dataLoader = DataLoader.getInstance();
     const scenario = dataLoader.getScenarios().find(s => s.id === scenarioId);
     const allHeroes = dataLoader.getHeroes();
-    const selectedHeroes = heroIds.map(id => allHeroes.find(h => h.id === id)).filter(Boolean) as Hero[];
+    const currentSettings = get().settings;
+    const selectedHeroes = heroIds
+      .map(id => allHeroes.find(h => h.id === id))
+      .filter((h): h is Hero => Boolean(h))
+      .map((hero, idx) => ({
+        ...hero,
+        isAutoFollow: currentSettings.aiControlMode === 'all_ai'
+          ? true
+          : currentSettings.aiControlMode === 'manual'
+            ? false
+            : idx > 0 // Default 'solo': first hero is player, companions are AI
+      }));
 
     if (!scenario) {
       if (isDev()) console.error('[ERROR] gameStore.startNewGame: Scenario not found for ID:', scenarioId);
@@ -206,6 +220,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
       hasAttackedThisTurn: false,
       lastPlacedTileId: null,
       activeBlessings: [],
+      pendingAITurnApproval: null,
 
       // Scenario-specific state
       ...(() => {
@@ -531,6 +546,21 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
  
     // No encounter needed, or encounter deck empty — proceed with villain phase normally
     let newState = executeVillainPhase(s);
+
+    const villainLogs = newState.log.slice(s.log.length);
+    const combatEntries = villainLogs.filter(e => e.type === 'combat');
+    if (combatEntries.length > 0) {
+      for (const entry of combatEntries) {
+        const isHit = entry.message.includes('HITS');
+        useUIStore.getState().addNotification(
+          entry.message,
+          isHit ? 'error' : 'info',
+          4000
+        );
+      }
+    } else {
+      useUIStore.getState().addNotification('Villain Phase: No monster attacks.', 'info', 2000);
+    }
  
     const currentIndex = newState.turnOrder.indexOf(newState.currentHeroId);
     const nextIndex = (currentIndex + 1) % newState.turnOrder.length;
@@ -647,8 +677,78 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
       const heroes = state.gameState.heroes.map(h =>
         h.id === heroId ? { ...h, isAutoFollow: !h.isAutoFollow } : h
       );
-      return { gameState: { ...state.gameState, heroes } };
+      return { 
+        settings: { ...state.settings, aiControlMode: 'custom' },
+        gameState: { ...state.gameState, heroes } 
+      };
     });
+  },
+
+  setAIControlMode: (mode: 'manual' | 'solo' | 'all_ai' | 'custom', soloLeadHeroId?: string) => {
+    set((state) => {
+      const nextSettings = {
+        ...state.settings,
+        aiControlMode: mode,
+        aiTurnApprovalRequired: mode === 'all_ai' ? true : state.settings.aiTurnApprovalRequired
+      };
+
+      if (!state.gameState) {
+        return { settings: nextSettings };
+      }
+
+      const leadId = soloLeadHeroId || state.gameState.currentHeroId || state.gameState.heroes[0]?.id;
+      const heroes = state.gameState.heroes.map((hero) => {
+        let isAutoFollow = hero.isAutoFollow;
+        if (mode === 'all_ai') {
+          isAutoFollow = true;
+        } else if (mode === 'manual') {
+          isAutoFollow = false;
+        } else if (mode === 'solo') {
+          isAutoFollow = hero.id !== leadId;
+        }
+        return { ...hero, isAutoFollow };
+      });
+
+      return {
+        settings: nextSettings,
+        gameState: {
+          ...state.gameState,
+          heroes,
+          pendingAITurnApproval: null
+        }
+      };
+    });
+  },
+
+  setHeroAIControl: (heroId: string, isAI: boolean) => {
+    set((state) => {
+      if (!state.gameState) return {};
+      const heroes = state.gameState.heroes.map(h =>
+        h.id === heroId ? { ...h, isAutoFollow: isAI } : h
+      );
+      return {
+        settings: { ...state.settings, aiControlMode: 'custom' },
+        gameState: { ...state.gameState, heroes, pendingAITurnApproval: null }
+      };
+    });
+  },
+
+  approveAITurn: () => {
+    const s = get().gameState;
+    if (!s) return;
+    set((state) => ({
+      gameState: state.gameState ? { ...state.gameState, pendingAITurnApproval: null } : null
+    }));
+    get().endTurn();
+  },
+
+  toggleAITurnApproval: () => {
+    set((state) => ({
+      settings: {
+        ...state.settings,
+        aiTurnApprovalRequired: !state.settings.aiTurnApprovalRequired
+      }
+    }));
   },
 
   discardTreasureForPower: (_heroId: string) => {
@@ -685,6 +785,44 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
   pauseGame: () => set({ isPaused: true }),
   unpauseGame: () => set({ isPaused: false }),
   updateSettings: (newSettings: Partial<GameSettings>) => set(state => ({ settings: { ...state.settings, ...newSettings } })),
+
+  quitToMainMenu: () => {
+    set({
+      gameState: null,
+      isPaused: false,
+      selectedEntity: null,
+      selectedCard: null,
+      hoveredTile: null,
+    });
+    useUIStore.getState().hideModal();
+    useUIStore.getState().setInteractionMode('none');
+    useUIStore.getState().setSelectedPowerId(null);
+    useUIStore.getState().setExplorationState({ phase: 'idle' });
+    useUIStore.getState().closeTilePlacer();
+    import('../diceStore').then((m) => m.useDiceStore.getState().reset()).catch(() => {});
+  },
+
+  restartScenario: () => {
+    const s = get().gameState;
+    if (!s || !s.activeScenario) return;
+    const scenarioId = s.activeScenario.id;
+    const heroIds = s.heroes.map((h) => h.id);
+
+    set({
+      isPaused: false,
+      selectedEntity: null,
+      selectedCard: null,
+      hoveredTile: null,
+    });
+    useUIStore.getState().hideModal();
+    useUIStore.getState().setInteractionMode('none');
+    useUIStore.getState().setSelectedPowerId(null);
+    useUIStore.getState().setExplorationState({ phase: 'idle' });
+    useUIStore.getState().closeTilePlacer();
+    import('../diceStore').then((m) => m.useDiceStore.getState().reset()).catch(() => {});
+
+    get().startNewGame(scenarioId, heroIds);
+  },
 
   evaluateCombatEncounter: async () => {
     const s = get().gameState;

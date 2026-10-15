@@ -34,3 +34,5 @@ Thumbs.db
 # Game texts references
 game_texts/
 archive/
+
+.env

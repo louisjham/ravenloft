@@ -26,7 +26,10 @@ interface UIOverlayProps {
 export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasure }) => {
   const gameState = useGameStore((state) => state.gameState);
   const isPaused = useGameStore((state) => state.isPaused);
+  const pauseGame = useGameStore((state) => state.pauseGame);
   const unpauseGame = useGameStore((state) => state.unpauseGame);
+  const quitToMainMenu = useGameStore((state) => state.quitToMainMenu);
+  const restartScenario = useGameStore((state) => state.restartScenario);
 
   const [showSetup, setShowSetup] = useState(false);
   const activeModal = useUIStore((state) => state.activeModal);
@@ -171,9 +174,80 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
       <ActionPromptAnimated />
 
       <div className="ui-layer">
-        {/* Top: Turn Info */}
-        <div style={{ gridArea: 'top', display: 'flex', justifyContent: 'center' }}>
-          <TurnIndicator />
+        {/* Top: Turn Info, Rules & Game Options */}
+        <div style={{
+          gridArea: 'top',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          pointerEvents: 'none',
+          padding: '0 8px',
+          width: '100%',
+          boxSizing: 'border-box'
+        }}>
+          {/* Left: Rules & Guide */}
+          <div style={{ pointerEvents: 'auto' }}>
+            <button
+              id="hud-rules-btn"
+              className="gothic-button"
+              onClick={() => useUIStore.getState().showModal('help')}
+              style={{
+                padding: '4px 10px',
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                background: 'rgba(5, 5, 10, 0.75)',
+                border: '1px solid rgba(192, 160, 96, 0.4)',
+                color: 'var(--color-gold)',
+                cursor: 'pointer',
+                borderRadius: '3px',
+                backdropFilter: 'blur(4px)'
+              }}
+              title="Game Rules & Reference (?)"
+            >
+              <span>📜</span>
+              <span>Rules</span>
+            </button>
+          </div>
+
+          {/* Center: Turn Indicator */}
+          <div style={{ pointerEvents: 'auto' }}>
+            <TurnIndicator />
+          </div>
+
+          {/* Right: Options Button */}
+          <div style={{ pointerEvents: 'auto' }}>
+            <button
+              id="midgame-options-btn"
+              className="gothic-button"
+              onClick={() => {
+                if (isPaused) {
+                  unpauseGame();
+                } else {
+                  pauseGame();
+                }
+              }}
+              style={{
+                padding: '4px 12px',
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(5, 5, 10, 0.75)',
+                border: '1px solid var(--color-gold)',
+                color: 'var(--color-gold)',
+                cursor: 'pointer',
+                borderRadius: '3px',
+                backdropFilter: 'blur(4px)',
+                boxShadow: '0 0 10px rgba(192, 160, 96, 0.25)'
+              }}
+              title="Game Options & Menu (Esc)"
+            >
+              <span style={{ fontSize: '0.85rem' }}>⚙</span>
+              <span>Options</span>
+            </button>
+          </div>
         </div>
 
         {/* Left: Party Sidebar & Combat Log */}
@@ -206,9 +280,13 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
         )}
       </div>
 
-      {/* Pause Menu Overlay */}
+      {/* Mid-Game Options & Pause Menu Overlay */}
       {isPaused && (
-        <PauseMenu onResume={unpauseGame} onQuit={() => window.location.reload()} />
+        <PauseMenu
+          onResume={unpauseGame}
+          onQuitToMainMenu={quitToMainMenu}
+          onRestart={restartScenario}
+        />
       )}
 
       {/* Experience Page Overlay */}

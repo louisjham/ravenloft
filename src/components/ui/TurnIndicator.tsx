@@ -6,11 +6,14 @@ export const TurnIndicator: React.FC = () => {
 
   if (!gameState) return null;
 
+  const isVillainPhase = gameState.phase === 'villain' || gameState.phase === 'monster';
+
   const getPhaseName = () => {
     switch (gameState.phase) {
       case 'hero': return 'Hero Phase';
       case 'exploration': return 'Exploration Phase';
-      case 'monster': return 'Monster Phase';
+      case 'villain': return 'Villain Phase';
+      case 'monster': return 'Villain Phase';
       default: return 'Setup Phase';
     }
   };
@@ -28,19 +31,20 @@ export const TurnIndicator: React.FC = () => {
       <div className="phase-badge" style={{
         padding: '3px 14px',
         fontSize: '0.75rem',
-        color: 'var(--color-gold)',
-        background: 'rgba(5, 5, 10, 0.5)',
-        border: '1px solid rgba(192, 160, 96, 0.3)',
+        color: isVillainPhase ? '#ff4444' : 'var(--color-gold)',
+        background: isVillainPhase ? 'rgba(139, 0, 0, 0.6)' : 'rgba(5, 5, 10, 0.5)',
+        border: isVillainPhase ? '1px solid #ff4444' : '1px solid rgba(192, 160, 96, 0.3)',
         borderRadius: '3px',
         fontFamily: 'var(--font-gothic)',
         letterSpacing: '2px',
         textTransform: 'uppercase',
-        backdropFilter: 'blur(4px)'
+        backdropFilter: 'blur(4px)',
+        boxShadow: isVillainPhase ? '0 0 10px rgba(255, 0, 0, 0.4)' : 'none'
       }}>
         {getPhaseName()}
       </div>
-      <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-body)' }}>
-        {gameState.phase === 'monster' ? 'Monsters' : currentHero?.name}
+      <div style={{ fontSize: '0.65rem', color: isVillainPhase ? '#ffbbbb' : 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-body)' }}>
+        {isVillainPhase ? 'Monsters & Traps' : currentHero?.name}
       </div>
       <div className="turn-order" style={{ display: 'flex', gap: '3px' }}>
         {gameState.turnOrder.map((id) => (

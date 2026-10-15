@@ -193,7 +193,7 @@ export const useDiceStore = create<DiceStore>()(
       });
 
       // Auto transition after announcement (shorter for responsive feel)
-      const announcementDelay = animSpeed === 'fast' ? 50 : 200;
+      const announcementDelay = animSpeed === 'fast' ? 30 : 100;
       setTimeout(() => {
         const { phase } = get();
         if (phase === 'announcing') {
@@ -246,7 +246,7 @@ export const useDiceStore = create<DiceStore>()(
         set({ phase: 'showing_result' });
 
         const animSpeed = useGameStore.getState().settings?.animationSpeed ?? 'normal';
-        const showResultDelay = animSpeed === 'fast' ? 400 : 1500;
+        const showResultDelay = animSpeed === 'instant' ? 50 : animSpeed === 'fast' ? 250 : 600;
 
         // Auto-dismiss the result so players don't have to mash Spacebar
         setTimeout(() => {
@@ -264,7 +264,7 @@ export const useDiceStore = create<DiceStore>()(
         set({ phase: 'dismissing' });
         
         const animSpeed = useGameStore.getState().settings?.animationSpeed ?? 'normal';
-        const dismissDelay = animSpeed === 'fast' ? 70 : 150;
+        const dismissDelay = animSpeed === 'instant' ? 0 : animSpeed === 'fast' ? 50 : 100;
 
         // Auto reset after dismiss animation (shorter for responsive feel)
         setTimeout(() => {

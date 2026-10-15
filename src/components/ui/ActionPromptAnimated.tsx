@@ -100,7 +100,24 @@ export const ActionPromptAnimated: React.FC = () => {
     return points.some(p => p.tileId === heroTile.id && isHeroAtEdgeFor(p.edge));
   });
 
+  const hasAttacked = useGameStore(s => s.gameState?.hasAttackedThisTurn ?? false);
+  const heroMovedOnce = useGameStore(s => {
+    const hero = s.gameState?.heroes.find(h => h.id === s.gameState?.currentHeroId);
+    return hero ? hero.isExhausted : false;
+  });
+
   useEffect(() => {
+    if (phase === 'villain') {
+      clearDismissTimer();
+      setDismissing(false);
+      setCurrentPrompt({
+        text: 'VILLAIN PHASE',
+        subtext: 'Monsters and traps are activating...',
+        type: 'action'
+      });
+      return;
+    }
+
     if (phase !== 'hero' || !currentHeroId) {
       clearDismissTimer();
       if (dismissing) setDismissing(false);
@@ -108,75 +125,80 @@ export const ActionPromptAnimated: React.FC = () => {
       return;
     }
 
-    let newPrompt: { text: string; subtext?: string; type: 'action' | 'end-turn' | 'info'; autoDismiss?: boolean } | null = null;
-
-    // If player is actively in an interaction mode, show mode-specific prompt
-    if (interactionMode !== 'none') {
-      switch (interactionMode) {
-        case 'move':
-          newPrompt = { text: 'MOVE', subtext: `${currentHeroSpeed} squares remaining`, type: 'action' };
-          break;
-        case 'attack':
-          newPrompt = { text: 'ATTACK', subtext: 'Select a target', type: 'action' };
-          break;
-        case 'ability':
-          newPrompt = { text: 'USE POWER', subtext: 'Select power and target', type: 'action' };
-          break;
-        case 'explore':
-          newPrompt = { text: 'EXPLORE', subtext: 'Click an edge to place a tile', type: 'action' };
-          break;
-      }
-    } else {
-      // Check what actions are available
-      if (hasMovement) {
-        const heroName = currentHeroName.toUpperCase();
-        newPrompt = {
-          text: `${heroName}'S TURN`,
-          subtext: `Move (${currentHeroSpeed}), Attack, Use Power, or Explore`,
-          type: 'action',
-          autoDismiss: true,
-        };
-      } else if (canAttack) {
-        newPrompt = { text: 'ATTACK AVAILABLE', subtext: 'Attack nearby enemies or End Turn', type: 'action' };
-      } else if (hasUsablePowers) {
-        newPrompt = { text: 'POWERS AVAILABLE', subtext: 'Use a power or End Turn', type: 'action' };
-      } else if (isAdjacentToExplorationPoint && !gameState?.hasExploredThisTurn) {
-        newPrompt = { text: 'EXPLORATION REQUIRED', subtext: 'You must explore the adjacent edge', type: 'action' };
-      } else if (hasExplorationPoints) {
-        newPrompt = { text: 'EXPLORE OR END TURN', subtext: 'Reveal new areas or end your turn', type: 'info' };
-      } else {
-        newPrompt = { text: 'END TURN', subtext: 'Press SPACE to continue', type: 'end-turn' };
-      }
+    if (gameState?.pendingAITurnApproval) {
+      clearDismissTimer();
+      if (dismissing) setDismissing(false);
+      setCurrentPrompt({
+        text: 'AI TURN COMPLETED',
+        subtext: `Approve ${gameState.pendingAITurnApproval.heroName}'s turn to proceed [Space or Click Approve]`,
+        type: 'end-turn',
+        autoDismiss: false,
+      });
+      return;
     }
 
-    // Don't re-create the auto-dismiss prompt after it was already dismissed for this hero
-    if (newPrompt?.autoDismiss && autoDismissedHero.current === currentHeroId) {
+    // If player is actively in an interaction mode, let the top guidance banner handle it
+    if (interactionMode !== 'none') {
+      clearDismissTimer();
+      if (dismissing) setDismissing(false);
       setCurrentPrompt(null);
       return;
     }
 
-    // Only update state if the prompt actually changed to prevent infinite loops
-    setCurrentPrompt(prev => {
-      if (!prev && !newPrompt) return prev;
-      if (prev && newPrompt && prev.text === newPrompt.text && prev.subtext === newPrompt.subtext && prev.type === newPrompt.type) {
-        return prev;
-      }
+    // Turn start hero splash
+    if (autoDismissedHero.current !== currentHeroId) {
+      const heroName = currentHeroName.toUpperCase();
+      setCurrentPrompt({
+        text: `${heroName}'S TURN`,
+        subtext: `Speed: ${currentHeroSpeed} squares • Choose an action`,
+        type: 'action',
+        autoDismiss: true,
+      });
 
-      // If the prompt changed, reset the timer logic
       clearDismissTimer();
       setDismissing(false);
+      dismissTimer.current = setTimeout(() => {
+        setDismissing(true);
+        setTimeout(() => {
+          autoDismissedHero.current = currentHeroId;
+          setDismissing(false);
+        }, 300);
+      }, 1500);
 
-      if (newPrompt?.autoDismiss) {
-        autoDismissedHero.current = currentHeroId;
-        dismissTimer.current = setTimeout(() => {
-          setDismissing(true);
-          setTimeout(() => {
-            setCurrentPrompt(null);
-            setDismissing(false);
-          }, 600);
-        }, 2000);
+      return () => clearDismissTimer();
+    }
+
+    // Persistent state guidance (never blank)
+    let promptText = 'HERO PHASE';
+    let promptSubtext = 'Drag Hero to Move • Attack [A] • Power [C] • End Turn [Space]';
+    let promptType: 'action' | 'end-turn' | 'info' = 'info';
+
+    if (heroMovedOnce && !hasAttacked) {
+      promptText = 'STANDARD ACTION';
+      promptSubtext = 'Attack [A] • Power [C] • Drag for Double Move • End Turn [Space]';
+    } else if (hasAttacked && !heroMovedOnce) {
+      promptText = 'MOVE ACTION';
+      promptSubtext = `Drag Hero to Move (${currentHeroSpeed} sq) • Power [C] • End Turn [Space]`;
+    } else if (hasAttacked && heroMovedOnce) {
+      promptText = 'TURN COMPLETE';
+      promptSubtext = 'Press [Space] to End Turn';
+      promptType = 'end-turn';
+    }
+
+    if (isAdjacentToExplorationPoint && !gameState?.hasExploredThisTurn && promptType !== 'end-turn') {
+      promptSubtext += ' • Edge Unexplored [E]';
+    }
+
+    const newPrompt = {
+      text: promptText,
+      subtext: promptSubtext,
+      type: promptType
+    };
+
+    setCurrentPrompt(prev => {
+      if (prev && prev.text === newPrompt.text && prev.subtext === newPrompt.subtext && prev.type === newPrompt.type) {
+        return prev;
       }
-
       return newPrompt;
     });
 
@@ -192,7 +214,9 @@ export const ActionPromptAnimated: React.FC = () => {
     hasUsablePowers, 
     hasExplorationPoints,
     isAdjacentToExplorationPoint,
-    gameState?.hasExploredThisTurn
+    gameState?.hasExploredThisTurn,
+    hasAttacked,
+    heroMovedOnce
   ]);
 
   if (!currentPrompt) return null;

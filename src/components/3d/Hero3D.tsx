@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback, Suspense } from 'react';
 import { Cylinder, Box, Sphere, Billboard, Text } from '@react-three/drei';
 import { Interactive, useXR } from '@react-three/xr';
-import { Hero, Position } from '../../game/types';
+import { Hero, Monster, Position } from '../../game/types';
 import { getHeroModelPath, DUMMY_MODE } from '../../utils/modelLoader';
 import { useGameStore } from '../../store/gameStore';
 import { useUIStore } from '../../store/uiStore';
@@ -28,9 +28,11 @@ const HeroPlaceholder: React.FC = () => (
   </group>
 );
 
+// Scratch objects allocated once for 90Hz frame updates
 const _ctrlPos = new THREE.Vector3();
 const _ctrlRot = new THREE.Quaternion();
 const _tempVec = new THREE.Vector3();
+const _floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
 const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
   const { controllers } = useXR();
@@ -39,21 +41,37 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
   const currentHeroId = useGameStore((state) => state.gameState?.currentHeroId);
   const isHeroPhase = useGameStore((state) => state.gameState?.phase === 'hero');
   const isActive = isHeroPhase && currentHeroId === hero.id;
+  const pendingAITurnApproval = useGameStore((state) => state.gameState?.pendingAITurnApproval);
+  const approveAITurn = useGameStore((state) => state.approveAITurn);
+  const isPendingApproval = pendingAITurnApproval?.heroId === hero.id;
 
   const interactionMode = useUIStore((state) => state.interactionMode);
   const setInteractionMode = useUIStore((state) => state.setInteractionMode);
   const selectedPowerId = useUIStore((state) => state.selectedPowerId);
   const setSelectedPowerId = useUIStore((state) => state.setSelectedPowerId);
+  const setHoveredTargetEntityId = useUIStore((state) => state.setHoveredTargetEntityId);
   const { addNotification } = useUIStore();
 
   const { handleMoveHero, handleAttackMonster } = useGameActions();
 
-  // Grabbing & 6DoF Dragging State
+  // Grabbing & 6DoF Dragging State (VR + Desktop)
   const [isDragging, setIsDragging] = useState(false);
   const [hoveredSquare, setHoveredSquare] = useState<Position | null>(null);
   const [hoveredMonsterId, setHoveredMonsterId] = useState<string | null>(null);
   const grabbingControllerRef = useRef<THREE.Object3D | null>(null);
+  const isPointerDraggingRef = useRef(false);
   const dragStartPosRef = useRef<Position>(hero.position);
+  const lastPointerPosRef = useRef<{ x: number; z: number }>({ x: 0, z: 0 });
+  const currentHoverRef = useRef<{ square: Position | null; monsterId: string | null }>({ square: null, monsterId: null });
+
+  // Query hovered monster from store for live combat stats
+  const hoveredMonster = useGameStore((state) =>
+    hoveredMonsterId ? state.gameState?.monsters.find(m => m.id === hoveredMonsterId && !m.isDefeated) : null
+  );
+
+  // Active hero aura & light pillar animation refs
+  const auraRingRef = useRef<THREE.Mesh>(null);
+  const lightPillarRef = useRef<THREE.Mesh>(null);
 
   let outlineColor = '#00aaff';
   if (interactionMode === 'attack') outlineColor = '#ff3333';
@@ -105,7 +123,7 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
     prevHp.current = hero.hp;
   }, [hero.hp]);
 
-  // Compute reachable squares when dragging
+  // Compute reachable squares when dragging or active
   const reachableSet = useMemo(() => {
     if (!isActive) return new Set<string>();
     const gs = useGameStore.getState().gameState;
@@ -130,9 +148,20 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
   useFrame((state, delta) => {
     if (!groupRef.current) return;
 
+    // 1. Animate Active Hero Aura Ring & Light Beacon
+    if (auraRingRef.current) {
+      auraRingRef.current.rotation.z += delta * 1.5;
+    }
+    if (lightPillarRef.current) {
+      const time = state.clock.getElapsedTime();
+      const pulse = 1.0 + Math.sin(time * 3) * 0.06;
+      lightPillarRef.current.scale.set(pulse, 1.0 + Math.sin(time * 2) * 0.04, pulse);
+    }
+
+    // 2. Grabbing & 6DoF / Desktop Mouse Dragging
     if (isDragging) {
-      // Follow VR 6DoF controller or mouse pointer
       if (grabbingControllerRef.current && groupRef.current.parent) {
+        // VR 6DoF Controller tracking
         grabbingControllerRef.current.updateWorldMatrix(true, false);
         grabbingControllerRef.current.getWorldPosition(_ctrlPos);
         groupRef.current.parent.updateWorldMatrix(true, false);
@@ -140,16 +169,30 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
         _tempVec.copy(_ctrlPos);
         groupRef.current.parent.worldToLocal(_tempVec);
 
-        // Keep elevated above board while dragging
+        // Keep elevated above board while dragging in VR
         targetPos.current.set(_tempVec.x, Math.max(0.35, _tempVec.y + 0.1), _tempVec.z);
+        lastPointerPosRef.current = { x: _tempVec.x, z: _tempVec.z };
+      } else if (isPointerDraggingRef.current) {
+        // Desktop mouse pointer tracking: project ray onto board floor plane (y = 0)
+        const ray = state.raycaster.ray;
+        if (ray.intersectPlane(_floorPlane, _tempVec)) {
+          if (groupRef.current.parent) {
+            groupRef.current.parent.updateWorldMatrix(true, false);
+            groupRef.current.parent.worldToLocal(_tempVec);
+          }
+          // Elevate smoothly above board while dragging on desktop
+          targetPos.current.set(_tempVec.x, 0.42, _tempVec.z);
+          lastPointerPosRef.current = { x: _tempVec.x, z: _tempVec.z };
+        }
       }
 
-      const lerpFactor = Math.min(22 * delta, 1);
+      // Snappy responsiveness: 48 * delta gives immediate tight tracking with zero sluggish drag
+      const lerpFactor = Math.min(48 * delta, 1);
       groupRef.current.position.lerp(targetPos.current, lerpFactor);
 
-      // Determine hovered square on board
-      const curX = groupRef.current.position.x;
-      const curZ = groupRef.current.position.z;
+      // Determine hovered square on board using instantaneous pointer coordinates (zero state lag)
+      const curX = lastPointerPosRef.current.x;
+      const curZ = lastPointerPosRef.current.z;
       const globalSqX = Math.floor(curX);
       const globalSqZ = Math.floor(curZ);
       const tileX = Math.floor(globalSqX / 4);
@@ -160,18 +203,33 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
       const hoveredPos: Position = { x: tileX, z: tileZ, sqX, sqZ };
       setHoveredSquare(hoveredPos);
 
-      // Check if hovering near an enemy monster
+      // Check if hovering near an enemy monster (within generous 0.88 unit radius)
       const gs = useGameStore.getState().gameState;
+      let hoveredEnemy: Monster | null = null;
       if (gs) {
-        const monster = gs.monsters.find(m => 
-          !m.isDefeated && m.hp > 0 &&
-          m.position.x === tileX && m.position.z === tileZ &&
-          m.position.sqX === sqX && m.position.sqZ === sqZ
-        );
-        setHoveredMonsterId(monster ? monster.id : null);
+        for (const m of gs.monsters) {
+          if (m.isDefeated || m.hp <= 0) continue;
+          const mWldX = m.position.x * 4 + m.position.sqX + 0.5;
+          const mWldZ = m.position.z * 4 + m.position.sqZ + 0.5;
+          const dist = Math.hypot(curX - mWldX, curZ - mWldZ);
+          if (dist < 0.88) {
+            hoveredEnemy = m;
+            break;
+          }
+        }
       }
+
+      const nextMonsterId = hoveredEnemy ? hoveredEnemy.id : null;
+      if (nextMonsterId !== currentHoverRef.current.monsterId) {
+        if (nextMonsterId) {
+          playHapticProfile('hover');
+        }
+        setHoveredTargetEntityId(nextMonsterId);
+        setHoveredMonsterId(nextMonsterId);
+      }
+      currentHoverRef.current = { square: hoveredPos, monsterId: nextMonsterId };
     } else {
-      const lerpFactor = Math.min(18 * delta, 1);
+      const lerpFactor = Math.min(24 * delta, 1);
       groupRef.current.position.lerp(targetPos.current, lerpFactor);
       let diff = targetRotY.current - groupRef.current.rotation.y;
       while (diff < -Math.PI) diff += Math.PI * 2;
@@ -179,7 +237,7 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
       groupRef.current.rotation.y += diff * lerpFactor;
     }
 
-    // target selection ring pulsing animation
+    // Target selection ring pulsing animation
     if (isLegalTarget && legalRingRef.current) {
       const time = state.clock.getElapsedTime();
       const scale = 1.0 + Math.sin(time * 5) * 0.05;
@@ -191,7 +249,7 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
       }
     }
 
-    // hit reaction animation
+    // Hit reaction animation
     if (modelRef.current) {
       if (hitTimer.current > 0) {
         hitTimer.current -= delta;
@@ -242,91 +300,213 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
     setIsDragging(true);
     setInteractionMode('move');
     dragStartPosRef.current = hero.position;
+    lastPointerPosRef.current = { x: worldX, z: worldZ };
+    currentHoverRef.current = { square: hero.position, monsterId: null };
 
     const xrCtrl = e?.controller || (e?.target?.controller ? e.target : null);
     const ctrlObj = xrCtrl?.controller || xrCtrl?.grip || (e?.target instanceof THREE.Object3D ? e.target : null);
     if (ctrlObj) {
       grabbingControllerRef.current = ctrlObj;
     }
-  }, [isActive, hero.position, setInteractionMode]);
+  }, [isActive, hero.position, worldX, worldZ, setInteractionMode]);
 
   // ---------------------------------------------------------------------------
-  // Release / Drop Handlers
+  // Release / Drop Handlers (Intuitive, responsive, no stickiness)
   // ---------------------------------------------------------------------------
   const handleGrabEnd = useCallback(() => {
     if (!isDragging) return;
 
     setIsDragging(false);
     grabbingControllerRef.current = null;
+    isPointerDraggingRef.current = false;
+    setHoveredTargetEntityId(null);
+    setHoveredMonsterId(null);
 
     const gs = useGameStore.getState().gameState;
-    if (!gs || !hoveredSquare) {
-      // Snap back
+    if (!gs) {
       targetPos.current.set(worldX, 0, worldZ);
+      setInteractionMode('none');
       return;
     }
 
-    // 1. Attack Target Check (if dropped on enemy monster)
-    if (hoveredMonsterId) {
-      const monster = gs.monsters.find(m => m.id === hoveredMonsterId);
+    // 1. Attack Target Check (if dropped onto or near an enemy monster)
+    const targetMonsterId = currentHoverRef.current.monsterId || hoveredMonsterId;
+    if (targetMonsterId) {
+      const monster = gs.monsters.find(m => m.id === targetMonsterId && !m.isDefeated && m.hp > 0);
       if (monster) {
-        playHapticProfile('rollDice');
-        handleAttackMonster(monster.id);
-        targetPos.current.set(worldX, 0, worldZ);
-        setInteractionMode('none');
-        return;
+        if (gs.hasAttackedThisTurn) {
+          playHapticProfile('error');
+          addNotification(`${hero.name} has already attacked this turn!`, 'warning');
+          targetPos.current.set(worldX, 0, worldZ);
+          setInteractionMode('none');
+          return;
+        }
+
+        const hGX = hero.position.x * 4 + hero.position.sqX;
+        const hGZ = hero.position.z * 4 + hero.position.sqZ;
+        const mGX = monster.position.x * 4 + monster.position.sqX;
+        const mGZ = monster.position.z * 4 + monster.position.sqZ;
+        const isAlreadyAdjacent = Math.max(Math.abs(hGX - mGX), Math.abs(hGZ - mGZ)) <= 1;
+
+        if (isAlreadyAdjacent) {
+          playHapticProfile('rollDice');
+          handleAttackMonster(monster.id);
+          targetPos.current.set(worldX, 0, worldZ);
+          setInteractionMode('none');
+          return;
+        }
+
+        // Hero is not adjacent: can hero move to reach?
+        if (hero.isExhausted) {
+          playHapticProfile('error');
+          addNotification(`${hero.name} has already moved and cannot reach ${monster.name}!`, 'warning');
+          targetPos.current.set(worldX, 0, worldZ);
+          setInteractionMode('none');
+          return;
+        }
+
+        // Find reachable adjacent squares to monster
+        const adjOffsets = [
+          { dx: 1, dz: 0 }, { dx: -1, dz: 0 }, { dx: 0, dz: 1 }, { dx: 0, dz: -1 },
+          { dx: 1, dz: 1 }, { dx: -1, dz: 1 }, { dx: 1, dz: -1 }, { dx: -1, dz: -1 }
+        ];
+
+        let bestSquare: Position | null = null;
+        let minSqDist = 999;
+        const dropGX = Math.floor(lastPointerPosRef.current.x);
+        const dropGZ = Math.floor(lastPointerPosRef.current.z);
+
+        for (const offset of adjOffsets) {
+          const adjGX = mGX + offset.dx;
+          const adjGZ = mGZ + offset.dz;
+          const tX = Math.floor(adjGX / 4);
+          const tZ = Math.floor(adjGZ / 4);
+          const sX = ((adjGX % 4) + 4) % 4;
+          const sZ = ((adjGZ % 4) + 4) % 4;
+          const tile = gs.tiles.find(t => t.x === tX && t.z === tZ && t.isRevealed);
+          if (!tile) continue;
+
+          const key = `${tile.id}:${sX}:${sZ}`;
+          if (reachableSet.has(key)) {
+            const dist = Math.hypot(adjGX - dropGX, adjGZ - dropGZ);
+            if (dist < minSqDist) {
+              minSqDist = dist;
+              bestSquare = { x: tX, z: tZ, sqX: sX, sqZ: sZ };
+            }
+          }
+        }
+
+        if (bestSquare) {
+          playHapticProfile('rollDice');
+          handleMoveHero(bestSquare);
+          handleAttackMonster(monster.id);
+          setInteractionMode('none');
+          return;
+        } else {
+          playHapticProfile('error');
+          addNotification(`${monster.name} is out of movement reach!`, 'warning');
+          targetPos.current.set(worldX, 0, worldZ);
+          setInteractionMode('none');
+          return;
+        }
       }
     }
 
     // 2. Reachable Square Check
-    const destTile = gs.tiles.find(t => t.x === hoveredSquare.x && t.z === hoveredSquare.z);
-    const targetKey = destTile ? `${destTile.id}:${hoveredSquare.sqX}:${hoveredSquare.sqZ}` : '';
+    const dropCandidate = currentHoverRef.current.square || hoveredSquare;
+    let chosenSquare: Position | null = null;
 
-    if (destTile && reachableSet.has(targetKey)) {
+    if (dropCandidate) {
+      const destTile = gs.tiles.find(t => t.x === dropCandidate.x && t.z === dropCandidate.z);
+      const targetKey = destTile ? `${destTile.id}:${dropCandidate.sqX}:${dropCandidate.sqZ}` : '';
+      if (destTile && reachableSet.has(targetKey)) {
+        chosenSquare = dropCandidate;
+      }
+    }
+
+    // Forgiving snap radius: if not directly on a legal square, check nearest reachable square within 0.85 units
+    if (!chosenSquare && reachableSet.size > 0) {
+      const dropWorldX = lastPointerPosRef.current.x;
+      const dropWorldZ = lastPointerPosRef.current.z;
+      let minDistance = 0.85;
+
+      for (const key of reachableSet) {
+        const [tId, sXStr, sZStr] = key.split(':');
+        const sX = parseInt(sXStr, 10);
+        const sZ = parseInt(sZStr, 10);
+        const tile = gs.tiles.find(t => t.id === tId);
+        if (!tile) continue;
+
+        const sqWldX = tile.x * 4 + sX + 0.5;
+        const sqWldZ = tile.z * 4 + sZ + 0.5;
+        const dist = Math.hypot(dropWorldX - sqWldX, dropWorldZ - sqWldZ);
+        if (dist < minDistance) {
+          minDistance = dist;
+          chosenSquare = { x: tile.x, z: tile.z, sqX: sX, sqZ: sZ };
+        }
+      }
+    }
+
+    if (chosenSquare) {
       // Legal Square: Snap and Move
       playHapticProfile('click');
-      handleMoveHero(hoveredSquare);
+      handleMoveHero(chosenSquare);
       setInteractionMode('none');
     } else {
-      // Illegal Square: Cannot let go on illegal square! Snap back to start.
+      // Illegal Square: snap back to start
       playHapticProfile('error');
       addNotification('Cannot place hero on an illegal square — returned to start.', 'warning');
       targetPos.current.set(worldX, 0, worldZ);
+      setInteractionMode('none');
     }
   }, [isDragging, hoveredSquare, hoveredMonsterId, reachableSet, worldX, worldZ,
-      handleAttackMonster, handleMoveHero, setInteractionMode, addNotification]);
+      handleAttackMonster, handleMoveHero, setInteractionMode, setHoveredTargetEntityId, addNotification, hero]);
 
+  // Desktop Mouse Drag initiation
   const handlePointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
     if (!isActive) return;
+    if (e.nativeEvent && 'button' in e.nativeEvent && e.nativeEvent.button !== 0) return;
+
     e.stopPropagation();
     handleGrabStart(e);
-
-    const onPointerMove = (_moveEvt: PointerEvent) => {
-      // Desktop raycast tracking
-    };
+    isPointerDraggingRef.current = true;
 
     const onPointerUp = () => {
-      window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+      isPointerDraggingRef.current = false;
       handleGrabEnd();
     };
 
-    window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
   }, [isActive, handleGrabStart, handleGrabEnd]);
 
   const handleClick = useCallback((e: ThreeEvent<MouseEvent>) => {
+    if (isPendingApproval) {
+      e.stopPropagation();
+      approveAITurn();
+      return;
+    }
     if (interactionMode === 'ability' && selectedPowerId) {
       e.stopPropagation();
       useGameStore.getState().usePower(selectedPowerId, hero.id);
       setInteractionMode('none');
       setSelectedPowerId(null);
     }
-  }, [interactionMode, selectedPowerId, hero.id, setInteractionMode, setSelectedPowerId]);
+  }, [isPendingApproval, approveAITurn, interactionMode, selectedPowerId, hero.id, setInteractionMode, setSelectedPowerId]);
+
+  const handleVRSelect = useCallback((e: any) => {
+    if (isPendingApproval) {
+      approveAITurn();
+      return;
+    }
+    handleGrabStart(e);
+  }, [isPendingApproval, approveAITurn, handleGrabStart]);
 
   return (
     <Interactive
-      onSelect={handleGrabStart}
+      onSelect={handleVRSelect}
       onSqueeze={handleGrabStart}
       onSqueezeEnd={handleGrabEnd}
     >
@@ -337,25 +517,39 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
         onPointerDown={handlePointerDown}
       >
         <Select enabled={isActive}>
-          {/* Active / Dragging Selection Rings */}
+          {/* ── Active Hero Rotating Pedestal Aura Ring ─────────────────────── */}
           {isActive && (
-            <group position={[0, 0.01, 0]}>
-              <mesh rotation={[-Math.PI / 2, 0, 0]}>
-                <ringGeometry args={[0.45, 0.58, 32]} />
+            <group position={[0, 0.015, 0]}>
+              <mesh ref={auraRingRef} rotation={[-Math.PI / 2, 0, 0]}>
+                <ringGeometry args={[0.42, 0.62, 32]} />
                 <meshBasicMaterial 
-                  color={isDragging ? '#00ff88' : outlineColor} 
+                  color={hoveredMonster ? '#ff1744' : (isDragging ? '#00ff88' : '#f5dfa3')} 
                   transparent 
-                  opacity={isDragging ? 0.95 : 0.8} 
+                  opacity={isDragging ? 0.95 : 0.85} 
                   side={THREE.DoubleSide} 
                 />
               </mesh>
               {isDragging && (
                 <mesh position={[0, -0.2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                   <circleGeometry args={[0.55, 32]} />
-                  <meshBasicMaterial color="#00ff88" transparent opacity={0.3} />
+                  <meshBasicMaterial color={hoveredMonster ? '#ff1744' : '#00ff88'} transparent opacity={0.3} />
                 </mesh>
               )}
             </group>
+          )}
+
+          {/* ── Active Hero Ascending Light Pillar Beacon ───────────────────── */}
+          {isActive && (
+            <mesh ref={lightPillarRef} position={[0, 0.9, 0]}>
+              <cylinderGeometry args={[0.35, 0.45, 1.8, 24, 1, true]} />
+              <meshBasicMaterial
+                color={hoveredMonster ? '#ff2244' : '#ffd700'}
+                transparent
+                opacity={isDragging ? 0.30 : 0.16}
+                side={THREE.DoubleSide}
+                depthWrite={false}
+              />
+            </mesh>
           )}
 
           {isLegalTarget && (
@@ -367,10 +561,18 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
             </group>
           )}
 
-          <Cylinder args={[0.4, 0.4, 0.05, 16]} position={[0, 0.025, 0]}>
-            <meshStandardMaterial color={isSelected || isDragging ? outlineColor : "#222222"} />
+          {/* Miniature Base Pedestal with Radiant Gold Highlight when Active */}
+          <Cylinder args={[0.4, 0.4, 0.05, 24]} position={[0, 0.025, 0]}>
+            <meshStandardMaterial 
+              color={isActive ? '#c5a059' : (isSelected || isDragging ? outlineColor : '#222222')} 
+              emissive={isActive ? (hoveredMonster ? '#ff1744' : (isDragging ? '#00ff88' : '#a08040')) : '#000000'}
+              emissiveIntensity={isActive ? (isDragging ? 0.85 : 0.4) : 0}
+              metalness={isActive ? 0.8 : 0.1}
+              roughness={0.3}
+            />
           </Cylinder>
 
+          {/* Health Status Orb */}
           <Sphere args={[0.08]} position={[0.3, 0.1, 0]}>
             <meshStandardMaterial 
               color={orbColor} 
@@ -379,23 +581,54 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
             />
           </Sphere>
    
-          {/* Diegetic Billboard Stats */}
+          {/* Diegetic Billboard Stats & Active Turn Indicator */}
           <Billboard position={[0, 1.45, 0]}>
-            {/* Active Movement Prompt Banner */}
-            {isActive && (interactionMode === 'move' || isDragging) && (
+            {/* Active Turn Guidance / AI Approval Banner */}
+            {(isActive || isPendingApproval) && (
               <group position={[0, 0.42, 0]}>
                 <mesh>
-                  <boxGeometry args={[1.8, 0.18, 0.02]} />
-                  <meshStandardMaterial color="#004d40" emissive="#00e5ff" emissiveIntensity={0.7} />
+                  <boxGeometry args={[2.0, 0.22, 0.02]} />
+                  <meshStandardMaterial 
+                    color="#20150b" 
+                    emissive={isPendingApproval ? '#00e676' : (hoveredMonster ? '#ff1744' : (isDragging ? '#00e5ff' : '#d4af37'))} 
+                    emissiveIntensity={isPendingApproval ? 0.95 : (isDragging ? 0.85 : 0.5)} 
+                    roughness={0.4}
+                    metalness={0.7}
+                  />
+                </mesh>
+                <mesh position={[0, 0, 0.011]}>
+                  <boxGeometry args={[1.96, 0.18, 0.002]} />
+                  <meshBasicMaterial color={isPendingApproval ? '#00ff88' : (hoveredMonster ? '#ffd700' : (isDragging ? '#00ffff' : '#f5dfa3'))} wireframe />
                 </mesh>
                 <Text
-                  position={[0, 0, 0.02]}
-                  fontSize={0.09}
+                  position={[0, 0.035, 0.02]}
+                  fontSize={0.082}
                   color="#ffffff"
                   anchorX="center"
                   anchorY="middle"
+                  letterSpacing={0.04}
+                  fontWeight="bold"
                 >
-                  {isDragging ? 'DRAG & DROP TO MOVE OR ATTACK' : 'PICK UP HERO TO MOVE'}
+                  {isPendingApproval
+                    ? '🤖 AI TURN COMPLETE — CLICK TO APPROVE 🤖'
+                    : hoveredMonster 
+                      ? `⚔ DROP TO ATTACK ${hoveredMonster.name.toUpperCase()} ⚔` 
+                      : (isDragging ? '⚡ DRAG TO MOVE OR ATTACK ⚡' : '⭐ ACTIVE HERO — YOUR TURN ⭐')}
+                </Text>
+                <Text
+                  position={[0, -0.045, 0.02]}
+                  fontSize={0.052}
+                  color={isPendingApproval ? '#55ffaa' : (hoveredMonster ? '#ffd700' : '#f5dfa3')}
+                  anchorX="center"
+                  anchorY="middle"
+                >
+                  {isPendingApproval
+                    ? 'Click hero piece or press [Space] to advance to Villain Phase'
+                    : hoveredMonster 
+                      ? `D20 vs AC ${hoveredMonster.ac} • Deals ${hero.damage ?? 1} Damage` 
+                      : (isDragging 
+                        ? 'Drop on legal square to Move • Drop on Monster to Attack' 
+                        : 'Grab piece to Move • Attack or Play Card')}
                 </Text>
               </group>
             )}
@@ -404,7 +637,7 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
             <Text
               position={[0, 0.22, 0]}
               fontSize={0.14}
-              color="#4fc3f7"
+              color={isActive ? '#ffd700' : '#4fc3f7'}
               anchorX="center"
               anchorY="middle"
             >
@@ -418,24 +651,12 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
             </mesh>
             {/* HP Bar Foreground */}
             <mesh position={[-0.3 + (hpRatio * 0.6) / 2, 0.08, 0.005]}>
-              <planeGeometry args={[hpRatio * 0.6, 0.06]} />
+              <planeGeometry args={[hpRatio * 0.6, 0.05]} />
               <meshBasicMaterial color={hpBarColor} />
             </mesh>
    
-            {/* HP Text (e.g. "8/10") */}
-            <Text
-              position={[0, 0.08, 0.01]}
-              fontSize={0.075}
-              color="#ffffff"
-              fontWeight="bold"
-              anchorX="center"
-              anchorY="middle"
-            >
-              {`${hero.hp}/${hero.maxHp}`}
-            </Text>
-   
-            {/* Conditions */}
-            {hero.conditions && hero.conditions.length > 0 && (
+            {/* Active Conditions Display */}
+            {hero.conditions.length > 0 && (
               <Text
                 position={[0, -0.05, 0]}
                 fontSize={0.09}

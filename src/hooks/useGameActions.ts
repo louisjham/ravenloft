@@ -92,15 +92,6 @@ export const useGameActions = () => {
       return;
     }
 
-    // ── Valid move — animate then commit ──────────────────────────────────────
-    await animationQueue.enqueue('HeroMove', async () => {
-      const animSpeed = useGameStore.getState().settings?.animationSpeed ?? 'normal';
-      const delay = animSpeed === 'instant' ? 0 : animSpeed === 'fast' ? 50 : 150;
-      if (delay > 0) {
-        await new Promise<void>(resolve => setTimeout(resolve, delay));
-      }
-    });
-
     storeMoveHero(targetPosition);
 
     const slowedSuffix = isSlowed ? ' (Slowed)' : '';
@@ -182,23 +173,15 @@ export const useGameActions = () => {
     const monster = gameState.monsters.find(m => m.id === monsterId);
     if (!monster) return;
 
-    await animationQueue.enqueue('HeroAttack', async () => {
-      const animSpeed = useGameStore.getState().settings?.animationSpeed ?? 'normal';
-      const delay = animSpeed === 'instant' ? 0 : animSpeed === 'fast' ? 70 : 200;
-      if (delay > 0) {
-        await new Promise<void>(resolve => setTimeout(resolve, delay));
-      }
-    });
-
     storeAttackMonster(monsterId);
-    addNotification(`Attacked ${monster.name}!`, 'info');
+    addNotification(`Attacking ${monster.name}...`, 'info');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ---------------------------------------------------------------------------
   // End Turn
   // ---------------------------------------------------------------------------
-  const handleEndTurn = useCallback(() => {
+  const handleEndTurn = useCallback(async () => {
     // Read state imperatively at execution time
     const gameState = useGameStore.getState().gameState;
     if (gameState && gameState.phase === 'hero' && !gameState.hasExploredThisTurn) {
@@ -220,8 +203,52 @@ export const useGameActions = () => {
           const explorablePoints = points.filter(p => p.tileId === heroTile.id && isHeroAtEdgeFor(p.edge));
           
           if (explorablePoints.length > 0 && gameState.dungeonDeck && gameState.dungeonDeck.length > 0) {
+            const explorablePoint = explorablePoints[0];
+            const drawResult = TileSystem.drawAndPlace(gameState, explorablePoint);
+            if (drawResult.tile && drawResult.validRotations.length > 0) {
+              const autoRotation = drawResult.validRotations[0];
+              const pt = gameState.tiles.find(t => t.id === explorablePoint.tileId);
+              if (pt) {
+                let targetX = pt.x;
+                let targetZ = pt.z;
+                if (explorablePoint.edge === 'north') targetZ -= 1;
+                else if (explorablePoint.edge === 'south') targetZ += 1;
+                else if (explorablePoint.edge === 'east') targetX += 1;
+                else if (explorablePoint.edge === 'west') targetX -= 1;
+
+                const validation = TileSystem.validateEdgeAlignment(
+                  gameState.tiles,
+                  drawResult.tile,
+                  targetX,
+                  targetZ,
+                  autoRotation,
+                  explorablePoint.edge
+                );
+
+                if (validation.valid) {
+                  const finalState = TileSystem.placeTile(gameState, explorablePoint, autoRotation);
+                  const placedTile = finalState.tiles.find(t => t.x === targetX && t.z === targetZ);
+                  if (placedTile) {
+                    const stateWithMonster = TileSystem.spawnMonsterForExploration(finalState, placedTile);
+                    const { ScenarioManager } = await import('../game/scenarios/ScenarioManager');
+                    const stateWithRules = ScenarioManager.processPostExplore(stateWithMonster, placedTile);
+                    useGameStore.getState().setGameState({
+                      ...stateWithRules,
+                      hasExploredThisTurn: true,
+                      exploredThisTurn: true,
+                      lastPlacedTileEncounterType: placedTile.encounterType ?? null,
+                      lastPlacedTileId: placedTile.id
+                    });
+                    addNotification(`Explored new room: ${placedTile.name || placedTile.id}!`, 'success');
+                    storeEndTurn();
+                    return;
+                  }
+                }
+              }
+            }
+
             useUIStore.getState().setInteractionMode('explore');
-            addNotification('Exploration Required: You must explore the adjacent edge before ending your turn!', 'warning');
+            addNotification('Choose edge rotation to explore room before ending turn.', 'info');
             return;
           }
         }
@@ -229,7 +256,6 @@ export const useGameActions = () => {
     }
 
     storeEndTurn();
-    addNotification('End of turn', 'info');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -241,7 +241,7 @@ const XRSceneContent: React.FC<{
         <XRUnboxingStage3D />
 
         {/* Board & In-Game 3D Pieces (Scaled and positioned on tabletop during XR) */}
-        <group position={isPresenting ? [0, 0.72, -1.0] : [0, 0, 0]} scale={isPresenting ? 0.08 : 1.0}>
+        <group position={isPresenting ? [-0.16, 0.01, -0.16] : [0, 0, 0]} scale={isPresenting ? 0.08 : 1.0}>
           <Selection>
             <Suspense fallback={null}>
               {children}

@@ -8,6 +8,10 @@ interface SettingsPanelProps {
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
   const settings = useGameStore((state) => state.settings);
   const updateSettings = useGameStore((state) => state.updateSettings);
+  const gameState = useGameStore((state) => state.gameState);
+  const setAIControlMode = useGameStore((state) => state.setAIControlMode);
+  const setHeroAIControl = useGameStore((state) => state.setHeroAIControl);
+  const toggleAITurnApproval = useGameStore((state) => state.toggleAITurnApproval);
 
   const handleVolumeChange = (type: 'masterVolume' | 'musicVolume' | 'sfxVolume', value: number) => {
     updateSettings({ [type]: value });
@@ -281,6 +285,153 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
             }}
           />
         </button>
+      </div>
+
+      {/* PARTY AUTOMATION & AI HEROES */}
+      <div style={{ borderTop: '1px solid #444', paddingTop: '16px', marginTop: '6px' }}>
+        <h3 className="gothic-title" style={{ color: 'var(--color-accent)', margin: '0 0 12px 0', fontSize: '1rem', borderBottom: '1px dashed #444', paddingBottom: '4px' }}>
+          Party Automation & AI Heroes
+        </h3>
+        
+        {/* Preset Modes */}
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+          {[
+            { id: 'solo', label: 'Solo (1 Hero)', desc: 'Control 1 hero; companions act automatically' },
+            { id: 'manual', label: 'All Manual', desc: 'Full manual control of all heroes' },
+            { id: 'all_ai', label: 'Director (All AI)', desc: 'Fully autonomous party; approve turn endings' }
+          ].map((mode) => {
+            const isSelected = (settings.aiControlMode ?? 'solo') === mode.id;
+            return (
+              <button
+                key={mode.id}
+                onClick={() => setAIControlMode(mode.id as any)}
+                className="gothic-button"
+                style={{
+                  flex: 1,
+                  padding: '8px 4px',
+                  fontSize: '0.72rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  cursor: 'pointer',
+                  background: isSelected ? 'var(--color-accent)' : 'rgba(0,0,0,0.5)',
+                  border: `1px solid ${isSelected ? 'var(--color-gold)' : '#444'}`,
+                  color: isSelected ? 'white' : '#aaa',
+                  boxShadow: isSelected ? '0 0 8px rgba(139,0,0,0.6)' : 'none',
+                  transition: 'all 0.2s ease'
+                }}
+                title={mode.desc}
+              >
+                {mode.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-dim)', fontStyle: 'italic', lineHeight: '1.4', marginBottom: '14px' }}>
+          {settings.aiControlMode === 'solo' && 'Solo Mode: Your active hero is manual. All party companions automatically move, attack, and explore.'}
+          {settings.aiControlMode === 'manual' && 'Manual Mode: You command each party hero individually during their turn.'}
+          {settings.aiControlMode === 'all_ai' && 'Director Mode: All heroes act autonomously using companion AI. You approve end-of-turn sequences.'}
+          {settings.aiControlMode === 'custom' && 'Custom Mode: Individual heroes have customized manual or AI control settings.'}
+        </div>
+
+        {/* Turn Approval Toggle */}
+        <div 
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'rgba(0,0,0,0.3)',
+            padding: '8px 10px',
+            borderRadius: '4px',
+            border: '1px solid #333',
+            marginBottom: '12px'
+          }}
+        >
+          <div>
+            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block' }}>Approve AI Turns</span>
+            <span style={{ fontSize: '0.7rem', color: 'var(--color-text-dim)' }}>Pause before ending AI hero turns for player sign-off</span>
+          </div>
+          <button
+            onClick={toggleAITurnApproval}
+            style={{
+              width: '46px',
+              height: '22px',
+              borderRadius: '11px',
+              background: (settings.aiTurnApprovalRequired || settings.aiControlMode === 'all_ai') ? 'var(--color-accent)' : '#222',
+              border: '1px solid var(--color-gold)',
+              position: 'relative',
+              cursor: 'pointer',
+              transition: 'background 0.3s ease'
+            }}
+          >
+            <div 
+              style={{
+                width: '16px',
+                height: '16px',
+                borderRadius: '50%',
+                background: 'var(--color-gold)',
+                position: 'absolute',
+                top: '2px',
+                left: (settings.aiTurnApprovalRequired || settings.aiControlMode === 'all_ai') ? '26px' : '3px',
+                transition: 'left 0.2s ease',
+                boxShadow: '0 0 4px black'
+              }}
+            />
+          </button>
+        </div>
+
+        {/* Per-Hero Control Toggles (when in an active game) */}
+        {gameState?.heroes && gameState.heroes.length > 0 && (
+          <div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--color-gold)', marginBottom: '8px' }}>
+              Individual Hero Controls
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {gameState.heroes.map((hero) => {
+                const isAI = !!hero.isAutoFollow;
+                return (
+                  <div
+                    key={hero.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '6px 10px',
+                      background: 'rgba(20, 20, 30, 0.6)',
+                      borderRadius: '4px',
+                      border: '1px solid #3a3a4e'
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 'bold', display: 'block', color: 'white' }}>
+                        {hero.name}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--color-text-dim)' }}>
+                        {hero.heroClass} (HP: {hero.hp}/{hero.maxHp})
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setHeroAIControl(hero.id, !isAI)}
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: '0.72rem',
+                        borderRadius: '3px',
+                        cursor: 'pointer',
+                        background: isAI ? 'rgba(0, 150, 255, 0.25)' : 'rgba(255, 180, 0, 0.25)',
+                        border: isAI ? '1px solid #00aaff' : '1px solid #ffbb00',
+                        color: isAI ? '#88ccff' : '#ffdd88',
+                        fontFamily: 'var(--font-body)',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {isAI ? '🤖 AI Automated' : '👤 Player Controlled'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

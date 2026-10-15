@@ -13,6 +13,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({ onOpenTreasure }) => {
   const { handleEndTurn, canSearch, getSearchableTokens, handleSearchToken } = useGameActions();
 
   const currentHeroId = useGameStore(s => s.gameState?.currentHeroId);
+  const approveAITurn = useGameStore((state) => state.approveAITurn);
   const { interactionMode, setInteractionMode } = useUIStore();
   const treasureAssignments = useGameStore(
     s => s.gameState?.treasureAssignments ?? []
@@ -56,17 +57,20 @@ export const ActionBar: React.FC<ActionBarProps> = ({ onOpenTreasure }) => {
     return !s.gameState.hasExploredThisTurn;
   });
 
+  const heroIsExhausted = activeHero?.isExhausted ?? false;
   const actions = [
-    { id: 'move', label: 'Move', key: 'M', isDisabled: !hasMovement },
     { id: 'attack', label: 'Attack', key: 'A', isDisabled: !anyAliveMonsters || gameState?.hasAttackedThisTurn },
     { id: 'ability', label: 'Ability', key: 'C', isDisabled: !hasUsablePowers },
-    { id: 'explore', label: 'Explore', key: 'E', isDisabled: !canExplore },
-    { id: 'endTurn', label: 'End Turn', key: 'Space', isDisabled: false },
+    { id: 'endTurn', label: gameState?.pendingAITurnApproval ? 'Approve Turn' : 'End Turn', key: 'Space', isDisabled: false },
   ];
 
   const onActionClick = (actionId: string) => {
     if (actionId === 'endTurn') {
-      handleEndTurn();
+      if (gameState?.pendingAITurnApproval) {
+        approveAITurn();
+      } else {
+        handleEndTurn();
+      }
       setInteractionMode('none');
     } else if (actionId === 'search') {
       if (searchableTokens.length > 0) {
@@ -87,6 +91,53 @@ export const ActionBar: React.FC<ActionBarProps> = ({ onOpenTreasure }) => {
       padding: '10px',
     }}>
       <h3 className="gothic-title" style={{ fontSize: '0.75rem', margin: '0 0 6px 0', letterSpacing: '1px' }}>Actions</h3>
+      
+      {/* Pending AI Turn Approval Banner */}
+      {gameState?.pendingAITurnApproval && (
+        <button
+          className="gothic-button"
+          onClick={() => approveAITurn()}
+          style={{
+            width: '100%',
+            padding: '8px 6px',
+            fontSize: '0.72rem',
+            fontWeight: 'bold',
+            background: 'linear-gradient(135deg, rgba(20, 80, 40, 0.95), rgba(30, 120, 60, 0.95))',
+            border: '2px solid #55ffaa',
+            color: '#ffffff',
+            boxShadow: '0 0 12px rgba(85, 255, 170, 0.6)',
+            cursor: 'pointer',
+            marginBottom: '6px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '2px',
+            animation: 'pulse-glow 2s infinite alternate'
+          }}
+        >
+          <span>✅ APPROVE AI TURN</span>
+          <span style={{ fontSize: '0.62rem', color: '#aaffcc' }}>
+            {gameState.pendingAITurnApproval.heroName} [Space]
+          </span>
+        </button>
+      )}
+
+      {/* Dynamic Movement Status Badge */}
+      <div style={{
+        fontSize: '0.68rem',
+        color: hasMovement ? '#55ffaa' : '#888888',
+        border: `1px solid ${hasMovement ? 'rgba(85, 255, 170, 0.4)' : 'rgba(100, 100, 100, 0.3)'}`,
+        background: hasMovement ? 'rgba(10, 40, 25, 0.65)' : 'rgba(25, 25, 25, 0.65)',
+        borderRadius: '4px',
+        padding: '5px 7px',
+        marginBottom: '6px',
+        textAlign: 'center',
+        lineHeight: 1.3
+      }}>
+        {hasMovement 
+          ? (activeHero?.isExhausted ? '⚡ Drag piece for Double Move' : '✥ Drag hero piece to Move')
+          : '✓ Move completed'}
+      </div>
       {actions.map((action) => {
         const isActive = interactionMode === action.id;
         const isDisabledState = action.isDisabled || gameState?.phase !== 'hero';

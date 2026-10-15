@@ -9,6 +9,8 @@ import { ConditionSystem } from '../../game/engine/ConditionSystem';
 import { GAME_CONSTANTS } from '../../game/constants';
 import { Position } from '../../game/types';
 
+import { TavernProps3D } from './TavernProps3D';
+
 // Stable empty array reference to prevent redundant re-renders when gameState is null/undefined.
 const EMPTY_ARRAY: any[] = [];
 
@@ -93,6 +95,7 @@ export const DungeonBoard: React.FC = () => {
 
   return (
     <group name="dungeon-board">
+      <TavernProps3D />
       {tiles.map((tile) => (
         <Tile3D
           key={tile.id}

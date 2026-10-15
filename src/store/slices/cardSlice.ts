@@ -243,6 +243,21 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
 
         const villainState = executeVillainPhase(stateWithIdleCard);
 
+        const villainLogs = villainState.log.slice(stateWithIdleCard.log.length);
+        const combatEntries = villainLogs.filter(e => e.type === 'combat');
+        if (combatEntries.length > 0) {
+          for (const entry of combatEntries) {
+            const isHit = entry.message.includes('HITS');
+            useUIStore.getState().addNotification(
+              entry.message,
+              isHit ? 'error' : 'info',
+              4000
+            );
+          }
+        } else {
+          useUIStore.getState().addNotification('Villain Phase: No monster attacks.', 'info', 2000);
+        }
+
         const currentIndex = villainState.turnOrder.indexOf(villainState.currentHeroId);
         const nextIndex = (currentIndex + 1) % villainState.turnOrder.length;
         const nextId = villainState.turnOrder[nextIndex];
@@ -430,6 +445,21 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
 
         // Execute the villain phase (monster/trap activation)
         const villainState = executeVillainPhase(stateWithIdleCard);
+
+        const villainLogs = villainState.log.slice(stateWithIdleCard.log.length);
+        const combatEntries = villainLogs.filter(e => e.type === 'combat');
+        if (combatEntries.length > 0) {
+          for (const entry of combatEntries) {
+            const isHit = entry.message.includes('HITS');
+            useUIStore.getState().addNotification(
+              entry.message,
+              isHit ? 'error' : 'info',
+              4000
+            );
+          }
+        } else {
+          useUIStore.getState().addNotification('Villain Phase: No monster attacks.', 'info', 2000);
+        }
 
         // Check defeat after villain phase (heroes may have been killed by monsters)
         if (villainState.phase !== 'setup') {

@@ -3,6 +3,8 @@ import type { Card, Hero, PowerSelection, PowerType } from '../../game/types';
 import PowerSelectionSystem from '../../game/engine/PowerSelectionSystem';
 import PowerCardDisplay from './PowerCardDisplay';
 import { getPowerCard, getAllPowerCards } from '../../data/powerCardLoader';
+import { useGameStore } from '../../store/gameStore';
+import { OptionsOverlay } from './OptionsOverlay';
 
 export interface PowerSelectionScreenProps {
     heroes: Hero[];
@@ -26,6 +28,10 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
     // LOCAL STATE
     const [activeHeroId, setActiveHeroId] = useState<string>(heroes[0]?.id ?? '');
     const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+    const [showOptions, setShowOptions] = useState(false);
+
+    const settings = useGameStore(s => s.settings);
+    const setAIControlMode = useGameStore(s => s.setAIControlMode);
 
     const isPowerLocked = (cardId: string): boolean => {
         return ['fighter_dragons_breath', 'cleric_healing_word', 'wizard_fey_step', 'rogue_sneak_attack'].includes(cardId);
@@ -232,6 +238,50 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
         <div style={containerStyle}>
             {/* TOP BAR */}
             <div style={topBarStyle} id="power-top-bar">
+                <button
+                    id="power-selection-back-menu"
+                    className="gothic-button"
+                    style={{
+                        position: 'absolute',
+                        top: '16px',
+                        left: '16px',
+                        padding: '6px 14px',
+                        fontSize: '0.8rem',
+                        background: 'rgba(20, 10, 30, 0.85)',
+                        border: '1px solid var(--color-gold)',
+                        color: 'var(--color-gold)',
+                        cursor: 'pointer',
+                        zIndex: 20
+                    }}
+                    onClick={() => {
+                        if (window.confirm('Return to the Main Menu? Your hero power choices will be lost.')) {
+                            useGameStore.getState().quitToMainMenu();
+                        }
+                    }}
+                >
+                    ← Main Menu
+                </button>
+
+                <button
+                    id="power-selection-options"
+                    className="gothic-button"
+                    style={{
+                        position: 'absolute',
+                        top: '16px',
+                        right: '16px',
+                        padding: '6px 14px',
+                        fontSize: '0.8rem',
+                        background: 'rgba(20, 10, 30, 0.85)',
+                        border: '1px solid var(--color-gold)',
+                        color: 'var(--color-gold)',
+                        cursor: 'pointer',
+                        zIndex: 20
+                    }}
+                    onClick={() => setShowOptions(true)}
+                >
+                    ⚙ Options
+                </button>
+
                 <div style={titleStyle}>Choose Your Powers</div>
                 <div style={heroButtonsStyle}>
                     {heroes.map(hero => {
@@ -245,6 +295,40 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
                             >
                                 {hero.heroClass || hero.id}
                                 {selection?.isConfirmed && ' ✓'}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Party AI Automation Presets */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#d4af37', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Party Mode:
+                    </span>
+                    {[
+                        { id: 'solo', label: 'Solo (1 Hero + Companions)', desc: 'You control 1 hero; companions act automatically' },
+                        { id: 'all_ai', label: 'Director (All AI)', desc: 'All heroes autonomous; you approve turn endings' },
+                        { id: 'manual', label: 'All Manual', desc: 'Full manual control of each hero' }
+                    ].map(m => {
+                        const isSelected = (settings.aiControlMode ?? 'solo') === m.id;
+                        return (
+                            <button
+                                key={m.id}
+                                onClick={() => setAIControlMode(m.id as any, heroes[0]?.id)}
+                                style={{
+                                    padding: '4px 10px',
+                                    fontSize: '0.72rem',
+                                    background: isSelected ? 'var(--color-accent)' : 'rgba(0,0,0,0.4)',
+                                    border: `1px solid ${isSelected ? 'var(--color-gold)' : '#555'}`,
+                                    color: isSelected ? '#fff' : '#aaa',
+                                    borderRadius: '3px',
+                                    cursor: 'pointer',
+                                    fontFamily: 'Cinzel, serif',
+                                    boxShadow: isSelected ? '0 0 8px rgba(139,0,0,0.6)' : 'none'
+                                }}
+                                title={m.desc}
+                            >
+                                {m.label}
                             </button>
                         );
                     })}
@@ -383,6 +467,7 @@ const PowerSelectionScreen: React.FC<PowerSelectionScreenProps> = ({
                     </button>
                 )}
             </div>
+            {showOptions && <OptionsOverlay onClose={() => setShowOptions(false)} />}
         </div>
     );
 };

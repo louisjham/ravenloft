@@ -2,8 +2,7 @@ import { useGLTF } from '@react-three/drei';
 import { Group } from 'three';
 
 // Set to false to load actual GLB models from public/models
-// Use Vite environment variable to avoid hardcoding
-export const DUMMY_MODE = (import.meta as any).env.VITE_DUMMY_MODE === 'true';
+export const DUMMY_MODE = false;
 
 /**
  * Model paths for game assets.
@@ -54,6 +53,10 @@ export const MODELS = {
   ENV_TABLE: '/models/stylized_low-poly_wood_table.glb',
   ENV_TORCH: '/models/torch.glb',
   ENV_TORCH_ALT: '/models/torch (1).glb',
+  ENV_TAVERN_BARREL: '/models/tavern_barrel.glb',
+  ENV_TAVERN_DESK: '/models/tavern_desk.glb',
+  ENV_TAVERN_CHAIR: '/models/tavern_chair.glb',
+  ENV_TAVERN_ALTAR: '/models/tavern_altar.glb',
 
   // Objects (not yet created - will use placeholders)
   D20: null,  // No d20 model yet - component will use placeholder

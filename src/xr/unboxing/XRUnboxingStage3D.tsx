@@ -46,7 +46,7 @@ export const XRUnboxingStage3D: React.FC = () => {
   };
 
   return (
-    <group position={[0, 0, -0.95]}>
+    <group position={[0, -0.70, 0]}>
       {/* ================= GRAND SHOWCASE TABLE ================= */}
       <group position={[0, 0.70, 0]}>
         {/* Table Top Surface (Dark Mahogany Wood with Velvet Inlay) */}

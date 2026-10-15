@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { useGameStore } from '../../store/gameStore';
+import { useUIStore } from '../../store/uiStore';
 import { useGameActions } from '../../hooks/useGameActions';
 import { TileSystem } from '../../game/engine/TileSystem';
-import { GameState, Hero, Monster } from '../../game/types';
+import { GameState, Hero, Monster, Position } from '../../game/types';
 
 export const CompanionAIController: React.FC = () => {
   const gameState = useGameStore(state => state.gameState);
@@ -12,7 +13,7 @@ export const CompanionAIController: React.FC = () => {
   const executingTurnRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!gameState || gameState.phase !== 'hero') return;
+    if (!gameState || gameState.phase !== 'hero' || gameState.pendingAITurnApproval) return;
 
     const currentHero = gameState.heroes.find(h => h.id === gameState.currentHeroId);
     if (!currentHero || !currentHero.isAutoFollow) {
@@ -53,9 +54,36 @@ export const CompanionAIController: React.FC = () => {
         // Find closest enemy within 1 tile of lead hero or current hero
         const closestEnemy = findClosestEnemy(state, hero, leadHero);
         
-        const moveTarget = closestEnemy 
+        // If no enemy exists, check for closest unexplored edge to explore new rooms!
+        const getDist = (p1: Position, p2: Position) =>
+          Math.abs((p1.x * 4 + p1.sqX) - (p2.x * 4 + p2.sqX)) + Math.abs((p1.z * 4 + p1.sqZ) - (p2.z * 4 + p2.sqZ));
+
+        let edgeTarget: Position | null = null;
+        if (!closestEnemy && !state.hasExploredThisTurn) {
+          const explorablePoints = TileSystem.getExplorationPoints(state.tiles);
+          let minEdgeDist = Infinity;
+          for (const ep of explorablePoints) {
+            const ptTile = state.tiles.find(t => t.id === ep.tileId);
+            if (!ptTile) continue;
+            let sX = 1;
+            let sZ = 1;
+            if (ep.edge === 'north') { sX = 1; sZ = 0; }
+            else if (ep.edge === 'south') { sX = 1; sZ = 3; }
+            else if (ep.edge === 'east') { sX = 3; sZ = 1; }
+            else if (ep.edge === 'west') { sX = 0; sZ = 1; }
+
+            const epPos = { x: ptTile.x, z: ptTile.z, sqX: sX, sqZ: sZ };
+            const d = getDist(hero.position, epPos);
+            if (d < minEdgeDist) {
+              minEdgeDist = d;
+              edgeTarget = epPos;
+            }
+          }
+        }
+
+        const moveTarget: Position = closestEnemy 
           ? { x: closestEnemy.position.x, z: closestEnemy.position.z, sqX: closestEnemy.position.sqX, sqZ: closestEnemy.position.sqZ } 
-          : { x: leadHero.position.x, z: leadHero.position.z, sqX: leadHero.position.sqX, sqZ: leadHero.position.sqZ };
+          : (edgeTarget || { x: leadHero.position.x, z: leadHero.position.z, sqX: leadHero.position.sqX, sqZ: leadHero.position.sqZ });
 
         // Calculate path towards target
         const speed = hero.speed || 6; 
@@ -69,9 +97,6 @@ export const CompanionAIController: React.FC = () => {
         // Find the reachable square that minimizes distance to the moveTarget
         let bestSq = hero.position;
         let minDist = Infinity;
-        
-        // Simple heuristic: absolute distance in squares
-        const getDist = (p1: any, p2: any) => Math.abs((p1.x * 4 + p1.sqX) - (p2.x * 4 + p2.sqX)) + Math.abs((p1.z * 4 + p1.sqZ) - (p2.z * 4 + p2.sqZ));
 
         for (const key of reachable.keys()) {
           const [tileId, sqXStr, sqZStr] = key.split(':');
@@ -80,7 +105,7 @@ export const CompanionAIController: React.FC = () => {
           
           const pos = { x: tile.x, z: tile.z, sqX: parseInt(sqXStr), sqZ: parseInt(sqZStr) };
           
-          // Don't step ON the target if it's occupied by an entity we can't share a square with
+          // Don't step ON the monster target if occupied
           if (getDist(pos, moveTarget) === 0 && closestEnemy) continue; 
           
           const d = getDist(pos, moveTarget);
@@ -110,9 +135,28 @@ export const CompanionAIController: React.FC = () => {
         if (isCancelled) return;
       }
 
-      // Step 4: End Turn
-      console.log(`[CompanionAI] Ending turn for ${currentHero.name}`);
-      handleEndTurn();
+      // Step 4: Turn Completion (Player Approval in Director/Full AI mode vs Auto-end)
+      const settings = useGameStore.getState().settings;
+      const requiresApproval = settings.aiTurnApprovalRequired || settings.aiControlMode === 'all_ai';
+
+      if (requiresApproval) {
+        console.log(`[CompanionAI] Turn finished for ${currentHero.name} — awaiting player approval`);
+        useGameStore.getState().setGameState({
+          ...useGameStore.getState().gameState!,
+          pendingAITurnApproval: {
+            heroId: currentHero.id,
+            heroName: currentHero.name
+          }
+        });
+        useUIStore.getState().addNotification(
+          `🤖 ${currentHero.name}'s turn is complete. Approve to proceed.`,
+          'info',
+          6000
+        );
+      } else {
+        console.log(`[CompanionAI] Ending turn automatically for ${currentHero.name}`);
+        handleEndTurn();
+      }
     };
 
     playTurn();
@@ -120,7 +164,7 @@ export const CompanionAIController: React.FC = () => {
     return () => {
       isCancelled = true;
     };
-  }, [gameState?.currentHeroId, gameState?.phase, handleMoveHero, handleAttackMonster, handleEndTurn]);
+  }, [gameState?.currentHeroId, gameState?.phase, gameState?.pendingAITurnApproval, handleMoveHero, handleAttackMonster, handleEndTurn]);
 
   return null;
 };
@@ -144,7 +188,7 @@ function findAdjacentMonster(state: GameState, hero: Hero): string | null {
 
 function findClosestEnemy(state: GameState, hero: Hero, leadHero: Hero): Monster | null {
   // Find an enemy to move towards.
-  let closest = null;
+  let closest: Monster | null = null;
   let minDist = Infinity;
   
   const hAbsX = hero.position.x * 4 + hero.position.sqX;

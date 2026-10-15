@@ -125,7 +125,7 @@ export const XRSetupStage3D: React.FC = () => {
   const constraints = PowerSelectionSystem.getConstraints(activeHero.heroClass);
 
   return (
-    <group position={[0, 0.95, -0.85]}>
+    <group position={[0, 0.02, 0]}>
       {/* Title & Active Hero Banner */}
       <group position={[0, 0.45, 0]}>
         <Text fontSize={0.055} color="#f5dfa3" textAlign="center" position={[0, 0.04, 0]}>

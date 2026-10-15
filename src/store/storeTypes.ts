@@ -64,12 +64,18 @@ export interface CoreSlice {
   cureMummyRot: (heroId: string) => void;
   escapeHero: (heroId: string) => void;
   toggleAutoFollow: (heroId: string) => void;
+  setAIControlMode: (mode: 'manual' | 'solo' | 'all_ai' | 'custom', soloLeadHeroId?: string) => void;
+  setHeroAIControl: (heroId: string, isAI: boolean) => void;
+  approveAITurn: () => void;
+  toggleAITurnApproval: () => void;
   discardTreasureForPower: (heroId: string, treasureCardId?: string) => void;
   resolvePendingFortune: (choice: Record<string, unknown>) => Promise<void>;
   
   pauseGame: () => void;
   unpauseGame: () => void;
   updateSettings: (settings: Partial<GameSettings>) => void;
+  quitToMainMenu: () => void;
+  restartScenario: () => void;
 }
 
 export interface GameStore extends CoreSlice, CombatSlice, CardSlice, PowerSlice, ConditionSlice, TokenSlice {}

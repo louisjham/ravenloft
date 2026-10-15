@@ -35,6 +35,7 @@ interface UIStore {
   showTilePlacer: boolean
   interactionMode: InteractionMode
   selectedPowerId: string | null
+  hoveredTargetEntityId: string | null
   explorationState: ExplorationState
   isUnboxingMode: boolean
   xrTableTransform: {
@@ -42,13 +43,17 @@ interface UIStore {
     rotationY: number
     scale: number
   }
+  xrTableResetRequested: boolean
 
   // Actions
   setIsUnboxingMode: (enabled: boolean) => void
   setXRTableTransform: (transform: { position: [number, number, number]; rotationY: number; scale: number }) => void
+  requestXRTableReset: () => void
+  clearXRTableResetRequest: () => void
   setExplorationState: (state: ExplorationState) => void
   setInteractionMode: (mode: InteractionMode) => void
   setSelectedPowerId: (id: string | null) => void
+  setHoveredTargetEntityId: (id: string | null) => void
   setTilePlacementError: (error: string | null) => void
   rotatePendingTile: () => void
   openTilePlacer: () => void
@@ -73,7 +78,10 @@ export const useUIStore = create<UIStore>()((set) => ({
     rotationY: 0,
     scale: 0.08,
   },
+  xrTableResetRequested: false,
   setXRTableTransform: (transform) => set({ xrTableTransform: transform }),
+  requestXRTableReset: () => set({ xrTableResetRequested: true }),
+  clearXRTableResetRequest: () => set({ xrTableResetRequested: false }),
   notifications: [],
   cameraState: { ...DEFAULT_CAMERA },
   isTransitioning: false,
@@ -82,11 +90,13 @@ export const useUIStore = create<UIStore>()((set) => ({
   showTilePlacer: false,
   interactionMode: 'none',
   selectedPowerId: null,
+  hoveredTargetEntityId: null,
   explorationState: { phase: 'idle' },
 
   setExplorationState: (state) => set({ explorationState: state }),
   setInteractionMode: (mode) => set({ interactionMode: mode }),
   setSelectedPowerId: (id) => set({ selectedPowerId: id }),
+  setHoveredTargetEntityId: (id) => set({ hoveredTargetEntityId: id }),
   setTilePlacementError: (error) => set({ tilePlacementError: error }),
   
   rotatePendingTile: () => set((state) => ({ 

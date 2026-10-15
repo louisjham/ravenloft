@@ -5,6 +5,9 @@ import { ExperienceSystem } from '../../game/engine/ExperienceSystem';
 
 export const PartySidebar: React.FC = () => {
   const gameState = useGameStore((state) => state.gameState);
+  const settings = useGameStore((state) => state.settings);
+  const setAIControlMode = useGameStore((state) => state.setAIControlMode);
+  const approveAITurn = useGameStore((state) => state.approveAITurn);
   const currentHeroId = gameState?.currentHeroId;
   const heroes = gameState?.heroes ?? [];
 
@@ -48,11 +51,50 @@ export const PartySidebar: React.FC = () => {
       width: '100%',
       pointerEvents: 'auto'
     }}>
+      {/* Quick Party AI Mode Selector */}
+      <div style={{
+        display: 'flex',
+        gap: '4px',
+        padding: '3px 4px',
+        background: 'rgba(15, 15, 25, 0.85)',
+        borderRadius: '4px',
+        border: '1px solid #3a3a4e'
+      }}>
+        {[
+          { id: 'solo', label: 'Solo' },
+          { id: 'all_ai', label: 'All AI' },
+          { id: 'manual', label: 'Manual' },
+        ].map((m) => {
+          const isSelected = settings?.aiControlMode === m.id;
+          return (
+            <button
+              key={m.id}
+              onClick={() => setAIControlMode(m.id as any)}
+              style={{
+                flex: 1,
+                fontSize: '0.62rem',
+                fontFamily: 'var(--font-body)',
+                padding: '2px 0',
+                background: isSelected ? 'var(--color-accent)' : 'transparent',
+                border: isSelected ? '1px solid var(--color-gold)' : '1px solid transparent',
+                color: isSelected ? '#ffffff' : '#888888',
+                borderRadius: '3px',
+                cursor: 'pointer'
+              }}
+              title={`Switch party control to ${m.label}`}
+            >
+              {m.label}
+            </button>
+          );
+        })}
+      </div>
+
       {heroes.map((hero) => {
         const isCurrent = hero.id === currentHeroId;
         const hpPercent = (hero.hp / hero.maxHp) * 100;
         const isLow = (hero.hp / hero.maxHp) < 0.3;
         const canSurge = isCurrent && gameState && gameState.healingSurges > 0 && (hero.hp < hero.maxHp || hero.conditions?.some(c => c.type === 'mummy_rot'));
+        const isPendingHeroApproval = gameState?.pendingAITurnApproval?.heroId === hero.id;
 
         return (
           <div
@@ -154,6 +196,51 @@ export const PartySidebar: React.FC = () => {
                 )}
               </div>
             </div>
+
+            {isPendingHeroApproval && (
+              <button
+                onClick={() => approveAITurn()}
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontWeight: 'bold',
+                  fontSize: '0.62rem',
+                  padding: '4px 6px',
+                  background: 'linear-gradient(135deg, rgba(20, 100, 40, 0.95), rgba(40, 160, 70, 0.95))',
+                  border: '1px solid #55ffaa',
+                  color: '#ffffff',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  boxShadow: '0 0 8px rgba(85, 255, 170, 0.6)',
+                  marginTop: '2px'
+                }}
+              >
+                ✅ Approve Turn & Advance
+              </button>
+            )}
+
+            {isCurrent && gameState?.phase === 'hero' && (
+              <div style={{ display: 'flex', gap: '4px', fontSize: '0.55rem', marginTop: '2px' }}>
+                <span style={{
+                  padding: '1px 4px',
+                  borderRadius: '2px',
+                  background: !hero.isExhausted ? 'rgba(0, 255, 128, 0.15)' : !gameState.hasAttackedThisTurn ? 'rgba(255, 192, 0, 0.15)' : 'rgba(100, 100, 100, 0.2)',
+                  color: !hero.isExhausted ? '#55ffaa' : !gameState.hasAttackedThisTurn ? '#ffcc00' : '#888',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                  👟 {!hero.isExhausted ? 'Move Ready' : !gameState.hasAttackedThisTurn ? 'Double Move' : 'Move Used'}
+                </span>
+                <span style={{
+                  padding: '1px 4px',
+                  borderRadius: '2px',
+                  background: !gameState.hasAttackedThisTurn ? 'rgba(255, 80, 80, 0.15)' : 'rgba(100, 100, 100, 0.2)',
+                  color: !gameState.hasAttackedThisTurn ? '#ff7777' : '#888',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                  ⚔️ {!gameState.hasAttackedThisTurn ? 'Attack Ready' : 'Attack Used'}
+                </span>
+              </div>
+            )}
 
             {hero.conditions && hero.conditions.length > 0 && (
               <div style={{ display: 'flex', gap: '2px', marginTop: '1px' }}>

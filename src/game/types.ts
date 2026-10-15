@@ -463,6 +463,12 @@ export interface GameState {
 
   // Dedicated combat encounter tracking
   activeCombatEncounter?: ActiveCombatEncounter | null;
+
+  // Pending AI Turn Approval (Director / Spectator mode)
+  pendingAITurnApproval?: {
+    heroId: string;
+    heroName: string;
+  } | null;
 }
 
 export interface Trap {
@@ -487,6 +493,8 @@ export interface AttackResult {
   healAttacker?: number;
 }
 
+export type AIControlMode = 'manual' | 'solo' | 'all_ai' | 'custom';
+
 export interface GameSettings {
   masterVolume: number;
   musicVolume: number;
@@ -498,6 +506,8 @@ export interface GameSettings {
   animationSpeed?: 'normal' | 'fast' | 'instant';
   graphicsQuality?: 'high' | 'medium' | 'low';
   resolutionScale?: number;
+  aiControlMode?: AIControlMode;
+  aiTurnApprovalRequired?: boolean;
   accessibility?: {
     colorblindMode?: 'none' | 'protanopia' | 'deuteranopia' | 'tritanopia';
     highContrast?: boolean;
