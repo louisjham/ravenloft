@@ -323,7 +323,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     const state = get().gameState;
     if (!state) return;
  
-    let s = { ...state };
+    let s: GameState = { ...state, pendingAITurnApproval: null };
  
     // Process Freezing Cloud tokens at the end of the Hero Phase
     const freezingCloudTokens = (s.tokens || []).filter(t => t.name === 'Freezing Cloud');
@@ -495,17 +495,17 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
       const isDefeated = ScenarioManager.checkDefeat(stateWithObjectives);
  
       if (isDefeated) {
-        set({ gameState: { ...stateWithObjectives, phase: 'defeat' as const } });
+        set({ gameState: { ...stateWithObjectives, phase: 'defeat' as const, pendingAITurnApproval: null } });
         return;
       }
       if (allObjectivesComplete) {
-        set({ gameState: { ...stateWithObjectives, phase: 'victory' as const } });
+        set({ gameState: { ...stateWithObjectives, phase: 'victory' as const, pendingAITurnApproval: null } });
         return;
       }
       // Fallback: check coffin victory separately (legacy scenario 1 support)
       const coffinVictory = TokenSystem.checkCoffinVictory(stateWithObjectives);
       if (coffinVictory.isVictory) {
-        set({ gameState: { ...stateWithObjectives, phase: 'victory' as const } });
+        set({ gameState: { ...stateWithObjectives, phase: 'victory' as const, pendingAITurnApproval: null } });
         return;
       }
       s = stateWithObjectives;
@@ -537,7 +537,8 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
               targetEntityId: null,
               result: null
             },
-            pendingEncounter: true
+            pendingEncounter: true,
+            pendingAITurnApproval: null
           }
         });
         return; // Wait for encounter to be resolved before continuing
@@ -583,6 +584,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
         lastPlacedTileId: null,
         hasAttackedThisTurn: false,
         turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0),
+        pendingAITurnApproval: null,
         heroes: stateAfterTurnStart.heroes.map(h => {
           // Compute Dread Warrior adjacency for the incoming hero only
           let startedTurnAdjacentToDreadWarriorIds: string[] = [];
@@ -735,7 +737,8 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
 
   approveAITurn: () => {
     const s = get().gameState;
-    if (!s) return;
+    if (!s || !s.pendingAITurnApproval) return;
+    if (s.pendingAITurnApproval.heroId !== s.currentHeroId) return;
     set((state) => ({
       gameState: state.gameState ? { ...state.gameState, pendingAITurnApproval: null } : null
     }));

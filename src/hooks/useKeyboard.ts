@@ -6,7 +6,7 @@ import { useDiceStore } from '../store/diceStore'
 import { useGameActions } from './useGameActions'
 
 export const useKeyboard = () => {
-  const { isPaused, pauseGame, unpauseGame, gameState } = useGameStore()
+  const { isPaused, pauseGame, unpauseGame, gameState, approveAITurn } = useGameStore()
   const { handleEndTurn } = useGameActions()
   const { showModal, activeModal, hideModal, setInteractionMode, interactionMode } = useUIStore()
   const { confirmPlacement, cancelPlacement } = useTilePlacement()
@@ -63,15 +63,27 @@ export const useKeyboard = () => {
               // We need to dynamically check the dice store here because we don't want to add it to dependencies and cause re-renders
               const isDiceActive = useDiceStore.getState().isActive();
               if (!isDiceActive) {
-                handleEndTurn();
+                const pendingApproval = useGameStore.getState().gameState?.pendingAITurnApproval ?? gameState?.pendingAITurnApproval;
+                if (pendingApproval) {
+                  approveAITurn();
+                } else {
+                  handleEndTurn();
+                }
                 setInteractionMode('none');
               }
             }
             break;
           case 't':
             // Toggle treasure/end turn legacy
-            handleEndTurn();
-            setInteractionMode('none');
+            {
+              const pendingApproval = useGameStore.getState().gameState?.pendingAITurnApproval ?? gameState?.pendingAITurnApproval;
+              if (pendingApproval) {
+                approveAITurn();
+              } else {
+                handleEndTurn();
+              }
+              setInteractionMode('none');
+            }
             break;
         }
       }
@@ -79,5 +91,5 @@ export const useKeyboard = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPaused, pauseGame, unpauseGame, handleEndTurn, gameState, activeModal, showModal, hideModal, interactionMode, setInteractionMode]);
+  }, [isPaused, pauseGame, unpauseGame, handleEndTurn, gameState, activeModal, showModal, hideModal, interactionMode, setInteractionMode, approveAITurn]);
 }

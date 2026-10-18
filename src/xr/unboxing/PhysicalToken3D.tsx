@@ -205,6 +205,7 @@ export const PhysicalToken3D: React.FC<PhysicalToken3DProps> = ({
   return (
     <Interactive
       onSelect={handleGrabStart}
+      onSelectEnd={handleGrabEnd}
       onSqueeze={handleGrabStart}
       onSqueezeEnd={handleGrabEnd}
       onHover={() => {

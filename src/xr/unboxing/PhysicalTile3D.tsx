@@ -181,6 +181,7 @@ export const PhysicalTile3D: React.FC<PhysicalTile3DProps> = ({
   return (
     <Interactive
       onSelect={handleGrabStart}
+      onSelectEnd={handleGrabEnd}
       onSqueeze={handleGrabStart}
       onSqueezeEnd={handleGrabEnd}
       onHover={() => {

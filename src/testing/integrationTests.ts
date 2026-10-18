@@ -7616,6 +7616,76 @@ export const runFullGameLoopTest = async () => {
         }
       }
 
+      // AI Turn-Approval State Machine & Space/T Verification
+      {
+        console.log('Testing AI Turn-Approval State Machine...');
+
+        useGameStore.getState().startNewGame('s1', ['hero_arjhan', 'hero_kat']);
+        const startState = useGameStore.getState().gameState!;
+        const hero1Id = startState.turnOrder[0];
+        const hero2Id = startState.turnOrder[1];
+
+        // 1. Simulate CompanionAIController setting pendingAITurnApproval on hero1
+        useGameStore.setState({
+          gameState: {
+            ...useGameStore.getState().gameState!,
+            phase: 'hero',
+            currentHeroId: hero1Id,
+            lastPlacedTileEncounterType: 'white',
+            pendingAITurnApproval: { heroId: hero1Id, heroName: 'Arjhan' }
+          }
+        });
+
+        // 2. Approve AI turn
+        useGameStore.getState().approveAITurn();
+        const stateAfterApprove = useGameStore.getState().gameState!;
+
+        if (stateAfterApprove.currentHeroId !== hero2Id) {
+          throw new Error(`Expected currentHeroId to advance to ${hero2Id}, got ${stateAfterApprove.currentHeroId}`);
+        }
+        if (stateAfterApprove.pendingAITurnApproval !== null) {
+          throw new Error('Expected pendingAITurnApproval to be null after approveAITurn');
+        }
+
+        // 3. Redundant / second approve call must no-op (no double-advance)
+        useGameStore.getState().approveAITurn();
+        const stateAfterRedundantApprove = useGameStore.getState().gameState!;
+        if (stateAfterRedundantApprove.currentHeroId !== hero2Id) {
+          throw new Error(`Redundant approveAITurn advanced turn! Expected ${hero2Id}, got ${stateAfterRedundantApprove.currentHeroId}`);
+        }
+
+        // 4. Stale approval validation: if pendingAITurnApproval has a mismatched heroId, it must no-op
+        useGameStore.setState({
+          gameState: {
+            ...stateAfterRedundantApprove,
+            pendingAITurnApproval: { heroId: 'mismatched_hero', heroName: 'Fake' }
+          }
+        });
+        useGameStore.getState().approveAITurn();
+        const stateAfterMismatched = useGameStore.getState().gameState!;
+        if (stateAfterMismatched.currentHeroId !== hero2Id) {
+          throw new Error('approveAITurn acted on mismatched heroId!');
+        }
+
+        // 5. Calling endTurn directly with a pending approval cleans up the flag
+        useGameStore.setState({
+          gameState: {
+            ...useGameStore.getState().gameState!,
+            phase: 'hero',
+            currentHeroId: hero2Id,
+            lastPlacedTileEncounterType: 'white',
+            pendingAITurnApproval: { heroId: hero2Id, heroName: 'Kat' }
+          }
+        });
+        useGameStore.getState().endTurn();
+        const stateAfterDirectEnd = useGameStore.getState().gameState!;
+        if (stateAfterDirectEnd.pendingAITurnApproval !== null) {
+          throw new Error('endTurn failed to clear pendingAITurnApproval');
+        }
+
+        console.log('  AI Turn-Approval State Machine tests passed.');
+      }
+
       console.log('  All new Bug Fix verification tests passed.');
     }
 

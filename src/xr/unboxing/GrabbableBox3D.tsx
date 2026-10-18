@@ -194,6 +194,7 @@ export const GrabbableBox3D: React.FC<GrabbableBox3DProps> = ({
   return (
     <Interactive
       onSelect={handleGrabStart}
+      onSelectEnd={handleGrabEnd}
       onSqueeze={handleGrabStart}
       onSqueezeEnd={handleGrabEnd}
       onHover={() => {

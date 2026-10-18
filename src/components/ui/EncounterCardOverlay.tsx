@@ -24,13 +24,48 @@ const EncounterCardOverlay: React.FC<EncounterCardOverlayProps> = ({
   onDismiss
 }) => {
   const [collapsed, setCollapsed] = useState(false);
-
-  // Only show when resolving an encounter
-  if (resolution.phase === 'idle' || !card) return null;
+  const aiControlMode = useGameStore(state => state.settings.aiControlMode);
 
   const needsTarget = resolution.phase === 'revealing' &&
     !resolution.targetEntityId &&
-    (card.effects?.some(e => e.target === 'single') ?? false);
+    Boolean(card?.effects?.some(e => e.target === 'single'));
+
+  React.useEffect(() => {
+    if (aiControlMode !== 'all_ai' || resolution.phase === 'idle' || !card) return;
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    if (resolution.phase === 'revealing') {
+      if (needsTarget && !resolution.targetEntityId) {
+        // Default choice: pick current active hero or first available hero
+        const targetId = useGameStore.getState().gameState?.currentHeroId || heroes[0]?.id;
+        if (targetId) {
+          timer = setTimeout(() => {
+            onSelectTarget(targetId);
+          }, 600);
+        }
+      } else {
+        timer = setTimeout(() => {
+          onAdvance();
+        }, 1200);
+      }
+    } else if (resolution.phase === 'resolving') {
+      timer = setTimeout(() => {
+        onAdvance();
+      }, 1000);
+    } else if (resolution.phase === 'complete') {
+      timer = setTimeout(() => {
+        onDismiss();
+      }, 1200);
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [aiControlMode, resolution.phase, resolution.targetEntityId, needsTarget, onAdvance, onSelectTarget, onDismiss, card, heroes]);
+
+  // Only show when resolving an encounter
+  if (resolution.phase === 'idle' || !card) return null;
 
   const handleCancel = () => {
     if (card.id) {

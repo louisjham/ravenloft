@@ -507,6 +507,7 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
   return (
     <Interactive
       onSelect={handleVRSelect}
+      onSelectEnd={handleGrabEnd}
       onSqueeze={handleGrabStart}
       onSqueezeEnd={handleGrabEnd}
     >

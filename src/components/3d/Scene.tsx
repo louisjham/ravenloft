@@ -7,6 +7,7 @@ import { XRTabletopRig } from '../../xr/XRTabletopRig';
 import { XRInteractionBridge } from '../../xr/XRInteractionBridge';
 import { CardHandDock3D } from '../../xr/cards/CardHandDock3D';
 import { SpatialCardPresenter3D } from '../../xr/cards/SpatialCardPresenter3D';
+import { SpatialFortuneDialog3D } from '../../xr/cards/SpatialFortuneDialog3D';
 import { XRMainMenu3D } from '../../xr/menus/XRMainMenu3D';
 import { XRSetupStage3D } from '../../xr/menus/XRSetupStage3D';
 import { XRUnboxingStage3D } from '../../xr/unboxing/XRUnboxingStage3D';
@@ -249,9 +250,10 @@ const XRSceneContent: React.FC<{
           </Selection>
         </group>
 
-        {/* In-World 3D Spatial HUD, Hand Dock & Card Resolution Presenter */}
+        {/* In-World 3D Spatial HUD, Hand Dock, Card Resolution Presenter & Fortune Dialog */}
         <CardHandDock3D />
         <SpatialCardPresenter3D />
+        <SpatialFortuneDialog3D />
         <XRTabletopHUD3D />
       </XRTabletopRig>
 

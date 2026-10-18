@@ -8,9 +8,52 @@ export const FortuneResolutionModal: React.FC = () => {
   const gameState = useGameStore((state: { gameState: GameState | null }) => state.gameState);
   const resolvePendingFortune = useGameStore((state: { resolvePendingFortune: (choice: any) => void }) => state.resolvePendingFortune);
 
-  if (!gameState || !gameState.pendingFortune) return null;
+  const pending = gameState?.pendingFortune;
+  const aiControlMode = useGameStore((state: any) => state.settings?.aiControlMode);
 
-  const pending = gameState.pendingFortune;
+  React.useEffect(() => {
+    if (aiControlMode !== 'all_ai' || !pending || !gameState) return;
+
+    const timer = setTimeout(() => {
+      switch (pending.kind) {
+        case 'deckSentinelChoice':
+          resolvePendingFortune({ kind: 'deckSentinelChoice', deck: 'encounter' });
+          break;
+        case 'treasureChoose':
+          if (pending.drawn.length > 0) {
+            resolvePendingFortune({ kind: 'treasureChoose', keptCardId: pending.drawn[0], drawingHeroId: gameState.currentHeroId });
+          }
+          break;
+        case 'heroConditionPick': {
+          const firstHeroId = pending.heroIds[0];
+          const firstHero = gameState.heroes.find((h: Hero) => h.id === firstHeroId);
+          const firstCond = firstHero?.conditions[0]?.type;
+          if (firstHeroId && firstCond) {
+            resolvePendingFortune({ kind: 'heroConditionPick', heroId: firstHeroId, conditionType: firstCond });
+          }
+          break;
+        }
+        case 'monsterPick': {
+          const monsterId = pending.eligible[0];
+          if (monsterId) {
+            resolvePendingFortune({ kind: 'monsterPick', monsterId });
+          }
+          break;
+        }
+        case 'tileEdgePick': {
+          const edge = pending.edges[0];
+          if (edge) {
+            resolvePendingFortune({ kind: 'tileEdgePick', tileId: edge.tileId, edge: edge.edge });
+          }
+          break;
+        }
+      }
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [aiControlMode, pending, gameState, resolvePendingFortune]);
+
+  if (!gameState || !gameState.pendingFortune || !pending) return null;
   const dataLoader = DataLoader.getInstance();
   const card = dataLoader.getCardById(pending.fortuneCardId) as Card | undefined;
 

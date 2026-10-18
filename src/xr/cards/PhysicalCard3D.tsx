@@ -197,6 +197,7 @@ export const PhysicalCard3D: React.FC<PhysicalCard3DProps> = ({
   return (
     <Interactive
       onSelect={handleGrabStart}
+      onSelectEnd={handleGrabEnd}
       onSqueeze={handleGrabStart}
       onSqueezeEnd={handleGrabEnd}
       onHover={() => {

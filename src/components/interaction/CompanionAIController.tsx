@@ -21,8 +21,9 @@ export const CompanionAIController: React.FC = () => {
       return;
     }
 
-    if (executingTurnRef.current === currentHero.id) return;
-    executingTurnRef.current = currentHero.id;
+    const turnKey = `${currentHero.id}-${gameState.turnCount}`;
+    if (executingTurnRef.current === turnKey) return;
+    executingTurnRef.current = turnKey;
 
     let isCancelled = false;
 
@@ -137,7 +138,7 @@ export const CompanionAIController: React.FC = () => {
 
       // Step 4: Turn Completion (Player Approval in Director/Full AI mode vs Auto-end)
       const settings = useGameStore.getState().settings;
-      const requiresApproval = settings.aiTurnApprovalRequired || settings.aiControlMode === 'all_ai';
+      const requiresApproval = settings.aiTurnApprovalRequired;
 
       if (requiresApproval) {
         console.log(`[CompanionAI] Turn finished for ${currentHero.name} — awaiting player approval`);
@@ -164,7 +165,7 @@ export const CompanionAIController: React.FC = () => {
     return () => {
       isCancelled = true;
     };
-  }, [gameState?.currentHeroId, gameState?.phase, gameState?.pendingAITurnApproval, handleMoveHero, handleAttackMonster, handleEndTurn]);
+  }, [gameState?.currentHeroId, gameState?.phase, gameState?.turnCount, gameState?.pendingAITurnApproval, handleMoveHero, handleAttackMonster, handleEndTurn]);
 
   return null;
 };

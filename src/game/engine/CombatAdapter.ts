@@ -1,7 +1,8 @@
-import { Entity, AttackResult, GameState, isMonsterEntity } from '../types';
+import { Entity, AttackResult, GameState, isMonsterEntity, Hero } from '../types';
 import { CombatSystem } from './CombatSystem';
 import { isDev } from '../../utils/devEnv';
 import { useDiceStore } from '../../store/diceStore';
+import { useGameStore } from '../../store/gameStore';
 
 const LOG_PREFIX = '[CombatAdapter]';
 const ASYNC_TIMEOUT_MS = 15_000;
@@ -22,12 +23,19 @@ export class CombatAdapter {
     missDamage: number = 0
   ): Promise<AttackResult> {
     const isMonster = isMonsterEntity(attacker);
+    const gameStoreState = useGameStore.getState();
+    const isAIHero = !isMonster && (
+      Boolean(('isAutoFollow' in attacker) && (attacker as Hero).isAutoFollow) ||
+      gameStoreState.settings?.aiControlMode === 'all_ai' ||
+      Boolean((gameState ?? gameStoreState.gameState)?.heroes?.find(h => h.id === attacker.id)?.isAutoFollow)
+    );
+    const isAutoRoll = isMonster || isAIHero;
     const rollType = isMonster ? 'monster_attack' : 'hero_attack';
     const store = useDiceStore;
 
     return new Promise<AttackResult>((resolve) => {
       let resolved = false;
-      const timeoutMs = isMonster ? 3000 : ASYNC_TIMEOUT_MS;
+      const timeoutMs = isAutoRoll ? 3000 : ASYNC_TIMEOUT_MS;
       const timeout = setTimeout(() => {
         if (resolved) return;
         resolved = true;
@@ -47,7 +55,7 @@ export class CombatAdapter {
         attackBonus: attackBonus + rollModifier,
         targetAC: CombatSystem.getEffectiveAC(target),
         damage,
-        isAutoRoll: isMonster,
+        isAutoRoll,
         onComplete: () => {
           if (resolved) return;
           resolved = true;

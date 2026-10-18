@@ -5,10 +5,12 @@
 import { useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
+import { Interactive } from '@react-three/xr'
 import * as THREE from 'three'
 import { GameToken } from '../../game/types'
 import { useGameStore } from '../../store/gameStore'
 import { getTokenAsset } from '../../data/tokenMap'
+import { playHapticProfile } from '../../xr/XRHaptics'
 
 interface Token3DProps {
   token: GameToken
@@ -116,29 +118,47 @@ export function Token3D({ token, onSearch }: Token3DProps) {
 
   return (
     <group position={[worldX, 0, worldZ]}>
-      <mesh
-        ref={meshRef}
-        position={[0, 0.3, 0]}
-        onClick={handleClick}
-        onPointerOver={() => {
-          setHovered(true)
-          document.body.style.cursor = isInteractable ? 'pointer' : 'default'
+      <Interactive
+        onSelect={() => {
+          if (isInteractable) {
+            playHapticProfile('click');
+            handleClick();
+          }
         }}
-        onPointerOut={() => {
-          setHovered(false)
-          document.body.style.cursor = 'default'
+        onHover={() => {
+          if (isInteractable) {
+            setHovered(true);
+            playHapticProfile('hover');
+          }
+        }}
+        onBlur={() => {
+          setHovered(false);
         }}
       >
-        {/* Token geometry based on type */}
-        {getTokenGeometry()}
-        <meshStandardMaterial
-          color={getTokenColor()}
-          emissive={hovered && isInteractable ? '#ffffff' : '#000000'}
-          emissiveIntensity={hovered && isInteractable ? 0.3 : 0}
-          metalness={0.3}
-          roughness={0.7}
-        />
-      </mesh>
+        <mesh
+          ref={meshRef}
+          position={[0, 0.3, 0]}
+          onClick={handleClick}
+          onPointerOver={() => {
+            setHovered(true)
+            document.body.style.cursor = isInteractable ? 'pointer' : 'default'
+          }}
+          onPointerOut={() => {
+            setHovered(false)
+            document.body.style.cursor = 'default'
+          }}
+        >
+          {/* Token geometry based on type */}
+          {getTokenGeometry()}
+          <meshStandardMaterial
+            color={getTokenColor()}
+            emissive={hovered && isInteractable ? '#ffffff' : '#000000'}
+            emissiveIntensity={hovered && isInteractable ? 0.3 : 0}
+            metalness={0.3}
+            roughness={0.7}
+          />
+        </mesh>
+      </Interactive>
 
       {/* Token type indicator on top */}
       {token.isRevealed && (

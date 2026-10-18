@@ -15,6 +15,7 @@ import { PartySidebar } from './PartySidebar';
 import { ActionPromptAnimated } from './ActionPromptAnimated';
 import { TargetSelection } from './TargetSelection';
 import { FortuneResolutionModal } from './FortuneResolutionModal';
+import { VictoryScreen } from './VictoryScreen';
 import { DataLoader } from '../../game/dataLoader';
 import type { Card } from '../../game/types';
 
@@ -292,6 +293,33 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
       {/* Experience Page Overlay */}
       {activeModal === 'experience' && (
         <ExperiencePanel />
+      )}
+
+      {/* Victory / Defeat Overlay */}
+      {(activeModal === 'victory' || activeModal === 'defeat') && gameState && (
+        <VictoryScreen
+          gameState={gameState}
+          isVictory={activeModal === 'victory'}
+          onContinue={() => {
+            useUIStore.getState().hideModal();
+            if (activeModal === 'victory') {
+              const allScenarios = DataLoader.getInstance().getScenarios();
+              const currentIndex = allScenarios.findIndex(s => s.id === gameState.activeScenario?.id);
+              const nextScenario = currentIndex >= 0 && currentIndex < allScenarios.length - 1 ? allScenarios[currentIndex + 1] : null;
+              if (nextScenario) {
+                onStartGame(nextScenario.id, gameState.heroes.map(h => h.id));
+              } else {
+                quitToMainMenu();
+              }
+            } else {
+              restartScenario();
+            }
+          }}
+          onQuit={() => {
+            useUIStore.getState().hideModal();
+            quitToMainMenu();
+          }}
+        />
       )}
 
       {/* Target Selection Overlay */}
