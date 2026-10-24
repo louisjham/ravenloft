@@ -91,8 +91,9 @@ body {
     "top top top"
     "left mid right"
     "bot bot bot";
-  grid-template-rows: 60px 1fr 120px;
-   grid-template-columns: 160px 1fr 245px;
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 195px 1fr 255px;
+  overflow: hidden;
   padding: 10px;
   box-sizing: border-box;
 }

@@ -184,7 +184,7 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
       )}
 
       {/* Action Prompt - shows what player should do next */}
-      <ActionPromptAnimated />
+      {isHUDVisible && <ActionPromptAnimated />}
 
       <div className="ui-layer">
         {/* Top: Turn Info, Rules & Game Options */}
@@ -199,7 +199,7 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
           boxSizing: 'border-box'
         }}>
           {/* Left: Rules & Guide + HUD Toggle */}
-          <div style={{ pointerEvents: 'auto' }}>
+          <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <button
               id="hud-rules-btn"
               className="gothic-button"
@@ -233,13 +233,12 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
-                background: 'rgba(5, 5, 10, 0.75)',
-                border: '1px solid rgba(192, 160, 96, 0.4)',
-                color: 'var(--color-gold)',
+                background: isHUDVisible ? 'rgba(5, 5, 10, 0.75)' : 'rgba(120, 20, 20, 0.85)',
+                border: isHUDVisible ? '1px solid rgba(192, 160, 96, 0.4)' : '1px solid #e74c3c',
+                color: isHUDVisible ? 'var(--color-gold)' : '#fff',
                 cursor: 'pointer',
                 borderRadius: '3px',
-                backdropFilter: 'blur(4px)',
-                marginLeft: '6px'
+                backdropFilter: 'blur(4px)'
               }}
               title="Toggle full HUD visibility on/off (Hotkey: H)"
             >
@@ -284,55 +283,35 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
               <span style={{ fontSize: '0.85rem' }}>⚙</span>
               <span>Options</span>
             </button>
-
-            <button
-              id="hud-toggle-btn"
-              className="gothic-button"
-              onClick={() => setIsHUDVisible(!isHUDVisible)}
-              style={{
-                padding: '4px 8px',
-                fontSize: '0.75rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                background: 'rgba(5, 5, 10, 0.75)',
-                border: '1px solid rgba(192, 160, 96, 0.4)',
-                color: 'var(--color-gold)',
-                cursor: 'pointer',
-                borderRadius: '3px',
-                backdropFilter: 'blur(4px)',
-                marginLeft: '6px'
-              }}
-              title="Toggle full HUD visibility on/off (Hotkey: H)"
-            >
-              <span>{isHUDVisible ? '👁' : '👁‍🗨'}</span>
-              <span>{isHUDVisible ? 'Hide UI' : 'Show UI'}</span>
-            </button>
           </div>
         </div>
 
         {/* Left: Party Sidebar & Combat Log */}
-        <div style={{ gridArea: 'left', display: 'flex', flexDirection: 'column', gap: '6px', pointerEvents: 'none' }}>
-          <div style={{ pointerEvents: 'auto' }}>
-            <PartySidebar />
+        {isHUDVisible && (
+          <div style={{ gridArea: 'left', display: 'flex', flexDirection: 'column', gap: '6px', pointerEvents: 'none' }}>
+            <div style={{ pointerEvents: 'auto' }}>
+              <PartySidebar />
+            </div>
+            <div style={{ pointerEvents: 'auto', marginTop: 'auto' }}>
+              <CombatLog />
+            </div>
           </div>
-          <div style={{ pointerEvents: 'auto', marginTop: 'auto' }}>
-            <CombatLog />
-          </div>
-        </div>
+        )}
 
         {/* Right: Scenario & Actions */}
-        <div style={{ gridArea: 'right', display: 'flex', flexDirection: 'column', gap: '6px', pointerEvents: 'none' }}>
-          <div style={{ pointerEvents: 'auto' }}>
-            <ScenarioPanel />
+        {isHUDVisible && (
+          <div style={{ gridArea: 'right', display: 'flex', flexDirection: 'column', gap: '6px', pointerEvents: 'none' }}>
+            <div style={{ pointerEvents: 'auto' }}>
+              <ScenarioPanel />
+            </div>
+            <div style={{ pointerEvents: 'auto', marginTop: 'auto', display: 'flex', alignItems: 'flex-end' }}>
+              <ActionBar onOpenTreasure={onOpenTreasure} />
+            </div>
           </div>
-          <div style={{ pointerEvents: 'auto', marginTop: 'auto', display: 'flex', alignItems: 'flex-end' }}>
-            <ActionBar onOpenTreasure={onOpenTreasure} />
-          </div>
-        </div>
+        )}
 
         {/* Bottom: Card Hand - only show during hero phase, not setup phase */}
-        {gameState && gameState.phase !== 'setup' && (
+        {isHUDVisible && gameState && gameState.phase !== 'setup' && (
           <div style={{ gridArea: 'bot', pointerEvents: 'none' }}>
             <div style={{ pointerEvents: 'auto' }}>
               <CardHand />
