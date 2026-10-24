@@ -1,6 +1,7 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { useFrame, ThreeEvent } from '@react-three/fiber';
 import { Interactive } from '@react-three/xr';
+import { Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 import { Card } from '../../game/types';
 import { getCardTextures } from './CardTextureGenerator';
@@ -244,6 +245,19 @@ export const PhysicalCard3D: React.FC<PhysicalCard3DProps> = ({
             <planeGeometry args={[CARD_W + 0.006, CARD_H + 0.006]} />
             <meshBasicMaterial color="#f0d070" transparent opacity={0.35} depthWrite={false} />
           </mesh>
+        )}
+
+        {/* Treasure sparkle — soft gold shimmer on treasure cards */}
+        {card.type === 'treasure' && !isUsed && (
+          <Sparkles
+            count={50}
+            scale={[CARD_W * 1.4, CARD_H * 1.4, 0.08]}
+            size={2.5}
+            speed={0.3}
+            opacity={0.7}
+            color="#ffe9a8"
+            position={[0, 0, CARD_D / 2 + 0.01]}
+          />
         )}
       </group>
     </Interactive>
