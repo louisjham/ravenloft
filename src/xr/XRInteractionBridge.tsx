@@ -76,10 +76,10 @@ export const XRInteractionBridge: React.FC = () => {
           if (diceStore.phase === 'announcing') {
             playHapticProfile('rollDice', handedness);
             diceStore.finishAnnouncement();
-            if (!diceStore.isAutoRoll) diceStore.playerRoll();
           } else if (diceStore.phase === 'waiting_for_roll') {
             playHapticProfile('rollDice', handedness);
-            diceStore.playerRoll();
+            if (diceStore.isAutoRoll) diceStore.playerRoll();
+            else if (!diceStore.isHeldByPlayer) diceStore.beginPhysicalRoll();
           } else if (diceStore.phase === 'showing_result') {
             playHapticProfile('click', handedness);
             diceStore.dismiss();
@@ -115,10 +115,10 @@ export const XRInteractionBridge: React.FC = () => {
           if (diceStore.phase === 'announcing') {
             playHapticProfile('rollDice', handedness);
             diceStore.finishAnnouncement();
-            if (!diceStore.isAutoRoll) diceStore.playerRoll();
           } else if (diceStore.phase === 'waiting_for_roll') {
             playHapticProfile('rollDice', handedness);
-            diceStore.playerRoll();
+            if (diceStore.isAutoRoll) diceStore.playerRoll();
+            else if (!diceStore.isHeldByPlayer) diceStore.beginPhysicalRoll();
           } else if (diceStore.phase === 'showing_result') {
             playHapticProfile('click', handedness);
             diceStore.dismiss();

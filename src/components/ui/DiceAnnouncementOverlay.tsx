@@ -85,7 +85,7 @@ export const DiceAnnouncementOverlay: React.FC = () => {
 
       {showPrompt && (
         <div className="dice-prompt">
-          <span>⚄ Press SPACE to Roll ⚄</span>
+          <span>⚄ Grab the die and throw it — or press SPACE to toss ⚄</span>
         </div>
       )}
 

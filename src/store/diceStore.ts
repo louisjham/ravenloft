@@ -24,6 +24,9 @@ export interface DiceStore {
   phase: DicePhase;
   rollType: DiceRollType | null;
   isAutoRoll: boolean;
+  // True while the player is physically holding the die (grab-and-throw).
+  // Trigger/space must not auto-toss while this is true — release is the throw.
+  isHeldByPlayer: boolean;
   
   // Entity Profile
   diceColor: string;
@@ -74,7 +77,12 @@ export interface DiceStore {
 
   finishAnnouncement: () => void;
   playerRoll: () => void;
-  settleResult: () => void;
+  // Hero throw without a pre-rolled result: the die tumbles and the result is
+  // read from the settled face (see settleResult(value)). Used by grab release
+  // and by trigger/space auto-toss; auto-rolls keep using playerRoll.
+  beginPhysicalRoll: () => void;
+  setHeldByPlayer: (b: boolean) => void;
+  settleResult: (value?: number) => void;
   dismiss: () => void;
   reset: () => void;
   isActive: () => boolean;
@@ -87,6 +95,7 @@ const initialState = {
   phase: 'idle' as DicePhase,
   rollType: null,
   isAutoRoll: false,
+  isHeldByPlayer: false,
   
   diceColor: '#cc1111',
   physicsProfile: DEFAULT_HERO_PHYSICS,
@@ -240,13 +249,47 @@ export const useDiceStore = create<DiceStore>()(
       });
     },
 
-    settleResult: () => {
+    beginPhysicalRoll: () => {
+      const state = get();
+      if (state.phase !== 'waiting_for_roll' && state.phase !== 'announcing') return;
+      // No result yet: it is read from the settled die face (see settleResult).
+      set({ phase: 'rolling' });
+    },
+
+    setHeldByPlayer: (b: boolean) => {
+      set({ isHeldByPlayer: b });
+    },
+
+    settleResult: (value?: number) => {
       const { phase } = get();
       if (phase === 'rolling') {
-        set({ phase: 'showing_result' });
-
         const animSpeed = useGameStore.getState().settings?.animationSpeed ?? 'normal';
         const showResultDelay = animSpeed === 'instant' ? 50 : animSpeed === 'fast' ? 250 : 600;
+
+        if (value !== undefined) {
+          // Physical roll: the result is the face the die actually landed on.
+          const state = get();
+          const result = value;
+          const isCritical = result === 20;
+          let isHit: boolean | null = null;
+          if (state.targetAC !== null) {
+            if (state.rollType === 'trap_disable') {
+              isHit = isCritical || (result >= state.targetAC);
+            } else {
+              isHit = isCritical || (result + state.attackBonus >= state.targetAC);
+            }
+          }
+          set({
+            phase: 'showing_result',
+            result,
+            isCritical,
+            isHit,
+            // Override dismiss effect on crit
+            dismissEffect: isCritical ? 'lightning' : state.dismissEffect,
+          });
+        } else {
+          set({ phase: 'showing_result' });
+        }
 
         // Auto-dismiss the result so players don't have to mash Spacebar
         setTimeout(() => {
@@ -288,6 +331,7 @@ export const useDiceStore = create<DiceStore>()(
         _onComplete: null,
         result: null,
         rollType: null,
+        isHeldByPlayer: false,
       });
     },
   }))

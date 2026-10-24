@@ -14,6 +14,16 @@ Nothing here is a design decision — those are Louis's. This is the ticket list
   without this a hero roll waited silently for a trigger press nobody announced.
 - **HUD turn-order pips** — `src/xr/hud/XRTabletopHUD3D.tsx`: VR twin of the
   desktop TurnIndicator dots (gold = current hero). Sits above the HUD bar.
+- **Grab-and-throw dice** — `src/components/3d/Dice3D.tsx`, `src/store/diceStore.ts`,
+  `src/xr/XRInteractionBridge.tsx`, `src/components/interaction/GameController.tsx`,
+  `src/components/ui/DiceAnnouncementOverlay.tsx`: hero rolls are now true
+  physical rolls. The die floats in front of the player while waiting; grip (or
+  trigger) grabs it and releasing it throws it with the controller's velocity.
+  Trigger / space without grabbing tosses it with a random impulse. The result
+  is read from the settled face via the existing `getUpFaceNumber` (verified:
+  all 20 faces round-trip through `getQuaternionForNumber`). Monster/AI
+  auto-rolls are unchanged (pre-rolled theater). A 15s adapter timeout remains
+  as backstop. The old pre-roll + forced-face path survives only for auto-rolls.
 
 ## Corrected findings (earlier audit claims, fixed by reading the code)
 
@@ -53,16 +63,6 @@ Nothing here is a design decision — those are Louis's. This is the ticket list
 
 ## Design calls owed by Louis (not built, not assumed)
 
-- **Grab-and-throw dice.** Current flow pre-rolls the result (`playerRoll`
-  picks the number, physics is theater, settle forces the die to the pre-rolled
-  face via `getQuaternionForNumber`). True grab-and-throw needs: die spawns in
-  the air in front of the player, `Interactive` grab (pattern exists in
-  `PhysicalCard3D`), release enables physics with throw velocity, settle
-  detection (exists), and result read from the settled orientation — the
-  inverse of `getQuaternionForNumber`, computable from the exported
-  `faceNormals` + `FACE_TO_NUMBER` in `D20Geometry.ts`. Desktop trigger/space
-  and monster auto-roll stay as fallbacks. A new `held` dice phase and a
-  paused/timeout rule while held are part of the design.
 - **The fork question.** Whether to strip the DOM UI and go XR-only is
   undecided; nothing in this list prejudges it. The DOM remains the only home
   of power selection, scenario setup, settings, menus, and the card hand.

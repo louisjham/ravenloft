@@ -39,12 +39,10 @@ export const GameController: React.FC = () => {
         if (store.phase === 'announcing') {
           e.preventDefault();
           store.finishAnnouncement();
-          if (!store.isAutoRoll) {
-            store.playerRoll();
-          }
         } else if (store.phase === 'waiting_for_roll') {
           e.preventDefault();
-          store.playerRoll();
+          if (store.isAutoRoll) store.playerRoll();
+          else if (!store.isHeldByPlayer) store.beginPhysicalRoll();
         } else if (store.phase === 'showing_result') {
           e.preventDefault();
           store.dismiss();
