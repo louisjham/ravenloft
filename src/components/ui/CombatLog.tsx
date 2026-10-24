@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useGameStore } from '../../store/gameStore';
+import { MovablePanel } from './MovablePanel';
 
 export const CombatLog: React.FC = () => {
   const log = useGameStore((state) => state.gameState?.log || []);
@@ -26,34 +27,26 @@ export const CombatLog: React.FC = () => {
   };
 
   return (
-    <div className="combat-log" style={{
-      height: '90px',
-      padding: '4px 8px',
-      display: 'flex',
-      flexDirection: 'column',
-      background: 'rgba(5, 5, 10, 0.5)',
-      border: '1px solid rgba(192, 160, 96, 0.2)',
-      borderRadius: '3px',
-      backdropFilter: 'blur(4px)'
-    }}>
-      <div style={{
-        fontSize: '0.6rem',
-        margin: '0 0 3px 0',
-        color: 'rgba(192, 160, 96, 0.7)',
-        fontFamily: 'var(--font-gothic)',
-        letterSpacing: '1px',
-        textTransform: 'uppercase'
-      }}>
-        Log
-      </div>
+    <MovablePanel
+      id="combat-log"
+      title="LOG"
+      icon="📜"
+      defaultCollapsed={false}
+      width={185}
+      headerExtra={
+        <span style={{ fontSize: '0.6rem', color: 'rgba(192, 160, 96, 0.6)' }}>
+          {log.length}
+        </span>
+      }
+    >
       <div
         ref={scrollRef}
         style={{
-          flex: 1,
+          height: '95px',
           overflowY: 'auto',
           fontSize: '0.65rem',
           fontFamily: 'var(--font-body)',
-          paddingRight: '3px',
+          padding: '2px 4px',
           lineHeight: '1.3'
         }}
         className="custom-scrollbar"
@@ -69,7 +62,7 @@ export const CombatLog: React.FC = () => {
             Awaiting adventure...
           </div>
         ) : (
-          log.slice(-15).map((entry) => (
+          log.slice(-25).map((entry) => (
             <div
               key={entry.id}
               style={{
@@ -77,7 +70,7 @@ export const CombatLog: React.FC = () => {
                 borderLeft: `2px solid ${getColor(entry.type)}`,
                 paddingLeft: '5px',
                 color: getColor(entry.type),
-                opacity: 0.85
+                opacity: 0.9
               }}
             >
               {entry.message}
@@ -85,6 +78,6 @@ export const CombatLog: React.FC = () => {
           ))
         )}
       </div>
-    </div>
+    </MovablePanel>
   );
 };

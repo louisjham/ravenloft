@@ -33,6 +33,18 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
   const restartScenario = useGameStore((state) => state.restartScenario);
 
   const [showSetup, setShowSetup] = useState(false);
+  const [isHUDVisible, setIsHUDVisible] = useState(true);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'h' || e.key === 'H') {
+        setIsHUDVisible((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
   const activeModal = useUIStore((state) => state.activeModal);
   const showTilePlacer = useUIStore((state) => state.showTilePlacer);
   const tilePlacementError = useUIStore((state) => state.tilePlacementError);
@@ -186,7 +198,7 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
           width: '100%',
           boxSizing: 'border-box'
         }}>
-          {/* Left: Rules & Guide */}
+          {/* Left: Rules & Guide + HUD Toggle */}
           <div style={{ pointerEvents: 'auto' }}>
             <button
               id="hud-rules-btn"
@@ -209,6 +221,30 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
             >
               <span>📜</span>
               <span>Rules</span>
+            </button>
+
+            <button
+              id="hud-toggle-btn"
+              className="gothic-button"
+              onClick={() => setIsHUDVisible(!isHUDVisible)}
+              style={{
+                padding: '4px 8px',
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: 'rgba(5, 5, 10, 0.75)',
+                border: '1px solid rgba(192, 160, 96, 0.4)',
+                color: 'var(--color-gold)',
+                cursor: 'pointer',
+                borderRadius: '3px',
+                backdropFilter: 'blur(4px)',
+                marginLeft: '6px'
+              }}
+              title="Toggle full HUD visibility on/off (Hotkey: H)"
+            >
+              <span>{isHUDVisible ? '👁' : '👁‍🗨'}</span>
+              <span>{isHUDVisible ? 'Hide UI' : 'Show UI'}</span>
             </button>
           </div>
 
@@ -247,6 +283,30 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
             >
               <span style={{ fontSize: '0.85rem' }}>⚙</span>
               <span>Options</span>
+            </button>
+
+            <button
+              id="hud-toggle-btn"
+              className="gothic-button"
+              onClick={() => setIsHUDVisible(!isHUDVisible)}
+              style={{
+                padding: '4px 8px',
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: 'rgba(5, 5, 10, 0.75)',
+                border: '1px solid rgba(192, 160, 96, 0.4)',
+                color: 'var(--color-gold)',
+                cursor: 'pointer',
+                borderRadius: '3px',
+                backdropFilter: 'blur(4px)',
+                marginLeft: '6px'
+              }}
+              title="Toggle full HUD visibility on/off (Hotkey: H)"
+            >
+              <span>{isHUDVisible ? '👁' : '👁‍🗨'}</span>
+              <span>{isHUDVisible ? 'Hide UI' : 'Show UI'}</span>
             </button>
           </div>
         </div>

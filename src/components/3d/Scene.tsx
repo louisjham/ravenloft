@@ -174,16 +174,16 @@ const XRSceneContent: React.FC<{
             enablePan={false}
             enableZoom={true}
             /* Vertical: ~35° to ~60° from top — never below the table */
-            minPolarAngle={Math.PI / 5}
-            maxPolarAngle={Math.PI / 3}
+            minPolarAngle={Math.PI / 7}
+            maxPolarAngle={Math.PI / 2.25}
             /* Horizontal: narrow ±20° so the board feels locked */
-            minAzimuthAngle={-Math.PI / 9}
-            maxAzimuthAngle={Math.PI / 9}
-            minDistance={5}
-            maxDistance={13}
+            minAzimuthAngle={-Math.PI / 2.5}
+            maxAzimuthAngle={Math.PI / 2.5}
+            minDistance={4}
+            maxDistance={22}
             enableDamping={true}
             dampingFactor={0.15}
-            rotateSpeed={0.3}
+            rotateSpeed={0.35}
           />
           <CameraTracker controlsRef={controlsRef} />
         </>
@@ -216,7 +216,7 @@ const XRSceneContent: React.FC<{
       />
 
       {/* Atmosphere (Desktop/VR only, transparent in AR passthrough) */}
-      {!isAR && <fog attach="fog" args={['#1a0f2e', 20, 38]} />}
+      {!isAR && <fog attach="fog" args={['#0e0a17', 22, 52]} />}
 
       {!isAR && (
         <Suspense fallback={null}>

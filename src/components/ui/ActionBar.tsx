@@ -2,6 +2,7 @@ import React from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { useUIStore } from '../../store/uiStore';
 import { useGameActions } from '../../hooks/useGameActions';
+import { MovablePanel } from './MovablePanel';
 
 interface ActionBarProps {
   onOpenTreasure?: (heroId: string) => void;
@@ -52,12 +53,6 @@ export const ActionBar: React.FC<ActionBarProps> = ({ onOpenTreasure }) => {
     return hero ? (!hero.isExhausted || !s.gameState.hasAttackedThisTurn) : false;
   });
 
-  const canExplore = useGameStore(s => {
-    if (!s.gameState) return false;
-    return !s.gameState.hasExploredThisTurn;
-  });
-
-  const heroIsExhausted = activeHero?.isExhausted ?? false;
   const actions = [
     { id: 'attack', label: 'Attack', key: 'A', isDisabled: !anyAliveMonsters || gameState?.hasAttackedThisTurn },
     { id: 'ability', label: 'Ability', key: 'C', isDisabled: !hasUsablePowers },
@@ -83,70 +78,122 @@ export const ActionBar: React.FC<ActionBarProps> = ({ onOpenTreasure }) => {
   };
 
   return (
-    <div className="action-bar gothic-panel" style={{
-      alignSelf: 'end',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '5px',
-      padding: '10px',
-    }}>
-      <h3 className="gothic-title" style={{ fontSize: '0.75rem', margin: '0 0 6px 0', letterSpacing: '1px' }}>Actions</h3>
-      
-      {/* Pending AI Turn Approval Banner */}
-      {gameState?.pendingAITurnApproval && (
+    <MovablePanel
+      id="action-bar"
+      title="ACTIONS"
+      icon="⚡"
+      defaultCollapsed={false}
+      width={245}
+    >
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+        padding: '4px 6px',
+      }}>
+        {/* Pending AI Turn Approval Banner */}
+        {gameState?.pendingAITurnApproval && (
+          <button
+            className="gothic-button"
+            onClick={() => approveAITurn()}
+            style={{
+              width: '100%',
+              padding: '6px 4px',
+              fontSize: '0.72rem',
+              fontWeight: 'bold',
+              background: 'linear-gradient(135deg, rgba(20, 80, 40, 0.95), rgba(30, 120, 60, 0.95))',
+              border: '2px solid #55ffaa',
+              color: '#ffffff',
+              boxShadow: '0 0 12px rgba(85, 255, 170, 0.6)',
+              cursor: 'pointer',
+              marginBottom: '4px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '2px',
+            }}
+          >
+            <span>✅ APPROVE AI TURN</span>
+            <span style={{ fontSize: '0.62rem', color: '#aaffcc' }}>
+              {gameState.pendingAITurnApproval.heroName} [Space]
+            </span>
+          </button>
+        )}
+
+        {/* Dynamic Movement Status Badge */}
+        <div style={{
+          fontSize: '0.68rem',
+          color: hasMovement ? '#55ffaa' : '#888888',
+          border: `1px solid ${hasMovement ? 'rgba(85, 255, 170, 0.4)' : 'rgba(100, 100, 100, 0.3)'}`,
+          background: hasMovement ? 'rgba(10, 40, 25, 0.65)' : 'rgba(25, 25, 25, 0.65)',
+          borderRadius: '4px',
+          padding: '4px 6px',
+          marginBottom: '4px',
+          textAlign: 'center',
+          lineHeight: 1.3
+        }}>
+          {hasMovement 
+            ? (activeHero?.isExhausted ? '⚡ Drag piece for Double Move' : '✥ Drag hero piece to Move')
+            : '✓ Move completed'}
+        </div>
+
+        {actions.map((action) => {
+          const isActive = interactionMode === action.id;
+          const isDisabledState = action.isDisabled || gameState?.phase !== 'hero';
+          return (
+            <button
+              key={action.id}
+              className={`gothic-button ${isActive ? 'active' : ''}`}
+              onClick={() => onActionClick(action.id)}
+              disabled={isDisabledState}
+              style={{
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '4px 8px',
+                fontSize: '0.7rem',
+                boxShadow: isActive ? '0 0 8px rgba(0, 255, 255, 0.4)' : 'none',
+                border: isActive ? '2px solid #00ffff' : undefined,
+                color: isActive ? '#00ffff' : undefined,
+                opacity: isDisabledState ? 0.4 : 1,
+                cursor: isDisabledState ? 'not-allowed' : 'pointer'
+              }}
+            >
+              <span>{action.label}</span>
+              <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>[{action.key}]</span>
+            </button>
+          );
+        })}
+
         <button
           className="gothic-button"
-          onClick={() => approveAITurn()}
+          onClick={() => onActionClick('search')}
+          disabled={gameState?.phase !== 'hero' || !searchStatus.canSearch}
           style={{
             width: '100%',
-            padding: '8px 6px',
-            fontSize: '0.72rem',
-            fontWeight: 'bold',
-            background: 'linear-gradient(135deg, rgba(20, 80, 40, 0.95), rgba(30, 120, 60, 0.95))',
-            border: '2px solid #55ffaa',
-            color: '#ffffff',
-            boxShadow: '0 0 12px rgba(85, 255, 170, 0.6)',
-            cursor: 'pointer',
-            marginBottom: '6px',
             display: 'flex',
-            flexDirection: 'column',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            gap: '2px',
-            animation: 'pulse-glow 2s infinite alternate'
+            padding: '4px 8px',
+            fontSize: '0.7rem',
+            opacity: searchStatus.canSearch ? 1 : 0.5
           }}
+          title={searchStatus.canSearch ? `Search ${searchableTokens.length} token(s) on this tile` : searchStatus.reason}
         >
-          <span>✅ APPROVE AI TURN</span>
-          <span style={{ fontSize: '0.62rem', color: '#aaffcc' }}>
-            {gameState.pendingAITurnApproval.heroName} [Space]
-          </span>
+          <span>Search{searchableTokens.length > 0 ? ` (${searchableTokens.length})` : ''}</span>
+          <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>[S]</span>
         </button>
-      )}
 
-      {/* Dynamic Movement Status Badge */}
-      <div style={{
-        fontSize: '0.68rem',
-        color: hasMovement ? '#55ffaa' : '#888888',
-        border: `1px solid ${hasMovement ? 'rgba(85, 255, 170, 0.4)' : 'rgba(100, 100, 100, 0.3)'}`,
-        background: hasMovement ? 'rgba(10, 40, 25, 0.65)' : 'rgba(25, 25, 25, 0.65)',
-        borderRadius: '4px',
-        padding: '5px 7px',
-        marginBottom: '6px',
-        textAlign: 'center',
-        lineHeight: 1.3
-      }}>
-        {hasMovement 
-          ? (activeHero?.isExhausted ? '⚡ Drag piece for Double Move' : '✥ Drag hero piece to Move')
-          : '✓ Move completed'}
-      </div>
-      {actions.map((action) => {
-        const isActive = interactionMode === action.id;
-        const isDisabledState = action.isDisabled || gameState?.phase !== 'hero';
-        return (
+        {activeTrapOnTile && (
           <button
-            key={action.id}
-            className={`gothic-button ${isActive ? 'active' : ''}`}
-            onClick={() => onActionClick(action.id)}
-            disabled={isDisabledState}
+            className="gothic-button"
+            onClick={() => {
+              if (activeTrapOnTile) {
+                disableTrap(activeTrapOnTile.id);
+              }
+            }}
+            disabled={!canDisableTrap}
             style={{
               width: '100%',
               display: 'flex',
@@ -154,107 +201,60 @@ export const ActionBar: React.FC<ActionBarProps> = ({ onOpenTreasure }) => {
               alignItems: 'center',
               padding: '4px 8px',
               fontSize: '0.7rem',
-              boxShadow: isActive ? '0 0 8px rgba(0, 255, 255, 0.4)' : 'none',
-              border: isActive ? '2px solid #00ffff' : undefined,
-              color: isActive ? '#00ffff' : undefined,
-              opacity: isDisabledState ? 0.4 : 1,
-              cursor: isDisabledState ? 'not-allowed' : 'pointer'
+              opacity: canDisableTrap ? 1 : 0.5,
+              cursor: canDisableTrap ? 'pointer' : 'not-allowed',
+              border: '2px solid #ff4444',
+              color: '#ff4444'
+            }}
+            title={canDisableTrap ? 'Attempt to disable the trap on this tile' : 'You must have an attack action remaining to disable traps'}
+          >
+            <span>Disable Trap</span>
+            <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>[D]</span>
+          </button>
+        )}
+
+        <button
+          className="gothic-button"
+          onClick={() => onOpenTreasure?.(currentHeroId ?? '')}
+          disabled={gameState?.phase !== 'hero' || !hasUsableTreasure}
+          style={{
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '4px 8px',
+            fontSize: '0.7rem'
+          }}
+        >
+          <span>Treasure</span>
+          <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>[T]</span>
+        </button>
+
+        {canEscape && (
+          <button
+            className="gothic-button"
+            onClick={() => {
+              if (currentHeroId) {
+                useGameStore.getState().escapeHero(currentHeroId);
+              }
+            }}
+            style={{
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '4px 8px',
+              fontSize: '0.7rem',
+              border: '2px solid #ff00ff',
+              color: '#ff00ff',
+              boxShadow: '0 0 8px rgba(255, 0, 255, 0.4)'
             }}
           >
-            <span>{action.label}</span>
-            <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>[{action.key}]</span>
+            <span>Escape</span>
+            <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>[Esc]</span>
           </button>
-        );
-      })}
-
-      <button
-        className="gothic-button"
-        onClick={() => onActionClick('search')}
-        disabled={gameState?.phase !== 'hero' || !searchStatus.canSearch}
-        style={{
-          width: '100%',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '4px 8px',
-          fontSize: '0.7rem',
-          opacity: searchStatus.canSearch ? 1 : 0.5
-        }}
-        title={searchStatus.canSearch ? `Search ${searchableTokens.length} token(s) on this tile` : searchStatus.reason}
-      >
-        <span>Search{searchableTokens.length > 0 ? ` (${searchableTokens.length})` : ''}</span>
-        <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>[S]</span>
-      </button>
-
-      {activeTrapOnTile && (
-        <button
-          className="gothic-button"
-          onClick={() => {
-            if (activeTrapOnTile) {
-              disableTrap(activeTrapOnTile.id);
-            }
-          }}
-          disabled={!canDisableTrap}
-          style={{
-            width: '100%',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '4px 8px',
-            fontSize: '0.7rem',
-            opacity: canDisableTrap ? 1 : 0.5,
-            cursor: canDisableTrap ? 'pointer' : 'not-allowed',
-            border: '2px solid #ff4444',
-            color: '#ff4444'
-          }}
-          title={canDisableTrap ? 'Attempt to disable the trap on this tile' : 'You must have an attack action remaining to disable traps'}
-        >
-          <span>Disable Trap</span>
-          <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>[D]</span>
-        </button>
-      )}
-
-      <button
-        className="gothic-button"
-        onClick={() => onOpenTreasure?.(currentHeroId ?? '')}
-        disabled={gameState?.phase !== 'hero' || !hasUsableTreasure}
-        style={{
-          width: '100%',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '4px 8px',
-          fontSize: '0.7rem'
-        }}
-      >
-        <span>Treasure</span>
-        <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>[T]</span>
-      </button>
-
-      {canEscape && (
-        <button
-          className="gothic-button"
-          onClick={() => {
-            if (currentHeroId) {
-              useGameStore.getState().escapeHero(currentHeroId);
-            }
-          }}
-          style={{
-            width: '100%',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '4px 8px',
-            fontSize: '0.7rem',
-            border: '2px solid #ff00ff',
-            color: '#ff00ff',
-            boxShadow: '0 0 8px rgba(255, 0, 255, 0.4)'
-          }}
-        >
-          <span>Escape</span>
-          <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>[Esc]</span>
-        </button>
-      )}
-    </div>
+        )}
+      </div>
+    </MovablePanel>
   );
 };
