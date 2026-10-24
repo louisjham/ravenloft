@@ -31,24 +31,27 @@ export const ActionPromptAnimated: React.FC = () => {
   // Use selectors for specific state pieces to prevent re-renders when unrelated game state changes
   const phase = useGameStore(s => s.gameState?.phase);
   const currentHeroId = useGameStore(s => s.gameState?.currentHeroId);
-  const currentHeroName = useGameStore(s => {
-    const gs = s.gameState;
-    if (!gs) return '';
-    const hero = gs.heroes.find(h => h.id === gs.currentHeroId);
-    return hero?.name ?? '';
+  const currentHero = useGameStore((state) => {
+    if (!state.gameState) return null;
+    const hero = state.gameState.heroes.find(h => h.id === state.gameState!.currentHeroId);
+
+    // If hero is missing, return null instead of triggering errors
+    if (!hero && state.gameState.currentHeroId) {
+      if (import.meta.env.DEV) {
+        console.warn(`Hero ${state.gameState.currentHeroId} not found during lookup.`);
+      }
+      return null;
+    }
+    return hero ?? null;
   });
-  
-  // Extract specific properties to minimize dependency updates
+
+  const currentHeroName = currentHero?.name ?? '';
+  const currentHeroSpeed = currentHero?.speed ?? 0;
+
   const hasMovement = useGameStore(s => {
     if (!s.gameState) return false;
     const hero = s.gameState.heroes.find(h => h.id === s.gameState!.currentHeroId);
     return hero ? (!hero.isExhausted || !s.gameState.hasAttackedThisTurn) : false;
-  });
-  
-  const currentHeroSpeed = useGameStore(s => {
-    if (!s.gameState) return 0;
-    const hero = s.gameState.heroes.find(h => h.id === s.gameState!.currentHeroId);
-    return hero ? hero.speed : 0;
   });
 
   const canAttack = useGameStore(s => {
@@ -118,7 +121,7 @@ export const ActionPromptAnimated: React.FC = () => {
       return;
     }
 
-    if (phase !== 'hero' || !currentHeroId) {
+    if (phase !== 'hero' || !currentHeroId || !currentHero) {
       clearDismissTimer();
       if (dismissing) setDismissing(false);
       setCurrentPrompt(null);
@@ -147,6 +150,7 @@ export const ActionPromptAnimated: React.FC = () => {
 
     // Turn start hero splash
     if (autoDismissedHero.current !== currentHeroId) {
+      if (!currentHeroName) return;
       const heroName = currentHeroName.toUpperCase();
       setCurrentPrompt({
         text: `${heroName}'S TURN`,
@@ -206,19 +210,21 @@ export const ActionPromptAnimated: React.FC = () => {
   }, [
     phase, 
     currentHeroId, 
+    currentHero,
     currentHeroName,
     interactionMode, 
     hasMovement, 
     currentHeroSpeed, 
     canAttack, 
     hasUsablePowers, 
-    hasExplorationPoints,
+    hasExplorationPoints, 
     isAdjacentToExplorationPoint,
     gameState?.hasExploredThisTurn,
     hasAttacked,
     heroMovedOnce
   ]);
 
+  if (phase === 'hero' && !currentHero) return null;
   if (!currentPrompt) return null;
 
   const isEndTurn = currentPrompt.type === 'end-turn';

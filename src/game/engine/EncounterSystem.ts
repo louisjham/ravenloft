@@ -2072,7 +2072,13 @@ export class EncounterSystem {
                         const spawnedMonsterId = effectResult.spawnedMonsterId ?? null;
 
                         const nextPhase = pending.length === 0 ? 'complete' : 'resolving';
-                        const updatedHeroes = effectResult.heroes ?? gameState.heroes;
+                        // applyEffect was scoped to the acting hero ([hero]); merge any
+                        // changes back into the full party so the roster is never
+                        // replaced by the single-hero working array.
+                        const updatedHeroes = gameState.heroes.map(h => {
+                            const uh = effectResult.heroes?.find(x => x.id === h.id);
+                            return uh ?? h;
+                        });
                         const updatedMonsters = effectResult.monsters ?? gameState.monsters;
                         const updatedDiscardPiles = effectResult.discardPiles ?? gameState.discardPiles;
 

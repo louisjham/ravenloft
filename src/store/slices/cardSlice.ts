@@ -474,9 +474,11 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
         }
 
         // Advance to next hero
-        const currentIndex = villainState.turnOrder.indexOf(villainState.currentHeroId);
-        const nextIndex = (currentIndex + 1) % villainState.turnOrder.length;
-        const nextId = villainState.turnOrder[nextIndex];
+        const validTurnOrder = villainState.turnOrder.filter(id => villainState.heroes.some(h => h.id === id));
+        const effectiveTurnOrder = validTurnOrder.length > 0 ? validTurnOrder : villainState.heroes.map(h => h.id);
+        const currentIndex = effectiveTurnOrder.indexOf(villainState.currentHeroId);
+        const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % effectiveTurnOrder.length : 0;
+        const nextId = effectiveTurnOrder[nextIndex] || villainState.heroes[0]?.id;
         const stateAfterTurnStart = ConditionSystem.processTurnStart(villainState, nextId);
  
         // Bug 5: Check defeat right at the start of the next hero's turn
