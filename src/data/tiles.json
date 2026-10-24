@@ -606,7 +606,7 @@
   },
   {
     "id": "crypt_sergei",
-    "name": "Crypt of Sergei Von Zarovich",
+    "name": "Crypt of Sergei Von Nekrula",
     "terrainType": "crypt",
     "encounterType": "white",
     "isRevealed": false,
@@ -796,7 +796,7 @@
   },
   {
     "id": "crypt_strahd",
-    "name": "Strahd's Crypt",
+    "name": "Nekrula's Crypt",
     "terrainType": "boss_room",
     "encounterType": "white",
     "isRevealed": false,
@@ -830,7 +830,7 @@
     },
     "imageUrl": "/assets/tiles/Crypt_StrahdsCrypt.png",
     "specialEffect": "boss_arena",
-    "effectDescription": "Final boss encounter location - Strahd von Zarovich"
+    "effectDescription": "Final boss encounter location - Karl Von Nekrula"
   },
   {
     "id": "black_x2_01",

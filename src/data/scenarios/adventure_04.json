@@ -25,7 +25,7 @@
   ],
   "startTileId": "start-tile",
   "maxSurges": 2,
-  "introText": "The Heroes enter during daylight to steal Strahd’s treasures before he awakens.",
-  "victoryText": "You have escaped the dungeon with Strahd's treasures! The daylight fades, but you are already safe.",
+  "introText": "The Heroes enter during daylight to steal Nekrula’s treasures before he awakens.",
+  "victoryText": "You have escaped the dungeon with Nekrula's treasures! The daylight fades, but you are already safe.",
   "defeatText": "You failed to escape with the required treasures before being overwhelmed by the shadows."
 }

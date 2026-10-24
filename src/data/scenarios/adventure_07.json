@@ -2,13 +2,13 @@
   "id": "adventure_07",
   "name": "Adventure Impossible",
   "difficulty": "Hard",
-  "description": "Three of Strahd's most powerful allies lurk in hidden Lairs. You must find and defeat three of them, one hero at a time.",
+  "description": "Three of Nekrula's most powerful allies lurk in hidden Lairs. You must find and defeat three of them, one hero at a time.",
   "objectives": [
     {
       "id": "defeat_three_villains",
       "type": "defeat_villains",
       "count": 3,
-      "description": "Defeat 3 of Strahd's villains found in hidden Lairs",
+      "description": "Defeat 3 of Nekrula's villains found in hidden Lairs",
       "isCompleted": false,
       "currentCount": 0
     }
@@ -28,19 +28,43 @@
     }
   ],
   "villainLairPairings": [
-    { "lairTileId": "named_arcane_circle",  "villainMonsterId": "monster_howling_hag",   "villainName": "Howling Hag"  },
-    { "lairTileId": "named_dark_fountain",  "villainMonsterId": "monster_young_vampire", "villainName": "Young Vampire" },
-    { "lairTileId": "named_fetid_den",      "villainMonsterId": "monster_werewolf",      "villainName": "Werewolf"     },
-    { "lairTileId": "named_laboratory",     "villainMonsterId": "monster_klak",          "villainName": "Klak"         },
-    { "lairTileId": "named_rotting_nook",   "villainMonsterId": "monster_zombie_dragon", "villainName": "Zombie Dragon"},
-    { "lairTileId": "named_workshop",       "villainMonsterId": "monster_flesh_golem",   "villainName": "Flesh Golem" }
+    {
+      "lairTileId": "named_arcane_circle",
+      "villainMonsterId": "monster_howling_hag",
+      "villainName": "Howling Hag"
+    },
+    {
+      "lairTileId": "named_dark_fountain",
+      "villainMonsterId": "monster_young_vampire",
+      "villainName": "Young Vampire"
+    },
+    {
+      "lairTileId": "named_fetid_den",
+      "villainMonsterId": "monster_werewolf",
+      "villainName": "Werewolf"
+    },
+    {
+      "lairTileId": "named_laboratory",
+      "villainMonsterId": "monster_klak",
+      "villainName": "Klak"
+    },
+    {
+      "lairTileId": "named_rotting_nook",
+      "villainMonsterId": "monster_zombie_dragon",
+      "villainName": "Zombie Dragon"
+    },
+    {
+      "lairTileId": "named_workshop",
+      "villainMonsterId": "monster_flesh_golem",
+      "villainName": "Flesh Golem"
+    }
   ],
   "startTileId": "start-tile",
   "lairPacketSize": 8,
   "lairCount": 3,
   "setAsideTileIds": [],
   "maxSurges": 0,
-  "introText": "The castle is vast and your allies are scattered. You must assault Strahd's stronghold one hero at a time, hunting down three of his most dangerous champions.",
-  "victoryText": "Three of Strahd's greatest champions lie defeated. The castle trembles — the vampire lord's power is broken!",
-  "defeatText": "The last hero falls. Strahd's champions remain undefeated, and Barovia is lost."
+  "introText": "The castle is vast and your allies are scattered. You must assault Nekrula's stronghold one hero at a time, hunting down three of his most dangerous champions.",
+  "victoryText": "Three of Nekrula's greatest champions lie defeated. The castle trembles — the vampire lord's power is broken!",
+  "defeatText": "The last hero falls. Nekrula's champions remain undefeated, and The Lands of the Dead is lost."
 }

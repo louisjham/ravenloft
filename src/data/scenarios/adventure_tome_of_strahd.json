@@ -1,13 +1,13 @@
 {
   "id": "adventure_tome_of_strahd",
-  "name": "The Tome of Strahd",
+  "name": "The Tome of Nekrula",
   "difficulty": "Hard",
-  "description": "Find the Tome of Strahd treasure card.",
+  "description": "Find the Tome of Nekrula treasure card.",
   "objectives": [
     {
       "id": "defeat_the_guardian",
       "type": "defeat_specific_monster",
-      "description": "Defeat the guardian of the Tome of Strahd to retrieve it.",
+      "description": "Defeat the guardian of the Tome of Nekrula to retrieve it.",
       "isCompleted": false
     }
   ],
@@ -30,10 +30,12 @@
     }
   ],
   "startTileId": "start",
-  "setAsideTileIds": ["crypt_barov_ravenovia"],
+  "setAsideTileIds": [
+    "crypt_barov_ravenovia"
+  ],
   "specialTilePlacements": [],
   "maxSurges": 2,
-  "introText": "The legends say that there is a book hidden by Strahd in the tomb of his parents. This book is named the Tome of Strahd. If you discover it, it will provide you valuable information about the vampire lord. But the way there is long and the Tome must be guarded...",
-  "victoryText": "You found the Tome and you read Strahd's story. Now you hope that you are more likely to destroy the evil Count.",
-  "defeatText": "The Heroes fall before the darkness of Castle Ravenloft. The secrets of the Tome of Strahd remain hidden forever."
+  "introText": "The legends say that there is a book hidden by Nekrula in the tomb of his parents. This book is named the Tome of Nekrula. If you discover it, it will provide you valuable information about the vampire lord. But the way there is long and the Tome must be guarded...",
+  "victoryText": "You found the Tome and you read Nekrula's story. Now you hope that you are more likely to destroy the evil Count.",
+  "defeatText": "The Heroes fall before the darkness of The Shadowhold. The secrets of the Tome of Nekrula remain hidden forever."
 }

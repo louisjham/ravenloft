@@ -500,7 +500,7 @@
   },
   {
     "id": "monster_strahd",
-    "name": "Strahd",
+    "name": "Nekrula",
     "type": "monster",
     "monsterType": "Undead",
     "hp": 10,
@@ -543,7 +543,7 @@
     },
     "conditions": [],
     "usedPowers": [],
-    "tacticsText": "If Strahd is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "tacticsText": "If Nekrula is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
     "specialAbilityText": "Special Ability: fireball, summon_skeletons, vampiric_bite, mist_form, multiattack"
   },
   {
@@ -759,7 +759,7 @@
   },
   {
     "id": "monster_gravestorm",
-    "name": "Gravestorm",
+    "name": "Varkath",
     "type": "monster",
     "monsterType": "Dracolich",
     "hp": 20,
@@ -802,12 +802,12 @@
     },
     "conditions": [],
     "usedPowers": [],
-    "tacticsText": "If Gravestorm is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
+    "tacticsText": "If Varkath is adjacent to a hero, it attacks with a melee strike. Otherwise, it moves 1 tile towards the closest hero.",
     "specialAbilityText": "Special Ability: blast_of_lightning, gravestorms_bite, burst_of_lightning"
   },
   {
     "id": "monster_gravestorms_phylactery",
-    "name": "Gravestorm's Phylactery",
+    "name": "Varkath's Phylactery",
     "type": "monster",
     "monsterType": "Construct",
     "hp": 1,
@@ -837,7 +837,7 @@
     },
     "conditions": [],
     "usedPowers": [],
-    "tacticsText": "If Gravestorm's Phylactery is within 1 tile of a hero, it attacks. Otherwise, it moves towards the closest hero."
+    "tacticsText": "If Varkath's Phylactery is within 1 tile of a hero, it attacks. Otherwise, it moves towards the closest hero."
   },
   {
     "id": "monster_howling_hag",
@@ -1185,7 +1185,7 @@
   },
   {
     "id": "monster_skull_lord",
-    "name": "Skull Lord",
+    "name": "Anthraxus",
     "type": "monster",
     "monsterType": "Undead",
     "image": "/card-images/monster-skulllord.png",
@@ -1222,8 +1222,8 @@
     },
     "conditions": [],
     "usedPowers": [],
-    "tacticsText": "If within 1 tile of a hero, attack a hero within 1 tile for each remaining HP on Skull Lord (pass left). Otherwise, move 1 tile towards nearest hero (pass left).",
-    "specialAbilityText": "Special Ability: Cackling skulls — Any hero that attacks and misses Skull Lord from within 1 tile must flip a daily/utility power or take 1 damage.",
+    "tacticsText": "If within 1 tile of a hero, attack a hero within 1 tile for each remaining HP on Anthraxus (pass left). Otherwise, move 1 tile towards nearest hero (pass left).",
+    "specialAbilityText": "Special Ability: Cackling skulls — Any hero that attacks and misses Anthraxus from within 1 tile must flip a daily/utility power or take 1 damage.",
     "passLeft": 2
   },
   {
@@ -1481,7 +1481,7 @@
   },
   {
     "id": "monster_vargouille",
-    "name": "Vargouille",
+    "name": "Dread Howler",
     "type": "monster",
     "monsterType": "Aberrant",
     "hp": 1,
@@ -1521,7 +1521,7 @@
   },
   {
     "id": "monster_warforged_minion",
-    "name": "Warforged Minion",
+    "name": "Rune-forged Thrall",
     "type": "monster",
     "monsterType": "Construct",
     "hp": 2,
@@ -1558,12 +1558,12 @@
     "conditions": [],
     "usedPowers": [],
     "tacticsText": "If within 1 tile of a hero, move adjacent to hero with most adjacent monsters and attack with blade. Otherwise, move 1 tile towards nearest monster.",
-    "specialAbilityText": "Special Ability: Engage — Heroes that start adjacent to Warforged Minion and move away take 1 damage.",
+    "specialAbilityText": "Special Ability: Engage — Heroes that start adjacent to Rune-forged Thrall and move away take 1 damage.",
     "passLeft": 0
   },
   {
     "id": "monster_flameskull",
-    "name": "Flameskull",
+    "name": "Skull-rune Ember Haunt",
     "type": "monster",
     "monsterType": "Undead",
     "hp": 3,
@@ -1647,7 +1647,7 @@
   },
   {
     "id": "monster_great_flameskull",
-    "name": "Great Flameskull",
+    "name": "Great Skull-rune Ember Haunt",
     "type": "monster",
     "monsterType": "Undead",
     "hp": 6,
@@ -1763,8 +1763,8 @@
     },
     "conditions": [],
     "usedPowers": [],
-    "tacticsText": "If within 1 tile of hero nearest to Strahd's Crypt: move to that hero's tile and attack a hero with trashing bite. If within 2 tiles of hero nearest to Strahd's Crypt: move to that hero's tile and attack each hero with pouncing strike. Otherwise: move 2 tiles towards hero nearest to Strahd's Crypt.",
-    "specialAbilityText": "Special Ability: Vampire form — When defeated, put Count Strahd on Strahd's Crypt with 7 wound tokens and without the mist token.",
+    "tacticsText": "If within 1 tile of hero nearest to Nekrula's Crypt: move to that hero's tile and attack a hero with trashing bite. If within 2 tiles of hero nearest to Nekrula's Crypt: move to that hero's tile and attack each hero with pouncing strike. Otherwise: move 2 tiles towards hero nearest to Nekrula's Crypt.",
+    "specialAbilityText": "Special Ability: Vampire form — When defeated, put Lord Karl Von Nekrula on Nekrula's Crypt with 7 wound tokens and without the mist token.",
     "isBoss": true,
     "passLeft": 0
   },
@@ -1811,7 +1811,7 @@
   },
   {
     "id": "monster_beholder_lich",
-    "name": "Beholder Lich",
+    "name": "Ocular Lich",
     "type": "monster",
     "monsterType": "Undead",
     "hp": 10,
@@ -2061,7 +2061,7 @@
   },
   {
     "id": "monster_bone_naga",
-    "name": "Bone Naga",
+    "name": "Drowned Elemental",
     "type": "monster",
     "monsterType": "Undead",
     "isUndead": true,
@@ -2099,7 +2099,7 @@
     "conditions": [],
     "usedPowers": [],
     "tacticsText": "If within 1 tile of a Dazed hero, slither to tile with most Dazed heroes and deal 1 damage to each Dazed hero (pass left). Otherwise, slither 1 tile towards closest hero (pass left).",
-    "specialAbilityText": "Special Ability: Death rattle — At the start of its activation, Bone Naga attacks each hero within 1 tile.",
+    "specialAbilityText": "Special Ability: Death rattle — At the start of its activation, Drowned Elemental attacks each hero within 1 tile.",
     "passLeft": 1
   },
   {
@@ -2235,7 +2235,7 @@
   },
   {
     "id": "monster_bodak",
-    "name": "Bodak",
+    "name": "Gloomwraith",
     "type": "monster",
     "monsterType": "Undead",
     "isUndead": true,
@@ -2273,7 +2273,7 @@
     "conditions": [],
     "usedPowers": [],
     "tacticsText": "If within 1 tile of a hero, each hero on the tile with most heroes is attacked with death gaze. Otherwise, move 1 tile towards closest hero.",
-    "specialAbilityText": "Special Ability: Agonizing gaze — Any hero that attacks Bodak from the same tile takes 1 damage before the attack and suffers -2 to Attack bonus.",
+    "specialAbilityText": "Special Ability: Agonizing gaze — Any hero that attacks Gloomwraith from the same tile takes 1 damage before the attack and suffers -2 to Attack bonus.",
     "passLeft": 0
   },
   {
@@ -2405,7 +2405,7 @@
   },
   {
     "id": "monster_boneclaw",
-    "name": "Boneclaw",
+    "name": "Skull-rune Demon",
     "type": "monster",
     "monsterType": "Undead",
     "isUndead": true,
@@ -2443,7 +2443,7 @@
     "conditions": [],
     "usedPowers": [],
     "tacticsText": "If within 2 tiles of a hero, attack closest hero with extending claws (pass left). Otherwise, move 1 tile towards closest hero (pass left).",
-    "specialAbilityText": "Special Ability: Threatening reach — Any hero that starts a move action within 2 tiles of Boneclaw is attacked with extending claws.",
+    "specialAbilityText": "Special Ability: Threatening reach — Any hero that starts a move action within 2 tiles of Skull-rune Demon is attacked with extending claws.",
     "passLeft": 1
   },
   {

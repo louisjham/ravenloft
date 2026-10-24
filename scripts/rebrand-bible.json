@@ -1,0 +1,39 @@
+{
+  "_comment": "Louis's final rebrand decisions, Oct 17 2026. Run: npx ts-node scripts/rebrand.ts --bible ./rebrand-bible.json --out ./src/data.rebranded",
+  "castleName": "The Shadowhold",
+  "glossary": [
+    { "from": "Castle Ravenloft", "to": "The Shadowhold" },
+    { "from": "Ravenloft", "to": "The Shadowhold" },
+    { "from": "Barovia", "to": "the Lands of the Dead" },
+    { "from": "Barovian", "to": "Shadowhold" },
+    { "from": "Strahd von Zarovich", "to": "Karl Von Nekrula" },
+    { "from": "Count Strahd", "to": "Lord Karl Von Nekrula" },
+    { "from": "Strahd", "to": "Nekrula" },
+    { "from": "von Zarovich", "to": "Von Nekrula" },
+    { "from": "Gravestorm", "to": "Varkath" },
+    { "from": "Beholder Lich", "to": "Ocular Lich" },
+    { "from": "Beholder", "to": "Ocular Tyrant" },
+    { "from": "Bodak", "to": "Gloomwraith" },
+    { "from": "Boneclaw", "to": "Skull-rune Demon" },
+    { "from": "Flameskull", "to": "Skull-rune Ember Haunt" },
+    { "from": "Vargouille", "to": "Dread Howler" },
+    { "from": "Skull Lord", "to": "Anthraxus" },
+    { "from": "Bone Naga", "to": "Drowned Elemental" },
+    { "from": "Warforged Minion", "to": "Rune-forged Thrall" },
+    { "from": "Warforged", "to": "Rune-forged" }
+  ],
+  "heroes": [],
+  "monsters": [
+    { "newName": "Gloomwraith", "oldName": "Bodak" },
+    { "newName": "Skull-rune Demon", "oldName": "Boneclaw" },
+    { "newName": "Skull-rune Ember Haunt", "oldName": "Flameskull" },
+    { "newName": "Dread Howler", "oldName": "Vargouille" },
+    { "newName": "Anthraxus, the Enslaver of Souls", "oldName": "Skull Lord" },
+    { "newName": "Drowned Elemental", "oldName": "Bone Naga" },
+    { "newName": "Rune-forged Thrall", "oldName": "Warforged Minion" },
+    { "newName": "Varkath", "oldName": "Gravestorm" }
+  ],
+  "villainName": "Karl Von Nekrula",
+  "villainTitle": "Lord of Despair, Summoner of Shadows, Ruler of the Lands of the Dead",
+  "worldTitle": "The Shadowhold"
+}

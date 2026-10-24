@@ -9,7 +9,12 @@
     "range": 1,
     "target": "area",
     "effects": [
-      { "type": "attack", "value": 1, "target": "area", "when": "always" }
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "area",
+        "when": "always"
+      }
     ],
     "phase": "hero",
     "heroClass": "wizard",
@@ -21,7 +26,13 @@
     "name": "Wizard Shield",
     "description": "Gain +4 AC until your next turn.",
     "effects": [
-      { "type": "defense_bonus", "value": 4, "target": "self", "duration": 1, "when": "always" }
+      {
+        "type": "defense_bonus",
+        "value": 4,
+        "target": "self",
+        "duration": 1,
+        "when": "always"
+      }
     ],
     "phase": "hero",
     "heroClass": "wizard",

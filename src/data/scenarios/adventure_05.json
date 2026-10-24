@@ -2,7 +2,7 @@
   "id": "adventure_05",
   "name": "The Final Transformation",
   "difficulty": "Hard",
-  "description": "Find the Dark Fountain and escort Kavan to it. Keep Kavan on the Dark Fountain tile for 5 turns to cure him before Strahd claims his soul.",
+  "description": "Find the Dark Fountain and escort Kavan to it. Keep Kavan on the Dark Fountain tile for 5 turns to cure him before Nekrula claims his soul.",
   "objectives": [
     {
       "id": "cure_kavan",
@@ -22,7 +22,9 @@
     }
   ],
   "startTileId": "start-tile",
-  "setAsideTileIds": ["named_dark_fountain"],
+  "setAsideTileIds": [
+    "named_dark_fountain"
+  ],
   "specialTilePlacements": [
     {
       "tileId": "named_dark_fountain",
@@ -30,7 +32,7 @@
     }
   ],
   "maxSurges": 2,
-  "introText": "Strahd has bitten Kavan, and the transformation has begun! You must find the Dark Fountain and use its waters to cure Kavan before he becomes a creature of the night.",
-  "victoryText": "Kavan is cured! The dark waters of the fountain wash away the vampiric curse, and Kavan stands once more as a free human. You have saved a soul from Strahd's grasp!",
-  "defeatText": "Kavan has succumbed to the transformation, or the party was defeated by the horrors of the crypts. Another soul belongs to Strahd."
+  "introText": "Nekrula has bitten Kavan, and the transformation has begun! You must find the Dark Fountain and use its waters to cure Kavan before he becomes a creature of the night.",
+  "victoryText": "Kavan is cured! The dark waters of the fountain wash away the vampiric curse, and Kavan stands once more as a free human. You have saved a soul from Nekrula's grasp!",
+  "defeatText": "Kavan has succumbed to the transformation, or the party was defeated by the horrors of the crypts. Another soul belongs to Nekrula."
 }

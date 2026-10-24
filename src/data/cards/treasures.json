@@ -92,7 +92,10 @@
     "effects": [
       {
         "type": "extra_action_choice",
-        "options": ["move_speed", "attack"],
+        "options": [
+          "move_speed",
+          "attack"
+        ],
         "target": "self"
       }
     ],
@@ -730,7 +733,7 @@
   },
   {
     "id": "treasure_icon_ravenloft",
-    "name": "Icon of Ravenloft",
+    "name": "Icon of The Shadowhold",
     "type": "quest",
     "description": "A holy icon that can repel the undead. Undead monsters in adjacent tiles cannot target you.",
     "effects": [
@@ -804,9 +807,9 @@
   },
   {
     "id": "treasure_portrait",
-    "name": "Portrait of Ravenloft",
+    "name": "Portrait of The Shadowhold",
     "type": "quest",
-    "description": "A painting of Strahd's castle. Once per adventure, you can force Strahd to reroll a d20.",
+    "description": "A painting of The Shadowhold. Once per adventure, you can force Nekrula to reroll a d20.",
     "effects": [
       {
         "type": "passive",
@@ -908,7 +911,7 @@
   },
   {
     "id": "item_icon_of_strahd",
-    "name": "Icon of Strahd",
+    "name": "Icon of Nekrula",
     "type": "quest",
     "description": "Scenario 1 objective item detector.",
     "effects": [],
@@ -955,16 +958,16 @@
   },
   {
     "id": "item_gravestorms_phylactery",
-    "name": "Gravestorm's Phylactery",
+    "name": "Varkath's Phylactery",
     "type": "scenario_item",
     "treasureType": "item",
-    "description": "Use an attack action to inflict 10 damage to Gravestorm.",
+    "description": "Use an attack action to inflict 10 damage to Varkath.",
     "image": "/card-images/item-amuletofprotection.png",
     "effects": []
   },
   {
     "id": "item_tome_of_strahd",
-    "name": "Tome of Strahd",
+    "name": "Tome of Nekrula",
     "type": "item",
     "treasureType": "item",
     "trigger": "Play this item immediately.",

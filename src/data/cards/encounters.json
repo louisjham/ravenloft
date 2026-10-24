@@ -417,7 +417,7 @@
   {
     "id": "enc_strahds_hunger",
     "type": "encounter",
-    "name": "Strahd's Hunger",
+    "name": "Nekrula's Hunger",
     "description": "Choose the Hero with the most Hit Points remaining. That Hero takes 1 damage and is Immobilized.",
     "effects": [
       {
@@ -433,7 +433,7 @@
   {
     "id": "enc_strahds_minions",
     "type": "encounter",
-    "name": "Strahd's Minions",
+    "name": "Nekrula's Minions",
     "description": "Place the active Hero and the two Monsters that are closest to that Hero on the tile farthest from the active Hero. If there are less than two Monsters in play, place a new Monster adjacent to the active Hero after he or she is placed.",
     "effects": [
       {
@@ -449,7 +449,7 @@
   {
     "id": "enc_strahds_trick",
     "type": "encounter",
-    "name": "Strahd's Trick",
+    "name": "Nekrula's Trick",
     "description": "Place the active Hero on a tile within 1 tile of you that has the most Monsters on it. If no tile within 1 tile of you has Monsters, the active Hero takes 1 damage.",
     "effects": [
       {
@@ -465,7 +465,7 @@
   {
     "id": "enc_strahds_whispers",
     "type": "encounter",
-    "name": "Strahd's Whispers",
+    "name": "Nekrula's Whispers",
     "description": "Place the active Hero adjacent to the next closest Hero. The active Hero attacks that Hero with an at-will power.",
     "effects": [
       {
@@ -788,7 +788,7 @@
   {
     "id": "enc_strahd_attacks",
     "type": "encounter",
-    "name": "Strahd Attacks!",
+    "name": "Nekrula Attacks!",
     "description": "Attack each Hero within 1 tile of the active Hero. +6 / 3 (Miss: 1 Damage).",
     "effects": [
       {

@@ -5,7 +5,13 @@
     "name": "Healing Word",
     "description": "Heal yourself or one adjacent Hero for 1 HP.",
     "effects": [
-      { "type": "heal", "value": 1, "target": "adjacent", "range": 1, "when": "always" }
+      {
+        "type": "heal",
+        "value": 1,
+        "target": "adjacent",
+        "range": 1,
+        "when": "always"
+      }
     ],
     "phase": "hero",
     "heroClass": "cleric",
@@ -21,7 +27,12 @@
     "range": 0,
     "target": "single",
     "effects": [
-      { "type": "attack", "value": 2, "target": "single", "when": "always" }
+      {
+        "type": "attack",
+        "value": 2,
+        "target": "single",
+        "when": "always"
+      }
     ],
     "phase": "hero",
     "heroClass": "cleric",

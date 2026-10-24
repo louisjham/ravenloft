@@ -1,10 +1,10 @@
 [
   {
     "id": "scenario_1",
-    "name": "Find the Icon of Ravenloft",
-    "description": "The heroes must explore the dungeon to find the lost Icon of Ravenloft and escape with their lives.",
+    "name": "Find the Icon of The Shadowhold",
+    "description": "The heroes must explore the dungeon to find the lost Icon of The Shadowhold and escape with their lives.",
     "victoryConditions": [
-      "Hero possesses Icon of Ravenloft",
+      "Hero possesses Icon of The Shadowhold",
       "All heroes on Start Tile"
     ],
     "defeatConditions": [

@@ -9,8 +9,19 @@
     "range": 0,
     "target": "single",
     "effects": [
-      { "type": "attack", "value": 2, "target": "single", "when": "always" },
-      { "type": "damage", "value": 1, "target": "single", "condition": "damaged", "when": "hit" }
+      {
+        "type": "attack",
+        "value": 2,
+        "target": "single",
+        "when": "always"
+      },
+      {
+        "type": "damage",
+        "value": 1,
+        "target": "single",
+        "condition": "damaged",
+        "when": "hit"
+      }
     ],
     "phase": "hero",
     "heroClass": "rogue",
@@ -22,7 +33,12 @@
     "name": "Stealth",
     "description": "Monsters cannot target you until your next turn unless you are the only Hero.",
     "effects": [
-      { "type": "status_effect", "target": "self", "duration": 1, "when": "always" }
+      {
+        "type": "status_effect",
+        "target": "self",
+        "duration": 1,
+        "when": "always"
+      }
     ],
     "phase": "hero",
     "heroClass": "rogue",

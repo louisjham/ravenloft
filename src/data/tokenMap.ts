@@ -309,11 +309,11 @@ export const ITEM_TOKENS: TokenAsset[] = [
     },
     {
         id: 'item_gravestorms_phylactery',
-        name: "Gravestorm's Phylactery",
+        name: "Varkath's Phylactery",
         frontImage: '/assets/tokens/Token_Misc_ItemGravestormsPhylactery.png',
         backImage: '/assets/tokens/Token_Misc_ItemBack.png',
         type: 'item',
-        description: 'The phylactery of the lich Gravestorm',
+        description: 'The phylactery of the bone dragon Varkath',
         maxCount: 1
     },
     {

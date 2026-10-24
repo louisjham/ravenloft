@@ -106,7 +106,7 @@ export const BILLBOARD_ASSETS: BillboardAsset[] = [
   },
   {
     id: 'villain_gravestorm',
-    name: 'Gravestorm',
+    name: 'Varkath',
     category: 'villain',
     imagePath: '/assets/billboards/villains/Villain_Gravestorm.png',
   },

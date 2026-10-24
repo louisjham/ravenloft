@@ -2,7 +2,7 @@
   "id": "adventure_09",
   "name": "Gauntlet of Terror",
   "difficulty": "Medium",
-  "description": "Prevent Strahd's Monsters from leaving the dungeon and attacking the village.",
+  "description": "Prevent Nekrula's Monsters from leaving the dungeon and attacking the village.",
   "objectives": [
     {
       "id": "defeat_monsters",
@@ -25,14 +25,16 @@
     {
       "id": "start_tile_hp",
       "description": "Place 5 HP tokens on the Start tile. If all are removed (5 monsters escape), the adventure is lost.",
-      "trigger": { "type": "on_start" }
+      "trigger": {
+        "type": "on_start"
+      }
     }
   ],
   "startTileId": "start-tile",
   "setAsideTileIds": [],
   "specialTilePlacements": [],
   "maxSurges": 2,
-  "introText": "The Heroes must stop Strahd's monsters from reaching Barovia.",
-  "victoryText": "The monsters lie slain! Barovia is safe from Strahd's invasion.",
-  "defeatText": "Too many monsters escape into Barovia. The village falls to Strahd's darkness."
+  "introText": "The Heroes must stop Nekrula's monsters from reaching The Lands of the Dead.",
+  "victoryText": "The monsters lie slain! The Lands of the Dead is safe from Nekrula's invasion.",
+  "defeatText": "Too many monsters escape into The Lands of the Dead. The village falls to Nekrula's darkness."
 }

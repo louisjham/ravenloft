@@ -9,7 +9,12 @@
     "range": 2,
     "target": "single",
     "effects": [
-      { "type": "attack", "value": 1, "target": "single", "when": "always" }
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "single",
+        "when": "always"
+      }
     ],
     "phase": "hero",
     "heroClass": "ranger",
@@ -25,7 +30,12 @@
     "range": 1,
     "target": "single",
     "effects": [
-      { "type": "attack", "value": 1, "target": "single", "when": "always" }
+      {
+        "type": "attack",
+        "value": 1,
+        "target": "single",
+        "when": "always"
+      }
     ],
     "phase": "hero",
     "heroClass": "ranger",

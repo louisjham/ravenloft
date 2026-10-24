@@ -22,13 +22,16 @@
   "specialRules": [
     {
       "id": "collapse_countdown",
-      "trigger": { "type": "turn_total", "value": 20 },
+      "trigger": {
+        "type": "turn_total",
+        "value": 20
+      },
       "effect": "Instant defeat when timer reaches 0"
     }
   ],
   "startTileId": "start-tile",
   "maxSurges": 1,
-  "introText": "The ground shakes. Strahd's magic is tearing this place apart. Find the exit before you are buried alive!",
+  "introText": "The ground shakes. Nekrula's magic is tearing this place apart. Find the exit before you are buried alive!",
   "victoryText": "You burst into the cool night air just as the entrance collapses behind you. You are free!",
   "defeatText": "The ceiling gives way. The dungeon becomes your tomb."
 }

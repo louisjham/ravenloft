@@ -26,7 +26,10 @@
     }
   ],
   "startTileId": "start-tile",
-  "setAsideTileIds": ["named_rotting_nook", "named_secret_stairway"],
+  "setAsideTileIds": [
+    "named_rotting_nook",
+    "named_secret_stairway"
+  ],
   "specialTilePlacements": [
     {
       "tileId": "named_rotting_nook",
@@ -39,6 +42,6 @@
   ],
   "maxSurges": 2,
   "introText": "The Heroes are trapped and must find another exit through blood-soaked mist-filled crypts.",
-  "victoryText": "All Heroes escape through the Secret Stairway! The mist swirls behind you as you leave the horrors of Ravenloft behind.",
+  "victoryText": "All Heroes escape through the Secret Stairway! The mist swirls behind you as you leave the horrors of The Shadowhold behind.",
   "defeatText": "The Zombie Dragon or the dungeon's terrors overwhelm you. The mist claims another victims."
 }

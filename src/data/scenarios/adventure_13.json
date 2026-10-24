@@ -1,16 +1,18 @@
 {
   "id": "adventure_13",
-  "name": "The Hunt for Strahd, Part 2",
+  "name": "The Hunt for Nekrula, Part 2",
   "difficulty": "Hard",
-  "description": "Find Strahd's crypt and destroy the vampire lord once and for all.",
+  "description": "Find Nekrula's crypt and destroy the vampire lord once and for all.",
   "objectives": [
     {
       "id": "defeat_strahd",
       "type": "defeat_villains",
       "count": 1,
       "currentCount": 0,
-      "targetIds": ["monster_strahd"],
-      "description": "Defeat Count Strahd.",
+      "targetIds": [
+        "monster_strahd"
+      ],
+      "description": "Defeat Lord Karl Von Nekrula.",
       "isCompleted": false
     },
     {
@@ -30,19 +32,21 @@
     },
     {
       "id": "coffin_investigation",
-      "description": "A Hero ending Hero Phase adjacent to a Coffin token may investigate it. If it reveals Strahd, place Strahd on that tile."
+      "description": "A Hero ending Hero Phase adjacent to a Coffin token may investigate it. If it reveals Nekrula, place Nekrula on that tile."
     },
     {
       "id": "coffin_healing",
-      "description": "If Strahd moves to a tile with an undestroyed coffin, he regains 2 HP at the start of each Villain Phase while the coffin remains."
+      "description": "If Nekrula moves to a tile with an undestroyed coffin, he regains 2 HP at the start of each Villain Phase while the coffin remains."
     },
     {
       "id": "crypt_reveal_strahd",
-      "description": "When Strahd's Crypt is revealed, if Strahd is not in play, place him there instead of drawing a Monster. If he is in play, move him there at full HP."
+      "description": "When Nekrula's Crypt is revealed, if Nekrula is not in play, place him there instead of drawing a Monster. If he is in play, move him there at full HP."
     }
   ],
   "startTileId": "start-tile",
-  "setAsideTileIds": ["crypt_strahd"],
+  "setAsideTileIds": [
+    "crypt_strahd"
+  ],
   "specialTilePlacements": [
     {
       "tileId": "crypt_strahd",
@@ -50,7 +54,7 @@
     }
   ],
   "maxSurges": 2,
-  "introText": "The Heroes follow the mist into Strahd's hidden crypts for the final battle.",
-  "victoryText": "Strahd falls to dust! Peace finally returns to Castle Ravenloft. Barovia is free!",
-  "defeatText": "Strahd proves too powerful. The vampire lord's reign of terror continues unchecked."
+  "introText": "The Heroes follow the mist into Nekrula's hidden crypts for the final battle.",
+  "victoryText": "Nekrula falls to dust! Peace finally returns to The Shadowhold. The Lands of the Dead is free!",
+  "defeatText": "Nekrula proves too powerful. The vampire lord's reign of terror continues unchecked."
 }

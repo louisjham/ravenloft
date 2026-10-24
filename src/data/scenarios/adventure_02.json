@@ -1,13 +1,13 @@
 {
   "id": "adventure_02",
-  "name": "Find the Icon of Ravenloft",
+  "name": "Find the Icon of The Shadowhold",
   "difficulty": "Medium",
-  "description": "Find the hidden Chapel, defeat its guardians, and recover the lost Icon of Ravenloft.",
+  "description": "Find the hidden Chapel, defeat its guardians, and recover the lost Icon of The Shadowhold.",
   "objectives": [
     {
       "id": "possess_icon",
       "type": "possess_icon",
-      "description": "Possess the Icon of Ravenloft.",
+      "description": "Possess the Icon of The Shadowhold.",
       "isCompleted": false
     },
     {
@@ -24,7 +24,9 @@
     }
   ],
   "startTileId": "start-tile",
-  "setAsideTileIds": ["named_chapel"],
+  "setAsideTileIds": [
+    "named_chapel"
+  ],
   "specialTilePlacements": [
     {
       "tileId": "named_chapel",
@@ -32,7 +34,7 @@
     }
   ],
   "maxSurges": 2,
-  "introText": "The Heroes descend into the crypts to find the hidden Chapel and recover the Icon of Ravenloft.",
-  "victoryText": "The Chapel glows with goodness, and with the Icon of Ravenloft in hand, you escape the terrors of the crypts!",
-  "defeatText": "The darkness consumes you. The Chapel remains hidden, and the Icon of Ravenloft is lost forever."
+  "introText": "The Heroes descend into the crypts to find the hidden Chapel and recover the Icon of The Shadowhold.",
+  "victoryText": "The Chapel glows with goodness, and with the Icon of The Shadowhold in hand, you escape the terrors of the crypts!",
+  "defeatText": "The darkness consumes you. The Chapel remains hidden, and the Icon of The Shadowhold is lost forever."
 }

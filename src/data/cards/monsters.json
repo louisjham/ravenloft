@@ -583,10 +583,10 @@
   },
   {
     "id": "card_monster_skull_lord_1",
-    "name": "Skull Lord",
+    "name": "Anthraxus",
     "type": "monster",
     "image": "/card-images/monster-skulllord.png",
-    "description": "Spawn a Skull Lord on the bone pile of the newly revealed tile.",
+    "description": "Spawn a Anthraxus on the bone pile of the newly revealed tile.",
     "effects": [
       {
         "type": "spawn_monster",
@@ -769,9 +769,9 @@
   },
   {
     "id": "card_monster_bodak_1",
-    "name": "Bodak",
+    "name": "Gloomwraith",
     "type": "monster",
-    "description": "Spawn a Bodak on the bone pile of the newly revealed tile.",
+    "description": "Spawn a Gloomwraith on the bone pile of the newly revealed tile.",
     "effects": [
       {
         "type": "spawn_monster",
@@ -783,9 +783,9 @@
   },
   {
     "id": "card_monster_bodak_2",
-    "name": "Bodak",
+    "name": "Gloomwraith",
     "type": "monster",
-    "description": "Spawn a Bodak on the bone pile of the newly revealed tile.",
+    "description": "Spawn a Gloomwraith on the bone pile of the newly revealed tile.",
     "effects": [
       {
         "type": "spawn_monster",
@@ -797,9 +797,9 @@
   },
   {
     "id": "card_monster_bodak_3",
-    "name": "Bodak",
+    "name": "Gloomwraith",
     "type": "monster",
-    "description": "Spawn a Bodak on the bone pile of the newly revealed tile.",
+    "description": "Spawn a Gloomwraith on the bone pile of the newly revealed tile.",
     "effects": [
       {
         "type": "spawn_monster",
@@ -853,9 +853,9 @@
   },
   {
     "id": "card_monster_vargouille_1",
-    "name": "Vargouille",
+    "name": "Dread Howler",
     "type": "monster",
-    "description": "Spawn a Vargouille on the bone pile of the newly revealed tile.",
+    "description": "Spawn a Dread Howler on the bone pile of the newly revealed tile.",
     "effects": [
       {
         "type": "spawn_monster",
@@ -867,9 +867,9 @@
   },
   {
     "id": "card_monster_vargouille_2",
-    "name": "Vargouille",
+    "name": "Dread Howler",
     "type": "monster",
-    "description": "Spawn a Vargouille on the bone pile of the newly revealed tile.",
+    "description": "Spawn a Dread Howler on the bone pile of the newly revealed tile.",
     "effects": [
       {
         "type": "spawn_monster",
@@ -881,9 +881,9 @@
   },
   {
     "id": "card_monster_vargouille_3",
-    "name": "Vargouille",
+    "name": "Dread Howler",
     "type": "monster",
-    "description": "Spawn a Vargouille on the bone pile of the newly revealed tile.",
+    "description": "Spawn a Dread Howler on the bone pile of the newly revealed tile.",
     "effects": [
       {
         "type": "spawn_monster",
@@ -909,9 +909,9 @@
   },
   {
     "id": "card_monster_warforged_minion_1",
-    "name": "Warforged Minion",
+    "name": "Rune-forged Thrall",
     "type": "monster",
-    "description": "Spawn a Warforged Minion on the bone pile of the newly revealed tile.",
+    "description": "Spawn a Rune-forged Thrall on the bone pile of the newly revealed tile.",
     "effects": [
       {
         "type": "spawn_monster",
@@ -923,9 +923,9 @@
   },
   {
     "id": "card_monster_warforged_minion_2",
-    "name": "Warforged Minion",
+    "name": "Rune-forged Thrall",
     "type": "monster",
-    "description": "Spawn a Warforged Minion on the bone pile of the newly revealed tile.",
+    "description": "Spawn a Rune-forged Thrall on the bone pile of the newly revealed tile.",
     "effects": [
       {
         "type": "spawn_monster",
@@ -937,9 +937,9 @@
   },
   {
     "id": "card_monster_warforged_minion_3",
-    "name": "Warforged Minion",
+    "name": "Rune-forged Thrall",
     "type": "monster",
-    "description": "Spawn a Warforged Minion on the bone pile of the newly revealed tile.",
+    "description": "Spawn a Rune-forged Thrall on the bone pile of the newly revealed tile.",
     "effects": [
       {
         "type": "spawn_monster",
@@ -951,9 +951,9 @@
   },
   {
     "id": "card_monster_flameskull_1",
-    "name": "Flameskull",
+    "name": "Skull-rune Ember Haunt",
     "type": "monster",
-    "description": "Spawn a Flameskull on the bone pile of the newly revealed tile.",
+    "description": "Spawn a Skull-rune Ember Haunt on the bone pile of the newly revealed tile.",
     "effects": [
       {
         "type": "spawn_monster",
@@ -979,9 +979,9 @@
   },
   {
     "id": "card_monster_bone_naga_1",
-    "name": "Bone Naga",
+    "name": "Drowned Elemental",
     "type": "monster",
-    "description": "Spawn a Bone Naga on the bone pile of the newly revealed tile.",
+    "description": "Spawn a Drowned Elemental on the bone pile of the newly revealed tile.",
     "effects": [
       {
         "type": "spawn_monster",
@@ -993,9 +993,9 @@
   },
   {
     "id": "card_monster_boneclaw_1",
-    "name": "Boneclaw",
+    "name": "Skull-rune Demon",
     "type": "monster",
-    "description": "Spawn a Boneclaw on the bone pile of the newly revealed tile.",
+    "description": "Spawn a Skull-rune Demon on the bone pile of the newly revealed tile.",
     "effects": [
       {
         "type": "spawn_monster",

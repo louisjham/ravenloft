@@ -17,13 +17,15 @@
   "specialRules": [
     {
       "id": "shard_bearers",
-      "trigger": { "type": "on_start" },
+      "trigger": {
+        "type": "on_start"
+      },
       "effect": "Assign shards to 3 random boss monsters in the deck"
     }
   ],
   "startTileId": "start-tile",
   "maxSurges": 2,
-  "introText": "The Crown of Ravenloft was shattered long ago. Its pieces still hold great power. Recover them to turn the tide.",
+  "introText": "The Crown of The Shadowhold was shattered long ago. Its pieces still hold great power. Recover them to turn the tide.",
   "victoryText": "The crown is whole once more. You feel its weight and the destiny it carries.",
   "defeatText": "The shards remain hidden, and the Vampire Lord mocking your failure."
 }
