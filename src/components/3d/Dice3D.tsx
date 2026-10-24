@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { Billboard, Text } from '@react-three/drei';
 import { useSphere } from '@react-three/cannon';
 import * as THREE from 'three';
 import { createD20Geometry, createD20Material, getQuaternionForNumber } from './D20Geometry';
@@ -16,6 +17,9 @@ export const Dice3D: React.FC = () => {
   const diceColor = useDiceStore(s => s.diceColor);
   const physicsProfile = useDiceStore(s => s.physicsProfile);
   const settleResult = useDiceStore(s => s.settleResult);
+  const isAutoRoll = useDiceStore(s => s.isAutoRoll);
+  const rollerName = useDiceStore(s => s.rollerName);
+  const announcementText = useDiceStore(s => s.announcementText);
 
   // Select hero world position as two stable primitives so the useMemo below only
   // recomputes when the hero actually moves, not on every state change.
@@ -58,6 +62,21 @@ export const Dice3D: React.FC = () => {
         <group position={arenaPosition}>
           <DiceDismissEffect />
         </group>
+      )}
+      {/* In-world roll prompt: the DOM announcement overlay does not render
+          in-headset, so without this a hero roll waits silently for a trigger
+          press the player was never told about. Skipped for auto-rolls. */}
+      {(phase === 'announcing' || phase === 'waiting_for_roll') && !isAutoRoll && (
+        <Billboard position={[arenaPosition[0], arenaPosition[1] + 1.3, arenaPosition[2]]}>
+          <Text fontSize={0.22} color="#ffe9a8" anchorX="center" anchorY="middle">
+            {phase === 'announcing' ? announcementText : 'PULL TRIGGER TO ROLL'}
+          </Text>
+          {phase === 'waiting_for_roll' && (
+            <Text fontSize={0.14} color="#ffffff" anchorX="center" anchorY="middle" position={[0, -0.3, 0]}>
+              {rollerName}
+            </Text>
+          )}
+        </Billboard>
       )}
     </group>
   );

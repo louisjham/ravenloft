@@ -135,6 +135,8 @@ export const XRTabletopHUD3D: React.FC = () => {
     return gs.heroes.find((h) => h.id === gs.currentHeroId) ?? null;
   });
   const healingSurges = useGameStore((state) => state.gameState?.healingSurges ?? 2);
+  const currentHeroId = useGameStore((state) => state.gameState?.currentHeroId);
+  const turnOrder = useGameStore((state) => state.gameState?.turnOrder);
 
   const endTurn = useGameStore((state) => state.endTurn);
   const setGameState = useGameStore((state) => state.setGameState);
@@ -540,6 +542,26 @@ export const XRTabletopHUD3D: React.FC = () => {
           <Text fontSize={0.020} color="#f5dfa3" textAlign="center">
             {`${phase.toUpperCase()} PHASE`}
           </Text>
+        </group>
+      )}
+
+      {/* Turn-order pips: VR twin of the desktop TurnIndicator dots.
+          The active hero already glows on the table; this answers "who's next". */}
+      {turnOrder && turnOrder.length > 0 && (
+        <group position={[0, 0.075, 0.01]}>
+          {turnOrder.map((id, i) => (
+            <mesh
+              key={id}
+              position={[(i - (turnOrder.length - 1) / 2) * 0.035, 0, 0]}
+            >
+              <circleGeometry args={[id === currentHeroId ? 0.014 : 0.010, 16]} />
+              <meshBasicMaterial
+                color={id === currentHeroId ? '#ffd700' : '#555566'}
+                transparent
+                opacity={id === currentHeroId ? 1 : 0.6}
+              />
+            </mesh>
+          ))}
         </group>
       )}
     </group>
