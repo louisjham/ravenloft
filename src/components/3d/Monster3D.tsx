@@ -361,7 +361,7 @@ const Monster3DInner: React.FC<Monster3DProps> = ({ monster }) => {
             <MonsterPlaceholder />
           ) : (
             <Suspense fallback={<MonsterPlaceholder />}>
-              <GamePiece url={getMonsterModelPath(monster.monsterType)} position={[0, modelYPos, 0]} rotation={[0, 0, 0]} scale={modelScale} />
+              <GamePiece url={getMonsterModelPath(monster.templateId || monster.id || monster.name || monster.monsterType)} position={[0, modelYPos, 0]} rotation={[0, 0, 0]} scale={modelScale} />
             </Suspense>
           )}
         </group>

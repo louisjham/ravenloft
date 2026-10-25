@@ -141,7 +141,8 @@ export function getMonsterModelPath(monsterId: string): string {
     'villain_gravestorm': MODELS.MONSTER_DRACOLICH,
   };
 
-  const idLower = monsterId.toLowerCase();
+  if (!monsterId) return MODELS.MONSTER_GENERIC;
+  const idLower = monsterId.toLowerCase().trim();
   
   // Exact match wins
   if (monsterMap[idLower]) return monsterMap[idLower];
@@ -149,7 +150,7 @@ export function getMonsterModelPath(monsterId: string): string {
   // Prefix fallback: sort by length descending so longer keys match first
   const prefixMatch = Object.keys(monsterMap)
     .sort((a, b) => b.length - a.length)
-    .find(key => idLower.startsWith(key + '_'));
+    .find(key => idLower.startsWith(key + '_') || idLower.startsWith(key));
     
   return prefixMatch ? monsterMap[prefixMatch] : MODELS.MONSTER_GENERIC;
 }
