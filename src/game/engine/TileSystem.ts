@@ -261,6 +261,35 @@ export class TileSystem {
       }
     }
 
+    let currentCounter = finalState.logIdCounter ?? 0;
+    const tileName = tile.name || baseTile.name || tile.id;
+    const edgeDesc = tile.encounterType === 'black' ? '▲ Black Triangle (Encounter Imminent)' : '△ White Triangle (Safe Passage)';
+    const activeHero = finalState.heroes.find(h => h.id === finalState.currentHeroId);
+    const heroName = activeHero ? activeHero.name : 'The party';
+    const explorationLogs: import('../types').GameLogEntry[] = [
+      {
+        id: String(currentCounter++),
+        timestamp: new Date().toISOString(),
+        message: `${heroName} explored [${tileName}] at (${tile.x}, ${tile.z}) [${edgeDesc}].`,
+        type: 'exploration' as const
+      }
+    ];
+
+    if (coffinResult?.token) {
+      explorationLogs.push({
+        id: String(currentCounter++),
+        timestamp: new Date().toISOString(),
+        message: `A sinister coffin rests in the shadows of [${tileName}]!`,
+        type: 'event' as const
+      });
+    }
+
+    finalState = {
+      ...finalState,
+      log: [...(finalState.log || []), ...explorationLogs].slice(-300),
+      logIdCounter: currentCounter
+    };
+
     return finalState;
   }
 
@@ -537,6 +566,14 @@ export class TileSystem {
         timestamp: new Date().toISOString(),
         message: `The guardian of the Tome of Strahd appears! ${newMonster.name} has been summoned!`,
         type: 'event' as const
+      });
+      currentCounter++;
+    } else {
+      log.push({
+        id: String(currentCounter),
+        timestamp: new Date().toISOString(),
+        message: `A sinister growl echoes... ${newMonster.name} lurks on the bone square! (HP: ${newMonster.hp}, AC: ${newMonster.ac}, Speed: ${newMonster.speed}, controlled by ${activeHero ? activeHero.name : 'active hero'}).`,
+        type: 'combat' as const
       });
       currentCounter++;
     }

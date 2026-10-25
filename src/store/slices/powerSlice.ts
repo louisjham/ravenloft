@@ -29,20 +29,37 @@ export const createPowerSlice: StateCreator<GameStore, [], [], PowerSlice> = (se
 
     if (result.success) {
       const consumesAttack = card.powerType !== 'utility';
-      
-      const updatedLog: GameLogEntry[] = [
-        ...state.log,
+      let currentCounter = result.newState.logIdCounter ?? state.logIdCounter ?? 0;
+      const logsToAdd: GameLogEntry[] = [
         {
-          id: crypto.randomUUID(),
+          id: String(currentCounter++),
           timestamp: new Date().toISOString(),
           message: result.message,
-          type: 'action' as const
+          type: 'spell' as const
         }
-      ].slice(-100);
+      ];
+
+      if (card.powerType === 'daily' || card.powerType === 'utility') {
+        const wasFlipped = result.newState.heroes.find(h => h.id === hero.id)?.flippedPowerIds?.includes(card.id);
+        if (wasFlipped && !(hero.flippedPowerIds ?? []).includes(card.id)) {
+          logsToAdd.push({
+            id: String(currentCounter++),
+            timestamp: new Date().toISOString(),
+            message: `[Power Spent] ${hero.name}'s ${card.powerType.toUpperCase()} power [${card.name}] is exhausted and turned face-down.`,
+            type: 'system' as const
+          });
+        }
+      }
+      
+      const updatedLog: GameLogEntry[] = [
+        ...(result.newState.log || state.log),
+        ...logsToAdd
+      ].slice(-300);
       set({ 
         gameState: { 
           ...result.newState, 
           log: updatedLog,
+          logIdCounter: currentCounter,
           hasAttackedThisTurn: consumesAttack ? true : result.newState.hasAttackedThisTurn
         } 
       });

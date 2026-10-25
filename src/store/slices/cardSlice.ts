@@ -40,19 +40,21 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
         const result = PowerSystem.usePower(hero, card, target, state);
 
         if (result.success) {
+          let counter = result.newState.logIdCounter ?? state.logIdCounter ?? 0;
           const updatedLog: GameLogEntry[] = [
             ...state.log,
             {
-              id: crypto.randomUUID(),
+              id: String(counter++),
               timestamp: new Date().toISOString(),
               message: result.message,
-              type: 'event' as const
+              type: 'spell' as const
             }
-          ].slice(-100);
+          ].slice(-300);
           set({
             gameState: TreasureSystem.processDefeatedMonsters({
               ...result.newState,
-              log: updatedLog
+              log: updatedLog,
+              logIdCounter: counter
             })
           });
         } else {
@@ -135,7 +137,7 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
             };
 
             const springAwayLog: GameLogEntry = {
-              id: crypto.randomUUID(),
+              id: String((state.logIdCounter ?? 0) + 1),
               timestamp: new Date().toISOString(),
               message: `${otherRogue.name} uses Spring Away! Teleports to tile (${foundPos.x}, ${foundPos.z}) before the Encounter triggers. Card flips face-down.`,
               type: 'system' as const
@@ -215,7 +217,7 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
       };
 
       const logEntry: GameLogEntry = {
-          id: crypto.randomUUID(),
+          id: String((state.logIdCounter ?? 0) + 1),
           timestamp: new Date().toISOString(),
           message: `${wizard.name} uses Dispel Magic! The Encounter Card is cancelled.`,
           type: 'system' as const
@@ -333,15 +335,16 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
           newState = assignResult.newState;
         }
 
+        let counter = newState.logIdCounter ?? 0;
         const logEntry: GameLogEntry = {
-          id: crypto.randomUUID(),
+          id: String(counter++),
           timestamp: new Date().toISOString(),
-          message: result.message,
-          type: 'event'
+          message: `[Treasure] ${result.message}`,
+          type: 'treasure' as const
         };
 
-        const newLog = [...(newState.log || []), logEntry].slice(-100);
-        set({ gameState: { ...newState, log: newLog } });
+        const newLog = [...(newState.log || []), logEntry].slice(-300);
+        set({ gameState: { ...newState, log: newLog, logIdCounter: counter } });
       }
     },
 

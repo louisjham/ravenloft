@@ -342,8 +342,10 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
           for (const m of monstersOnTile) {
             const damagedMonster = CombatSystem.applyDamage(m, 1);
             updatedMonsters = updatedMonsters.map(mon => mon.id === m.id ? (damagedMonster.hp <= 0 ? { ...damagedMonster, isDefeated: true } : damagedMonster) : mon);
-            logsAdded.push({
-              id: crypto.randomUUID(),
+            const nextIdNum = String(s.logIdCounter ?? 0);
+s.logIdCounter = (s.logIdCounter ?? 0) + 1;
+logsAdded.push({
+  id: nextIdNum,
               timestamp: new Date().toISOString(),
               message: `Freezing Cloud deals 1 damage to ${m.name} on tile (${fcTile.x}, ${fcTile.z}).`,
               type: 'system' as const
@@ -355,8 +357,10 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
         const newTokensCount = currentTokensCount - 1;
         if (newTokensCount <= 0) {
           updatedTokens = updatedTokens.filter(t => t.id !== fcToken.id);
-          logsAdded.push({
-            id: crypto.randomUUID(),
+          const nextIdNum = String(s.logIdCounter ?? 0);
+s.logIdCounter = (s.logIdCounter ?? 0) + 1;
+logsAdded.push({
+  id: nextIdNum,
             timestamp: new Date().toISOString(),
             message: `Freezing Cloud dispersed (no cloud tokens remain).`,
             type: 'system' as const
@@ -411,7 +415,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
       s = {
         ...expiryResult.newState,
         log: [...expiryResult.newState.log, {
-          id: crypto.randomUUID(),
+  id: String(expiryResult.newState.logIdCounter ?? 0),
           timestamp: new Date().toISOString(),
           message: expiryResult.message,
           type: 'system'
@@ -441,8 +445,10 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
                 t.id === token.id ? { ...t, isRevealed: true, isSearched: true } : t
               );
               activeHeroItems.push(itemId);
-              logsAdded.push({
-                id: crypto.randomUUID(),
+              const nextIdNum = String(s.logIdCounter ?? 0);
+s.logIdCounter = (s.logIdCounter ?? 0) + 1;
+logsAdded.push({
+  id: nextIdNum,
                 timestamp: new Date().toISOString(),
                 message: `${activeHero.name} discovered an item token and received a special item!`,
                 type: 'system' as const
@@ -474,7 +480,7 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
             ...s,
             heroes: s.heroes.map(h => h.id === damagedHero.id ? damagedHero : h),
             log: [...s.log, {
-              id: crypto.randomUUID(),
+  id: String(s.logIdCounter ?? 0),
               timestamp: new Date().toISOString(),
               message: `Deadly Shadows deals 1 damage to ${activeHero.name} for ending their turn on a shared tile!`,
               type: 'system' as const
@@ -573,6 +579,16 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
       ? ('defeat' as const)
       : ('hero' as const);
 
+    const nextHero = stateAfterTurnStart.heroes.find(h => h.id === nextId);
+    let finalCounter = stateAfterTurnStart.logIdCounter ?? 0;
+    const newTurnNum = stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0);
+    const turnStartEntry: GameLogEntry = {
+      id: String(finalCounter++),
+      timestamp: new Date().toISOString(),
+      message: `── Turn ${newTurnNum}: ${nextHero ? nextHero.name : nextId}'s turn begins (${nextHero?.hp ?? 0}/${nextHero?.maxHp ?? 0} HP, ${stateAfterTurnStart.healingSurges} Surges) ──`,
+      type: 'system' as const
+    };
+
     set({
       gameState: {
         ...stateAfterTurnStart,
@@ -583,7 +599,9 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
         lastPlacedTileEncounterType: null,
         lastPlacedTileId: null,
         hasAttackedThisTurn: false,
-        turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0),
+        turnCount: newTurnNum,
+        log: [...stateAfterTurnStart.log, turnStartEntry].slice(-300),
+        logIdCounter: finalCounter,
         pendingAITurnApproval: null,
         heroes: stateAfterTurnStart.heroes.map(h => {
           // Compute Dread Warrior adjacency for the incoming hero only
@@ -620,8 +638,9 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
       return;
     }
 
-    const logEntry: GameLogEntry = {
-      id: crypto.randomUUID(),
+    let counter = result.newState.logIdCounter ?? 0;
+const logEntry: GameLogEntry = {
+  id: String(counter++),
       timestamp: new Date().toISOString(),
       message: result.message,
       type: 'system' as const
@@ -630,7 +649,8 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     set({
       gameState: {
         ...result.newState,
-        log: [...result.newState.log, logEntry].slice(-100)
+        log: [...result.newState.log, logEntry].slice(-300),
+        logIdCounter: counter
       }
     });
   },
@@ -648,8 +668,9 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
       return;
     }
 
-    const logEntry: GameLogEntry = {
-      id: crypto.randomUUID(),
+    let counter = result.newState.logIdCounter ?? 0;
+const logEntry: GameLogEntry = {
+  id: String(counter++),
       timestamp: new Date().toISOString(),
       message: result.message,
       type: 'system' as const
@@ -658,7 +679,8 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     set({
       gameState: {
         ...result.newState,
-        log: [...result.newState.log, logEntry].slice(-100)
+        log: [...result.newState.log, logEntry].slice(-300),
+        logIdCounter: counter
       }
     });
   },
@@ -770,17 +792,19 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
       choice as Parameters<typeof TreasureSystem.resolvePendingFortuneAsync>[1]
     );
     const syncedState = ConditionSystem.syncActiveConditions(newState);
+    const fortuneCounter = syncedState.logIdCounter ?? 0;
     const updatedState = {
       ...syncedState,
+      logIdCounter: fortuneCounter + 1,
       log: [
         ...syncedState.log,
         {
-          id: crypto.randomUUID(),
+          id: String(fortuneCounter),
           timestamp: new Date().toISOString(),
           message,
           type: 'system' as const,
         }
-      ].slice(-100)
+      ].slice(-300)
     };
     set({ gameState: updatedState });
   },

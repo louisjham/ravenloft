@@ -118,11 +118,11 @@ export const createCombatSlice: StateCreator<GameStore, [], [], CombatSlice> = (
         {
           id: String(logIndex++),
           timestamp: new Date().toISOString(),
-          message: `${hero.name} moves to tile (${targetPosition.x}, ${targetPosition.z}) sq (${targetPosition.sqX}, ${targetPosition.sqZ})`,
+          message: `${hero.name} moves to [${targetTile.name || targetTile.id}] at (${targetPosition.x}, ${targetPosition.z}) square (${targetPosition.sqX}, ${targetPosition.sqZ})`,
           type: 'action' as const
         },
         ...logsToAdd
-      ].slice(-100);
+      ].slice(-300);
 
       set({
         gameState: {
@@ -203,12 +203,14 @@ export const createCombatSlice: StateCreator<GameStore, [], [], CombatSlice> = (
       // Bug 6: Use deterministic logIdCounter instead of crypto.randomUUID()
       const counter = currentState.logIdCounter ?? 0;
       let logIndex = counter;
+      const rollSummary = `🎲 Roll: ${result.roll} + ${attackBonus} = ${result.total} vs AC ${currentMonster.ac} ➔ ${result.critical ? 'CRITICAL HIT (Nat 20)!' : result.hit ? 'HIT!' : 'MISS!'}`;
+      const damageStatus = result.hit ? `(${currentMonster.name} HP: ${Math.max(0, currentMonster.hp - result.damage)}/${currentMonster.maxHp})` : '';
       const updatedLog: GameLogEntry[] = [
         ...currentState.log,
         {
           id: String(logIndex++),
           timestamp: new Date().toISOString(),
-          message: `${currentHero.name} attacks ${currentMonster.name} and deals ${result.damage} damage!`,
+          message: `${currentHero.name} attacks ${currentMonster.name}! ${rollSummary} and deals ${result.damage} damage! ${damageStatus}`.trim(),
           type: 'combat' as const
         }
       ];
@@ -222,12 +224,21 @@ export const createCombatSlice: StateCreator<GameStore, [], [], CombatSlice> = (
         });
       }
 
+      if (currentMonster.hp - result.damage <= 0) {
+        updatedLog.push({
+          id: String(logIndex++),
+          timestamp: new Date().toISOString(),
+          message: `💀 ${currentMonster.name} is defeated! +1 XP added to Experience Pile.`,
+          type: 'combat' as const
+        });
+      }
+
       set({
         gameState: TreasureSystem.processDefeatedMonsters({
           ...currentState,
           heroes: updatedHeroes,
           monsters: updatedMonsters,
-          log: updatedLog.slice(-100),
+          log: updatedLog.slice(-300),
           logIdCounter: logIndex,
           hasAttackedThisTurn: true
         })

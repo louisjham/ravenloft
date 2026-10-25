@@ -279,11 +279,33 @@ export interface Scenario {
   villainLairPairings?: VillainLairPairing[];
 }
 
+export type LogEntryType =
+  | 'action'
+  | 'combat'
+  | 'event'
+  | 'system'
+  | 'exploration'
+  | 'treasure'
+  | 'damage'
+  | 'heal'
+  | 'spell'
+  | 'condition'
+  | 'trap'
+  | 'villain';
+
 export interface GameLogEntry {
   id: string;
   timestamp: string;
   message: string;
-  type: 'action' | 'combat' | 'event' | 'system';
+  type: LogEntryType;
+  turn?: number;
+  heroId?: string;
+  monsterId?: string;
+  roll?: number;
+  total?: number;
+  targetAC?: number;
+  isHit?: boolean;
+  damage?: number;
 }
 
 export type GamePhase = 'setup' | 'hero' | 'exploration' /* TODO: actively used? */ | 'villain' | 'monster' | 'end' /* TODO: actively used? */ | 'victory' | 'defeat';
