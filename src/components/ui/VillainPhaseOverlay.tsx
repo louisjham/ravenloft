@@ -5,6 +5,7 @@ import { DataLoader } from '../../game/dataLoader';
 interface VillainPhaseOverlayProps {
     activeVillainId: string | null;
     villainQueue: string[];
+    villainQueueIndex?: number;
     monsters: Monster[];
     traps: Trap[];
     isVillainPhaseActive: boolean;
@@ -13,6 +14,7 @@ interface VillainPhaseOverlayProps {
 const VillainPhaseOverlay: React.FC<VillainPhaseOverlayProps> = ({
     activeVillainId,
     villainQueue,
+    villainQueueIndex,
     monsters,
     traps,
     isVillainPhaseActive,
@@ -48,7 +50,9 @@ const VillainPhaseOverlay: React.FC<VillainPhaseOverlayProps> = ({
         if (activeVillainId !== null) {
             // Snapshot both the villain and its queue position together so the
             // progress text stays in sync with the card being displayed.
-            const idx = villainQueue.indexOf(activeVillainId);
+            const idx = (villainQueueIndex !== undefined && villainQueueIndex >= 0)
+                ? villainQueueIndex
+                : villainQueue.indexOf(activeVillainId);
             setDisplayVillainId(activeVillainId);
             setDisplayProgressIndex(idx);
             setDisplayQueueLength(villainQueue.length);
@@ -66,7 +70,7 @@ const VillainPhaseOverlay: React.FC<VillainPhaseOverlayProps> = ({
             const hideTimer = setTimeout(() => setIsVisible(false), 350);
             return () => clearTimeout(hideTimer);
         }
-    }, [activeVillainId, isVillainPhaseActive]); // villainQueue intentionally omitted — snapshot only
+    }, [activeVillainId, isVillainPhaseActive, villainQueueIndex]); // villainQueue intentionally omitted — snapshot only
 
     if (!isVisible) {
         return null;

@@ -22,8 +22,9 @@ const _ctrlQuat = new THREE.Quaternion();
  * CardHandDock3D renders a floating, curved card fan in front of the player
  * containing the active hero's chosen Power Cards and equipped Treasure Items.
  *
- * Appears dynamically when the player turns their right hand palm up,
- * and vanishes when turned palm down or at rest.
+ * Appears and vanishes via a latched toggle driven by the right-hand palm-up
+ * show/hide gesture (or 'C' shortcut). Once shown or hidden, state persists
+ * across arbitrary hand movements and tracking updates until the next toggle gesture.
  */
 export const CardHandDock3D: React.FC = () => {
   const { isPresenting, controllers } = useXR();
@@ -41,19 +42,23 @@ export const CardHandDock3D: React.FC = () => {
   // Group reference for 3D fan transform & visibility
   const groupRef = useRef<THREE.Group>(null);
 
-  // Palm-up state tracking with hysteresis to prevent edge jitter
-  const [isPalmUp, setIsPalmUp] = useState(false);
-  const isPalmUpRef = useRef(false);
+  // Persistent latched show/hide state:
+  // The gesture flips this state. The live hand pose does not directly drive visibility.
+  const [isDockVisible, setIsDockVisible] = useState(false);
+  const isDockVisibleRef = useRef(false);
   const animScaleRef = useRef(0);
 
-  // Keyboard shortcut toggle ('C') for desktop testing & manual override
-  const [devForceVisible, setDevForceVisible] = useState(false);
+  // Gesture detection latching & re-arming
+  const isGestureArmedRef = useRef(true);
+  const palmHoldDurationRef = useRef(0);
 
+  // Keyboard shortcut toggle ('C') for desktop testing & manual override
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.key === 'c' || e.key === 'C') && !e.repeat) {
         if (document.activeElement?.tagName !== 'INPUT') {
-          setDevForceVisible((prev) => !prev);
+          isDockVisibleRef.current = !isDockVisibleRef.current;
+          setIsDockVisible(isDockVisibleRef.current);
         }
       }
     };
@@ -134,28 +139,34 @@ export const CardHandDock3D: React.FC = () => {
       }
     }
 
-    // Evaluate palm-up state with hysteresis (0.40 on, 0.15 off)
-    let shouldBeVisible = devForceVisible;
+    // Evaluate right-hand show/hide gesture as a latched toggle.
+    // The gesture flips a persistent show/hide state that survives arbitrary hand movement.
     if (palmDetected) {
-      if (isPalmUpRef.current) {
-        // Turn off when rotated back down or relaxed
-        shouldBeVisible = shouldBeVisible || palmUpComponent > 0.15;
+      if (palmUpComponent > 0.40) {
+        palmHoldDurationRef.current += delta;
+        if (isGestureArmedRef.current && palmHoldDurationRef.current >= 0.12) {
+          // Gesture triggered: flip persistent latched state
+          isGestureArmedRef.current = false;
+          isDockVisibleRef.current = !isDockVisibleRef.current;
+          setIsDockVisible(isDockVisibleRef.current);
+          if (isPresenting) {
+            playHapticProfile('hover', 'right');
+          }
+        }
       } else {
-        // Turn on when turned clearly palm up
-        shouldBeVisible = shouldBeVisible || palmUpComponent > 0.40;
+        palmHoldDurationRef.current = 0;
+        // Re-arm when hand returns to neutral/relaxed pose
+        if (palmUpComponent < 0.20) {
+          isGestureArmedRef.current = true;
+        }
       }
+    } else {
+      palmHoldDurationRef.current = 0;
     }
 
-    if (shouldBeVisible !== isPalmUpRef.current) {
-      isPalmUpRef.current = shouldBeVisible;
-      setIsPalmUp(shouldBeVisible);
-      if (isPresenting) {
-        playHapticProfile('hover', 'right');
-      }
-    }
-
-    // Smooth exponential scale lerp for card fan appear / vanish transition
-    const targetScale = isPalmUpRef.current ? 1.0 : 0.0;
+    // Smooth exponential scale lerp for card fan appear / vanish transition.
+    // Controlled exclusively by the latched state, not live per-frame hand pose.
+    const targetScale = isDockVisibleRef.current ? 1.0 : 0.0;
     const speed = 1 - Math.pow(0.0001, delta);
     animScaleRef.current = THREE.MathUtils.lerp(
       animScaleRef.current,

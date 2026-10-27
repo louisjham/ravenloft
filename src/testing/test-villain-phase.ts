@@ -5,7 +5,7 @@
 // Test utilities for console capture, assertions, etc.
 import { captureWarn, captureError, captureLog, runWithCapturedConsole } from './testUtils';
 
-import { executeVillainPhase, buildVillainQueue } from '../store/slices/villainPhaseLogic';
+import { executeVillainPhase, executeVillainPhaseStaged, buildVillainQueue } from '../store/slices/villainPhaseLogic';
 import type { GameState, Hero, Monster, Tile } from '../game/types';
 
 // Create test state: 1 hero, 1 skeleton owned by hero, hero 2 tiles away
@@ -216,7 +216,123 @@ if (villainGameState.monsters[0].position.x !== 2) {
 }
 
 console.log('  Villain Phase Sequencer PASSED: Skeleton moved 1 tile closer to hero');
+
+    // -------------------------------------------------------------------------
+    // TEST 2: executeVillainPhaseStaged with multiple monsters
+    // Verifies that for each monster, its AI card is shown BEFORE it acts
+    // -------------------------------------------------------------------------
+    console.log('Testing executeVillainPhaseStaged with multiple monsters...');
+    const zombieMonster: Monster = {
+        id: 'monster_zombie_villain',
+        name: 'Zombie',
+        type: 'monster',
+        monsterType: 'zombie',
+        behavior: { conditions: [], priorityTargets: [], actions: [] },
+        attackBonus: 3,
+        damage: 1,
+        experienceValue: 10,
+        ownedByHeroId: 'hero_villain',
+        position: { x: 2, z: 0, sqX: 1, sqZ: 1 },
+        hp: 5,
+        maxHp: 5,
+        ac: 12,
+        speed: 6,
+        isExhausted: false,
+        conditions: [],
+        usedPowers: []
+    } as any;
+
+    const hero2: Hero = {
+        ...villainHero,
+        id: 'hero_villain_2',
+        name: 'Second Hero'
+    };
+
+    const multiMonsterState: GameState = {
+        ...villainGameState,
+        turnOrder: ['hero_villain', 'hero_villain_2'],
+        heroes: [villainHero, hero2],
+        monsters: [villainMonster, zombieMonster]
+    };
+
+    const recordedSnapshots: { phase: string; activeVillainId: string | null; queueIndex?: number; skeletonPos: any; zombiePos: any }[] = [];
+
+    let currentStoreState = { gameState: multiMonsterState } as any;
+    const mockSet = (update: any) => {
+        const partial = typeof update === 'function' ? update(currentStoreState) : update;
+        currentStoreState = { ...currentStoreState, ...partial };
+        if (currentStoreState.gameState) {
+            const gs = currentStoreState.gameState;
+            const sk = gs.monsters.find((m: any) => m.id === 'monster_skeleton_villain');
+            const zm = gs.monsters.find((m: any) => m.id === 'monster_zombie_villain');
+            recordedSnapshots.push({
+                phase: gs.phase,
+                activeVillainId: gs.activeVillainId,
+                queueIndex: gs.villainQueueIndex,
+                skeletonPos: { ...sk?.position },
+                zombiePos: { ...zm?.position }
+            });
+        }
+    };
+    const mockGet = () => currentStoreState;
+
+    await executeVillainPhaseStaged(multiMonsterState, mockSet, mockGet, { cardDisplayDelayMs: 0, actionDelayMs: 0 });
+
+    // Assertions on recorded sequence
+    // Step 1: Initial villain state set with queue
+    if (recordedSnapshots[0].phase !== 'villain') {
+        throw new Error(`Expected first snapshot phase to be 'villain', got ${recordedSnapshots[0].phase}`);
+    }
+
+    // Step 2: Skeleton card shown BEFORE skeleton moves
+    const skeletonCardShown = recordedSnapshots.find(s => s.activeVillainId === 'monster_skeleton_villain');
+    if (!skeletonCardShown) {
+        throw new Error('Expected snapshot showing Skeleton AI card (activeVillainId === monster_skeleton_villain)');
+    }
+    if (skeletonCardShown.skeletonPos.x !== 2) {
+        throw new Error(`Expected Skeleton at x=2 while its AI card was shown, got x=${skeletonCardShown.skeletonPos.x}`);
+    }
+
+    // Step 3: Skeleton acted (position moved to x=1, activeVillainId cleared)
+    const afterSkeletonActed = recordedSnapshots.find(s => s.skeletonPos.x === 1 && s.zombiePos.x === 2);
+    if (!afterSkeletonActed) {
+        throw new Error('Expected snapshot after Skeleton acted where Skeleton is at x=1 and Zombie is still at x=2');
+    }
+    if (afterSkeletonActed.activeVillainId !== null) {
+        throw new Error(`Expected activeVillainId to be null while action resolves on board, got ${afterSkeletonActed.activeVillainId}`);
+    }
+
+    // Step 4: Zombie card shown BEFORE zombie moves
+    const zombieCardShown = recordedSnapshots.find(s => s.activeVillainId === 'monster_zombie_villain');
+    if (!zombieCardShown) {
+        throw new Error('Expected snapshot showing Zombie AI card (activeVillainId === monster_zombie_villain)');
+    }
+    if (zombieCardShown.zombiePos.x !== 2) {
+        throw new Error(`Expected Zombie at x=2 while its AI card was shown, got x=${zombieCardShown.zombiePos.x}`);
+    }
+
+    // Step 5: Zombie acted (position moved to x=1)
+    const afterZombieActed = recordedSnapshots.find(s => s.skeletonPos.x === 1 && s.zombiePos.x === 1);
+    if (!afterZombieActed) {
+        throw new Error('Expected snapshot after Zombie acted where both monsters are at x=1');
+    }
+
+    // Step 6: Final snapshot transitions to next hero turn ('hero_villain_2') with phase 'hero'
+    const finalSnapshot = recordedSnapshots[recordedSnapshots.length - 1];
+    if (finalSnapshot.phase !== 'hero') {
+        throw new Error(`Expected final snapshot phase to be 'hero', got ${finalSnapshot.phase}`);
+    }
+    if (currentStoreState.gameState.currentHeroId !== 'hero_villain_2') {
+        throw new Error(`Expected turn transition to hero_villain_2, got ${currentStoreState.gameState.currentHeroId}`);
+    }
+
+    console.log('  executeVillainPhaseStaged with multiple monsters PASSED');
+    console.log('  Verified: Skeleton AI card shown -> Skeleton moves -> Zombie AI card shown -> Zombie moves -> Turn advances');
+
 console.log('--- VILLAIN PHASE TEST PASSED ---');
 };
-run().catch(console.error);
+export const runVillainPhaseTests = run;
+if (typeof window === 'undefined' && (globalThis as any).process?.argv?.[1]?.includes('test-villain-phase')) {
+  run().catch(console.error);
+}
 

@@ -4,8 +4,10 @@ import { DataLoader } from '../../game/dataLoader';
 import { PowerSystem } from '../../game/engine/PowerSystem';
 import PowerSelectionSystem from '../../game/engine/PowerSelectionSystem';
 import { getAllPowerCards } from '../../data/powerCardLoader';
-import { Card, GameLogEntry } from '../../game/types';
+import { Card, GameLogEntry, GameState } from '../../game/types';
 import { isDev } from '../../utils/devEnv';
+import { SoundLibrary } from '../../audio/SoundLibrary';
+import { addLogEntry } from '../../game/engine/LogUtils';
 
 export const createPowerSlice: StateCreator<GameStore, [], [], PowerSlice> = (set, get) => ({
   usePower: async (cardId: string, targetId: string) => {
@@ -28,41 +30,44 @@ export const createPowerSlice: StateCreator<GameStore, [], [], PowerSlice> = (se
     const result = await PowerSystem.usePowerAsync(hero, card, target, state);
 
     if (result.success) {
+      SoundLibrary.Game.cardPlay();
+      if (
+        hero.heroClass === 'wizard' ||
+        hero.heroClass === 'cleric' ||
+        card.heroClass === 'wizard' ||
+        card.heroClass === 'cleric' ||
+        card.id.startsWith('wizard_') ||
+        card.id.startsWith('cleric_')
+      ) {
+        SoundLibrary.Combat.spell();
+      }
+
+      const defeatedBefore = state.monsters.filter(m => m.isDefeated || m.hp <= 0).length;
+      const defeatedAfter = result.newState.monsters.filter(m => m.isDefeated || m.hp <= 0).length;
+      if (defeatedAfter > defeatedBefore) {
+        SoundLibrary.Combat.death();
+      }
+
       const consumesAttack = card.powerType !== 'utility';
-      let currentCounter = result.newState.logIdCounter ?? state.logIdCounter ?? 0;
-      const logsToAdd: GameLogEntry[] = [
-        {
-          id: String(currentCounter++),
-          timestamp: new Date().toISOString(),
-          message: result.message,
-          type: 'spell' as const
-        }
-      ];
+      let runningState: GameState = {
+        ...result.newState,
+        hasAttackedThisTurn: consumesAttack ? true : result.newState.hasAttackedThisTurn
+      };
+
+      runningState = addLogEntry(runningState, result.message, 'spell');
 
       if (card.powerType === 'daily' || card.powerType === 'utility') {
         const wasFlipped = result.newState.heroes.find(h => h.id === hero.id)?.flippedPowerIds?.includes(card.id);
         if (wasFlipped && !(hero.flippedPowerIds ?? []).includes(card.id)) {
-          logsToAdd.push({
-            id: String(currentCounter++),
-            timestamp: new Date().toISOString(),
-            message: `[Power Spent] ${hero.name}'s ${card.powerType.toUpperCase()} power [${card.name}] is exhausted and turned face-down.`,
-            type: 'system' as const
-          });
+          runningState = addLogEntry(
+            runningState,
+            `[Power Spent] ${hero.name}'s ${card.powerType.toUpperCase()} power [${card.name}] is exhausted and turned face-down.`,
+            'system'
+          );
         }
       }
       
-      const updatedLog: GameLogEntry[] = [
-        ...(result.newState.log || state.log),
-        ...logsToAdd
-      ].slice(-300);
-      set({ 
-        gameState: { 
-          ...result.newState, 
-          log: updatedLog,
-          logIdCounter: currentCounter,
-          hasAttackedThisTurn: consumesAttack ? true : result.newState.hasAttackedThisTurn
-        } 
-      });
+      set({ gameState: runningState });
     }
   },
 

@@ -3,6 +3,7 @@
     "id": "enc_bat_swarm",
     "type": "encounter",
     "name": "Bat Swarm",
+    "flavorText": "A horde of shrieking bats flutter through the catacombs, blocking your sight.",
     "description": "If there is an Environment card already in play, discard it. This Environment remains in play until a new Environment is drawn.\nWhenever a Hero attacks a Monster that is not on his or her tile, that Hero makes the attack roll twice and uses the lower result.",
     "effects": [
       {
@@ -19,6 +20,7 @@
     "id": "enc_blood_fog",
     "type": "encounter",
     "name": "Blood Fog",
+    "flavorText": "A mystical reddish fog brings out the inner animal in the living and the dead.",
     "description": "If there is an Environment card already in play, discard it. This Environment remains in play until a new Environment is drawn.\nWhenever a Hero or a Monster attacks and rolls a natural 17 or higher, the target of the attack takes 1 additional damage.",
     "effects": [
       {
@@ -35,6 +37,7 @@
     "id": "enc_cackling_skull",
     "type": "encounter",
     "name": "Cackling Skull",
+    "flavorText": "A crystal skull floats out of the darkness. Its maddening laughter makes it difficult to focus.",
     "description": "If there is an Environment card already in play, discard it. This Environment remains in play until a new Environment is drawn.\nWhenever a Hero uses a Daily or Utility power, he or she takes 1 damage.",
     "effects": [
       {
@@ -51,6 +54,7 @@
     "id": "enc_crippling_miasma",
     "type": "encounter",
     "name": "Crippling Miasma",
+    "flavorText": "A horrible stench of decay fills the air.",
     "description": "If there is an Environment card already in play, discard it. This Environment remains in play until a new Environment is drawn.\nEach Hero's Speed is reduced by 1.",
     "effects": [
       {
@@ -68,6 +72,7 @@
     "id": "enc_deadly_shadows",
     "type": "encounter",
     "name": "Deadly Shadows",
+    "flavorText": "Voices from the shadows whisper horrifying secrets about your companions.",
     "description": "If there is an Environment card already in play, discard it. This Environment remains in play until a new Environment is drawn.\nWhenever the active Hero ends his or her turn on a tile that has another Hero on it, the active Hero takes 1 damage.",
     "effects": [
       {
@@ -84,6 +89,7 @@
     "id": "enc_haunted_mists",
     "type": "encounter",
     "name": "Haunted Mists",
+    "flavorText": "You catch glimpses of the faces of long dead adventurers in the mists that fill the crypt.",
     "description": "If there is an Environment card already in play, discard it. This Environment remains in play until a new Environment is drawn.\nUndead Monsters gain a +2 bonus to attack rolls.",
     "effects": [
       {
@@ -100,6 +106,7 @@
     "id": "enc_music_of_the_damned",
     "type": "encounter",
     "name": "Music of the Damned",
+    "flavorText": "The haunting sound of an organ echoes through the crypts, sending shivers down your spine.",
     "description": "If there is an Environment card already in play, discard it. This Environment remains in play until a new Environment is drawn.\nWhenever a Hero would place a new Monster, that Hero draws two Monster Cards and chooses the Monster worth the most experience. He or she places that Monster and discards the other.",
     "effects": [
       {
@@ -116,6 +123,7 @@
     "id": "enc_spirit_of_doom_env",
     "type": "encounter",
     "name": "Spirit of Doom",
+    "flavorText": "A grim specter materializes nearby, bringing portents of impending doom.",
     "description": "If there is an Environment card already in play, discard it. This Environment remains in play until a new Environment is drawn.\nWhenever a Hero discards a Treasure Card, he or she takes 1 damage.",
     "effects": [
       {
@@ -132,6 +140,7 @@
     "id": "enc_bubbling_cauldron",
     "type": "encounter",
     "name": "Bubbling Cauldron",
+    "flavorText": "The monsters around you rush forward, drawn by a repulsive odor spilling out of a bubbling cauldron.",
     "description": "Place each Monster 1 tile closer to the active Hero.",
     "effects": [
       {
@@ -148,6 +157,7 @@
     "id": "enc_corner_of_your_eye",
     "type": "encounter",
     "name": "Corner of Your Eye",
+    "flavorText": "You investigate something moving in the darkness.",
     "description": "Place the active Hero on an adjacent tile and roll the die:\n1-15: A Monster rushes you from the darkness. Place a new Monster on the active Hero's tile.\n16-20: A friendly spirit inspires you to fight on. Flip up one of your used powers.",
     "effects": [
       {
@@ -164,6 +174,7 @@
     "id": "enc_cowardly_flight",
     "type": "encounter",
     "name": "Cowardly Flight",
+    "flavorText": "A monster flees from you to seek help.",
     "description": "If there are no Monsters in play, discard this card. Draw a tile from the bottom of the Dungeon Tile stack and place it adjacent to the unexplored edge that is closest to the active Hero. Place the Monster closest to the active Hero on that tile, and place a new Monster on that tile. Do not draw an Encounter Card.",
     "effects": [
       {
@@ -180,6 +191,7 @@
     "id": "enc_cyrus_belview",
     "type": "encounter",
     "name": "Cyrus Belview",
+    "flavorText": "A gaunt, ghoulish looking man in a torn suit grins at you through yellowed teeth. \"The master said we were expecting company. Allow me to escort you to your chambers.\"",
     "description": "Draw a tile from the bottom of the Dungeon Tile stack and place it adjacent to any unexplored edge. Place two new Monsters on that tile, then place the active Hero on that tile. Each other Hero can place himself or herself on the active Hero's new tile.",
     "effects": [
       {
@@ -196,6 +208,7 @@
     "id": "enc_frenzy",
     "type": "encounter",
     "name": "Frenzy",
+    "flavorText": "The monsters around you roar in fury.",
     "description": "Each Monster you control activates twice during your Villain Phase.",
     "effects": [
       {
@@ -212,6 +225,7 @@
     "id": "enc_ghost_prince_of_aurel",
     "type": "encounter",
     "name": "Ghost of Prince Aurel",
+    "flavorText": "A ghost materializes in the corridor ahead; its horrid features freeze you in terror.",
     "description": "Flip over one unused Daily power or Utility power. If you don't have an unused power to flip over, take 1 damage instead.",
     "effects": [
       {
@@ -227,6 +241,7 @@
     "id": "enc_howl_of_the_wolf",
     "type": "encounter",
     "name": "Howl of the Wolf",
+    "flavorText": "The distant baying of a wolf echoes through the dungeon, causing the monsters around you to shriek in response.",
     "description": "Choose one Monster on any Hero's tile. That Monster immediately activates.",
     "effects": [
       {
@@ -243,6 +258,7 @@
     "id": "enc_illusionary_trick",
     "type": "encounter",
     "name": "Illusionary Trick",
+    "flavorText": "Even allies aren't always what they appear to be!",
     "description": "The active Hero swaps positions with the Monster that is farthest from him or her.",
     "effects": [
       {
@@ -259,6 +275,7 @@
     "id": "enc_lief_lipsiege",
     "type": "encounter",
     "name": "Lief Lipsiege",
+    "flavorText": "A gnarled old man dressed as a clerk steps from the shadows. \"I watch the master's treasure. At least, I do unless I'm distracted.\"",
     "description": "You try to distract Lief. Roll a die:\n1-10: You scare Lief and he calls for help. Place a new Monster on the active Hero's tile.\n11-20: Draw a Treasure Card.",
     "effects": [
       {
@@ -275,6 +292,7 @@
     "id": "enc_mists_of_terror",
     "type": "encounter",
     "name": "Mists of Terror",
+    "flavorText": "You hear a whispering chant, and a white mist flows through the crypts. As you breathe in the foul air, horrifying thoughts root you in place.",
     "description": "Roll a die for each Hero. On a 1-5, the Hero takes 1 damage and is Immobilized.",
     "effects": [
       {
@@ -291,6 +309,7 @@
     "id": "enc_neglected_passage",
     "type": "encounter",
     "name": "Neglected Passage",
+    "flavorText": "\"Did you look down that hall?\"",
     "description": "If a Start tile is not in play, discard this card and draw a new Encounter Card. Draw a tile from the bottom of the Dungeon Tile stack and place it adjacent to the unexplored edge that is closest to the Start tile. Place a new Monster on that tile, but do not draw an Encounter Card.",
     "effects": [
       {
@@ -307,6 +326,7 @@
     "id": "enc_overrun",
     "type": "encounter",
     "name": "Overrun",
+    "flavorText": "Monsters charge from all directions!",
     "description": "Each Hero takes damage equal to the number of Monsters he or she controls.",
     "effects": [
       {
@@ -323,6 +343,7 @@
     "id": "enc_overwhelming_terror",
     "type": "encounter",
     "name": "Overwhelming Terror",
+    "flavorText": "A cacophony of shrieks and howls rises up around you, and you flee in terror.",
     "description": "If a Start tile is not in play, discard this card and draw a new Encounter Card. Place each Hero 2 tiles closer to the Start tile. If a Hero is on the same tile as a Monster after being placed, that Hero is Slowed.",
     "effects": [
       {
@@ -339,6 +360,7 @@
     "id": "enc_passage_of_time",
     "type": "encounter",
     "name": "Passage of Time",
+    "flavorText": "The unholy air in Strahd's crypts saps the strength from you and your companions.",
     "description": "Each Hero takes 1 damage.",
     "effects": [
       {
@@ -355,6 +377,7 @@
     "id": "enc_prowling_spirits",
     "type": "encounter",
     "name": "Prowling Spirits",
+    "flavorText": "Cold, spectral hands grasp at you. Before you can react, one of your items is gone.",
     "description": "You must discard one of your Treasure Cards (of your choice).",
     "effects": [
       {
@@ -370,6 +393,7 @@
     "id": "enc_reinforcements",
     "type": "encounter",
     "name": "Reinforcements",
+    "flavorText": "The constant advance of Strahd's minions gives you no time to relax.",
     "description": "Choose the Hero controlling the fewest Monsters. That Hero places a new Monster on any tile with an unexplored edge.",
     "effects": [
       {
@@ -386,6 +410,7 @@
     "id": "enc_secret_door",
     "type": "encounter",
     "name": "Secret Door",
+    "flavorText": "A section of the stone wall slides away, revealing a hidden chamber.",
     "description": "Draw a tile from the bottom of the Dungeon Tile stack and place it adjacent to the unexplored edge that is closest to the active Hero. Place a new Monster on that tile, but do not draw an Encounter Card.",
     "effects": [
       {
@@ -402,6 +427,7 @@
     "id": "enc_spirit_of_doom_event",
     "type": "encounter",
     "name": "Spirit of Doom",
+    "flavorText": "The entire crypt shudders as though some gargantuan creature was moving deep below.",
     "description": "Each Hero can immediately move up to his or her Speed. After this move, each Hero on a tile with no Monsters takes 1 damage.",
     "effects": [
       {
@@ -418,6 +444,7 @@
     "id": "enc_strahds_hunger",
     "type": "encounter",
     "name": "Nekrula's Hunger",
+    "flavorText": "Vertigo washes over you as Strahd steps from the shadows. His will overwhelms you, and he laughs as he steps back into the darkness.",
     "description": "Choose the Hero with the most Hit Points remaining. That Hero takes 1 damage and is Immobilized.",
     "effects": [
       {
@@ -434,6 +461,7 @@
     "id": "enc_strahds_minions",
     "type": "encounter",
     "name": "Nekrula's Minions",
+    "flavorText": "Strahd steps from the shadows and casts a spell.",
     "description": "Place the active Hero and the two Monsters that are closest to that Hero on the tile farthest from the active Hero. If there are less than two Monsters in play, place a new Monster adjacent to the active Hero after he or she is placed.",
     "effects": [
       {
@@ -450,6 +478,7 @@
     "id": "enc_strahds_trick",
     "type": "encounter",
     "name": "Nekrula's Trick",
+    "flavorText": "Your mind reels as Strahd places a spell upon you. Your friends become enemies, and your enemies become friends.",
     "description": "Place the active Hero on a tile within 1 tile of you that has the most Monsters on it. If no tile within 1 tile of you has Monsters, the active Hero takes 1 damage.",
     "effects": [
       {
@@ -466,6 +495,7 @@
     "id": "enc_strahds_whispers",
     "type": "encounter",
     "name": "Nekrula's Whispers",
+    "flavorText": "Strahd's voice echoes in your mind, compelling you to turn against your friends.",
     "description": "Place the active Hero adjacent to the next closest Hero. The active Hero attacks that Hero with an at-will power.",
     "effects": [
       {
@@ -482,6 +512,7 @@
     "id": "enc_summoning_circle",
     "type": "encounter",
     "name": "Summoning Circle",
+    "flavorText": "A careless misstep disturbs a magic rune, freeing a horrid creature.",
     "description": "Place a new Monster adjacent to the active Hero.",
     "effects": [
       {
@@ -498,6 +529,7 @@
     "id": "enc_teleport_glyph",
     "type": "encounter",
     "name": "Teleport Glyph",
+    "flavorText": "An arcane symbol flashes at your feat and you disappear from sight.",
     "description": "Place the active Hero and each Monster on his or her tile on the tile farthest from the active Hero.",
     "effects": [
       {
@@ -514,6 +546,7 @@
     "id": "enc_treasure_chest",
     "type": "encounter",
     "name": "Treasure Chest",
+    "flavorText": "You find an ancient chest with a rusty lock.",
     "description": "You open a treasure chest. Roll a die:\n1-10: Take 2 damage.\n11-15: Take 1 damage and draw 1 Treasure Card.\n16-20: Draw 1 Treasure Card.",
     "effects": [
       {
@@ -530,6 +563,7 @@
     "id": "enc_voice_of_the_master",
     "type": "encounter",
     "name": "Voice of the Master",
+    "flavorText": "Strahd's voice echoes through the catacombs. \"Slay them, my minions!\" The monsters around you surge forward to attack.",
     "description": "Starting with the Hero on your left, each Hero immediately activates one Monster he or she controls. The first Hero that cannot activate a Monster instead places a new Monster on any tile.",
     "effects": [
       {
@@ -546,6 +580,7 @@
     "id": "enc_ambush",
     "type": "encounter",
     "name": "Ambush!",
+    "flavorText": "A massive net falls from the ceiling while monsters close in from all sides.",
     "description": "Attack each Hero on the active Hero's tile. +8 / Slowed. Place a new Monster on the active Hero's tile.",
     "effects": [
       {
@@ -570,6 +605,7 @@
     "id": "enc_animated_armor",
     "type": "encounter",
     "name": "Animated Armor",
+    "flavorText": "Suits of armor spring out of dark alcoves to attack you.",
     "description": "Attack each Hero on the active Hero's tile. +7 / 3 (Miss: 1 Damage).",
     "effects": [
       {
@@ -588,6 +624,7 @@
     "id": "enc_circle_of_death",
     "type": "encounter",
     "name": "Circle of Death",
+    "flavorText": "A wave of shadowy, pulse-stopping energy blossoms from the center of the room.",
     "description": "Attack each Hero on the active Hero's tile. +8 / 2 (Miss: 1 Damage). Each Undead Monster on the active Hero's tile regains 1 Hit Point.",
     "effects": [
       {
@@ -611,6 +648,7 @@
     "id": "enc_gray_ooze",
     "type": "encounter",
     "name": "Gray Ooze",
+    "flavorText": "A pseudopod emerges from a puddle of gray ooze on the ground and strikes at you.",
     "description": "Attack the active Hero. +8 / 3 (Miss: 1 Damage). If the active Hero is hit by the attack, the active Hero discards 1 Treasure Card at random.",
     "effects": [
       {
@@ -630,6 +668,7 @@
     "id": "enc_green_slime",
     "type": "encounter",
     "name": "Green Slime",
+    "flavorText": "A hideous blob of green slime falls from the ceiling",
     "description": "Attack each Hero on the active Hero's tile. +6 / 2 (Miss: 1 Damage). If the active Hero is hit by the attack, the active Hero discards 1 Treasure Card at random.",
     "effects": [
       {
@@ -649,6 +688,7 @@
     "id": "enc_hands_of_the_dead",
     "type": "encounter",
     "name": "Hands of the Dead",
+    "flavorText": "Severed hands crawl from the earth and grab at you.",
     "description": "Attack each Hero on the active Hero's tile. +6 / 2 (Miss: 1 Damage). If a Hero is hit by the attack, the Hero is slowed.",
     "effects": [
       {
@@ -668,6 +708,7 @@
     "id": "enc_howling_ghost",
     "type": "encounter",
     "name": "Howling Ghost",
+    "flavorText": "A shrieking banshee emerges from the shadows; its howl causes you to recoil in agony.",
     "description": "Attack each Hero on the active Hero's tile. +9 / 2. A Hero hit by this attack can flip an unused Daily power over to prevent this damage.",
     "effects": [
       {
@@ -686,6 +727,7 @@
     "id": "enc_icy_corridor",
     "type": "encounter",
     "name": "Icy Corridor",
+    "flavorText": "A thin layer of ice makes it difficult to stand in one place.",
     "description": "Attack each Hero on the active Hero's tile. +8 / 2 (Miss: 1 Damage). After the attack, place each Hero on the active Hero's tile on a tile within 1 tile of the active Hero's tile. (Heroes can be placed on different tiles.)",
     "effects": [
       {
@@ -704,6 +746,7 @@
     "id": "enc_king_tomescus_portal",
     "type": "encounter",
     "name": "King Tomescu's Portal",
+    "flavorText": "You fall through a mysterious portal, reappearing elsewhere in the crypts covered with wounds.",
     "description": "Attack the active Hero three times. +8 / 1. Remove the active Hero from his or her tile. At the start of that Hero's next Hero Phase, place that Hero on any tile.",
     "effects": [
       {
@@ -723,6 +766,7 @@
     "id": "enc_patrina_velikovna",
     "type": "encounter",
     "name": "Patrina Velikovna",
+    "flavorText": "The ghostly image of an elf maid appears before you. She smiles for a moment before unleashing a blood curdling shriek.",
     "description": "Attack each Hero. +7 / 2 (Miss: 1 Damage). After the attack, place each Monster that is not on the same tile as a Hero 1 tile closer to the closest Hero.",
     "effects": [
       {
@@ -746,6 +790,7 @@
     "id": "enc_prowling_ghost",
     "type": "encounter",
     "name": "Prowling Ghost",
+    "flavorText": "The ghosts of past adventurers haunt this room. Their shrieks send you running deeper into the dungeon.",
     "description": "Attack the active Hero. +9 / 1. After the attack, draw a tile from the bottom of the Dungeon Tile stack and place it adjacent to the unexplored edge that is closest to the active Hero. Place a new Monster on that tile, and then place the active Hero on that tile.",
     "effects": [
       {
@@ -769,6 +814,7 @@
     "id": "enc_spider_webs",
     "type": "encounter",
     "name": "Spider Webs",
+    "flavorText": "Hundreds of tiny spiders crawl across the ceiling, sending a thick mass of webs down upon you.",
     "description": "Attack the active Hero. +4 / Immobilized (Miss: Slowed).",
     "effects": [
       {
@@ -789,6 +835,7 @@
     "id": "enc_strahd_attacks",
     "type": "encounter",
     "name": "Nekrula Attacks!",
+    "flavorText": "Strahd steps from the shadows, sending a ball of fire streaking from his outstretched hands. As it explodes, he disappears back into the shadows.",
     "description": "Attack each Hero within 1 tile of the active Hero. +6 / 3 (Miss: 1 Damage).",
     "effects": [
       {
@@ -807,6 +854,7 @@
     "id": "enc_alarm_trap",
     "type": "encounter",
     "name": "Alarm",
+    "flavorText": "The distant clatter of bells echoes through the crypts, drawing monsters out of their lairs to attack!",
     "description": "Place the Alarm marker on the active Hero's tile. If that tile already has a marker, discard this card and draw a new Encounter Card.\nTrigger the Trap during your Villain Phase: Place a new Monster on the unexplored edge that is closest to the Alarm marker.\nInstead of attacking, a Hero on a tile with a Trap can try to disable it. DISABLE: Roll 10+",
     "effects": [
       {
@@ -824,6 +872,7 @@
     "id": "enc_crossbow_turret",
     "type": "encounter",
     "name": "Crossbow Turret",
+    "flavorText": "A pair of armored crossbow turrets emerges from the wall to pepper you with quarrels!",
     "description": "Place the Crossbow Turret marker on the active Hero's tile. If that tile already has a marker, discard this card and draw a new Encounter Card.\nTrigger the Trap during your Villain Phase: Attack each Hero within 1 tile of this Trap. +8 / 2 (Miss: 1 Damage).\nInstead of attacking, a Hero on a tile with a Trap can try to disable it. DISABLE: Roll 10+",
     "effects": [
       {
@@ -843,6 +892,7 @@
     "id": "enc_crushing_walls",
     "type": "encounter",
     "name": "Crushing Walls",
+    "flavorText": "The walls slide toward each other, trapping you between them!",
     "description": "Place the Crushing Walls marker on the active Hero's tile. If that tile already has a marker, discard this card and draw a new Encounter Card.\nTrigger the Trap during your Villain Phase: Attack each Hero on this tile. +6 / 2 and Immobilized (Miss: 1 Damage).\nInstead of attacking, a Hero on a tile with a Trap can try to disable it. DISABLE: Roll 10+",
     "effects": [
       {
@@ -863,6 +913,7 @@
     "id": "enc_dart_trap",
     "type": "encounter",
     "name": "Dart Trap",
+    "flavorText": "A soft click of a pressure plate beneath your foot precedes the volley of darts that explode from the wall.",
     "description": "Place the Dart Trap marker on the active Hero's tile. If that tile already has a marker, discard this card and draw a new Encounter Card.\nTrigger the Trap during your Villain Phase: Attack each Hero on this tile. +8 / 2 (Miss: 1 Damage).\nInstead of attacking, a Hero on a tile with a Trap can try to disable it. DISABLE: Roll 10+",
     "effects": [
       {
@@ -882,6 +933,7 @@
     "id": "enc_fire_trap",
     "type": "encounter",
     "name": "Fire Trap",
+    "flavorText": "Jets of fire erupt from the walls and ceiling to engulf you.",
     "description": "Place the Fire Trap marker on the active Hero's tile. If that tile already has a marker, discard this card and draw a new Encounter Card.\nTrigger the Trap during your Villain Phase: Each Hero on this tile takes 2 damage.\nInstead of attacking, a Hero on a tile with a Trap can try to disable it. DISABLE: Roll 10+",
     "effects": [
       {
@@ -899,6 +951,7 @@
     "id": "enc_sliding_walls",
     "type": "encounter",
     "name": "Sliding Walls",
+    "flavorText": "You hear the grinding of stone against stone as the walls separate you from your allies.",
     "description": "Place the Sliding Walls marker on the active Hero's tile. If that tile already has a marker, discard this card and draw a new Encounter Card.\nTrigger the Trap during your Villain Phase: Roll the die for each Hero on this tile and place that Hero on a tile within 1 tile of this Trap in the direction indicated by the Sliding Walls marker. If the direction rolled is a wall or an unexplored tile, the Hero takes 1 damage and remains on this tile.\nInstead of attacking, a Hero on a tile with a Trap can try to disable it. DISABLE: Roll 10+",
     "effects": [
       {
@@ -916,6 +969,7 @@
     "id": "enc_spear_gauntlet",
     "type": "encounter",
     "name": "Spear Gauntlet",
+    "flavorText": "Spears pop out of the ground, skewering you!",
     "description": "Place the Spear Gauntlet marker on the active Hero's tile. If that tile already has a marker, discard this card and draw a new Encounter Card.\nTrigger the Trap during your Villain Phase: Attack each Hero within 1 tile of this Trap. +6 / 3 (Miss: 1 Damage).\nInstead of attacking, a Hero on a tile with a Trap can try to disable it. DISABLE: Roll 10+",
     "effects": [
       {

@@ -3,6 +3,7 @@ import { useGameStore } from '../../store/gameStore';
 import { useUIStore } from '../../store/uiStore';
 import ConditionMarkers from './ConditionMarkers';
 import { GameLogEntry } from '../../game/types';
+import { addLogEntry } from '../../game/engine/LogUtils';
 import { ExperienceSystem } from '../../game/engine/ExperienceSystem';
 
 export const HeroPanel: React.FC = () => {
@@ -74,15 +75,9 @@ export const HeroPanel: React.FC = () => {
     if (!gameState) return;
     const dragolich = gameState.monsters.find(m => (m.templateId === 'monster_dragolich' || m.name.toLowerCase().includes('gravestorm')) && m.hp > 0 && !m.isDefeated);
     if (!dragolich) {
-      useGameStore.getState().setGameState({
-        ...gameState,
-        log: [...gameState.log, { 
-          id: crypto.randomUUID(), 
-          timestamp: new Date().toISOString(), 
-          message: 'Gravestorm is not on the board!', 
-          type: 'system'
-        } as GameLogEntry].slice(-100)
-      });
+      useGameStore.getState().setGameState(
+        addLogEntry(gameState, 'Gravestorm is not on the board!', 'system')
+      );
       return;
     }
 
@@ -92,32 +87,27 @@ export const HeroPanel: React.FC = () => {
     const newMonsters = gameState.monsters.map(m => m.id === dragolich.id ? updatedDragolich : m);
     const newHeroes = gameState.heroes.map(h => h.id === currentHero.id ? { ...h, items: h.items.filter(i => i !== 'item_gravestorms_phylactery') } : h);
 
-    useGameStore.getState().setGameState({
+    const updatedState = {
       ...gameState,
       monsters: newMonsters,
-      heroes: newHeroes,
-      log: [...gameState.log, { 
-        id: crypto.randomUUID(), 
-        timestamp: new Date().toISOString(), 
-        message: `${currentHero.name} used Gravestorm's Phylactery to deal 10 damage to Gravestorm!`, 
-        type: 'event'
-      } as GameLogEntry].slice(-100)
-    });
+      heroes: newHeroes
+    };
+    useGameStore.getState().setGameState(
+      addLogEntry(
+        updatedState,
+        `${currentHero.name} used Gravestorm's Phylactery to deal 10 damage to Gravestorm!`,
+        'event'
+      )
+    );
   };
 
   const handleScoutTile = () => {
     if (!gameState || currentHero.xp < 5 || gameState.dungeonDeck.length === 0) return;
     const topTile = gameState.dungeonDeck[0];
     if (topTile === 'crypt_barov_ravenovia') {
-      useGameStore.getState().setGameState({
-        ...gameState,
-        log: [...gameState.log, { 
-          id: crypto.randomUUID(), 
-          timestamp: new Date().toISOString(), 
-          message: 'Cannot scout the Crypt of Barov and Ravenovia!', 
-          type: 'system'
-        } as GameLogEntry].slice(-100)
-      });
+      useGameStore.getState().setGameState(
+        addLogEntry(gameState, 'Cannot scout the Crypt of Barov and Ravenovia!', 'system')
+      );
       return;
     }
 
@@ -125,17 +115,18 @@ export const HeroPanel: React.FC = () => {
     const newHeroes = gameState.heroes.map(h => 
       h.id === currentHero.id ? { ...h, xp: h.xp - 5 } : h
     );
-    useGameStore.getState().setGameState({
+    const updatedScoutState = {
       ...gameState,
       dungeonDeck: newDeck,
-      heroes: newHeroes,
-      log: [...gameState.log, { 
-        id: crypto.randomUUID(), 
-        timestamp: new Date().toISOString(), 
-        message: `${currentHero.name} spent 5 XP to scout and moved the top tile to the bottom.`, 
-        type: 'action' 
-      } as GameLogEntry].slice(-100)
-    });
+      heroes: newHeroes
+    };
+    useGameStore.getState().setGameState(
+      addLogEntry(
+        updatedScoutState,
+        `${currentHero.name} spent 5 XP to scout and moved the top tile to the bottom.`,
+        'action'
+      )
+    );
   };
 
   return (

@@ -361,17 +361,18 @@ export class AbilitySystem {
                 const sourceTile = gameState.tiles.find(t => t.x === source.position.x && t.z === source.position.z);
                 if (!sourceTile) return gameState;
 
-                const spawnPosition = {
-                    x: sourceTile.x,
-                    z: sourceTile.z,
-                    sqX: sourceTile.boneSquare?.sqX ?? 2,
-                    sqZ: sourceTile.boneSquare?.sqZ ?? 2,
-                };
-
                 const newMonsters: Monster[] = [];
+                let tempState = gameState;
                 for (let i = 0; i < spawnCount; i++) {
+                    const spawnPos = TileSystem.getBoneSquareOrEmpty(sourceTile, tempState);
+                    const spawnPosition = {
+                        x: sourceTile.x,
+                        z: sourceTile.z,
+                        sqX: spawnPos.sqX,
+                        sqZ: spawnPos.sqZ,
+                    };
                     const uniqueId = `${templateId}_summoned_${Date.now()}_${i}`;
-                    newMonsters.push({
+                    const summonedMonster = {
                         ...template,
                         id: uniqueId,
                         templateId,
@@ -383,7 +384,12 @@ export class AbilitySystem {
                         isBoss: false,
                         isDefeated: false,
                         isExhausted: false,
-                    } as Monster);
+                    } as Monster;
+                    newMonsters.push(summonedMonster);
+                    tempState = {
+                        ...tempState,
+                        monsters: [...tempState.monsters, summonedMonster],
+                    };
                 }
 
                 // Place the new monster IDs onto the tile's monsters list

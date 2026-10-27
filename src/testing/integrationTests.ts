@@ -6606,9 +6606,9 @@ export const runFullGameLoopTest = async () => {
         throw new Error('Bug 7 Test: Expected log entries to be created during first executeVillainPhase');
       }
 
-      // Assert that the added logs have sequential string IDs starting at "0"
+      // Assert that the added logs have sequential string IDs starting at "1" (id = counter + 1)
       for (let i = 0; i < addedLogsFirst.length; i++) {
-        const expectedId = String(i);
+        const expectedId = String(i + 1);
         if (addedLogsFirst[i].id !== expectedId) {
           throw new Error(`Bug 7 Test: Expected log ID to be "${expectedId}", got "${addedLogsFirst[i].id}"`);
         }
@@ -6638,7 +6638,7 @@ export const runFullGameLoopTest = async () => {
       }
 
       for (let i = 0; i < logsFromSecondRun.length; i++) {
-        const expectedId = String(startIndex + i);
+        const expectedId = String(startIndex + 1 + i);
         if (logsFromSecondRun[i].id !== expectedId) {
           throw new Error(`Bug 7 Test: Expected sequential log ID to be "${expectedId}", got "${logsFromSecondRun[i].id}"`);
         }
@@ -7480,7 +7480,7 @@ export const runFullGameLoopTest = async () => {
           throw new Error(`Bug 5 Test Failed: expected hero position to remain at (0, 0) when moving to unrevealed tile, got (${heroAfterB5Unrevealed.position.x}, ${heroAfterB5Unrevealed.position.z})`);
         }
 
-        // Bug 6: Call moveHero then attackMonster. Assert both log entries have numeric string IDs ("0", "1") not UUID format.
+        // Bug 6: Call moveHero then attackMonster. Assert both log entries have numeric string IDs ("1", "2") not UUID format.
         const cleanStateB6 = { ...baseTestState, logIdCounter: 0, log: [] };
         useGameStore.setState({ gameState: cleanStateB6 });
 
@@ -7496,11 +7496,11 @@ export const runFullGameLoopTest = async () => {
           throw new Error('Bug 6 Test Failed: could not find action or combat log');
         }
 
-        if (actionLog.id !== '0') {
-          throw new Error(`Bug 6 Test Failed: expected action log ID to be "0", got "${actionLog.id}"`);
+        if (actionLog.id !== '1') {
+          throw new Error(`Bug 6 Test Failed: expected action log ID to be "1", got "${actionLog.id}"`);
         }
-        if (combatLog.id !== '1') {
-          throw new Error(`Bug 6 Test Failed: expected combat log ID to be "1", got "${combatLog.id}"`);
+        if (combatLog.id !== '2') {
+          throw new Error(`Bug 6 Test Failed: expected combat log ID to be "2", got "${combatLog.id}"`);
         }
 
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

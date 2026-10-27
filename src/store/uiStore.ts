@@ -38,15 +38,23 @@ interface UIStore {
   hoveredTargetEntityId: string | null
   explorationState: ExplorationState
   isUnboxingMode: boolean
+  isXRPresenting: boolean
+  showSetupScreen: boolean
   xrTableTransform: {
     position: [number, number, number]
     rotationY: number
     scale: number
   }
   xrTableResetRequested: boolean
+  resetAllVersion: number
+  resetAllRequested: boolean
+  requestResetAll: () => void
+  clearResetAllRequest: () => void
 
   // Actions
   setIsUnboxingMode: (enabled: boolean) => void
+  setIsXRPresenting: (presenting: boolean) => void
+  setShowSetupScreen: (show: boolean) => void
   setXRTableTransform: (transform: { position: [number, number, number]; rotationY: number; scale: number }) => void
   requestXRTableReset: () => void
   clearXRTableResetRequest: () => void
@@ -72,6 +80,10 @@ interface UIStore {
 export const useUIStore = create<UIStore>()((set) => ({
   activeModal: 'none',
   isUnboxingMode: false,
+  isXRPresenting: false,
+  showSetupScreen: false,
+  setIsXRPresenting: (presenting) => set({ isXRPresenting: presenting }),
+  setShowSetupScreen: (show) => set({ showSetupScreen: show }),
   setIsUnboxingMode: (enabled) => set({ isUnboxingMode: enabled }),
   xrTableTransform: {
     position: [0, 0.75, -1.0],
@@ -79,9 +91,21 @@ export const useUIStore = create<UIStore>()((set) => ({
     scale: 0.08,
   },
   xrTableResetRequested: false,
+  resetAllVersion: 0,
+  resetAllRequested: false,
   setXRTableTransform: (transform) => set({ xrTableTransform: transform }),
-  requestXRTableReset: () => set({ xrTableResetRequested: true }),
-  clearXRTableResetRequest: () => set({ xrTableResetRequested: false }),
+  requestResetAll: () => set((state) => ({
+    resetAllVersion: state.resetAllVersion + 1,
+    resetAllRequested: true,
+    xrTableResetRequested: true,
+  })),
+  clearResetAllRequest: () => set({ resetAllRequested: false, xrTableResetRequested: false }),
+  requestXRTableReset: () => set((state) => ({
+    resetAllVersion: state.resetAllVersion + 1,
+    resetAllRequested: true,
+    xrTableResetRequested: true,
+  })),
+  clearXRTableResetRequest: () => set({ resetAllRequested: false, xrTableResetRequested: false }),
   notifications: [],
   cameraState: { ...DEFAULT_CAMERA },
   isTransitioning: false,

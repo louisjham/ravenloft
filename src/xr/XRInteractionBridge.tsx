@@ -7,6 +7,7 @@ import { useUIStore } from '../store/uiStore';
 import { useDiceStore } from '../store/diceStore';
 import { playHapticProfile } from './XRHaptics';
 import { DataLoader } from '../game/dataLoader';
+import { SoundLibrary } from '../audio/SoundLibrary';
 
 /**
  * XRInteractionBridge handles controller button shortcuts and bridges
@@ -20,26 +21,14 @@ export const XRInteractionBridge: React.FC = () => {
   const selectedEntity = useGameStore((state) => state.selectedEntity);
   const prevSelectedRef = useRef<string | null>(null);
 
-  // Automatically initialize adventure when entering VR/AR if no game is in progress,
-  // ensuring the user immediately sees the board and hero on tabletop upon putting on the headset
-  useEffect(() => {
-    if (isPresenting) {
-      const gs = useGameStore.getState().gameState;
-      if (!gs) {
-        const dataLoader = DataLoader.getInstance();
-        const heroes = dataLoader.getHeroes().map((h) => h.id);
-        useGameStore.getState().startNewGame('adventure_01', heroes);
-        heroes.forEach((hId) => useGameStore.getState().autoSelectPowers(hId));
-        useGameStore.getState().beginAdventure();
-      }
-    }
-  }, [isPresenting]);
+  // Adventure setup flow in XR is gated behind Title Screen and Adventure Setup panels.
 
   // Trigger haptic feedback when entity selection changes
   useEffect(() => {
     if (isPresenting && selectedEntity) {
       if (prevSelectedRef.current !== selectedEntity.id) {
         playHapticProfile('click');
+        SoundLibrary.UI.click();
         prevSelectedRef.current = selectedEntity.id;
       }
     } else {

@@ -7,11 +7,12 @@ import { useUIStore } from '../../store/uiStore';
 interface MainMenuProps {
   onStart: () => void;
   onGameLoaded?: () => void;
+  isSpatialPanel?: boolean;
 }
 
 type MenuOverlay = 'none' | 'load' | 'hall' | 'options';
 
-export const MainMenu: React.FC<MainMenuProps> = ({ onStart, onGameLoaded }) => {
+export const MainMenu: React.FC<MainMenuProps> = ({ onStart, onGameLoaded, isSpatialPanel = false }) => {
   const [overlay, setOverlay] = useState<MenuOverlay>('none');
 
   const handleGameLoaded = () => {
@@ -26,28 +27,50 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStart, onGameLoaded }) => 
       {/* Main Menu backdrop */}
       <div
         className="main-menu"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          backgroundImage: 'linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.7)), url(/ui/box_art.webp)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 3000,
-          color: 'white',
-        }}
+        style={
+          isSpatialPanel
+            ? {
+                position: 'relative',
+                width: '560px',
+                height: '620px',
+                backgroundColor: 'rgba(10, 6, 18, 0.94)',
+                backgroundImage: 'linear-gradient(rgba(10, 5, 18, 0.85), rgba(5, 5, 10, 0.95)), url(/ui/box_art.webp)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                border: '2px solid var(--color-gold)',
+                borderRadius: '12px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.8), 0 0 25px rgba(192, 160, 96, 0.35)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                color: 'white',
+                pointerEvents: 'auto',
+                userSelect: 'none',
+              }
+            : {
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                backgroundImage: 'linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.7)), url(/ui/box_art.webp)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 3000,
+                color: 'white',
+              }
+        }
       >
-        <div className="title-area" style={{ textAlign: 'center', marginBottom: '60px' }}>
+        <div className="title-area" style={{ textAlign: 'center', marginBottom: isSpatialPanel ? '28px' : '60px' }}>
           <h1
             className="gothic-title"
             style={{
-              fontSize: '5rem',
+              fontSize: isSpatialPanel ? '3.2rem' : '5rem',
               margin: 0,
               textShadow: '0 0 20px var(--color-accent), 0 0 40px black',
             }}
@@ -56,7 +79,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStart, onGameLoaded }) => 
           </h1>
           <div
             style={{
-              fontSize: '1.2rem',
+              fontSize: isSpatialPanel ? '1rem' : '1.2rem',
               fontFamily: 'var(--font-accent)',
               color: 'var(--color-gold)',
               letterSpacing: '4px',

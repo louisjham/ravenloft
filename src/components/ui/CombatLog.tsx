@@ -3,7 +3,7 @@ import { useGameStore } from '../../store/gameStore';
 import { MovablePanel } from './MovablePanel';
 import { GameLogEntry } from '../../game/types';
 
-type FilterCategory = 'all' | 'combat' | 'rooms' | 'spells' | 'villain';
+type FilterCategory = 'all' | 'encounter' | 'combat' | 'rooms' | 'spells' | 'villain';
 
 export const CombatLog: React.FC = () => {
   const log = useGameStore((state) => state.gameState?.log || []);
@@ -32,12 +32,14 @@ export const CombatLog: React.FC = () => {
       case 'heal': return '#69f0ae';
       case 'spell': return '#c77dff';
       case 'villain': return '#ff758f';
+      case 'encounter': return '#ffa94d';
       default: return 'var(--color-text)';
     }
   };
 
   const getCategoryBadge = (entry: GameLogEntry) => {
     const msg = entry.message;
+    if (entry.type === 'encounter') return { label: 'ENCOUNTER', bg: 'rgba(230, 126, 34, 0.25)', color: '#ffa94d' };
     if (msg.includes('CRITICAL HIT')) return { label: 'CRIT', bg: 'rgba(255, 0, 0, 0.35)', color: '#ff4444' };
     if (msg.includes('HITS') || msg.includes('HIT!')) return { label: 'HIT', bg: 'rgba(46, 204, 113, 0.25)', color: '#2ecc71' };
     if (msg.includes('MISSES') || msg.includes('MISS!')) return { label: 'MISS', bg: 'rgba(140, 140, 140, 0.25)', color: '#bbb' };
@@ -47,7 +49,7 @@ export const CombatLog: React.FC = () => {
     if (entry.type === 'spell' || msg.includes('Power Spent') || msg.includes('uses')) return { label: 'SPELL', bg: 'rgba(155, 89, 182, 0.25)', color: '#d0bfff' };
     if (entry.type === 'treasure' || msg.includes('Treasure')) return { label: 'LOOT', bg: 'rgba(241, 196, 15, 0.25)', color: '#ffd43b' };
     if (msg.includes('Villain Phase') || entry.type === 'villain') return { label: 'VILLAIN', bg: 'rgba(224, 49, 49, 0.25)', color: '#ff8787' };
-    if (msg.includes('Encounter')) return { label: 'EVENT', bg: 'rgba(230, 126, 34, 0.25)', color: '#ffa94d' };
+    if (msg.includes('Encounter')) return { label: 'ENCOUNTER', bg: 'rgba(230, 126, 34, 0.25)', color: '#ffa94d' };
     if (entry.type === 'action') return { label: 'MOVE', bg: 'rgba(52, 152, 219, 0.2)', color: '#74c0fc' };
     return null;
   };
@@ -89,6 +91,9 @@ export const CombatLog: React.FC = () => {
         if (!entry.message.toLowerCase().includes(q)) return false;
       }
       if (filter === 'all') return true;
+      if (filter === 'encounter') {
+        return entry.type === 'encounter' || entry.message.includes('Encounter');
+      }
       if (filter === 'combat') {
         return entry.type === 'combat' || entry.type === 'damage' || entry.message.includes('attacks') || entry.message.includes('HITS') || entry.message.includes('MISSES') || entry.message.includes('deals') || entry.message.includes('defeated');
       }
@@ -99,13 +104,13 @@ export const CombatLog: React.FC = () => {
         return entry.type === 'spell' || entry.type === 'treasure' || entry.message.includes('uses') || entry.message.includes('Power Spent') || entry.message.includes('Treasure');
       }
       if (filter === 'villain') {
-        return entry.type === 'villain' || entry.message.includes('Villain') || entry.message.includes('Encounter') || entry.message.includes('advances');
+        return entry.type === 'villain' || entry.message.includes('Villain') || entry.message.includes('advances');
       }
       return true;
     });
   }, [log, filter, search]);
 
-  const panelWidth = isExpanded ? 340 : 250;
+  const panelWidth = isExpanded ? 360 : 285;
   const logHeight = isExpanded ? '260px' : '155px';
 
   return (
@@ -156,11 +161,12 @@ export const CombatLog: React.FC = () => {
         {/* Category Tabs */}
         <div style={{
           display: 'flex',
+          flexWrap: 'wrap',
           gap: '2px',
           borderBottom: '1px solid rgba(192, 160, 96, 0.25)',
           paddingBottom: '3px'
         }}>
-          {(['all', 'combat', 'rooms', 'spells', 'villain'] as FilterCategory[]).map((cat) => (
+          {(['all', 'combat', 'rooms', 'spells', 'villain', 'encounter'] as FilterCategory[]).map((cat) => (
             <button
               key={cat}
               onClick={() => setFilter(cat)}
@@ -182,6 +188,7 @@ export const CombatLog: React.FC = () => {
               {cat === 'rooms' && '🏰 Rooms'}
               {cat === 'spells' && '✨ Magic'}
               {cat === 'villain' && '💀 Villain'}
+              {cat === 'encounter' && '📜 Encounter'}
             </button>
           ))}
         </div>

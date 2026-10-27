@@ -81,7 +81,8 @@ export const XRControlsOverlay: React.FC = () => {
       {isARSupported && (
         <ARButton
           sessionInit={{
-            optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking', 'hit-test'],
+            optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking', 'hit-test', 'dom-overlay'],
+            domOverlay: typeof document !== 'undefined' ? { root: document.body } : undefined,
           }}
           style={{
             background: 'rgba(20, 10, 35, 0.85)',

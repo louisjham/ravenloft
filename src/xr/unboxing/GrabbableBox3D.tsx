@@ -1,9 +1,11 @@
+import { useUIStore } from '../../store/uiStore';
 import React, { useRef, useState, useMemo } from 'react';
 import { useFrame, ThreeEvent } from '@react-three/fiber';
-import { Interactive } from '@react-three/xr';
+import { Interactive, useXR } from '@react-three/xr';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { playHapticProfile } from '../XRHaptics';
+import { XRGrabSource, resolveGrabSource, isGrabActive, recordGrabRelease, getGrabWorldPose } from '../XRGrabManager';
 
 export interface GrabbableBox3DProps {
   position?: [number, number, number];
@@ -47,6 +49,9 @@ export const GrabbableBox3D: React.FC<GrabbableBox3DProps> = ({
   const [isInspecting, setIsInspecting] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const grabbingControllerRef = useRef<THREE.Object3D | null>(null);
+  const grabSourceRef = useRef<XRGrabSource | null>(null);
+  const unboxingResetVersionRef = useRef<number>(0);
+  const { isPresenting, controllers } = useXR();
 
   const topTex = useMemo(() => loadTex('/ui/box_art.webp'), []);
   const bottomTex = useMemo(() => loadTex('/ui/box_bottom.webp'), []);
@@ -84,6 +89,20 @@ export const GrabbableBox3D: React.FC<GrabbableBox3DProps> = ({
 
   useFrame((_, delta) => {
     if (!groupRef.current) return;
+    // Reset All: restore initial placement
+    const currentResetVersion = useUIStore.getState().resetAllVersion;
+    if (currentResetVersion > unboxingResetVersionRef.current) {
+      unboxingResetVersionRef.current = currentResetVersion;
+      if (grabbingControllerRef.current || grabSourceRef.current) {
+        grabbingControllerRef.current = null;
+        grabSourceRef.current = null;
+      }
+      setIsInspecting(false);
+      groupRef.current.position.set(...position);
+      groupRef.current.rotation.set(...rotation);
+      groupRef.current.scale.setScalar(scale);
+    }
+
     const speed = 1 - Math.pow(0.001, delta);
 
     // Animate lid hinge
@@ -96,10 +115,21 @@ export const GrabbableBox3D: React.FC<GrabbableBox3DProps> = ({
       );
     }
 
+    if (grabSourceRef.current) {
+      if (!isGrabActive(grabSourceRef.current)) {
+        handleGrabEnd();
+        return;
+      }
+    }
+
     if (grabbingControllerRef.current) {
-      grabbingControllerRef.current.updateWorldMatrix(true, false);
-      grabbingControllerRef.current.getWorldPosition(_ctrlPos);
-      grabbingControllerRef.current.getWorldQuaternion(_ctrlRot);
+      if (grabSourceRef.current) {
+        getGrabWorldPose(grabSourceRef.current, _ctrlPos, _ctrlRot);
+      } else {
+        grabbingControllerRef.current.updateWorldMatrix(true, false);
+        grabbingControllerRef.current.getWorldPosition(_ctrlPos);
+        grabbingControllerRef.current.getWorldQuaternion(_ctrlRot);
+      }
 
       _offset.set(0, 0.04, -0.16).applyQuaternion(_ctrlRot);
       _targetPos.copy(_ctrlPos).add(_offset);
@@ -164,10 +194,16 @@ export const GrabbableBox3D: React.FC<GrabbableBox3DProps> = ({
   };
 
   const handleGrabStart = (e: any) => {
+    let source: XRGrabSource | null = null;
+    if (isPresenting) {
+      source = resolveGrabSource(e, controllers);
+      if (!source) return;
+    }
     playHapticProfile('click');
     const xrCtrl = e?.controller || (e?.target?.controller ? e.target : null);
-    const ctrlObj = xrCtrl?.controller || xrCtrl?.grip || (e?.target instanceof THREE.Object3D ? e.target : null);
+    const ctrlObj = source?.controller || xrCtrl?.controller || xrCtrl?.grip || (e?.target instanceof THREE.Object3D ? e.target : null);
     if (ctrlObj) {
+      grabSourceRef.current = source;
       grabbingControllerRef.current = ctrlObj;
     } else {
       setIsInspecting(prev => !prev);
@@ -177,6 +213,8 @@ export const GrabbableBox3D: React.FC<GrabbableBox3DProps> = ({
   const handleGrabEnd = () => {
     if (grabbingControllerRef.current) {
       playHapticProfile('click');
+      recordGrabRelease(grabSourceRef.current);
+      grabSourceRef.current = null;
       grabbingControllerRef.current = null;
     }
   };

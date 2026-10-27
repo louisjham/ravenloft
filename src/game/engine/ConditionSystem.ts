@@ -1,6 +1,7 @@
 import { Entity, Condition, ConditionType, GameState, Hero, Tile, ActiveCondition } from '../types';
 import { AbilitySystem } from '../ai/AbilitySystem';
 import { ExperienceSystem } from './ExperienceSystem';
+import { addLogEntry } from './LogUtils';
 import { isDev } from '../../utils/devEnv';
 
 /**
@@ -209,7 +210,6 @@ export class ConditionSystem {
 
     let updatedHero = { ...hero };
     let newState = { ...gameState };
-    let logs = [...newState.log];
 
     if (updatedHero.removedFromPlay) {
       const startTile = newState.tiles.find(t => t.isStart);
@@ -230,13 +230,11 @@ export class ConditionSystem {
               : t
           )
         };
-        logs.push({
-          id: String((newState.logIdCounter ?? 0) + 1),
-          timestamp: new Date().toISOString(),
-          message: `${hero.name} returns to the dungeon on tile (${targetTile.x},${targetTile.z}).`,
-          type: 'system' as const
-        });
-        newState.logIdCounter = (newState.logIdCounter ?? 0) + 1;
+        newState = addLogEntry(
+          newState,
+          `${hero.name} returns to the dungeon on tile (${targetTile.x},${targetTile.z}).`,
+          'system'
+        );
       }
     }
 
@@ -251,13 +249,11 @@ export class ConditionSystem {
         };
         newState.healingSurges -= 1;
         
-        logs.push({
-          id: String((newState.logIdCounter ?? 0) + 1),
-          timestamp: new Date().toISOString(),
-          message: `${hero.name} is at 0 HP and automatically spends a Healing Surge to recover ${surgeHeal} HP.`,
-          type: 'system' as const
-        });
-        newState.logIdCounter = (newState.logIdCounter ?? 0) + 1;
+        newState = addLogEntry(
+          newState,
+          `${hero.name} is at 0 HP and automatically spends a Healing Surge to recover ${surgeHeal} HP.`,
+          'system'
+        );
       }
       // If 0 surges, the defeat check in ScenarioManager (which runs immediately after this) will catch it
     }
@@ -266,19 +262,16 @@ export class ConditionSystem {
     const poisonDmg = this.processPoisonDamage(updatedHero);
     if (poisonDmg > 0) {
       updatedHero = { ...updatedHero, hp: Math.max(0, updatedHero.hp - poisonDmg) };
-      logs.push({
-        id: String((newState.logIdCounter ?? 0) + 1),
-        timestamp: new Date().toISOString(),
-        message: `${hero.name} takes ${poisonDmg} poison damage at the start of their turn.`,
-        type: 'system' as const
-      });
-      newState.logIdCounter = (newState.logIdCounter ?? 0) + 1;
+      newState = addLogEntry(
+        newState,
+        `${hero.name} takes ${poisonDmg} poison damage at the start of their turn.`,
+        'system'
+      );
     }
 
     return ConditionSystem.syncActiveConditions({
       ...newState,
-      heroes: newState.heroes.map(h => h.id === heroId ? updatedHero : h),
-      log: logs.slice(-100)
+      heroes: newState.heroes.map(h => h.id === heroId ? updatedHero : h)
     });
   }
 

@@ -9,6 +9,8 @@ Use this skill for any refactor, bug fix, performance improvement, or architectu
 Project Identity
 This project is a digital adaptation of the Castle Ravenloft Adventure Board Game built with React, Vite, Three.js, TypeScript, and Zustand slices. The game already exists and is playable. Most work in this repository is not greenfield feature work; it is fidelity-preserving cleanup, bug fixing, performance tuning, and architectural improvement.
 
+Direction (Oct 25, 2026): AR-first, VR toggle kept. AR is the shipped focus on Meta Quest (WebXR AR, PWA/TWA via Bubblewrap to the Horizon Store); VR remains as a toggle inside the AR build, never a separate version in parity; desktop is dev/playtest surface only.
+
 Primary Rule
 Preserve gameplay behavior unless the task is explicitly a bug fix. Refactors must improve structure, readability, performance, or maintainability without changing game rules, card behavior, movement rules, villain logic, turn order, or state transitions unless the user specifically requests a rule correction.
 

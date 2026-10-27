@@ -60,6 +60,35 @@ Nothing here is a design decision — those are Louis's. This is the ticket list
    (hero position + 1.0 offset). Confirm in-headset that the drop point and
    the new prompt are actually in the player's view during combat — do not
    move the arena blind.
+5. **Alissa's card on the adventure setup screen does not match the other
+   cards** (reported by Louis, Oct 24 evening). `ScenarioSetupScreen.tsx`
+   special-cases her: `isSingleSided('alissa')` is true, so her Level 1 view
+   shows the scan at 100% height (others use a 200% crop/rotate of a
+   double-sided scan), and her Level 2 view is not a scan at all — it renders
+   a synthetic "Custom Card Back" panel (dark radial gradient, gold text)
+   instead of a card image. That panel also misspells her name "ALLISA"
+   (data files spell her "Alissa"). Fix routes: (a) supply a real 2nd-level
+   scan of her card and remove the special-case; (b) restyle the custom back
+   to match the scanned cards; either way fix the spelling. Needs Louis's
+   call on whether a 2nd-level scan exists.
+
+6. **Table edge reads as a stray diagonal divider (desktop view).**
+   (Reported by Louis, Oct 24 evening, with screenshots.) `TableSurface`
+   is a finite 28x28 slab; on the desktop camera (position [5.5, 5.5, 5.5],
+   fov 38) its far edge projects as a diagonal line across the screen, and
+   beyond it is dark void (fog `#0e0a17`, page background `#050505`). The
+   edge climbs on screen because it recedes from the camera — screen-up is
+   farther away here, not taller. Fix directions: bigger table, a visible
+   floor plane under it, or fog tuned so the edge falls off softer.
+7. **Quick Reference (F1) modal does not match the rest of the UI.**
+   (Reported by Louis, Oct 24 evening.) `HelpOverlay`
+   (`components/tutorial/TutorialSystem.tsx`) uses `.gothic-panel`, but
+   `.help-content` has no CSS rules of its own, so the heading, list, and
+   button fall back to browser defaults: sans-serif white title instead of
+   `.gothic-title` (Cinzel, gold), default disc bullets, flat gray button
+   instead of `.gothic-button`. Fix: style the modal's elements with the
+   theme classes (gothic-title on the heading, gothic-button on the button,
+   themed list).
 
 ## Design calls owed by Louis (not built, not assumed)
 

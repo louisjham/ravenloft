@@ -6,27 +6,25 @@ import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
 import { useUIStore } from '../../store/uiStore';
 import { playHapticProfile } from '../XRHaptics';
+import { XRGrabSource, resolveGrabSource, isGrabActive, recordGrabRelease, getGrabWorldPose } from '../XRGrabManager';
 
 // Static scratch variables for 90Hz 6DoF HUD grabbing and matrix manipulation
 const _grabCtrlStartPos = new THREE.Vector3();
-const _grabCtrlStartRot = new THREE.Quaternion();
 const _grabHudStartPos  = new THREE.Vector3();
-const _grabHudStartRot  = new THREE.Quaternion();
-const _invCtrlRot       = new THREE.Quaternion();
 const _grabPosOffset    = new THREE.Vector3();
-const _grabRotOffset    = new THREE.Quaternion();
 
-const _curCtrlPos    = new THREE.Vector3();
-const _curCtrlRot    = new THREE.Quaternion();
-const _curWorldPos   = new THREE.Vector3();
-const _curWorldRot   = new THREE.Quaternion();
-const _curLocalPos   = new THREE.Vector3();
-const _curLocalRot   = new THREE.Quaternion();
-const _parentQuat    = new THREE.Quaternion();
-const _invParentQuat = new THREE.Quaternion();
+const _curCtrlPos      = new THREE.Vector3();
+const _curCtrlRot      = new THREE.Quaternion();
+const _curWorldPos     = new THREE.Vector3();
+const _curLocalPos     = new THREE.Vector3();
+const _camWorldPos     = new THREE.Vector3();
+const _parentQuat      = new THREE.Quaternion();
+const _targetLocalQuat = new THREE.Quaternion();
+const _scratchEuler    = new THREE.Euler(0, 0, 0, 'YXZ');
+const _yAxis           = new THREE.Vector3(0, 1, 0);
 
 const DEFAULT_HUD_POS: [number, number, number] = [0, 0.10, 0.35];
-const DEFAULT_HUD_ROT: [number, number, number] = [-Math.PI / 6, 0, 0];
+const DEFAULT_HUD_ROT: [number, number, number] = [0, 0, 0];
 
 interface HUDButtonProps {
   label: string;
@@ -127,7 +125,7 @@ const HUDButton3D: React.FC<HUDButtonProps> = ({
  * hand pinch, or pointer drag to position it anywhere in their room/tabletop.
  */
 export const XRTabletopHUD3D: React.FC = () => {
-  const { isPresenting } = useXR();
+  const { isPresenting, controllers } = useXR();
   const phase = useGameStore((state) => state.gameState?.phase);
   const activeHero = useGameStore((state) => {
     const gs = state.gameState;
@@ -155,6 +153,11 @@ export const XRTabletopHUD3D: React.FC = () => {
   const [isGrabbed, setIsGrabbed] = useState(false);
   const [handleHovered, setHandleHovered] = useState(false);
   const grabbingControllerRef = useRef<THREE.Object3D | null>(null);
+  const grabSourceRef = useRef<XRGrabSource | null>(null);
+  const lastYawRef = useRef<number>(0);
+  const hasInitializedYawRef = useRef<boolean>(false);
+  const initialHudSnapshotRef = useRef<THREE.Vector3 | null>(null);
+  const lastHudResetVersionRef = useRef<number>(0);
 
   // Desktop pointer drag fallback
   const isPointerDraggingRef = useRef(false);
@@ -168,6 +171,7 @@ export const XRTabletopHUD3D: React.FC = () => {
       hudRotRef.current.set(...DEFAULT_HUD_ROT);
       groupRef.current.position.copy(hudPosRef.current);
       groupRef.current.rotation.copy(hudRotRef.current);
+      hasInitializedYawRef.current = false;
     }
   }, [xrTableResetRequested]);
 
@@ -197,31 +201,36 @@ export const XRTabletopHUD3D: React.FC = () => {
     playHapticProfile('click');
     setIsGrabbed(true);
 
+    let source: XRGrabSource | null = null;
+    if (isPresenting) {
+      source = resolveGrabSource(e, controllers);
+      if (!source) return;
+    }
+
     // Extract VR controller object
     const xrTarget = e?.target;
     const ctrlObj =
+      source?.controller ||
       xrTarget?.controller ||
       xrTarget?.grip ||
       (xrTarget instanceof THREE.Object3D ? xrTarget : null);
 
+    if (source) {
+      grabSourceRef.current = source;
+    }
+
     if (ctrlObj && groupRef.current) {
       grabbingControllerRef.current = ctrlObj;
 
-      // Compute initial world poses and relative offset
+      // Compute initial world positions for decoupled 1:1 translation
       ctrlObj.updateWorldMatrix(true, false);
       ctrlObj.getWorldPosition(_grabCtrlStartPos);
-      ctrlObj.getWorldQuaternion(_grabCtrlStartRot);
 
       groupRef.current.updateWorldMatrix(true, false);
       groupRef.current.getWorldPosition(_grabHudStartPos);
-      groupRef.current.getWorldQuaternion(_grabHudStartRot);
 
-      _invCtrlRot.copy(_grabCtrlStartRot).invert();
-      _grabPosOffset
-        .copy(_grabHudStartPos)
-        .sub(_grabCtrlStartPos)
-        .applyQuaternion(_invCtrlRot);
-      _grabRotOffset.copy(_invCtrlRot).multiply(_grabHudStartRot);
+      // Decoupled world offset from controller to HUD (no rotation coupling)
+      _grabPosOffset.copy(_grabHudStartPos).sub(_grabCtrlStartPos);
     }
   }, []);
 
@@ -231,6 +240,8 @@ export const XRTabletopHUD3D: React.FC = () => {
     }
     if (grabbingControllerRef.current || isPointerDraggingRef.current) {
       playHapticProfile('click');
+      recordGrabRelease(grabSourceRef.current);
+      grabSourceRef.current = null;
       grabbingControllerRef.current = null;
       isPointerDraggingRef.current = false;
       setIsGrabbed(false);
@@ -273,41 +284,65 @@ export const XRTabletopHUD3D: React.FC = () => {
   useFrame((state, delta) => {
     if (!groupRef.current) return;
 
-    if (grabbingControllerRef.current) {
-      const ctrl = grabbingControllerRef.current;
-      ctrl.updateWorldMatrix(true, false);
-      ctrl.getWorldPosition(_curCtrlPos);
-      ctrl.getWorldQuaternion(_curCtrlRot);
+    // Snapshot initial HUD position at scene start (post-setup)
+    if (phase && phase !== 'setup' && !initialHudSnapshotRef.current) {
+      initialHudSnapshotRef.current = groupRef.current.position.clone();
+    } else if (!phase || phase === 'setup') {
+      initialHudSnapshotRef.current = null;
+    }
 
-      // Compute target world position & rotation from relative grab offsets
-      _curWorldPos
-        .copy(_grabPosOffset)
-        .applyQuaternion(_curCtrlRot)
-        .add(_curCtrlPos);
-      _curWorldRot.copy(_curCtrlRot).multiply(_grabRotOffset);
-
-      // Convert target world transform into parent local coordinates
-      if (groupRef.current.parent) {
-        groupRef.current.parent.updateWorldMatrix(true, false);
-
-        _curLocalPos.copy(_curWorldPos);
-        groupRef.current.parent.worldToLocal(_curLocalPos);
-
-        groupRef.current.parent.getWorldQuaternion(_parentQuat);
-        _invParentQuat.copy(_parentQuat).invert();
-        _curLocalRot.copy(_invParentQuat).multiply(_curWorldRot);
+    // Check for Reset All request
+    const uiState = useUIStore.getState();
+    if (uiState.resetAllVersion > lastHudResetVersionRef.current || uiState.resetAllRequested || uiState.xrTableResetRequested) {
+      lastHudResetVersionRef.current = uiState.resetAllVersion;
+      if (initialHudSnapshotRef.current) {
+        hudPosRef.current.copy(initialHudSnapshotRef.current);
+        groupRef.current.position.copy(initialHudSnapshotRef.current);
       } else {
-        _curLocalPos.copy(_curWorldPos);
-        _curLocalRot.copy(_curWorldRot);
+        hudPosRef.current.set(...DEFAULT_HUD_POS);
+        groupRef.current.position.set(...DEFAULT_HUD_POS);
+      }
+      hasInitializedYawRef.current = false;
+      grabbingControllerRef.current = null;
+      grabSourceRef.current = null;
+      isPointerDraggingRef.current = false;
+      setIsGrabbed(false);
+    }
+
+
+    if (grabSourceRef.current) {
+      if (!isGrabActive(grabSourceRef.current)) {
+        handleGrabEnd();
+        return;
+      }
+    }
+
+    if (grabbingControllerRef.current) {
+      if (grabSourceRef.current) {
+        getGrabWorldPose(grabSourceRef.current, _curCtrlPos, _curCtrlRot);
+      } else {
+        const ctrl = grabbingControllerRef.current;
+        ctrl.updateWorldMatrix(true, false);
+        ctrl.getWorldPosition(_curCtrlPos);
       }
 
-      // Smooth lerp & slerp to eliminate controller tracking jitter
+      // Decouple translation from controller rotation twist:
+      // Translate HUD by pure hand displacement in world space
+      _curWorldPos.copy(_curCtrlPos).add(_grabPosOffset);
+
+      // Convert target world position into parent local coordinates
+      if (groupRef.current.parent) {
+        groupRef.current.parent.updateWorldMatrix(true, false);
+        _curLocalPos.copy(_curWorldPos);
+        groupRef.current.parent.worldToLocal(_curLocalPos);
+      } else {
+        _curLocalPos.copy(_curWorldPos);
+      }
+
+      // Smooth lerp to eliminate controller tracking jitter
       const speed = 1 - Math.pow(0.0001, delta);
       groupRef.current.position.lerp(_curLocalPos, speed);
-      groupRef.current.quaternion.slerp(_curLocalRot, speed);
-
       hudPosRef.current.copy(groupRef.current.position);
-      hudRotRef.current.copy(groupRef.current.rotation);
     } else if (isPointerDraggingRef.current) {
       const ray = state.raycaster.ray;
       const intersect = new THREE.Vector3();
@@ -322,6 +357,43 @@ export const XRTabletopHUD3D: React.FC = () => {
         hudPosRef.current.copy(groupRef.current.position);
       }
     }
+
+    // ── Upright Orientation Constraint: Force roll = 0, pitch = 0, yaw faces player ──
+    groupRef.current.updateWorldMatrix(true, false);
+    groupRef.current.getWorldPosition(_curWorldPos);
+    state.camera.getWorldPosition(_camWorldPos);
+
+    const dx = _camWorldPos.x - _curWorldPos.x;
+    const dz = _camWorldPos.z - _curWorldPos.z;
+    if (dx * dx + dz * dz > 0.0001) {
+      lastYawRef.current = Math.atan2(dx, dz);
+    }
+
+    // Extract parent yaw if parented inside XRTabletopRig
+    let parentYaw = 0;
+    if (groupRef.current.parent) {
+      groupRef.current.parent.getWorldQuaternion(_parentQuat);
+      _scratchEuler.setFromQuaternion(_parentQuat, 'YXZ');
+      parentYaw = _scratchEuler.y;
+    }
+
+    const localTargetYaw = lastYawRef.current - parentYaw;
+
+    if (!hasInitializedYawRef.current) {
+      // Snap instantly to player-facing yaw on first frame
+      groupRef.current.rotation.set(0, localTargetYaw, 0, 'YXZ');
+      hasInitializedYawRef.current = true;
+    } else {
+      // Smoothly rotate yaw towards target facing player
+      _targetLocalQuat.setFromAxisAngle(_yAxis, localTargetYaw);
+      const rotSpeed = 1 - Math.pow(0.00001, delta);
+      groupRef.current.quaternion.slerp(_targetLocalQuat, rotSpeed);
+
+      // Strictly clamp roll and pitch to zero on every frame
+      _scratchEuler.setFromQuaternion(groupRef.current.quaternion, 'YXZ');
+      groupRef.current.rotation.set(0, _scratchEuler.y, 0, 'YXZ');
+    }
+    hudRotRef.current.copy(groupRef.current.rotation);
   });
 
   if (!isPresenting || !phase || phase === 'setup') {
@@ -510,16 +582,16 @@ export const XRTabletopHUD3D: React.FC = () => {
             }}
           />
 
-          {/* Reset Table & HUD Button */}
+          {/* Reset All View & Placements Button */}
           <HUDButton3D
-            label="⟳ TABLE"
-            subtext="reset"
-            position={[0.17, 0, 0]}
-            width={0.12}
+            label="RESET ALL"
+            subtext="view & items"
+            position={[0.16, 0, 0]}
+            width={0.16}
             color="#1a1a2e"
             onClick={() => {
               playHapticProfile('click');
-              requestXRTableReset();
+              useUIStore.getState().requestResetAll();
             }}
           />
 

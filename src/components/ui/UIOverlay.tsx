@@ -32,7 +32,9 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
   const quitToMainMenu = useGameStore((state) => state.quitToMainMenu);
   const restartScenario = useGameStore((state) => state.restartScenario);
 
-  const [showSetup, setShowSetup] = useState(false);
+  const showSetupScreen = useUIStore((state) => state.showSetupScreen);
+  const setShowSetupScreen = useUIStore((state) => state.setShowSetupScreen);
+  const isXRPresenting = useUIStore((state) => state.isXRPresenting);
   const [isHUDVisible, setIsHUDVisible] = useState(true);
 
   React.useEffect(() => {
@@ -98,6 +100,9 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
   const setIsUnboxingMode = useUIStore((state) => state.setIsUnboxingMode);
 
   if (!gameState) {
+    if (isXRPresenting) {
+      return null;
+    }
     if (isUnboxingMode) {
       return (
         <div style={{ position: 'fixed', top: '20px', left: '20px', zIndex: 3000 }}>
@@ -111,18 +116,18 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ onStartGame, onOpenTreasur
         </div>
       );
     }
-    if (showSetup) {
+    if (showSetupScreen) {
       return (
         <ScenarioSetupScreen
-          onBack={() => setShowSetup(false)}
+          onBack={() => setShowSetupScreen(false)}
           onStart={(scenarioId, heroIds) => {
-            setShowSetup(false);
+            setShowSetupScreen(false);
             onStartGame(scenarioId, heroIds);
           }}
         />
       );
     }
-    return <MainMenu onStart={() => setShowSetup(true)} />;
+    return <MainMenu onStart={() => setShowSetupScreen(true)} />;
   }
 
   return (

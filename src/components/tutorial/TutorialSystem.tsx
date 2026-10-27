@@ -55,8 +55,8 @@ export const HelpOverlay: React.FC<{ isOpen: boolean, onClose: () => void }> = (
 
   return (
     <div className="help-screen" onClick={onClose}>
-      <div className="help-content gothic-panel">
-        <h2>Quick Reference (F1)</h2>
+      <div className="help-content gothic-panel" onClick={(e) => e.stopPropagation()}>
+        <h2 className="gothic-title">Quick Reference (F1)</h2>
         <ul>
           <li><strong>M</strong>: Move your Hero</li>
           <li><strong>A</strong>: Basic Attack</li>
@@ -64,7 +64,7 @@ export const HelpOverlay: React.FC<{ isOpen: boolean, onClose: () => void }> = (
           <li><strong>Space</strong>: End Turn</li>
           <li><strong>Esc</strong>: Pause Menu</li>
         </ul>
-        <button onClick={onClose}>Return to Game</button>
+        <button className="gothic-button" onClick={onClose}>Return to Game</button>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { ExperienceSystem } from './ExperienceSystem';
 import { PowerSystem } from './PowerSystem';
 import { DataLoader } from '../dataLoader';
 import { findBestLandingSquare } from './MonsterAI';
+import { addLogEntry } from './LogUtils';
 
 const SENTINEL_MOMENTS_RESPITE: DeckSentinel = 'sentinel_moments_respite';
 
@@ -1247,26 +1248,14 @@ export class TreasureSystem {
       const hitStr = attackResult.hit ? 'HITS' : 'MISSES';
       const message = `${hero.name} attacks ${target.name} with Wooden Stake (+5 vs AC ${targetMonster.ac}) and ${hitStr} (Roll: ${attackResult.roll}, Total: ${attackResult.total}) for ${attackResult.damage} damage. Vampire does not activate on next phase.`;
 
-      // Log to game history
-      const currentCounter = gameState.logIdCounter ?? 0;
-      const updatedLog = [
-        ...(gameState.log || []),
-        {
-          id: String(currentCounter),
-          timestamp: new Date().toISOString(),
-          message,
-          type: 'combat' as const
-        }
-      ].slice(-100);
+      const intermediateState = {
+        ...gameState,
+        heroes: updatedHeroes,
+        monsters: updatedMonsters
+      };
 
       return {
-        newState: {
-          ...gameState,
-          heroes: updatedHeroes,
-          monsters: updatedMonsters,
-          log: updatedLog,
-          logIdCounter: currentCounter + 1
-        },
+        newState: addLogEntry(intermediateState, message, 'combat'),
         message,
         success: true
       };
@@ -1318,26 +1307,14 @@ export class TreasureSystem {
       const hitStr = attackResult.hit ? 'HITS' : 'MISSES';
       const message = `${hero.name} attacks ${target.name} with Silver Dagger (+5 vs AC ${targetMonster.ac}) and ${hitStr} (Roll: ${attackResult.roll}, Total: ${attackResult.total}) for ${attackResult.damage} damage. Werewolf permanently loses regeneration.`;
 
-      // Log to game history
-      const currentCounter = gameState.logIdCounter ?? 0;
-      const updatedLog = [
-        ...(gameState.log || []),
-        {
-          id: String(currentCounter),
-          timestamp: new Date().toISOString(),
-          message,
-          type: 'combat' as const
-        }
-      ].slice(-100);
+      const intermediateState = {
+        ...gameState,
+        heroes: updatedHeroes,
+        monsters: updatedMonsters
+      };
 
       return {
-        newState: {
-          ...gameState,
-          heroes: updatedHeroes,
-          monsters: updatedMonsters,
-          log: updatedLog,
-          logIdCounter: currentCounter + 1
-        },
+        newState: addLogEntry(intermediateState, message, 'combat'),
         message,
         success: true
       };
@@ -1435,26 +1412,17 @@ export class TreasureSystem {
 
       const updatedHeroes = tempState.heroes.map(h => h.id === hero.id ? updatedHero : h);
 
-      // Log to history
-      let currentCounter = tempState.logIdCounter ?? 0;
-      let newLogs = [...(tempState.log || [])];
+      let intermediateState = {
+        ...tempState,
+        heroes: updatedHeroes,
+        monsters: updatedMonsters
+      };
       for (const msg of logMessages) {
-        newLogs.push({
-          id: String(currentCounter++),
-          timestamp: new Date().toISOString(),
-          message: msg,
-          type: 'combat' as const
-        });
+        intermediateState = addLogEntry(intermediateState, msg, 'combat');
       }
 
       return {
-        newState: {
-          ...tempState,
-          heroes: updatedHeroes,
-          monsters: updatedMonsters,
-          log: newLogs.slice(-100),
-          logIdCounter: currentCounter
-        },
+        newState: intermediateState,
         message: logMessages.join(' ') || `${hero.name} used Torch.`,
         success: true
       };
@@ -1543,28 +1511,19 @@ export class TreasureSystem {
 
       const updatedHeroes = tempState.heroes.map(h => h.id === hero.id ? updatedHero : h);
 
-      // Log to history
-      let currentCounter = tempState.logIdCounter ?? 0;
-      let newLogs = [...(tempState.log || [])];
+      let intermediateState = {
+        ...tempState,
+        heroes: updatedHeroes,
+        monsters: updatedMonsters
+      };
       for (const msg of logMessages) {
-        newLogs.push({
-          id: String(currentCounter++),
-          timestamp: new Date().toISOString(),
-          message: `${hero.name} uses Wand of Teleportation: ${msg}`,
-          type: 'system' as const
-        });
+        intermediateState = addLogEntry(intermediateState, `${hero.name} uses Wand of Teleportation: ${msg}`, 'system');
       }
 
       const summaryMsg = `${hero.name} uses Wand of Teleportation on tile ${targetTile.id}. ` + logMessages.join(' ');
 
       return {
-        newState: {
-          ...tempState,
-          heroes: updatedHeroes,
-          monsters: updatedMonsters,
-          log: newLogs.slice(-100),
-          logIdCounter: currentCounter
-        },
+        newState: intermediateState,
         message: summaryMsg,
         success: true
       };
@@ -1951,27 +1910,17 @@ export class TreasureSystem {
     }
 
     if (effect.type === 'glyph_warding') {
-      let tempState = { ...gameState };
-      const logId = String(tempState.logIdCounter);
-      tempState.logIdCounter = (tempState.logIdCounter ?? 0) + 1;
+      const updatedEffects = tileEffects.map(te =>
+        te.id === effect.id ? { ...te, isExpended: true } : te
+      );
 
       return {
-        newState: {
-          ...tempState,
-          tileEffects: tileEffects.map(te =>
-            te.id === effect.id ? { ...te, isExpended: true } : te
-          ),
-          log: [
-            ...tempState.log,
-            {
-              id: logId,
-              timestamp: new Date().toISOString(),
-              message: `🌀 Glyph of Warding blocks ${monster.name} from entering the tile!`,
-              type: 'event' as const,
-            }
-          ].slice(-100),
-        },
-        blocked: true,
+        newState: addLogEntry(
+          { ...gameState, tileEffects: updatedEffects },
+          `🌀 Glyph of Warding blocks ${monster.name} from entering the tile!`,
+          'event'
+        ),
+        blocked: true
       };
     }
 
@@ -1993,14 +1942,11 @@ export class TreasureSystem {
     }
 
     const currentHero = newState.heroes.find(h => h.id === newState.currentHeroId);
-    let updatedMonsters = [...newState.monsters];
-    let updatedExperiencePile = [...newState.experiencePile];
-    let logs = [...newState.log];
-    let currentCounter = newState.logIdCounter ?? 0;
+    let runningState: GameState = { ...newState };
 
     for (const m of defeatedMonsters) {
       // Mark as defeated and unowned
-      updatedMonsters = updatedMonsters.map(mon => 
+      const updatedMonsters = runningState.monsters.map(mon => 
         mon.id === m.id ? { ...mon, isDefeated: true, ownedByHeroId: null } : mon
       );
 
@@ -2009,26 +1955,23 @@ export class TreasureSystem {
       const xpCardId = m.templateId || (parts.length >= 2 ? `${parts[0]}_${parts[1]}` : m.id);
       const cleanXpCardId = xpCardId.startsWith('monster_') ? xpCardId : `monster_${m.monsterType.toLowerCase()}`;
       
-      updatedExperiencePile.push(cleanXpCardId);
+      runningState = {
+        ...runningState,
+        monsters: updatedMonsters,
+        experiencePile: [...runningState.experiencePile, cleanXpCardId]
+      };
       
-      logs.push({
-        id: String(currentCounter),
-        timestamp: new Date().toISOString(),
-        message: `💀 ${m.name} is defeated! Added ${cleanXpCardId} to the experience pile (+${m.experienceValue || 1} XP).`,
-        type: 'system' as const
-      });
-      currentCounter++;
+      runningState = addLogEntry(
+        runningState,
+        `💀 ${m.name} is defeated! Added ${cleanXpCardId} to the experience pile (+${m.experienceValue || 1} XP).`,
+        'system'
+      );
 
       // Draw treasure card if it's the first monster defeated this turn and a hero did it
       // Only draw treasure for the first defeated monster per turn (rulebook: one treasure per turn)
-      if (newState.treasuresDrawnThisTurn === 0 && currentHero) {
+      if (runningState.treasuresDrawnThisTurn === 0 && currentHero) {
         // Run Moment's Respite check first
-        const respiteResult = TreasureSystem.checkAndDiscardRespite({
-          ...newState,
-          monsters: updatedMonsters,
-          experiencePile: updatedExperiencePile,
-          logIdCounter: currentCounter
-        }, 'treasureDeck');
+        const respiteResult = TreasureSystem.checkAndDiscardRespite(runningState, 'treasureDeck');
         
         const drawResult = TreasureSystem.drawTreasureCard(respiteResult.gameState, currentHero);
         if (drawResult.card) {
@@ -2044,39 +1987,16 @@ export class TreasureSystem {
             tempState = assignResult.newState;
           }
           
-          updatedMonsters = tempState.monsters;
-          updatedExperiencePile = tempState.experiencePile;
-          
-          newState = {
-            ...newState,
-            treasureDeck: tempState.treasureDeck,
-            treasuresDrawnThisTurn: tempState.treasuresDrawnThisTurn,
-            heroes: tempState.heroes,
-            discardPiles: tempState.discardPiles,
-            activeBlessings: tempState.activeBlessings,
-            logIdCounter: tempState.logIdCounter ?? currentCounter,
-          };
-          
-          currentCounter = tempState.logIdCounter ?? currentCounter;
-
-          logs.push({
-            id: String(currentCounter),
-            timestamp: new Date().toISOString(),
-            message: `🎁 First monster defeated this turn! ${drawResult.message}`,
-            type: 'system' as const
-          });
-          currentCounter++;
+          runningState = addLogEntry(
+            tempState,
+            `🎁 First monster defeated this turn! ${drawResult.message}`,
+            'system'
+          );
         }
       }
     }
 
-    return {
-      ...newState,
-      monsters: updatedMonsters,
-      experiencePile: updatedExperiencePile,
-      log: logs.slice(-100),
-      logIdCounter: currentCounter
-    };
+    return runningState;
   }
 
   /**

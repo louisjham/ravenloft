@@ -9,13 +9,15 @@ import { TreasureSystem } from '../../game/engine/TreasureSystem';
 import { TokenSystem } from '../../game/engine/TokenSystem';
 import { EncounterSystem } from '../../game/engine/EncounterSystem';
 import { ExperienceSystem } from '../../game/engine/ExperienceSystem';
-import { executeVillainPhase } from './villainPhaseLogic';
+import { executeVillainPhase, executeVillainPhaseStaged } from './villainPhaseLogic';
 import { ObjectiveTracker } from '../../game/scenarios/Objectives';
 import { ScenarioManager } from '../../game/scenarios/ScenarioManager';
 import { isDev } from '../../utils/devEnv';
 import { resetHeroTurnFlags } from '../../game/engine/HeroTurnUtils';
 import { SCENARIO_IDS, TILE_IDS } from '../../game/constants';
 import { useUIStore } from '../uiStore';
+import { SoundLibrary } from '../../audio/SoundLibrary';
+import { addLogEntry } from '../../game/engine/LogUtils';
 
 /** Fisher-Yates shuffle — returns a new shuffled array, does not mutate the input. */
 function shuffled<T>(arr: T[]): T[] {
@@ -330,7 +332,6 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
     if (freezingCloudTokens.length > 0) {
       let updatedTokens = [...(s.tokens || [])];
       let updatedMonsters = [...s.monsters];
-      let logsAdded: GameLogEntry[] = [];
  
       for (const fcToken of freezingCloudTokens) {
         const fcTile = s.tiles.find(t => t.id === fcToken.tileId);
@@ -342,14 +343,11 @@ export const createCoreSlice: StateCreator<GameStore, [], [], CoreSlice> = (set,
           for (const m of monstersOnTile) {
             const damagedMonster = CombatSystem.applyDamage(m, 1);
             updatedMonsters = updatedMonsters.map(mon => mon.id === m.id ? (damagedMonster.hp <= 0 ? { ...damagedMonster, isDefeated: true } : damagedMonster) : mon);
-            const nextIdNum = String(s.logIdCounter ?? 0);
-s.logIdCounter = (s.logIdCounter ?? 0) + 1;
-logsAdded.push({
-  id: nextIdNum,
-              timestamp: new Date().toISOString(),
-              message: `Freezing Cloud deals 1 damage to ${m.name} on tile (${fcTile.x}, ${fcTile.z}).`,
-              type: 'system' as const
-            });
+            s = addLogEntry(
+              s,
+              `Freezing Cloud deals 1 damage to ${m.name} on tile (${fcTile.x}, ${fcTile.z}).`,
+              'system'
+            );
           }
         }
  
@@ -357,14 +355,11 @@ logsAdded.push({
         const newTokensCount = currentTokensCount - 1;
         if (newTokensCount <= 0) {
           updatedTokens = updatedTokens.filter(t => t.id !== fcToken.id);
-          const nextIdNum = String(s.logIdCounter ?? 0);
-s.logIdCounter = (s.logIdCounter ?? 0) + 1;
-logsAdded.push({
-  id: nextIdNum,
-            timestamp: new Date().toISOString(),
-            message: `Freezing Cloud dispersed (no cloud tokens remain).`,
-            type: 'system' as const
-          });
+          s = addLogEntry(
+            s,
+            `Freezing Cloud dispersed (no cloud tokens remain).`,
+            'system'
+          );
         } else {
           updatedTokens = updatedTokens.map(t => t.id === fcToken.id ? { ...t, metadata: { ...t.metadata, cloudTokens: newTokensCount } } : t);
         }
@@ -373,8 +368,7 @@ logsAdded.push({
       s = {
         ...s,
         tokens: updatedTokens,
-        monsters: updatedMonsters,
-        log: [...s.log, ...logsAdded].slice(-100)
+        monsters: updatedMonsters
       };
     }
  
@@ -385,6 +379,12 @@ logsAdded.push({
     if (currentEntity) {
       const poisonDamage = ConditionSystem.processPoisonDamage(currentEntity);
       if (poisonDamage > 0) {
+        if (currentEntity.type === 'hero') {
+          SoundLibrary.Combat.hurt();
+        }
+        if (currentEntity.type === 'hero') {
+          SoundLibrary.Combat.hurt();
+        }
         const updated = CombatSystem.applyDamage(currentEntity, poisonDamage);
         if (currentEntity.type === 'hero') {
           updatedHeroes = updatedHeroes.map(h => h.id === currentEntity.id ? updated as Hero : h);
@@ -412,28 +412,18 @@ logsAdded.push({
  
     const expiryResult = TreasureSystem.checkBlessingExpiry(s, s.currentHeroId);
     if (expiryResult.expired) {
-      s = {
-        ...expiryResult.newState,
-        log: [...expiryResult.newState.log, {
-  id: String(expiryResult.newState.logIdCounter ?? 0),
-          timestamp: new Date().toISOString(),
-          message: expiryResult.message,
-          type: 'system'
-        } as GameLogEntry].slice(-100)
-      };
+      s = addLogEntry(expiryResult.newState, expiryResult.message, 'system');
     }
- 
-    // Tome of Strahd token reveal logic
+  // Tome of Strahd token reveal logic
     if (s.activeScenario.id === SCENARIO_IDS.ADVENTURE_TOME_OF_STRAHD) {
       const activeHero = s.heroes.find(h => h.id === s.currentHeroId);
       if (activeHero && s.tokens) {
         const itemTokens = s.tokens.filter(t => t.type === 'item' && !t.isRevealed);
         let currentTokens = [...s.tokens];
         let currentHeroes = [...s.heroes];
-        let logsAdded: GameLogEntry[] = [];
         let activeHeroItems = [...activeHero.items];
         let changed = false;
- 
+
         for (const token of itemTokens) {
           const dx = (activeHero.position.x * 4 + activeHero.position.sqX) - (token.position.x * 4 + token.position.sqX);
           const dz = (activeHero.position.z * 4 + activeHero.position.sqZ) - (token.position.z * 4 + token.position.sqZ);
@@ -445,47 +435,42 @@ logsAdded.push({
                 t.id === token.id ? { ...t, isRevealed: true, isSearched: true } : t
               );
               activeHeroItems.push(itemId);
-              const nextIdNum = String(s.logIdCounter ?? 0);
-s.logIdCounter = (s.logIdCounter ?? 0) + 1;
-logsAdded.push({
-  id: nextIdNum,
-                timestamp: new Date().toISOString(),
-                message: `${activeHero.name} discovered an item token and received a special item!`,
-                type: 'system' as const
-              });
               changed = true;
             }
           }
         }
- 
+
         if (changed) {
           s = {
             ...s,
             tokens: currentTokens,
-            heroes: currentHeroes.map(h => h.id === activeHero.id ? { ...h, items: activeHeroItems } : h),
-            log: [...s.log, ...logsAdded].slice(-100)
+            heroes: currentHeroes.map(h => h.id === activeHero.id ? { ...h, items: activeHeroItems } : h)
           };
+          s = addLogEntry(
+            s,
+            `${activeHero.name} discovered an item token and received a special item!`,
+            'system'
+          );
         }
       }
     }
- 
-    // Deadly Shadows Environment Effect
+  // Deadly Shadows Environment Effect
     if (s.activeEnvironmentCard === 'enc_deadly_shadows') {
       const activeHero = s.heroes.find(h => h.id === s.currentHeroId);
       if (activeHero) {
         const hasOtherHero = s.heroes.some(h => h.id !== activeHero.id && h.position.x === activeHero.position.x && h.position.z === activeHero.position.z);
         if (hasOtherHero) {
+          SoundLibrary.Combat.hurt();
           const damagedHero = CombatSystem.applyDamage(activeHero, 1, s);
           s = {
             ...s,
-            heroes: s.heroes.map(h => h.id === damagedHero.id ? damagedHero : h),
-            log: [...s.log, {
-  id: String(s.logIdCounter ?? 0),
-              timestamp: new Date().toISOString(),
-              message: `Deadly Shadows deals 1 damage to ${activeHero.name} for ending their turn on a shared tile!`,
-              type: 'system' as const
-            }].slice(-100)
+            heroes: s.heroes.map(h => h.id === damagedHero.id ? damagedHero : h)
           };
+          s = addLogEntry(
+            s,
+            `Deadly Shadows deals 1 damage to ${activeHero.name} for ending their turn on a shared tile!`,
+            'system'
+          );
         }
       }
     }
@@ -527,6 +512,7 @@ logsAdded.push({
       const drawResult = EncounterSystem.drawEncounterCard(respiteResult.gameState);
  
       if (drawResult.card) {
+        SoundLibrary.Game.cardDraw();
         set({
           gameState: {
             ...drawResult.newState,
@@ -541,7 +527,8 @@ logsAdded.push({
               pendingEffects: [],
               resolvedEffects: [],
               targetEntityId: null,
-              result: null
+              result: null,
+              hasLoggedChronicle: false
             },
             pendingEncounter: true,
             pendingAITurnApproval: null
@@ -552,76 +539,7 @@ logsAdded.push({
     }
  
     // No encounter needed, or encounter deck empty — proceed with villain phase normally
-    let newState = executeVillainPhase(s);
-
-    const villainLogs = newState.log.slice(s.log.length);
-    const combatEntries = villainLogs.filter(e => e.type === 'combat');
-    if (combatEntries.length > 0) {
-      for (const entry of combatEntries) {
-        const isHit = entry.message.includes('HITS');
-        useUIStore.getState().addNotification(
-          entry.message,
-          isHit ? 'error' : 'info',
-          4000
-        );
-      }
-    } else {
-      useUIStore.getState().addNotification('Villain Phase: No monster attacks.', 'info', 2000);
-    }
- 
-    const currentIndex = newState.turnOrder.indexOf(newState.currentHeroId);
-    const nextIndex = (currentIndex + 1) % newState.turnOrder.length;
-    const nextId = newState.turnOrder[nextIndex];
-    const stateAfterTurnStart = ConditionSystem.processTurnStart(newState, nextId);
- 
-    // Compute the final committed state (single set() call for normal turn transition)
-    const nextTurnPhase = ScenarioManager.checkDefeat({ ...stateAfterTurnStart, currentHeroId: nextId })
-      ? ('defeat' as const)
-      : ('hero' as const);
-
-    const nextHero = stateAfterTurnStart.heroes.find(h => h.id === nextId);
-    let finalCounter = stateAfterTurnStart.logIdCounter ?? 0;
-    const newTurnNum = stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0);
-    const turnStartEntry: GameLogEntry = {
-      id: String(finalCounter++),
-      timestamp: new Date().toISOString(),
-      message: `── Turn ${newTurnNum}: ${nextHero ? nextHero.name : nextId}'s turn begins (${nextHero?.hp ?? 0}/${nextHero?.maxHp ?? 0} HP, ${stateAfterTurnStart.healingSurges} Surges) ──`,
-      type: 'system' as const
-    };
-
-    set({
-      gameState: {
-        ...stateAfterTurnStart,
-        currentHeroId: nextId,
-        phase: nextTurnPhase,
-        hasExploredThisTurn: false,
-        exploredThisTurn: false,
-        lastPlacedTileEncounterType: null,
-        lastPlacedTileId: null,
-        hasAttackedThisTurn: false,
-        turnCount: newTurnNum,
-        log: [...stateAfterTurnStart.log, turnStartEntry].slice(-300),
-        logIdCounter: finalCounter,
-        pendingAITurnApproval: null,
-        heroes: stateAfterTurnStart.heroes.map(h => {
-          // Compute Dread Warrior adjacency for the incoming hero only
-          let startedTurnAdjacentToDreadWarriorIds: string[] = [];
-          if (h.id === nextId) {
-            const dreadWarriors = stateAfterTurnStart.monsters.filter(m => !m.isDefeated && m.hp > 0 && m.name.toLowerCase() === 'dread warrior');
-            for (const dw of dreadWarriors) {
-              const hAbsX = h.position.x * 4 + h.position.sqX;
-              const hAbsZ = h.position.z * 4 + h.position.sqZ;
-              const dwAbsX = dw.position.x * 4 + dw.position.sqX;
-              const dwAbsZ = dw.position.z * 4 + dw.position.sqZ;
-              if (Math.abs(hAbsX - dwAbsX) + Math.abs(hAbsZ - dwAbsZ) === 1) {
-                startedTurnAdjacentToDreadWarriorIds.push(dw.id);
-              }
-            }
-          }
-          return { ...resetHeroTurnFlags(h), startedTurnAdjacentToDreadWarriorIds };
-        })
-      }
-    });
+    executeVillainPhaseStaged(s, set, get);
   },
 
   levelUpHero: (heroId: string, newDailyPowerId?: string) => {
@@ -638,20 +556,8 @@ logsAdded.push({
       return;
     }
 
-    let counter = result.newState.logIdCounter ?? 0;
-const logEntry: GameLogEntry = {
-  id: String(counter++),
-      timestamp: new Date().toISOString(),
-      message: result.message,
-      type: 'system' as const
-    };
-
     set({
-      gameState: {
-        ...result.newState,
-        log: [...result.newState.log, logEntry].slice(-300),
-        logIdCounter: counter
-      }
+      gameState: addLogEntry(result.newState, result.message, 'system')
     });
   },
 
@@ -668,20 +574,8 @@ const logEntry: GameLogEntry = {
       return;
     }
 
-    let counter = result.newState.logIdCounter ?? 0;
-const logEntry: GameLogEntry = {
-  id: String(counter++),
-      timestamp: new Date().toISOString(),
-      message: result.message,
-      type: 'system' as const
-    };
-
     set({
-      gameState: {
-        ...result.newState,
-        log: [...result.newState.log, logEntry].slice(-300),
-        logIdCounter: counter
-      }
+      gameState: addLogEntry(result.newState, result.message, 'system')
     });
   },
 
@@ -792,21 +686,7 @@ const logEntry: GameLogEntry = {
       choice as Parameters<typeof TreasureSystem.resolvePendingFortuneAsync>[1]
     );
     const syncedState = ConditionSystem.syncActiveConditions(newState);
-    const fortuneCounter = syncedState.logIdCounter ?? 0;
-    const updatedState = {
-      ...syncedState,
-      logIdCounter: fortuneCounter + 1,
-      log: [
-        ...syncedState.log,
-        {
-          id: String(fortuneCounter),
-          timestamp: new Date().toISOString(),
-          message,
-          type: 'system' as const,
-        }
-      ].slice(-300)
-    };
-    set({ gameState: updatedState });
+    set({ gameState: addLogEntry(syncedState, message, 'system') });
   },
 
   pauseGame: () => set({ isPaused: true }),

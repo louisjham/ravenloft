@@ -4,6 +4,7 @@ import { DataLoader } from '../dataLoader';
 import { TokenSystem } from './TokenSystem';
 import { getTileGraphDistance } from './MonsterAI';
 import { isDev } from '../../utils/devEnv';
+import { addLogEntry } from './LogUtils';
 
 /**
  * Handles tile placement, exploration edge detection, and grid management.
@@ -230,7 +231,7 @@ export class TileSystem {
 
     // Include tokens if a coffin was placed
     let finalTokens = coffinResult?.token ? [...(newState.tokens || []), coffinResult.token] : (newState.tokens || []);
-    let finalState = {
+    let finalState: GameState = {
       ...newState,
       tokens: finalTokens,
       strahdsCoffinTokenId: coffinResult?.token?.metadata?.isStrahdsCoffin
@@ -255,40 +256,30 @@ export class TileSystem {
         };
         finalState = {
           ...finalState,
-          tokens: [...finalState.tokens, itemToken],
+          tokens: [...(finalState.tokens || []), itemToken],
           tomeOfStrahdItemStack: itemStack
         };
       }
     }
 
-    let currentCounter = finalState.logIdCounter ?? 0;
     const tileName = tile.name || baseTile.name || tile.id;
     const edgeDesc = tile.encounterType === 'black' ? '▲ Black Triangle (Encounter Imminent)' : '△ White Triangle (Safe Passage)';
     const activeHero = finalState.heroes.find(h => h.id === finalState.currentHeroId);
     const heroName = activeHero ? activeHero.name : 'The party';
-    const explorationLogs: import('../types').GameLogEntry[] = [
-      {
-        id: String(currentCounter++),
-        timestamp: new Date().toISOString(),
-        message: `${heroName} explored [${tileName}] at (${tile.x}, ${tile.z}) [${edgeDesc}].`,
-        type: 'exploration' as const
-      }
-    ];
+
+    finalState = addLogEntry(
+      finalState,
+      `${heroName} explored [${tileName}] at (${tile.x}, ${tile.z}) [${edgeDesc}].`,
+      'exploration'
+    );
 
     if (coffinResult?.token) {
-      explorationLogs.push({
-        id: String(currentCounter++),
-        timestamp: new Date().toISOString(),
-        message: `A sinister coffin rests in the shadows of [${tileName}]!`,
-        type: 'event' as const
-      });
+      finalState = addLogEntry(
+        finalState,
+        `A sinister coffin rests in the shadows of [${tileName}]!`,
+        'event'
+      );
     }
-
-    finalState = {
-      ...finalState,
-      log: [...(finalState.log || []), ...explorationLogs].slice(-300),
-      logIdCounter: currentCounter
-    };
 
     return finalState;
   }
@@ -370,7 +361,7 @@ export class TileSystem {
 
     // Include tokens if a coffin was placed
     let finalTokens = coffinResult?.token ? [...(newState.tokens || []), coffinResult.token] : (newState.tokens || []);
-    let finalState = {
+    let finalState: GameState = {
       ...newState,
       tokens: finalTokens,
       strahdsCoffinTokenId: coffinResult?.token?.metadata?.isStrahdsCoffin
@@ -395,7 +386,7 @@ export class TileSystem {
         };
         finalState = {
           ...finalState,
-          tokens: [...finalState.tokens, itemToken],
+          tokens: [...(finalState.tokens || []), itemToken],
           tomeOfStrahdItemStack: itemStack
         };
       }
@@ -481,28 +472,23 @@ export class TileSystem {
       ? { ...gameState.discardPiles, monster: [...gameState.discardPiles.monster, ...discardedIds] }
       : gameState.discardPiles;
 
-    let currentCounter = gameState.logIdCounter ?? 0;
-    let log = [...gameState.log];
+    let currentState: GameState = {
+      ...gameState,
+      monsterDeck: deck,
+      discardPiles: updatedDiscardPiles,
+    };
 
     if (discardedIds.length > 0) {
-      log.push({
-        id: String(currentCounter),
-        timestamp: new Date().toISOString(),
-        message: `Monster draw: discarded [${discardedIds.join(', ')}] (already controlled) and redrew.`,
-        type: 'system' as const
-      });
-      currentCounter++;
+      currentState = addLogEntry(
+        currentState,
+        `Monster draw: discarded [${discardedIds.join(', ')}] (already controlled) and redrew.`,
+        'system'
+      );
     }
 
     if (!drawnTemplateId) {
       // Deck exhausted — no eligible type found
-      return {
-        ...gameState,
-        monsterDeck: deck,
-        discardPiles: updatedDiscardPiles,
-        log: log.slice(-100),
-        logIdCounter: currentCounter
-      };
+      return currentState;
     }
 
     // Rogue Stealth: discard the drawn card instead of placing the monster
@@ -511,35 +497,24 @@ export class TileSystem {
         ...activeHero!,
         flippedPowerIds: [...(activeHero!.flippedPowerIds ?? []), 'rogue_stealth']
       };
-      log.push({
-        id: String(currentCounter),
-        timestamp: new Date().toISOString(),
-        message: `${activeHero!.name} uses Stealth! Discards the drawn monster card (${drawnTemplateId}) instead of placing it. Stealth flips face-down.`,
-        type: 'system' as const
-      });
-      currentCounter++;
-
-      return {
-        ...gameState,
-        monsterDeck: deck,
-        discardPiles: { ...updatedDiscardPiles, monster: [...updatedDiscardPiles.monster, drawnTemplateId] },
-        heroes: gameState.heroes.map(h => h.id === updatedHero.id ? updatedHero : h),
-        log: log.slice(-100),
-        logIdCounter: currentCounter
+      currentState = {
+        ...currentState,
+        discardPiles: { ...currentState.discardPiles, monster: [...currentState.discardPiles.monster, drawnTemplateId] },
+        heroes: currentState.heroes.map(h => h.id === updatedHero.id ? updatedHero : h)
       };
+      return addLogEntry(
+        currentState,
+        `${activeHero!.name} uses Stealth! Discards the drawn monster card (${drawnTemplateId}) instead of placing it. Stealth flips face-down.`,
+        'system'
+      );
     }
 
     const template = DataLoader.getInstance().getMonsterById(drawnTemplateId);
     if (!template) {
-      return {
-        ...gameState,
-        monsterDeck: deck,
-        discardPiles: updatedDiscardPiles,
-        log: log.slice(-100),
-        logIdCounter: currentCounter
-      };
+      return currentState;
     }
 
+    const spawnPos = TileSystem.getBoneSquareOrEmpty(tile, currentState);
     const uniqueId = `monster_${drawnTemplateId}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const newMonster: Monster = {
       ...template,
@@ -551,8 +526,8 @@ export class TileSystem {
       position: {
         x: tile.x,
         z: tile.z,
-        sqX: 2,
-        sqZ: 2
+        sqX: spawnPos.sqX,
+        sqZ: spawnPos.sqZ
       },
       isExhausted: false,
       conditions: [],
@@ -560,33 +535,25 @@ export class TileSystem {
       maxHp: template.maxHp
     };
 
-    if (isTomeGuardian) {
-      log.push({
-        id: String(currentCounter),
-        timestamp: new Date().toISOString(),
-        message: `The guardian of the Tome of Strahd appears! ${newMonster.name} has been summoned!`,
-        type: 'event' as const
-      });
-      currentCounter++;
-    } else {
-      log.push({
-        id: String(currentCounter),
-        timestamp: new Date().toISOString(),
-        message: `A sinister growl echoes... ${newMonster.name} lurks on the bone square! (HP: ${newMonster.hp}, AC: ${newMonster.ac}, Speed: ${newMonster.speed}, controlled by ${activeHero ? activeHero.name : 'active hero'}).`,
-        type: 'combat' as const
-      });
-      currentCounter++;
-    }
-
-    return {
-      ...gameState,
-      monsterDeck: deck,
-      tomeOfStrahdVillainStack: isTomeGuardian ? updatedVillainStack : gameState.tomeOfStrahdVillainStack,
-      discardPiles: updatedDiscardPiles,
-      monsters: [...gameState.monsters, newMonster],
-      log: log.slice(-100),
-      logIdCounter: currentCounter
+    currentState = {
+      ...currentState,
+      tomeOfStrahdVillainStack: isTomeGuardian ? updatedVillainStack : currentState.tomeOfStrahdVillainStack,
+      monsters: [...currentState.monsters, newMonster]
     };
+
+    if (isTomeGuardian) {
+      return addLogEntry(
+        currentState,
+        `The guardian of the Tome of Strahd appears! ${newMonster.name} has been summoned!`,
+        'event'
+      );
+    } else {
+      return addLogEntry(
+        currentState,
+        `A sinister growl echoes... ${newMonster.name} lurks on the bone square (${spawnPos.sqX}, ${spawnPos.sqZ})! (HP: ${newMonster.hp}, AC: ${newMonster.ac}, Speed: ${newMonster.speed}, controlled by ${activeHero ? activeHero.name : 'active hero'}).`,
+        'combat'
+      );
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -867,6 +834,67 @@ export class TileSystem {
       case 180: return { sqX: N - sqX, sqZ: N - sqZ };
       case 270: return { sqX: sqZ, sqZ: N - sqX };
     }
+  }
+
+  /**
+   * Returns the tile's rotated bone square coordinates.
+   * If tile.boneSquare is defined, it was rotated when the tile was placed.
+   * If missing, computes rotated offset from declared (1, 1).
+   */
+  public static getRotatedBoneSquare(tile: Tile): { sqX: number; sqZ: number } {
+    if (tile.boneSquare && typeof tile.boneSquare.sqX === 'number' && typeof tile.boneSquare.sqZ === 'number') {
+      return { sqX: tile.boneSquare.sqX, sqZ: tile.boneSquare.sqZ };
+    }
+    return TileSystem.rotateBoneSquare(1, 1, tile.rotation ?? 0);
+  }
+
+  /**
+   * Checks if a square on a tile is occupied by an active hero or monster.
+   */
+  public static isSquareOccupied(
+    gameState: GameState,
+    tile: Tile,
+    sqX: number,
+    sqZ: number,
+    ignoreMonsterId?: string
+  ): boolean {
+    const heroOccupied = (gameState.heroes || []).some(
+      h => !h.removedFromPlay && h.position.x === tile.x && h.position.z === tile.z && h.position.sqX === sqX && h.position.sqZ === sqZ
+    );
+    if (heroOccupied) return true;
+
+    const monsterOccupied = (gameState.monsters || []).some(
+      m => !m.isDefeated && (m.hp ?? 1) > 0 && m.id !== ignoreMonsterId && m.position.x === tile.x && m.position.z === tile.z && m.position.sqX === sqX && m.position.sqZ === sqZ
+    );
+    return monsterOccupied;
+  }
+
+  /**
+   * Rulebook bone pile resolution:
+   * Returns the tile's rotated bone square if empty;
+   * otherwise falls back to an empty square on the same tile.
+   */
+  public static getBoneSquareOrEmpty(
+    tile: Tile,
+    gameState: GameState,
+    ignoreMonsterId?: string
+  ): { sqX: number; sqZ: number } {
+    const boneSq = TileSystem.getRotatedBoneSquare(tile);
+    if (!TileSystem.isSquareOccupied(gameState, tile, boneSq.sqX, boneSq.sqZ, ignoreMonsterId)) {
+      return boneSq;
+    }
+
+    // Bone pile is occupied: fallback to an empty square on the same tile
+    for (let sqX = 0; sqX < 4; sqX++) {
+      for (let sqZ = 0; sqZ < 4; sqZ++) {
+        if (sqX === boneSq.sqX && sqZ === boneSq.sqZ) continue;
+        if (!TileSystem.isSquareOccupied(gameState, tile, sqX, sqZ, ignoreMonsterId)) {
+          return { sqX, sqZ };
+        }
+      }
+    }
+
+    return boneSq;
   }
 
   /**

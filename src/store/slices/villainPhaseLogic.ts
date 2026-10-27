@@ -9,6 +9,11 @@ import { ConditionSystem } from '../../game/engine/ConditionSystem';
 import { EncounterSystem } from '../../game/engine/EncounterSystem';
 import { TreasureSystem } from '../../game/engine/TreasureSystem';
 import { DataLoader } from '../../game/dataLoader';
+import { SoundLibrary } from '../../audio/SoundLibrary';
+import { addLogEntry } from '../../game/engine/LogUtils';
+import { resetHeroTurnFlags } from '../../game/engine/HeroTurnUtils';
+import { useUIStore } from '../uiStore';
+import { GameStore } from '../storeTypes';
 
 export function buildVillainQueue(
   state: GameState,
@@ -85,24 +90,19 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
 
   // Fortune: Daze — skip this activation if skipActivations > 0
   if (monster.skipActivations && monster.skipActivations > 0) {
-    return {
+    const dazedState: GameState = {
       ...newState,
       monsters: newState.monsters.map(m =>
         m.id === monsterId
           ? { ...m, skipActivations: m.skipActivations! - 1 }
           : m
-      ),
-      log: [
-        ...newState.log,
-        {
-          id: String((newState.logIdCounter ?? 0) + 1),
-          timestamp: new Date().toISOString(),
-          message: `${monster.name} is dazed and skips its activation!`,
-          type: 'combat' as const
-        }
-      ].slice(-100),
-      logIdCounter: (newState.logIdCounter ?? 0) + 1,
+      )
     };
+    return addLogEntry(
+      dazedState,
+      `${monster.name} is dazed and skips its activation!`,
+      'combat'
+    );
   }
 
   // Phase transition check BEFORE calling resolveTactic
@@ -502,18 +502,7 @@ function resolveMonsterAttacks(
         ? `${currentMonster.name} attacks ${targetHero.name} (+${attackBonus} vs AC ${targetHero.ac}) and HITS (Roll: ${attackResult.roll}, Total: ${attackResult.total}) for ${attackResult.damage} damage.${statusSuffix}${logSuffix}`
         : `${currentMonster.name} attacks ${targetHero.name} (+${attackBonus} vs AC ${targetHero.ac}) and MISSES (Roll: ${attackResult.roll}, Total: ${attackResult.total}).${attackResult.damage > 0 ? ` Deals ${attackResult.damage} miss damage.${statusSuffix}` : ''}`;
 
-      let currentCounter = newState.logIdCounter ?? 0;
-
-      let updatedLog: GameLogEntry[] = [
-        ...newState.log,
-        {
-          id: String(currentCounter),
-          timestamp: new Date().toISOString(),
-          message: logMessage,
-          type: 'combat' as const
-        }
-      ].slice(-100);
-      currentCounter++;
+      newState = addLogEntry(newState, logMessage, 'combat');
 
       // Check for Riposte Strike
       const hasRiposte = (targetHero.abilities.includes('rogue_riposte_strike') || targetHero.hand.includes('rogue_riposte_strike')) &&
@@ -540,6 +529,10 @@ function resolveMonsterAttacks(
         let updatedHeroAfterRiposte = targetHero;
 
         if (riposteResult.hit) {
+          SoundLibrary.Combat.hit();
+          if (currentMonster.hp - riposteResult.damage <= 0) {
+            SoundLibrary.Combat.death();
+          }
           const updatedMonster = CombatSystem.applyDamage(currentMonster, riposteResult.damage, newState);
           newState = {
             ...newState,
@@ -562,20 +555,8 @@ function resolveMonsterAttacks(
           riposteLog = `${targetHero.name} triggers Riposte Strike, counterattacking ${currentMonster.name} and MISSES (Roll: ${riposteResult.roll}, Total: ${riposteResult.total}). Card does not flip.`;
         }
 
-        updatedLog.push({
-          id: String(currentCounter),
-          timestamp: new Date().toISOString(),
-          message: riposteLog,
-          type: 'combat' as const
-        });
-        currentCounter++;
+        newState = addLogEntry(newState, riposteLog, 'combat');
       }
-
-      newState = {
-        ...newState,
-        log: updatedLog,
-        logIdCounter: currentCounter
-      };
     }
   }
 
@@ -589,19 +570,11 @@ function resolveMonsterTurnStartPassives(state: GameState, monsterId: string, mo
     for (const passive of freshMonster.abilities) {
       if (passive.type === 'passive' && passive.trigger === 'on_turn_start') {
         if (passive.id === 'regeneration' && freshMonster.regenerationDisabled === true) {
-          newState = {
-            ...newState,
-            log: [
-              ...newState.log,
-              {
-                id: String((newState.logIdCounter ?? 0) + 1),
-                timestamp: new Date().toISOString(),
-                message: `♻️ ${freshMonster.name}'s Regeneration is disabled and does not heal.`,
-                type: 'combat' as const
-              }
-            ].slice(-100),
-            logIdCounter: (newState.logIdCounter ?? 0) + 1
-          };
+          newState = addLogEntry(
+            newState,
+            `♻️ ${freshMonster.name}'s Regeneration is disabled and does not heal.`,
+            'combat'
+          );
           continue;
         }
         for (const effect of passive.effects) {
@@ -639,18 +612,13 @@ function resolveSpecialMonsterTactics(
           m.id === monsterId
             ? { ...m, position: { x: targetTile.x, z: targetTile.z, sqX: bestSq.sqX, sqZ: bestSq.sqZ } }
             : m
-        ),
-        log: [
-          ...newState.log,
-          {
-            id: String((newState.logIdCounter ?? 0) + 1),
-            timestamp: new Date().toISOString(),
-            message: `${freshMonster.name} teleports to ${targetTile.name || targetTile.id}!`,
-            type: 'system' as const
-          }
-        ].slice(-100),
-        logIdCounter: (newState.logIdCounter ?? 0) + 1
+        )
       };
+      newState = addLogEntry(
+        newState,
+        `${freshMonster.name} teleports to ${targetTile.name || targetTile.id}!`,
+        'system'
+      );
     }
   }
 
@@ -665,19 +633,11 @@ function resolveSpecialMonsterTactics(
         const placedTile = newState.tiles[newState.tiles.length - 1];
         newState = TileSystem.spawnMonsterForExploration(newState, placedTile);
         
-        newState = {
-          ...newState,
-          log: [
-            ...newState.log,
-            {
-              id: String((newState.logIdCounter ?? 0) + 1),
-              timestamp: new Date().toISOString(),
-              message: `${freshMonster.name} reveals a tile from the bottom of the deck at ${pt.edge} edge.`,
-              type: 'system' as const
-            }
-          ].slice(-100),
-          logIdCounter: (newState.logIdCounter ?? 0) + 1
-        };
+        newState = addLogEntry(
+          newState,
+          `${freshMonster.name} reveals a tile from the bottom of the deck at ${pt.edge} edge.`,
+          'system'
+        );
       }
     }
   }
@@ -712,18 +672,13 @@ function resolveSpecialMonsterTactics(
           ...newState,
           monsters: newState.monsters.map(m =>
             m.id === closestUndead!.id ? { ...m, hp: healedHp } : m
-          ),
-          log: [
-            ...newState.log,
-            {
-              id: String((newState.logIdCounter ?? 0) + 1),
-              timestamp: new Date().toISOString(),
-              message: `Dark Chant: ${freshMonster.name} heals the closest wounded Undead (${closestUndead.name}) for 1 HP.`,
-              type: 'combat' as const
-            }
-          ].slice(-100),
-          logIdCounter: (newState.logIdCounter ?? 0) + 1
+          )
         };
+        newState = addLogEntry(
+          newState,
+          `Dark Chant: ${freshMonster.name} heals the closest wounded Undead (${closestUndead.name}) for 1 HP.`,
+          'combat'
+        );
       }
     }
   }
@@ -742,22 +697,101 @@ function resolveSpecialMonsterTactics(
         ...newState,
         monsters: newState.monsters.map(m =>
           m.id === monsterId ? { ...m, ownedByHeroId: nextOwnerId } : m
-        ),
-        log: [
-          ...newState.log,
-          {
-            id: String((newState.logIdCounter ?? 0) + 1),
-            timestamp: new Date().toISOString(),
-            message: `${freshMonster.name} card passed from ${ownerHero?.name || currentOwnerId} to ${nextOwnerHero?.name || nextOwnerId}.`,
-            type: 'system' as const
-          }
-        ].slice(-100),
-        logIdCounter: (newState.logIdCounter ?? 0) + 1
+        )
       };
+      newState = addLogEntry(
+        newState,
+        `${freshMonster.name} card passed from ${ownerHero?.name || currentOwnerId} to ${nextOwnerHero?.name || nextOwnerId}.`,
+        'system'
+      );
     }
   }
 
   return newState;
+}
+
+export function activateVillainEntity(state: GameState, villainId: string): GameState {
+  let newState: GameState = {
+    ...state,
+    activeVillainId: villainId
+  };
+
+  const monster = newState.monsters.find(m => m.id === villainId);
+  const trap = newState.traps.find(t => t.id === villainId);
+
+  if (monster) {
+    newState = activateMonsterEntity(newState, villainId);
+  } else if (trap) {
+    const trapTile = newState.tiles.find(tile => tile.id === trap.tileId);
+    if (trapTile) {
+      const trapCard = DataLoader.getInstance().getCardById(trap.cardId);
+      if (trapCard) {
+        const trapResult = EncounterSystem.activateTrap(newState, trap, trapCard);
+        if (trapResult.success) {
+          newState = trapResult.gameState;
+        }
+      }
+    }
+  }
+
+  return newState;
+}
+
+export function advanceToNextHeroTurn(state: GameState): GameState {
+  const validTurnOrder = state.turnOrder.filter(id => state.heroes.some(h => h.id === id));
+  const effectiveTurnOrder = validTurnOrder.length > 0 ? validTurnOrder : state.heroes.map(h => h.id);
+  const currentIndex = effectiveTurnOrder.indexOf(state.currentHeroId);
+  const nextIndex = (currentIndex + 1) % effectiveTurnOrder.length;
+  const nextId = effectiveTurnOrder[nextIndex] || state.heroes[0]?.id;
+
+  const stateAfterTurnStart = ConditionSystem.processTurnStart(state, nextId);
+
+  const postVillainDefeated = state.phase !== 'setup' && ScenarioManager.checkDefeat(state);
+  const nextTurnDefeated = !postVillainDefeated && ScenarioManager.checkDefeat({ ...stateAfterTurnStart, currentHeroId: nextId });
+  const nextPhase = (postVillainDefeated || nextTurnDefeated) ? ('defeat' as const) : ('hero' as const);
+
+  const nextHero = stateAfterTurnStart.heroes.find(h => h.id === nextId);
+  const newTurnNum = stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0);
+  const stateWithTurnLog = addLogEntry(
+    stateAfterTurnStart,
+    `── Turn ${newTurnNum}: ${nextHero ? nextHero.name : nextId}'s turn begins (${nextHero?.hp ?? 0}/${nextHero?.maxHp ?? 0} HP, ${stateAfterTurnStart.healingSurges} Surges) ──`,
+    'system'
+  );
+
+  return {
+    ...stateWithTurnLog,
+    currentHeroId: nextId,
+    phase: nextPhase,
+    hasExploredThisTurn: false,
+    exploredThisTurn: false,
+    hasAttackedThisTurn: false,
+    lastPlacedTileEncounterType: null,
+    lastPlacedTileId: null,
+    turnCount: newTurnNum,
+    pendingAITurnApproval: null,
+    heroes: stateWithTurnLog.heroes.map(h => {
+      const resetH = resetHeroTurnFlags(h);
+      let startedTurnAdjacentToDreadWarriorIds: string[] = [];
+      if (h.id === nextId) {
+        const dreadWarriors = stateAfterTurnStart.monsters.filter(
+          m => !m.isDefeated && m.hp > 0 && m.name.toLowerCase() === 'dread warrior'
+        );
+        for (const dw of dreadWarriors) {
+          const hAbsX = h.position.x * 4 + h.position.sqX;
+          const hAbsZ = h.position.z * 4 + h.position.sqZ;
+          const dwAbsX = dw.position.x * 4 + dw.position.sqX;
+          const dwAbsZ = dw.position.z * 4 + dw.position.sqZ;
+          if (Math.abs(hAbsX - dwAbsX) + Math.abs(hAbsZ - dwAbsZ) === 1) {
+            startedTurnAdjacentToDreadWarriorIds.push(dw.id);
+          }
+        }
+      }
+      return {
+        ...resetH,
+        startedTurnAdjacentToDreadWarriorIds
+      };
+    })
+  };
 }
 
 export function executeVillainPhase(state: GameState): GameState {
@@ -774,32 +808,9 @@ export function executeVillainPhase(state: GameState): GameState {
     )
   };
 
-  // 2. Process each entry in the queue
+  // 2. Process each entry in the queue sequentially
   for (const villainId of villainPhaseQueue) {
-    // a. Set activeVillainId
-    newState = {
-      ...newState,
-      activeVillainId: villainId
-    };
-
-    // b. Determine if it's a Monster or Trap
-    const monster = newState.monsters.find(m => m.id === villainId);
-    const trap = newState.traps.find(t => t.id === villainId);
-
-    if (monster) {
-      newState = activateMonsterEntity(newState, villainId);
-    } else if (trap) {
-      const trapTile = newState.tiles.find(tile => tile.id === trap.tileId);
-      if (trapTile) {
-        const trapCard = DataLoader.getInstance().getCardById(trap.cardId);
-        if (trapCard) {
-          const trapResult = EncounterSystem.activateTrap(newState, trap, trapCard);
-          if (trapResult.success) {
-            newState = trapResult.gameState;
-          }
-        }
-      }
-    }
+    newState = activateVillainEntity(newState, villainId);
   }
 
   // 3. After queue is fully consumed
@@ -807,11 +818,144 @@ export function executeVillainPhase(state: GameState): GameState {
     ...newState,
     activeVillainId: null,
     villainPhaseQueue: [],
+    villainQueueIndex: undefined,
     frenzyActiveThisTurn: false // Reset Frenzy
   };
 
   // 4. Return the final state with experience and treasures processed
   return TreasureSystem.processDefeatedMonsters(newState);
+}
+
+export async function executeVillainPhaseStaged(
+  startState: GameState,
+  set: (partial: Partial<GameStore> | ((state: GameStore) => Partial<GameStore>)) => void,
+  get: () => GameStore,
+  options?: { cardDisplayDelayMs?: number; actionDelayMs?: number }
+): Promise<void> {
+  const isBrowser = typeof window !== 'undefined';
+  const cardDelay = options?.cardDisplayDelayMs ?? (isBrowser ? 2200 : 0);
+  const actionDelay = options?.actionDelayMs ?? (isBrowser ? 1000 : 0);
+
+  // 1. Build the villain queue
+  const queue = buildVillainQueue(startState, startState.currentHeroId);
+
+  // Mark pre-existing defeated monsters
+  let currentState: GameState = {
+    ...startState,
+    phase: 'villain' as const,
+    villainPhaseQueue: queue,
+    activeVillainId: null,
+    villainQueueIndex: undefined,
+    monsters: startState.monsters.map(m =>
+      m.hp <= 0 ? { ...m, isDefeated: true } : m
+    )
+  };
+
+  // If queue is empty: notify, finalize defeated monsters, and advance turn
+  if (queue.length === 0) {
+    useUIStore.getState().addNotification('Villain Phase: No monster attacks.', 'info', 2000);
+    const cleanedState: GameState = {
+      ...currentState,
+      activeVillainId: null,
+      villainPhaseQueue: [],
+      villainQueueIndex: undefined,
+      frenzyActiveThisTurn: false
+    };
+    const processedState = TreasureSystem.processDefeatedMonsters(cleanedState);
+    const nextTurnState = advanceToNextHeroTurn(processedState);
+    if (nextTurnState.phase === 'defeat') {
+      useUIStore.getState().showModal('defeat');
+    }
+    set({ gameState: nextTurnState });
+    return;
+  }
+
+  // Set initial villain phase state with populated queue
+  set({ gameState: currentState });
+
+  // 2. Stage each entity one at a time
+  for (let qIdx = 0; qIdx < queue.length; qIdx++) {
+    const villainId = queue[qIdx];
+
+    // Check eligibility
+    const monster = currentState.monsters.find(m => m.id === villainId);
+    const trap = currentState.traps.find(t => t.id === villainId);
+    if (monster && (monster.hp <= 0 || monster.isDefeated)) continue;
+    if (trap && trap.isDisabled) continue;
+    if (!monster && !trap) continue;
+
+    // STEP A: Show AI card (Telegraph)
+    currentState = {
+      ...currentState,
+      activeVillainId: villainId,
+      villainQueueIndex: qIdx
+    };
+    set({ gameState: currentState });
+
+    if (cardDelay > 0) {
+      await new Promise(resolve => setTimeout(resolve, cardDelay));
+    }
+
+    // Guard: check if game state was reset or phase changed while waiting
+    const liveState = get().gameState;
+    if (!liveState || liveState.phase !== 'villain') return;
+
+    // STEP B: Entity Acts
+    const preLogCount = currentState.log.length;
+    currentState = activateVillainEntity(currentState, villainId);
+
+    // Audio & notifications for new combat logs
+    const newLogs = currentState.log.slice(preLogCount);
+    const combatEntries = newLogs.filter(e => e.type === 'combat');
+    if (combatEntries.length > 0) {
+      for (const entry of combatEntries) {
+        const isHit = entry.message.includes('HITS');
+        if (isHit) {
+          SoundLibrary.Combat.hit();
+          SoundLibrary.Combat.hurt();
+        }
+        useUIStore.getState().addNotification(
+          entry.message,
+          isHit ? 'error' : 'info',
+          3500
+        );
+      }
+    }
+
+    // During the action on board, clear activeVillainId so the card fades and table is visible
+    currentState = {
+      ...currentState,
+      activeVillainId: null
+    };
+    set({ gameState: currentState });
+
+    if (actionDelay > 0) {
+      await new Promise(resolve => setTimeout(resolve, actionDelay));
+    }
+
+    // Check defeat condition early (if all heroes were killed)
+    if (ScenarioManager.checkDefeat(currentState)) {
+      break;
+    }
+  }
+
+  // 3. Queue finished — finalize villain phase
+  currentState = {
+    ...currentState,
+    activeVillainId: null,
+    villainPhaseQueue: [],
+    villainQueueIndex: undefined,
+    frenzyActiveThisTurn: false
+  };
+
+  const processedState = TreasureSystem.processDefeatedMonsters(currentState);
+  const nextTurnState = advanceToNextHeroTurn(processedState);
+
+  if (nextTurnState.phase === 'defeat') {
+    useUIStore.getState().showModal('defeat');
+  }
+
+  set({ gameState: nextTurnState });
 }
 
 export function applyTrapResult(

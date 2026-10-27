@@ -291,7 +291,8 @@ export type LogEntryType =
   | 'spell'
   | 'condition'
   | 'trap'
-  | 'villain';
+  | 'villain'
+  | 'encounter';
 
 export interface GameLogEntry {
   id: string;
@@ -326,6 +327,7 @@ export interface CardResolutionState {
   targetEntityId: string | null;
   result?: { success: boolean; message: string; results?: any[] } | null;
   spawnedMonsterId?: string | null;
+  hasLoggedChronicle?: boolean;
 }
 
 export interface TreasureAssignment {
@@ -434,6 +436,7 @@ export interface GameState {
   traps: Trap[]; // Active traps in dungeon
   villainPhaseQueue: string[];
   activeVillainId: string | null;
+  villainQueueIndex?: number;
   powerSelections?: PowerSelection[]
   // One entry per hero, populated at game initialization.
   // Card resolution (Prompt CUI-1)

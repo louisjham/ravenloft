@@ -14,16 +14,24 @@ const mockLocalStorage = (() => {
 
 import { runFullGameLoopTest } from './src/testing/integrationTests';
 import { runBlessingMechanicsTests } from './src/testing/blessing-mechanics-tests';
+import { runEncounterLoggingTests } from './src/testing/test_encounter_logging';
+import { runVillainPhaseTests } from './src/testing/test-villain-phase';
+import { runDiceTimeoutTests } from './src/testing/test_dice_timeout';
+import { runBonePileTests } from './src/testing/test_bone_pile';
 
 console.log('Starting integration tests in Node...');
 runFullGameLoopTest().then(async success => {
   if (success) {
     try {
         await runBlessingMechanicsTests();
+        await runEncounterLoggingTests();
+        await runVillainPhaseTests();
+        await runDiceTimeoutTests();
+        await runBonePileTests();
         console.log('ALL TESTS PASSED SUCCESSFULLY!');
         process.exit(0);
     } catch (e) {
-        console.error('BLESSING TESTS FAILED:', e);
+        console.error('TESTS FAILED:', e);
         process.exit(1);
     }
   } else {

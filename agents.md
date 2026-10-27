@@ -1,8 +1,28 @@
+## Direction: AR-first, VR toggle kept (Oct 25, 2026)
+Target: Meta Quest (Horizon OS), WebXR AR, shipped as PWA/TWA via Bubblewrap to the Horizon Store. One codebase (React/Vite/Three.js web app); AR is the runtime mode, not a separate app.
+Means:
+- AR is the shipped focus. VR remains as a toggle inside the AR build (many AR games offer a VR mode). The toggle is maintained; it is NOT a separate version, and VR is never kept in parity with AR. No desktop/web version in parity.
+- Desktop is dev/playtest surface only, never a release target.
+- Passthrough tabletop in the player's room; hands-first (required); seated-optimized.
+- No forks. Prompts do not fork the repo; AR work lands in this codebase.
+- Verify on Quest first (metavr-cli, hz-quest-verify-first) before any store/packaging step.
+Out of scope: Unity/Android paths, 2D windowed panel target, a separate VR version, VR parity work.
+
+## Before any code task (Oct 25, 2026)
+Read `.agents/CODEBASE.md` first. It is the current plain-language map of this codebase: layout, layers, stores, engine rules, and where the truth lives. For the purpose of a specific file, check `.agents/FILEMAP.md` (one line per file under src/). Then load the skill the routing below points to.
+
+## Searching the codebase (Oct 25, 2026)
+Search with the built-in search tool (or grep). Never search with PowerShell Get-ChildItem/Select-String pipelines: every new search string is a new shell command that needs a fresh permission approval, so shell searching turns every lookup into a prompt.
+
 Load castle-ravenloft-refactor for any refactor, cleanup, bug fix, performance, or architecture task.
 
 Load castle-ravenloft-source-of-truth for any task involving cards, powers, treasures, encounters, JSON data, image remaps, scans, or source-of-truth verification.
 
 If a task touches both architecture and card data, load both skills.
+
+Load castle-ravenloft-ar for any AR, XR, passthrough, WebXR session, hand-tracking, tabletop-alignment, packaging, or store task. It takes precedence over hz-iwsdk-webxr (IWSDK ECS does not apply to this codebase) and fixes the hz-store-pwa mode choice to immersive AR.
+
+Load castle-ravenloft-rules for any rules question, mechanics definition, or rulebook-compliance check. It takes precedence over current engine behavior when the two disagree; flag conflicts, never silently follow code.
 
 For any refactor, cleanup, bug-fix, performance optimization, or architectural change in this repository, load and follow the workspace skill `castle-ravenloft-refactor` before making edits.
 

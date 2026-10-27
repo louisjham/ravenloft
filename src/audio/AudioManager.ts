@@ -17,7 +17,23 @@ export class AudioManager {
     return this.instance;
   }
 
+  public getAmbientAudio(): HTMLAudioElement | null {
+    return this.ambientAudio;
+  }
+
+  public resumeAmbient() {
+    if (typeof Audio === 'undefined') return;
+    if (this.ambientAudio && this.ambientAudio.paused) {
+      const ambient = (audioManifest.ambient as any)['dungeon_loop'];
+      if (ambient) {
+        this.ambientAudio.volume = ambient.volume * this.getSFXVolume();
+      }
+      this.ambientAudio.play().catch(e => console.warn('Ambient resume failed', e));
+    }
+  }
+
   public playMusic(trackId: string, fadeTime: number = 1000) {
+    if (typeof Audio === 'undefined') return;
     const track = (audioManifest.music as any)[trackId];
     if (!track) return;
 
@@ -39,6 +55,7 @@ export class AudioManager {
   }
 
   public stopMusic(fadeTime: number = 1000) {
+    if (typeof Audio === 'undefined') return;
     if (this.musicAudio) {
       this.fadeAudio(this.musicAudio, 0, fadeTime, () => {
         this.musicAudio?.pause();
@@ -48,6 +65,7 @@ export class AudioManager {
   }
 
   public playSound(soundId: string) {
+    if (typeof Audio === 'undefined') return;
     const sfx = (audioManifest.sfx as any)[soundId];
     if (!sfx) return;
 
@@ -62,6 +80,7 @@ export class AudioManager {
   }
 
   public playAmbient(ambientId: string) {
+    if (typeof Audio === 'undefined') return;
     const ambient = (audioManifest.ambient as any)[ambientId];
     if (!ambient) return;
 

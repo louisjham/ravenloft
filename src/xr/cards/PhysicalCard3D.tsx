@@ -1,11 +1,13 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { useFrame, ThreeEvent } from '@react-three/fiber';
-import { Interactive } from '@react-three/xr';
+import { Interactive, useXR } from '@react-three/xr';
 import { Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 import { Card } from '../../game/types';
+import { useUIStore } from '../../store/uiStore';
 import { getCardTextures } from './CardTextureGenerator';
 import { playHapticProfile } from '../XRHaptics';
+import { XRGrabSource, resolveGrabSource, isGrabActive, recordGrabRelease, getGrabWorldPose } from '../XRGrabManager';
 
 export interface PhysicalCard3DProps {
   card: Card;
@@ -49,6 +51,9 @@ export const PhysicalCard3D: React.FC<PhysicalCard3DProps> = ({
   const [localFlipped, setLocalFlipped] = useState(isFlipped);
   const [isInspecting, setIsInspecting] = useState(false);
   const grabbingControllerRef = useRef<THREE.Object3D | null>(null);
+  const grabSourceRef = useRef<XRGrabSource | null>(null);
+  const cardResetVersionRef = useRef<number>(0);
+  const { isPresenting, controllers } = useXR();
 
   // Textures for front and back
   const { front, back } = useMemo(() => getCardTextures(card), [card]);
@@ -80,14 +85,39 @@ export const PhysicalCard3D: React.FC<PhysicalCard3DProps> = ({
 
   useFrame((_, delta) => {
     if (!groupRef.current) return;
+    // Reset All: return card to initial placement props
+    const currentResetVersion = useUIStore.getState().resetAllVersion;
+    if (currentResetVersion > cardResetVersionRef.current) {
+      cardResetVersionRef.current = currentResetVersion;
+      if (grabbingControllerRef.current || grabSourceRef.current) {
+        grabbingControllerRef.current = null;
+        grabSourceRef.current = null;
+      }
+      setIsInspecting(false);
+      groupRef.current.position.set(...position);
+      groupRef.current.rotation.set(...rotation);
+      groupRef.current.scale.setScalar(scale);
+    }
+
 
     const speed = 1 - Math.pow(0.001, delta);
 
+    if (grabSourceRef.current) {
+      if (!isGrabActive(grabSourceRef.current)) {
+        handleGrabEnd();
+        return;
+      }
+    }
+
     if (grabbingControllerRef.current) {
       // 6DoF Grabbed by controller
-      grabbingControllerRef.current.updateWorldMatrix(true, false);
-      grabbingControllerRef.current.getWorldPosition(_ctrlPos);
-      grabbingControllerRef.current.getWorldQuaternion(_ctrlRot);
+      if (grabSourceRef.current) {
+        getGrabWorldPose(grabSourceRef.current, _ctrlPos, _ctrlRot);
+      } else {
+        grabbingControllerRef.current.updateWorldMatrix(true, false);
+        grabbingControllerRef.current.getWorldPosition(_ctrlPos);
+        grabbingControllerRef.current.getWorldQuaternion(_ctrlRot);
+      }
 
       _offset.set(0, 0.03, -0.12).applyQuaternion(_ctrlRot);
       _targetPos.copy(_ctrlPos).add(_offset);
@@ -162,10 +192,16 @@ export const PhysicalCard3D: React.FC<PhysicalCard3DProps> = ({
   };
 
   const handleGrabStart = (e: any) => {
-    playHapticProfile('click');
+    let source: XRGrabSource | null = null;
+    if (isPresenting) {
+      source = resolveGrabSource(e, controllers);
+      if (!source) return;
+    }
     const xrCtrl = e?.controller || (e?.target?.controller ? e.target : null);
-    const ctrlObj = xrCtrl?.controller || xrCtrl?.grip || (e?.target instanceof THREE.Object3D ? e.target : null);
+    const ctrlObj = source?.controller || xrCtrl?.controller || xrCtrl?.grip || (e?.target instanceof THREE.Object3D ? e.target : null);
     if (ctrlObj) {
+      playHapticProfile('click');
+      grabSourceRef.current = source;
       grabbingControllerRef.current = ctrlObj;
     } else {
       setIsInspecting(prev => !prev);
@@ -175,6 +211,8 @@ export const PhysicalCard3D: React.FC<PhysicalCard3DProps> = ({
   const handleGrabEnd = () => {
     if (grabbingControllerRef.current) {
       playHapticProfile('click');
+      recordGrabRelease(grabSourceRef.current);
+      grabSourceRef.current = null;
       grabbingControllerRef.current = null;
       if (onSelect) {
         onSelect(card);

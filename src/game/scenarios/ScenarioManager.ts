@@ -1,6 +1,8 @@
 import { GameState, Scenario, Tile, TokenType } from '../types';
 import { ObjectiveTracker } from './Objectives';
 import { DataLoader } from '../dataLoader';
+import { addLogEntry } from '../engine/LogUtils';
+import { TileSystem } from '../engine/TileSystem';
 
 export class ScenarioManager {
 
@@ -16,21 +18,14 @@ export class ScenarioManager {
     const timeTrack = state.timeTrack;
     if (timeTrack && placedTile.encounterType === 'white') {
       const newCurrent = timeTrack.current + 1;
-      const logId = String(state.logIdCounter ?? 0);
-      state = {
-        ...state,
-        timeTrack: { ...timeTrack, current: newCurrent },
-        log: [
-          ...state.log,
-          {
-            id: logId,
-            timestamp: new Date().toISOString(),
-            message: `☀️ Time advances: ${newCurrent}/${timeTrack.max} (${placedTile.name} explored)`,
-            type: 'system' as const
-          }
-        ],
-        logIdCounter: (state.logIdCounter ?? 0) + 1
-      };
+      state = addLogEntry(
+        {
+          ...state,
+          timeTrack: { ...timeTrack, current: newCurrent }
+        },
+        `☀️ Time advances: ${newCurrent}/${timeTrack.max} (${placedTile.name} explored)`,
+        'system'
+      );
 
       // Check if time track is exhausted
       if (newCurrent >= timeTrack.max && !state.strahdAwakened) {
@@ -56,27 +51,20 @@ export class ScenarioManager {
 
     // Check for Chapel reveal (Adventure 2)
     if (placedTile.id.startsWith('named_chapel') && placedTile.isRevealed) {
-      const logId = String(state.logIdCounter ?? 0);
-      state = {
-        ...state,
-        chapelRevealed: true,
-        log: [
-          ...state.log,
-          {
-            id: logId,
-            timestamp: new Date().toISOString(),
-            message: '⛪ The Chapel of Ravenloft has been discovered!',
-            type: 'system' as const
-          }
-        ],
-        logIdCounter: (state.logIdCounter ?? 0) + 1
-      };
+      state = addLogEntry(
+        {
+          ...state,
+          chapelRevealed: true
+        },
+        '⛪ The Chapel of Ravenloft has been discovered!',
+        'system'
+      );
     }
 
     return state;
   }
 
-  private static triggerStrahdAwakening(state: GameState): GameState {
+  public static triggerStrahdAwakening(state: GameState): GameState {
     const strahdMonster = DataLoader.getInstance().getMonsterById('monster_strahd');
 
     if (!strahdMonster) {
@@ -102,31 +90,24 @@ export class ScenarioManager {
     // Place Strahd on the start tile's bone pile
     const startTile = newState.tiles.find(t => t.isStart);
     if (startTile) {
+      const spawnPos = TileSystem.getBoneSquareOrEmpty(startTile, newState);
       newMonster.position = {
         x: startTile.x,
         z: startTile.z,
-        sqX: startTile.boneSquare?.sqX ?? 0,
-        sqZ: startTile.boneSquare?.sqZ ?? 0
+        sqX: spawnPos.sqX,
+        sqZ: spawnPos.sqZ
       };
 
-      const logId = String(newState.logIdCounter ?? 0);
-      newState.logIdCounter = (newState.logIdCounter ?? 0) + 1;
-
-      return {
-        ...newState,
-        monsters: [...newState.monsters, newMonster as any],
-        strahdAwakened: true,
-        villainPhaseQueue: [...newState.villainPhaseQueue, newMonster.id],
-        log: [
-          ...newState.log,
-          {
-            id: logId,
-            timestamp: new Date().toISOString(),
-            message: '🧛 Count Strahd has AWAKENED and entered the crypts!',
-            type: 'system' as const
-          }
-        ]
-      };
+      return addLogEntry(
+        {
+          ...newState,
+          monsters: [...newState.monsters, newMonster as any],
+          strahdAwakened: true,
+          villainPhaseQueue: [...newState.villainPhaseQueue, newMonster.id]
+        },
+        '🧛 Count Strahd has AWAKENED and entered the crypts!',
+        'system'
+      );
     }
 
     return { ...newState, strahdAwakened: true };
@@ -160,31 +141,24 @@ export class ScenarioManager {
     // Place villain on the lair tile's bone pile
     const lairTile = newState.tiles.find(t => t.id === pairing.lairTileId);
     if (lairTile) {
+      const spawnPos = TileSystem.getBoneSquareOrEmpty(lairTile, newState);
       newVillain.position = {
         x: lairTile.x,
         z: lairTile.z,
-        sqX: lairTile.boneSquare?.sqX ?? 0,
-        sqZ: lairTile.boneSquare?.sqZ ?? 0
+        sqX: spawnPos.sqX,
+        sqZ: spawnPos.sqZ
       };
     }
 
-    const logId = String(newState.logIdCounter ?? 0);
-    newState.logIdCounter = (newState.logIdCounter ?? 0) + 1;
-
-    return {
-      ...newState,
-      monsters: [...newState.monsters, newVillain as any],
-      villainPhaseQueue: [...newState.villainPhaseQueue, newVillain.id],
-      log: [
-        ...newState.log,
-        {
-          id: logId,
-          timestamp: new Date().toLocaleTimeString(),
-          message: `👹 ${pairing.villainName} emerges from their lair!`,
-          type: 'system' as const
-        }
-      ]
-    };
+    return addLogEntry(
+      {
+        ...newState,
+        monsters: [...newState.monsters, newVillain as any],
+        villainPhaseQueue: [...newState.villainPhaseQueue, newVillain.id]
+      },
+      `👹 ${pairing.villainName} emerges from their lair!`,
+      'system'
+    );
   }
 
   private static handleArcaneCircleReveal(state: GameState): GameState {
@@ -221,32 +195,21 @@ export class ScenarioManager {
         blocksLineOfSight: false
       };
 
-      let tempState = { ...stateWithGravestorm };
-      const logId1 = String(tempState.logIdCounter ?? 0);
-      tempState.logIdCounter = (tempState.logIdCounter ?? 0) + 1;
-      const logId2 = String(tempState.logIdCounter ?? 0);
-      tempState.logIdCounter = (tempState.logIdCounter ?? 0) + 1;
+      let tempState = addLogEntry(
+        {
+          ...stateWithGravestorm,
+          tiles: [...stateWithGravestorm.tiles, labTile],
+          laboratoryRevealed: true
+        },
+        '🔮 The Arcane Circle pulses with energy! Gravestorm has been summoned!',
+        'system'
+      );
 
-      return {
-        ...tempState,
-        tiles: [...tempState.tiles, labTile],
-        laboratoryRevealed: true,
-        log: [
-          ...tempState.log,
-          {
-            id: logId1,
-            timestamp: new Date().toISOString(),
-            message: '🔮 The Arcane Circle pulses with energy! Gravestorm has been summoned!',
-            type: 'system' as const
-          },
-          {
-            id: logId2,
-            timestamp: new Date().toISOString(),
-            message: '⚗️ The Laboratory manifests nearby, containing Gravestorm\'s Phylactery!',
-            type: 'system' as const
-          }
-        ]
-      };
+      return addLogEntry(
+        tempState,
+        '⚗️ The Laboratory manifests nearby, containing Gravestorm\'s Phylactery!',
+        'system'
+      );
     }
 
     return stateWithGravestorm;

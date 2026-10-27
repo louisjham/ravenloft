@@ -4,6 +4,7 @@ import { useXR } from '@react-three/xr';
 import * as THREE from 'three';
 import { playHapticProfile } from './XRHaptics';
 import { useUIStore } from '../store/uiStore';
+import { useGameStore } from '../store/gameStore';
 
 interface XRTabletopRigProps {
   children: React.ReactNode;
@@ -114,6 +115,13 @@ export const XRTabletopRig: React.FC<XRTabletopRigProps> = ({ children }) => {
   } | null>(null);
 
   // Dual Grip / Dual Pinch state
+  const initialSnapshotRef = useRef<{
+    pos: THREE.Vector3;
+    rotY: number;
+    scale: number;
+  } | null>(null);
+  const lastResetVersionRef = useRef<number>(0);
+
   const dualGripRef = useRef<{
     initialWorldPos: THREE.Vector3;
     initialWorldRotY: number;
@@ -143,15 +151,21 @@ export const XRTabletopRig: React.FC<XRTabletopRigProps> = ({ children }) => {
 
   // Expose a reset-to-defaults action so the HUD "Reset Table" button can call it
   const resetTable = () => {
-    worldPosRef.current.set(0, DEFAULT_TABLE_Y, DEFAULT_TABLE_OFFSET_Z);
-    worldRotYRef.current  = 0;
-    worldScaleRef.current = 1.0;
+    if (initialSnapshotRef.current) {
+      worldPosRef.current.copy(initialSnapshotRef.current.pos);
+      worldRotYRef.current  = initialSnapshotRef.current.rotY;
+      worldScaleRef.current = initialSnapshotRef.current.scale;
+    } else {
+      worldPosRef.current.set(0, DEFAULT_TABLE_Y, DEFAULT_TABLE_OFFSET_Z);
+      worldRotYRef.current  = 0;
+      worldScaleRef.current = 1.0;
+    }
     singleGripRef.current = null;
     dualGripRef.current   = null;
     if (rigRef.current) {
       rigRef.current.position.copy(worldPosRef.current);
-      rigRef.current.rotation.set(0, 0, 0);
-      rigRef.current.scale.setScalar(1.0);
+      rigRef.current.rotation.set(0, worldRotYRef.current, 0);
+      rigRef.current.scale.setScalar(worldScaleRef.current);
     }
   };
 
@@ -199,11 +213,26 @@ export const XRTabletopRig: React.FC<XRTabletopRigProps> = ({ children }) => {
       rigRef.current.scale.setScalar(1.0);
     }
 
-    // ── Check for HUD-triggered reset request ────────────────────────────
+    // ── Snapshot initial playspace arrangement at scene start (post-setup) ──
+    const phase = useGameStore.getState().gameState?.phase;
+    if (phase && phase !== 'setup' && hasSpawnedInXR.current) {
+      if (!initialSnapshotRef.current) {
+        initialSnapshotRef.current = {
+          pos: worldPosRef.current.clone(),
+          rotY: worldRotYRef.current,
+          scale: worldScaleRef.current,
+        };
+      }
+    } else if (!phase || phase === 'setup') {
+      initialSnapshotRef.current = null;
+    }
+
+    // ── Check for Reset All / Reset Table request ────────────────────────────
     const uiState = useUIStore.getState();
-    if (uiState.xrTableResetRequested) {
+    if (uiState.resetAllVersion > lastResetVersionRef.current || uiState.xrTableResetRequested || uiState.resetAllRequested) {
+      lastResetVersionRef.current = uiState.resetAllVersion;
       resetTable();
-      uiState.clearXRTableResetRequest();
+      uiState.clearResetAllRequest();
     }
 
     let transformChanged = false;

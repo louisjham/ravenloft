@@ -11,6 +11,8 @@ import {
 import { TileSystem } from '../game/engine/TileSystem';
 import { ScenarioManager } from '../game/scenarios/ScenarioManager';
 import { ExplorationPoint } from '../game/types';
+import { SoundLibrary } from '../audio/SoundLibrary';
+import { addLogEntry } from '../game/engine/LogUtils';
 
 export function useExplorationControls() {
   // All gameState reads are done imperatively inside callbacks via useGameStore.getState()
@@ -53,6 +55,7 @@ export function useExplorationControls() {
 
         if (validation.valid) {
           const finalState = TileSystem.placeTile(gameState, point, autoRotation);
+          SoundLibrary.Game.tilePlace();
           const placedTile = finalState.tiles.find(t => t.x === targetX && t.z === targetZ);
           
           if (placedTile) {
@@ -123,6 +126,7 @@ export function useExplorationControls() {
     if (newState.phase === 'placing') {
       useUIStore.getState().closeTilePlacer();
       const finalState = TileSystem.placeTile(gameState, newState.point, newState.rotation);
+      SoundLibrary.Game.tilePlace();
       const placedTile = finalState.tiles.find(t => t.x === targetX && t.z === targetZ);
       if (placedTile) {
         const stateWithMonster = TileSystem.spawnMonsterForExploration(finalState, placedTile);
@@ -152,18 +156,9 @@ export function useExplorationControls() {
           : `Placement blocked: ${c.description}`
         : "Invalid placement";
 
-      setGameState({
-        ...gameState,
-        log: [
-          ...gameState.log,
-          {
-            id: crypto.randomUUID(),
-            timestamp: new Date().toISOString(),
-            message: `Placement Invalid: ${reason}`,
-            type: 'system' as const
-          }
-        ].slice(-100)
-      });
+      setGameState(
+        addLogEntry(gameState, `Placement Invalid: ${reason}`, 'system')
+      );
       useUIStore.getState().setTilePlacementError(reason);
       setExploration(newState);
     } else {

@@ -5,6 +5,7 @@ import { animationQueue } from '../utils/animationQueue'
 import { Position, Entity, TokenSearchResult } from '../game/types'
 import { TileSystem } from '../game/engine/TileSystem'
 import { ConditionSystem } from '../game/engine/ConditionSystem'
+import { SoundLibrary } from '../audio/SoundLibrary'
 
 export const useGameActions = () => {
   // ── Stable actions — do not trigger re-renders because references are stable ──
@@ -140,6 +141,7 @@ export const useGameActions = () => {
 
             if (validation.valid) {
               const finalState = TileSystem.placeTile(currentState, explorablePoint, autoRotation);
+              SoundLibrary.Game.tilePlace();
               const placedTile = finalState.tiles.find(t => t.x === targetX && t.z === targetZ);
               if (placedTile) {
                 const stateWithMonster = TileSystem.spawnMonsterForExploration(finalState, placedTile);
@@ -227,6 +229,7 @@ export const useGameActions = () => {
 
                 if (validation.valid) {
                   const finalState = TileSystem.placeTile(gameState, explorablePoint, autoRotation);
+                  SoundLibrary.Game.tilePlace();
                   const placedTile = finalState.tiles.find(t => t.x === targetX && t.z === targetZ);
                   if (placedTile) {
                     const stateWithMonster = TileSystem.spawnMonsterForExploration(finalState, placedTile);

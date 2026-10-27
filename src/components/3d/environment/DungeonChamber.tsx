@@ -1,8 +1,6 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useXR } from '@react-three/xr';
 import * as THREE from 'three';
-import { WallTorch } from './WallTorch';
-import { HangingSkeleton } from './HangingSkeleton';
 import { GothicBookshelf } from './GothicBookshelf';
 import { WeaponRack } from './WeaponRack';
 import { useGLTF } from '@react-three/drei';
@@ -292,40 +290,6 @@ export const DungeonChamber: React.FC = () => {
       <StonePillar position={[HALF - 0.7, -0.4, -HALF + 0.7]} />
       <StonePillar position={[-HALF + 0.7, -0.4, HALF - 0.7]} />
       <StonePillar position={[HALF - 0.7, -0.4, HALF - 0.7]} />
-
-      {/* ========================================================
-          4. FLICKERING WALL TORCHES & SCONCES
-          ======================================================== */}
-      {/* North Wall Torches */}
-      <WallTorch position={[-10, 3.2, -HALF + 1.15]} rotation={[0, 0, 0]} intensity={1.8} />
-      <WallTorch position={[-2, 3.2, -HALF + 1.15]} rotation={[0, 0, 0]} intensity={1.8} />
-      <WallTorch position={[2, 3.2, -HALF + 1.15]} rotation={[0, 0, 0]} intensity={1.8} />
-      <WallTorch position={[10, 3.2, -HALF + 1.15]} rotation={[0, 0, 0]} intensity={1.8} />
-
-      {/* East Wall Torches */}
-      <WallTorch position={[HALF - 1.15, 3.2, -10]} rotation={[0, -Math.PI / 2, 0]} intensity={1.7} />
-      <WallTorch position={[HALF - 1.15, 3.2, 10]} rotation={[0, -Math.PI / 2, 0]} intensity={1.7} />
-
-      {/* West Wall Torches */}
-      <WallTorch position={[-HALF + 1.15, 3.2, -10]} rotation={[0, Math.PI / 2, 0]} intensity={1.7} />
-      <WallTorch position={[-HALF + 1.15, 3.2, 10]} rotation={[0, Math.PI / 2, 0]} intensity={1.7} />
-
-      {/* South Wall Torches (providing ambient rim firelight) */}
-      <WallTorch position={[-10, 3.2, HALF - 1.15]} rotation={[0, Math.PI, 0]} intensity={1.6} />
-      <WallTorch position={[10, 3.2, HALF - 1.15]} rotation={[0, Math.PI, 0]} intensity={1.6} />
-
-      {/* ========================================================
-          5. SKELETONS HANGING FROM MANACLES
-          ======================================================== */}
-      {/* North Wall: Suspended chained skeleton on left pillar */}
-      <HangingSkeleton position={[-14, 2.6, -HALF + 0.4]} rotation={[0, 0, 0]} scale={1.15} />
-      {/* North Wall: Suspended chained skeleton on right pillar */}
-      <HangingSkeleton position={[14, 2.6, -HALF + 0.4]} rotation={[0, 0, 0]} scale={1.15} />
-
-      {/* East Wall: Suspended chained skeleton in dark alcove */}
-      <HangingSkeleton position={[HALF - 0.4, 2.6, 5]} rotation={[0, -Math.PI / 2, 0]} scale={1.1} />
-      {/* West Wall: Suspended chained skeleton */}
-      <HangingSkeleton position={[-HALF + 0.4, 2.6, -5]} rotation={[0, Math.PI / 2, 0]} scale={1.1} />
 
       {/* ========================================================
           6. GOTHIC BOOKSHELVES (TOMES, GLOWING POTIONS, SKULLS)

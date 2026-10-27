@@ -14,6 +14,7 @@ import { TileSystem } from './TileSystem';
 import { ABILITY_LIBRARY } from '../ai/behaviors/AbilityLibrary';
 import { DataLoader } from '../dataLoader';
 import { isDev } from '../../utils/devEnv';
+import { addLogEntry } from './LogUtils';
 
 /**
  * Calculate Manhattan distance between two positions.
@@ -246,7 +247,17 @@ export function findBestLandingSquare(
     if (bestSq) return bestSq;
   }
 
-  // Fallback: Find any unoccupied square on landingTile closest to the target hero
+  // Rulebook: "move to bone pile if empty, else anywhere on tile"
+  const boneSq = TileSystem.getRotatedBoneSquare(landingTile);
+  const boneOccupied =
+    gameState.heroes.some(h => !h.removedFromPlay && h.position.x === landingTile.x && h.position.z === landingTile.z && h.position.sqX === boneSq.sqX && h.position.sqZ === boneSq.sqZ) ||
+    gameState.monsters.some(m => !m.isDefeated && (m.hp ?? 1) > 0 && m.id !== monster.id && m.position.x === landingTile.x && m.position.z === landingTile.z && m.position.sqX === boneSq.sqX && m.position.sqZ === boneSq.sqZ);
+
+  if (!boneOccupied) {
+    return boneSq;
+  }
+
+  // Fallback: Bone pile is occupied -> move to anywhere on tile (unoccupied square closest to target hero or center)
   let bestSq: { sqX: number; sqZ: number } | null = null;
   let minSquareDist = 999;
   const targetAbsX = targetHeroPos ? targetHeroPos.x * 4 + targetHeroPos.sqX : landingTile.x * 4 + 2;
@@ -254,12 +265,13 @@ export function findBestLandingSquare(
 
   for (let sqX = 0; sqX < 4; sqX++) {
     for (let sqZ = 0; sqZ < 4; sqZ++) {
+      if (sqX === boneSq.sqX && sqZ === boneSq.sqZ) continue;
       const absX = landingTile.x * 4 + sqX;
       const absZ = landingTile.z * 4 + sqZ;
       
       const occupied = 
-        gameState.heroes.some(h => h.position.x === landingTile.x && h.position.z === landingTile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
-        gameState.monsters.some(m => !m.isDefeated && m.hp > 0 && m.id !== monster.id && m.position.x === landingTile.x && m.position.z === landingTile.z && m.position.sqX === sqX && m.position.sqZ === sqZ);
+        gameState.heroes.some(h => !h.removedFromPlay && h.position.x === landingTile.x && h.position.z === landingTile.z && h.position.sqX === sqX && h.position.sqZ === sqZ) ||
+        gameState.monsters.some(m => !m.isDefeated && (m.hp ?? 1) > 0 && m.id !== monster.id && m.position.x === landingTile.x && m.position.z === landingTile.z && m.position.sqX === sqX && m.position.sqZ === sqZ);
       
       if (!occupied) {
         const squareDistToTarget = Math.abs(absX - targetAbsX) + Math.abs(absZ - targetAbsZ);
@@ -1175,24 +1187,19 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
 
   // Fortune: Daze — skip this activation if skipActivations > 0
   if (monster.skipActivations && monster.skipActivations > 0) {
-    return {
+    const dazedState: GameState = {
       ...newState,
       monsters: newState.monsters.map(m =>
         m.id === monsterId
           ? { ...m, skipActivations: m.skipActivations! - 1 }
           : m
-      ),
-      log: [
-        ...newState.log,
-        {
-          id: String((newState.logIdCounter ?? 0) + 1),
-          timestamp: new Date().toISOString(),
-          message: `${monster.name} is dazed and skips its activation!`,
-          type: 'combat' as const
-        }
-      ].slice(-100),
-      logIdCounter: (newState.logIdCounter ?? 0) + 1,
+      )
     };
+    return addLogEntry(
+      dazedState,
+      `${monster.name} is dazed and skips its activation!`,
+      'combat'
+    );
   }
 
   // Phase transition check BEFORE calling resolveTactic
@@ -1465,18 +1472,11 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
           ? `${monster.name} attacks ${targetHero.name} (+${attackBonus} vs AC ${targetHero.ac}) and HITS (Roll: ${attackResult.roll}, Total: ${attackResult.total}) for ${attackResult.damage} damage.${statusSuffix}${logSuffix}`
           : `${monster.name} attacks ${targetHero.name} (+${attackBonus} vs AC ${targetHero.ac}) and MISSES (Roll: ${attackResult.roll}, Total: ${attackResult.total}).${attackResult.damage > 0 ? ` Deals ${attackResult.damage} miss damage.${statusSuffix}` : ''}`;
 
-        let currentCounter = newState.logIdCounter ?? 0;
-
-        let updatedLog: GameLogEntry[] = [
-          ...newState.log,
-          {
-            id: String(currentCounter),
-            timestamp: new Date().toISOString(),
-            message: logMessage,
-            type: 'combat' as const
-          }
-        ].slice(-100);
-        currentCounter++;
+        newState = {
+          ...newState,
+          heroes: updatedHeroesList
+        };
+        newState = addLogEntry(newState, logMessage, 'combat');
 
         // Check for Riposte Strike
         const hasRiposte = (updatedHero.abilities.includes('rogue_riposte_strike') || updatedHero.hand.includes('rogue_riposte_strike')) &&
@@ -1518,21 +1518,12 @@ export function activateMonsterEntity(state: GameState, monsterId: string): Game
             riposteLog = `${updatedHero.name} triggers Riposte Strike, counterattacking ${monster.name} and MISSES (Roll: ${riposteResult.roll}, Total: ${riposteResult.total}). Card does not flip.`;
           }
 
-          updatedLog.push({
-            id: String(currentCounter),
-            timestamp: new Date().toISOString(),
-            message: riposteLog,
-            type: 'combat' as const
-          });
-          currentCounter++;
+          newState = {
+            ...newState,
+            heroes: updatedHeroesList
+          };
+          newState = addLogEntry(newState, riposteLog, 'combat');
         }
-
-        newState = {
-          ...newState,
-          heroes: updatedHeroesList,
-          log: updatedLog,
-          logIdCounter: currentCounter
-        };
       }
     }
 

@@ -6,7 +6,7 @@ import { EncounterSystem } from '../../game/engine/EncounterSystem';
 import { TreasureSystem } from '../../game/engine/TreasureSystem';
 import { ExperienceSystem } from '../../game/engine/ExperienceSystem';
 import { Card, GameLogEntry, CardResolutionState } from '../../game/types';
-import { executeVillainPhase } from './villainPhaseLogic';
+import { executeVillainPhase, executeVillainPhaseStaged } from './villainPhaseLogic';
 import { ScenarioManager } from '../../game/scenarios/ScenarioManager';
 import { useUIStore } from '../uiStore';
 import { isDev } from '../../utils/devEnv';
@@ -14,6 +14,8 @@ import { ConditionSystem } from '../../game/engine/ConditionSystem';
 import { getTileGraphDistance } from '../../game/engine/MonsterAI';
 import { resetHeroTurnFlags } from '../../game/engine/HeroTurnUtils';
 import { CARD_IDS } from '../../game/constants';
+import { addLogEntry, formatEncounterOutcome, formatEncounterLogMessage } from '../../game/engine/LogUtils';
+import { SoundLibrary } from '../../audio/SoundLibrary';
 
 export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set, get) => ({
   playCard: (cardId: string, targetId: string) => {
@@ -40,27 +42,36 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
         const result = PowerSystem.usePower(hero, card, target, state);
 
         if (result.success) {
-          let counter = result.newState.logIdCounter ?? state.logIdCounter ?? 0;
-          const updatedLog: GameLogEntry[] = [
-            ...state.log,
-            {
-              id: String(counter++),
-              timestamp: new Date().toISOString(),
-              message: result.message,
-              type: 'spell' as const
-            }
-          ].slice(-300);
+          SoundLibrary.Game.cardPlay();
+          if (
+            hero.heroClass === 'wizard' ||
+            hero.heroClass === 'cleric' ||
+            card.heroClass === 'wizard' ||
+            card.heroClass === 'cleric' ||
+            card.id.startsWith('wizard_') ||
+            card.id.startsWith('cleric_')
+          ) {
+            SoundLibrary.Combat.spell();
+          }
+
+          const defeatedBefore = state.monsters.filter(m => m.isDefeated || m.hp <= 0).length;
+          const defeatedAfter = result.newState.monsters.filter(m => m.isDefeated || m.hp <= 0).length;
+          if (defeatedAfter > defeatedBefore) {
+            SoundLibrary.Combat.death();
+          }
+
+          const updatedState = addLogEntry(result.newState, {
+            message: result.message,
+            type: 'spell'
+          });
           set({
-            gameState: TreasureSystem.processDefeatedMonsters({
-              ...result.newState,
-              log: updatedLog,
-              logIdCounter: counter
-            })
+            gameState: TreasureSystem.processDefeatedMonsters(updatedState)
           });
         } else {
           if (isDev()) console.log('[DEBUG gameStore] Power use failed:', result.message);
         }
       } else if (card.type === 'treasure') {
+        SoundLibrary.Game.cardPlay();
         let newState = { ...state };
         if (card.treasureType === 'blessing') {
           const result = TreasureSystem.useBlessing(newState, card, hero);
@@ -94,6 +105,8 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
         set({ gameState: result.newState });
         return;
       }
+
+      SoundLibrary.Game.cardDraw();
 
       let drawState = result.newState;
       const activeHeroId = drawState.currentHeroId;
@@ -136,18 +149,14 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
               flippedPowerIds: [...(otherRogue.flippedPowerIds ?? []), CARD_IDS.ROGUE_SPRING_AWAY]
             };
 
-            const springAwayLog: GameLogEntry = {
-              id: String((state.logIdCounter ?? 0) + 1),
-              timestamp: new Date().toISOString(),
-              message: `${otherRogue.name} uses Spring Away! Teleports to tile (${foundPos.x}, ${foundPos.z}) before the Encounter triggers. Card flips face-down.`,
-              type: 'system' as const
-            };
-
             drawState = {
               ...drawState,
-              heroes: drawState.heroes.map(h => h.id === updatedRogue.id ? updatedRogue : h),
-              log: [...drawState.log, springAwayLog].slice(-100)
+              heroes: drawState.heroes.map(h => h.id === updatedRogue.id ? updatedRogue : h)
             };
+            drawState = addLogEntry(drawState, {
+              message: `${otherRogue.name} uses Spring Away! Teleports to tile (${foundPos.x}, ${foundPos.z}) before the Encounter triggers. Card flips face-down.`,
+              type: 'system'
+            });
           }
         }
       }
@@ -159,7 +168,8 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
         pendingEffects: [],
         resolvedEffects: [],
         targetEntityId: null,
-        result: null
+        result: null,
+        hasLoggedChronicle: false
       };
 
       set({
@@ -177,14 +187,16 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
       const result = ExperienceSystem.cancelEncounterCard(state);
       if (isDev()) console.log('[DEBUG gameStore] Cancel encounter:', result.message);
       if (result.success) {
+        SoundLibrary.Game.cardPlay();
         let newState = result.newState;
 
         // Adventure 3: xp_cancel_penalty — active Hero takes 1 damage when spending XP to cancel
         const hasPenalty = state.activeScenario.specialRules?.some(
           r => r.id === 'xp_cancel_penalty'
         );
+        const activeHero = newState.heroes.find(h => h.id === newState.currentHeroId);
         if (hasPenalty) {
-          const activeHero = newState.heroes.find(h => h.id === newState.currentHeroId);
+          SoundLibrary.Combat.hurt();
           if (activeHero) {
             const damagedHero = { ...activeHero, hp: Math.max(0, activeHero.hp - 1) };
             newState = {
@@ -196,7 +208,63 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
           }
         }
 
-        set({ gameState: newState });
+        // Discard the cancelled card
+        const discardPiles = { ...newState.discardPiles };
+        if (!discardPiles['encounter']) discardPiles['encounter'] = [];
+        if (!discardPiles['encounter'].includes(cardId)) {
+          discardPiles['encounter'] = [...discardPiles['encounter'], cardId];
+        }
+        newState = { ...newState, discardPiles };
+
+        // Log Chronicle entry for the encounter card draw with outcome: cancelled by spending 5 XP
+        const card = DataLoader.getInstance().getCardById(cardId);
+        if (card) {
+          const outcome = formatEncounterOutcome(card, {
+            cancelledByXP: true,
+            xpPenaltyDamage: !!hasPenalty,
+            activeHeroName: activeHero?.name
+          });
+          const message = formatEncounterLogMessage(card, outcome);
+          newState = addLogEntry(newState, { message, type: 'encounter' });
+        } else {
+          newState = addLogEntry(newState, { message: result.message, type: 'encounter' });
+        }
+
+        // If there was a pending encounter trigger, check if we still need villain phase activation.
+        if (state.pendingEncounter) {
+          const stateWithIdleCard = {
+            ...newState,
+            pendingEncounter: false,
+            cardResolution: {
+              phase: 'idle' as const,
+              cardId: null,
+              cardType: null,
+              targetEntityId: null,
+              pendingEffects: [],
+              resolvedEffects: [],
+              result: null,
+              hasLoggedChronicle: true
+            }
+          };
+
+          executeVillainPhaseStaged(stateWithIdleCard, set, get);
+        } else {
+          set({
+            gameState: {
+              ...newState,
+              cardResolution: {
+                phase: 'idle' as const,
+                cardId: null,
+                cardType: null,
+                targetEntityId: null,
+                pendingEffects: [],
+                resolvedEffects: [],
+                result: null,
+                hasLoggedChronicle: true
+              }
+            }
+          });
+        }
       }
     },
 
@@ -211,16 +279,12 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
       );
       if (!wizard) return;
 
+      SoundLibrary.Game.cardPlay();
+      SoundLibrary.Combat.spell();
+
       const updatedWizard = {
           ...wizard,
           flippedPowerIds: [...(wizard.flippedPowerIds ?? []), CARD_IDS.WIZARD_DISPEL_MAGIC]
-      };
-
-      const logEntry: GameLogEntry = {
-          id: String((state.logIdCounter ?? 0) + 1),
-          timestamp: new Date().toISOString(),
-          message: `${wizard.name} uses Dispel Magic! The Encounter Card is cancelled.`,
-          type: 'system' as const
       };
 
       // Discard the cancelled card
@@ -230,69 +294,39 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
         discardPiles['encounter'] = [...discardPiles['encounter'], cardId];
       }
 
+      let stateWithWizard = {
+        ...state,
+        heroes: state.heroes.map(h => h.id === wizard.id ? updatedWizard : h),
+        discardPiles
+      };
+
+      const card = DataLoader.getInstance().getCardById(cardId);
+      if (card) {
+        const outcome = formatEncounterOutcome(card, {
+          cancelledByDispelMagic: true,
+          wizardName: wizard.name
+        });
+        const message = formatEncounterLogMessage(card, outcome);
+        stateWithWizard = addLogEntry(stateWithWizard, { message, type: 'encounter' });
+      } else {
+        const fallbackMsg = `${wizard.name} uses Dispel Magic! The Encounter Card is cancelled.`;
+        stateWithWizard = addLogEntry(stateWithWizard, { message: fallbackMsg, type: 'encounter' });
+      }
+
       // If there was a pending encounter trigger, check if we still need villain phase activation.
       // If we are pendingEncounter from villain phase, we must continue villain phase (monster movement/attack),
       // just like in dismissCardResolution when pendingEncounter is true.
       if (state.pendingEncounter) {
         const stateWithIdleCard = {
-          ...state,
-          heroes: state.heroes.map(h => h.id === wizard.id ? updatedWizard : h),
-          discardPiles,
-          log: [...state.log, logEntry].slice(-100),
+          ...stateWithWizard,
           pendingEncounter: false,
-          cardResolution: { phase: 'idle' as const, cardId: null, cardType: null, targetEntityId: null, pendingEffects: [], resolvedEffects: [], result: null }
+          cardResolution: { phase: 'idle' as const, cardId: null, cardType: null, targetEntityId: null, pendingEffects: [], resolvedEffects: [], result: null, hasLoggedChronicle: true }
         };
 
-        const villainState = executeVillainPhase(stateWithIdleCard);
-
-        const villainLogs = villainState.log.slice(stateWithIdleCard.log.length);
-        const combatEntries = villainLogs.filter(e => e.type === 'combat');
-        if (combatEntries.length > 0) {
-          for (const entry of combatEntries) {
-            const isHit = entry.message.includes('HITS');
-            useUIStore.getState().addNotification(
-              entry.message,
-              isHit ? 'error' : 'info',
-              4000
-            );
-          }
-        } else {
-          useUIStore.getState().addNotification('Villain Phase: No monster attacks.', 'info', 2000);
-        }
-
-        const currentIndex = villainState.turnOrder.indexOf(villainState.currentHeroId);
-        const nextIndex = (currentIndex + 1) % villainState.turnOrder.length;
-        const nextId = villainState.turnOrder[nextIndex];
-        const stateAfterTurnStart = ConditionSystem.processTurnStart(villainState, nextId);
-
-        // Compute phase for single set() commit — checks defeat after villain phase and at turn start
-        const postVillainDefeated = villainState.phase !== 'setup' && ScenarioManager.checkDefeat(villainState);
-        const nextTurnDefeated = !postVillainDefeated && ScenarioManager.checkDefeat({ ...stateAfterTurnStart, currentHeroId: nextId });
-        const nextPhase = (postVillainDefeated || nextTurnDefeated) ? ('defeat' as const) : ('hero' as const);
-
-        if (nextPhase === 'defeat') {
-          useUIStore.getState().showModal('defeat');
-        }
-
-        set({
-          gameState: {
-            ...stateAfterTurnStart,
-            currentHeroId: nextId,
-            phase: nextPhase,
-            hasExploredThisTurn: false,
-            exploredThisTurn: false,
-            hasAttackedThisTurn: false,
-            lastPlacedTileEncounterType: null,
-            lastPlacedTileId: null,
-            turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0),
-            heroes: stateAfterTurnStart.heroes.map(resetHeroTurnFlags)
-          }
-        });
+        executeVillainPhaseStaged(stateWithIdleCard, set, get);
       } else {
         const newState = {
-            ...state,
-            heroes: state.heroes.map(h => h.id === wizard.id ? updatedWizard : h),
-            discardPiles,
+            ...stateWithWizard,
             cardResolution: {
                 phase: 'idle' as const,
                 cardId: null,
@@ -300,9 +334,9 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
                 pendingEffects: [],
                 resolvedEffects: [],
                 targetEntityId: null,
-                result: null
-            },
-            log: [...state.log, logEntry].slice(-100)
+                result: null,
+                hasLoggedChronicle: true
+            }
         };
         set({ gameState: newState });
       }
@@ -323,6 +357,7 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
 
       const result = TreasureSystem.drawTreasureCard(respiteResult.gameState, hero);
       if (result.card) {
+        SoundLibrary.Game.cardDraw();
         let newState = result.newState;
         if (result.card.treasureType === 'blessing') {
           const blessingResult = TreasureSystem.useBlessing(newState, result.card, hero);
@@ -335,16 +370,11 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
           newState = assignResult.newState;
         }
 
-        let counter = newState.logIdCounter ?? 0;
-        const logEntry: GameLogEntry = {
-          id: String(counter++),
-          timestamp: new Date().toISOString(),
+        const logEntryState = addLogEntry(newState, {
           message: `[Treasure] ${result.message}`,
-          type: 'treasure' as const
-        };
-
-        const newLog = [...(newState.log || []), logEntry].slice(-300);
-        set({ gameState: { ...newState, log: newLog, logIdCounter: counter } });
+          type: 'treasure'
+        });
+        set({ gameState: logEntryState });
       }
     },
 
@@ -363,6 +393,7 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
       const result = TreasureSystem.useItem(state, card, hero, target);
       if (isDev()) console.log('[DEBUG gameStore] Use treasure:', result.message);
       if (result.success) {
+        SoundLibrary.Game.cardPlay();
         set({ gameState: result.newState });
       }
     },
@@ -415,24 +446,40 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
       const resolution = gameState.cardResolution;
       let cleanupState = { ...gameState };
 
-      if (resolution && resolution.phase === 'complete' && resolution.cardId) {
+      if (resolution && resolution.cardId && resolution.cardType === 'encounter') {
         const card = DataLoader.getInstance().getCardById(resolution.cardId);
-        if (card && resolution.cardType === 'encounter') {
-          const discardPiles = { ...cleanupState.discardPiles };
-          if (!discardPiles['encounter']) discardPiles['encounter'] = [];
-          if (!discardPiles['encounter'].includes(card.id)) {
-            discardPiles['encounter'] = [...discardPiles['encounter'], card.id];
-          }
-          cleanupState = { ...cleanupState, discardPiles };
-
-          const hero = cleanupState.heroes.find(h => h.id === cleanupState.currentHeroId);
-          if (hero) {
-            if (card.encounterType === 'environment') {
-              cleanupState = { ...cleanupState, activeEnvironmentCard: card.id };
-            } else if (card.encounterType === 'trap') {
-              const trapResult = EncounterSystem.placeTrap(cleanupState, card, hero);
-              cleanupState = trapResult.gameState;
+        if (card) {
+          if (resolution.phase === 'complete') {
+            const discardPiles = { ...cleanupState.discardPiles };
+            if (!discardPiles['encounter']) discardPiles['encounter'] = [];
+            if (!discardPiles['encounter'].includes(card.id)) {
+              discardPiles['encounter'] = [...discardPiles['encounter'], card.id];
             }
+            cleanupState = { ...cleanupState, discardPiles };
+
+            const hero = cleanupState.heroes.find(h => h.id === cleanupState.currentHeroId);
+            if (hero) {
+              if (card.encounterType === 'environment') {
+                cleanupState = { ...cleanupState, activeEnvironmentCard: card.id };
+              } else if (card.encounterType === 'trap') {
+                const trapResult = EncounterSystem.placeTrap(cleanupState, card, hero);
+                cleanupState = trapResult.gameState;
+              }
+            }
+          }
+
+          if (!resolution.hasLoggedChronicle) {
+            const hero = cleanupState.heroes.find(h => h.id === cleanupState.currentHeroId);
+            const spawnedMonster = resolution.spawnedMonsterId
+              ? cleanupState.monsters.find(m => m.id === resolution.spawnedMonsterId)
+              : undefined;
+            const tilePos = hero ? { x: hero.position.x, z: hero.position.z } : undefined;
+            const outcome = formatEncounterOutcome(card, {
+              spawnedMonsterName: spawnedMonster?.name,
+              tilePos
+            });
+            const message = formatEncounterLogMessage(card, outcome);
+            cleanupState = addLogEntry(cleanupState, { message, type: 'encounter' });
           }
         }
       }
@@ -443,74 +490,17 @@ export const createCardSlice: StateCreator<GameStore, [], [], CardSlice> = (set,
         const stateWithIdleCard = {
           ...cleanupState,
           pendingEncounter: false,
-          cardResolution: { phase: 'idle' as const, cardId: null, cardType: null, targetEntityId: null, pendingEffects: [], resolvedEffects: [], result: null }
+          cardResolution: { phase: 'idle' as const, cardId: null, cardType: null, targetEntityId: null, pendingEffects: [], resolvedEffects: [], result: null, hasLoggedChronicle: true }
         };
 
         // Execute the villain phase (monster/trap activation)
-        const villainState = executeVillainPhase(stateWithIdleCard);
-
-        const villainLogs = villainState.log.slice(stateWithIdleCard.log.length);
-        const combatEntries = villainLogs.filter(e => e.type === 'combat');
-        if (combatEntries.length > 0) {
-          for (const entry of combatEntries) {
-            const isHit = entry.message.includes('HITS');
-            useUIStore.getState().addNotification(
-              entry.message,
-              isHit ? 'error' : 'info',
-              4000
-            );
-          }
-        } else {
-          useUIStore.getState().addNotification('Villain Phase: No monster attacks.', 'info', 2000);
-        }
-
-        // Check defeat after villain phase (heroes may have been killed by monsters)
-        if (villainState.phase !== 'setup') {
-          const isDefeated = ScenarioManager.checkDefeat(villainState);
-          if (isDefeated) {
-            set({
-              gameState: { ...villainState, phase: 'defeat' as const }
-            });
-            useUIStore.getState().showModal('defeat');
-            return;
-          }
-        }
-
-        // Advance to next hero
-        const validTurnOrder = villainState.turnOrder.filter(id => villainState.heroes.some(h => h.id === id));
-        const effectiveTurnOrder = validTurnOrder.length > 0 ? validTurnOrder : villainState.heroes.map(h => h.id);
-        const currentIndex = effectiveTurnOrder.indexOf(villainState.currentHeroId);
-        const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % effectiveTurnOrder.length : 0;
-        const nextId = effectiveTurnOrder[nextIndex] || villainState.heroes[0]?.id;
-        const stateAfterTurnStart = ConditionSystem.processTurnStart(villainState, nextId);
- 
-        // Bug 5: Check defeat right at the start of the next hero's turn
-        if (ScenarioManager.checkDefeat({ ...stateAfterTurnStart, currentHeroId: nextId })) {
-          set({ gameState: { ...stateAfterTurnStart, currentHeroId: nextId, phase: 'defeat' as const } });
-          useUIStore.getState().showModal('defeat');
-          return;
-        }
-
-        set({
-          gameState: {
-            ...stateAfterTurnStart,
-            currentHeroId: nextId,
-            phase: 'hero' as const,
-            hasExploredThisTurn: false,
-            exploredThisTurn: false,
-            lastPlacedTileEncounterType: null,
-            lastPlacedTileId: null,
-            turnCount: stateAfterTurnStart.turnCount + (nextIndex === 0 ? 1 : 0),
-            heroes: stateAfterTurnStart.heroes.map(resetHeroTurnFlags),
-            hasAttackedThisTurn: false
-          }
-        });
+        executeVillainPhaseStaged(stateWithIdleCard, set, get);
       } else {
         // Normal dismiss without pending villain phase
         set({
           gameState: {
             ...cleanupState,
-            cardResolution: { phase: 'idle', cardId: null, cardType: null, targetEntityId: null, pendingEffects: [], resolvedEffects: [], result: null }
+            cardResolution: { phase: 'idle', cardId: null, cardType: null, targetEntityId: null, pendingEffects: [], resolvedEffects: [], result: null, hasLoggedChronicle: true }
           }
         });
       }

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { getEntityDiceProfile, DEFAULT_HERO_PHYSICS } from '../game/engine/DiceProfiles';
 import { useGameStore } from './gameStore';
+import { SoundLibrary } from '../audio/SoundLibrary';
 
 export type DicePhase = 
   | 'idle'              // No dice roll happening
@@ -89,7 +90,8 @@ export interface DiceStore {
   cancelRoll: () => void;
 }
 
-const ARENA_POSITION: [number, number, number] = [0, 0, -6];
+// Center of start tile (tile 0,0 center is at x=2, z=2)
+const ARENA_POSITION: [number, number, number] = [2, 0.1, 2];
 
 const initialState = {
   phase: 'idle' as DicePhase,
@@ -128,6 +130,7 @@ export const useDiceStore = create<DiceStore>()(
       const isQuickRoll = useGameStore.getState().settings?.quickRoll || animSpeed === 'instant';
 
       if (isQuickRoll) {
+        SoundLibrary.Game.diceRoll();
         const result = Math.floor(Math.random() * 20) + 1;
         const isCritical = result === 20;
         let isHit: boolean | null = null;
@@ -225,6 +228,7 @@ export const useDiceStore = create<DiceStore>()(
       const state = get();
       if (state.phase !== 'waiting_for_roll' && state.phase !== 'announcing') return;
 
+      SoundLibrary.Game.diceRoll();
       const result = Math.floor(Math.random() * 20) + 1;
       const isCritical = result === 20;
       let isHit: boolean | null = null;
@@ -253,6 +257,7 @@ export const useDiceStore = create<DiceStore>()(
       const state = get();
       if (state.phase !== 'waiting_for_roll' && state.phase !== 'announcing') return;
       // No result yet: it is read from the settled die face (see settleResult).
+      SoundLibrary.Game.diceRoll();
       set({ phase: 'rolling' });
     },
 

@@ -1,0 +1,1358 @@
+{
+    "generatedFrom":  "src/data (repo data files)",
+    "monsters":  [
+                     {
+                         "id":  "monster_skeleton",
+                         "name":  "Skeleton"
+                     },
+                     {
+                         "id":  "monster_zombie",
+                         "name":  "Zombie"
+                     },
+                     {
+                         "id":  "monster_ghoul",
+                         "name":  "Ghoul"
+                     },
+                     {
+                         "id":  "monster_wolf",
+                         "name":  "Wolf"
+                     },
+                     {
+                         "id":  "monster_kobold",
+                         "name":  "Kobold"
+                     },
+                     {
+                         "id":  "monster_gargoyle",
+                         "name":  "Gargoyle"
+                     },
+                     {
+                         "id":  "monster_vampire",
+                         "name":  "Vampire"
+                     },
+                     {
+                         "id":  "monster_troll",
+                         "name":  "Troll"
+                     },
+                     {
+                         "id":  "monster_dragon",
+                         "name":  "Dragon"
+                     },
+                     {
+                         "id":  "monster_necromancer",
+                         "name":  "Necromancer"
+                     },
+                     {
+                         "id":  "monster_werewolf",
+                         "name":  "Werewolf"
+                     },
+                     {
+                         "id":  "monster_spider",
+                         "name":  "Spider"
+                     },
+                     {
+                         "id":  "monster_strahd",
+                         "name":  "Nekrula"
+                     },
+                     {
+                         "id":  "monster_vampire_lord",
+                         "name":  "Vampire Lord"
+                     },
+                     {
+                         "id":  "monster_young_red_dragon",
+                         "name":  "Young Red Dragon"
+                     },
+                     {
+                         "id":  "monster_klak",
+                         "name":  "Klak"
+                     },
+                     {
+                         "id":  "monster_klaks_artifact",
+                         "name":  "Klak\u0027s Artifact"
+                     },
+                     {
+                         "id":  "monster_young_vampire",
+                         "name":  "Young Vampire"
+                     },
+                     {
+                         "id":  "monster_gravestorm",
+                         "name":  "Varkath"
+                     },
+                     {
+                         "id":  "monster_gravestorms_phylactery",
+                         "name":  "Varkath\u0027s Phylactery"
+                     },
+                     {
+                         "id":  "monster_howling_hag",
+                         "name":  "Howling Hag"
+                     },
+                     {
+                         "id":  "monster_zombie_dragon",
+                         "name":  "Zombie Dragon"
+                     },
+                     {
+                         "id":  "monster_flesh_golem",
+                         "name":  "Flesh Golem"
+                     },
+                     {
+                         "id":  "monster_gravehound",
+                         "name":  "Gravehound"
+                     },
+                     {
+                         "id":  "monster_dark_acolyte",
+                         "name":  "Dark Acolyte"
+                     },
+                     {
+                         "id":  "monster_skeletal_archer",
+                         "name":  "Skeletal Archer"
+                     },
+                     {
+                         "id":  "monster_mummy",
+                         "name":  "Mummy"
+                     },
+                     {
+                         "id":  "monster_vampire_bat",
+                         "name":  "Vampire Bat"
+                     },
+                     {
+                         "id":  "monster_skull_lord",
+                         "name":  "Anthraxus"
+                     },
+                     {
+                         "id":  "monster_dread_warrior",
+                         "name":  "Dread Warrior"
+                     },
+                     {
+                         "id":  "monster_spectre",
+                         "name":  "Spectre"
+                     },
+                     {
+                         "id":  "monster_ghast",
+                         "name":  "Ghast"
+                     },
+                     {
+                         "id":  "monster_tomb_guardian",
+                         "name":  "Tomb Guardian"
+                     },
+                     {
+                         "id":  "monster_battle_wight",
+                         "name":  "Battle Wight"
+                     },
+                     {
+                         "id":  "monster_wererat",
+                         "name":  "Wererat"
+                     },
+                     {
+                         "id":  "monster_vargouille",
+                         "name":  "Dread Howler"
+                     },
+                     {
+                         "id":  "monster_warforged_minion",
+                         "name":  "Rune-forged Thrall"
+                     },
+                     {
+                         "id":  "monster_flameskull",
+                         "name":  "Skull-rune Ember Haunt"
+                     },
+                     {
+                         "id":  "monster_direguard",
+                         "name":  "Direguard"
+                     },
+                     {
+                         "id":  "monster_great_flameskull",
+                         "name":  "Great Skull-rune Ember Haunt"
+                     },
+                     {
+                         "id":  "monster_gargoyle_lord",
+                         "name":  "Gargoyle Lord"
+                     },
+                     {
+                         "id":  "monster_vampire_dire_wolf",
+                         "name":  "Vampire Dire Wolf"
+                     },
+                     {
+                         "id":  "monster_spirit_devourer",
+                         "name":  "Spirit Devourer"
+                     },
+                     {
+                         "id":  "monster_beholder_lich",
+                         "name":  "Ocular Lich"
+                     },
+                     {
+                         "id":  "monster_werewolf_lord",
+                         "name":  "Werewolf Lord"
+                     },
+                     {
+                         "id":  "monster_banshee",
+                         "name":  "Banshee"
+                     },
+                     {
+                         "id":  "monster_trap_haunt",
+                         "name":  "Trap Haunt"
+                     },
+                     {
+                         "id":  "monster_death_knight",
+                         "name":  "Death Knight"
+                     },
+                     {
+                         "id":  "monster_succubus",
+                         "name":  "Succubus"
+                     },
+                     {
+                         "id":  "monster_bone_naga",
+                         "name":  "Drowned Elemental"
+                     },
+                     {
+                         "id":  "monster_blazing_skeleton",
+                         "name":  "Blazing Skeleton"
+                     },
+                     {
+                         "id":  "monster_rat_swarm",
+                         "name":  "Rat Swarm"
+                     },
+                     {
+                         "id":  "monster_wraith",
+                         "name":  "Wraith"
+                     },
+                     {
+                         "id":  "monster_bodak",
+                         "name":  "Gloomwraith"
+                     },
+                     {
+                         "id":  "monster_dire_bat",
+                         "name":  "Dire Bat"
+                     },
+                     {
+                         "id":  "monster_insect_swarm",
+                         "name":  "Insect Swarm"
+                     },
+                     {
+                         "id":  "monster_zombie_hulk",
+                         "name":  "Zombie Hulk"
+                     },
+                     {
+                         "id":  "monster_boneclaw",
+                         "name":  "Skull-rune Demon"
+                     },
+                     {
+                         "id":  "monster_larva_mage",
+                         "name":  "Larva Mage"
+                     },
+                     {
+                         "id":  "monster_nightwalker",
+                         "name":  "Nightwalker"
+                     },
+                     {
+                         "id":  "monster_specter",
+                         "name":  "Specter"
+                     }
+                 ],
+    "heroes":  [
+                   {
+                       "id":  "hero_arjhan",
+                       "name":  "Arjhan"
+                   },
+                   {
+                       "id":  "hero_immeril",
+                       "name":  "Immeril"
+                   },
+                   {
+                       "id":  "hero_kat",
+                       "name":  "Kat"
+                   },
+                   {
+                       "id":  "hero_thorgrim",
+                       "name":  "Thorgrim"
+                   },
+                   {
+                       "id":  "hero_alissa",
+                       "name":  "Alissa"
+                   }
+               ],
+    "tiles":  [
+                  {
+                      "id":  "start-tile",
+                      "name":  "Start Tile",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "named_arcane_circle",
+                      "name":  "Arcane Circle",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "named_chapel",
+                      "name":  "Chapel",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "named_dark_fountain",
+                      "name":  "Dark Fountain",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "named_fetid_den",
+                      "name":  "Fetid Den",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "named_laboratory",
+                      "name":  "Laboratory",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "named_rotting_nook",
+                      "name":  "Rotting Nook",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "named_secret_stairway",
+                      "name":  "Secret Stairway",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "named_workshop",
+                      "name":  "Workshop",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "crypt_corner_1_5",
+                      "name":  "Crypt Corner (1-5)",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "crypt_corner_6_10",
+                      "name":  "Crypt Corner (6-10)",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "crypt_corner_11_15",
+                      "name":  "Crypt Corner (11-15)",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "crypt_corner_16_20",
+                      "name":  "Crypt Corner (16-20)",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "crypt_artimus",
+                      "name":  "Crypt of Artimus",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "crypt_barov_ravenovia",
+                      "name":  "Crypt of Barov and Ravenovia",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "crypt_sergei",
+                      "name":  "Crypt of Sergei Von Nekrula",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "crypt_ireena",
+                      "name":  "Ireena Kolyana\u0027s Crypt",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "crypt_king",
+                      "name":  "King\u0027s Crypt",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "crypt_lonely",
+                      "name":  "Lonely Crypt",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "crypt_prince_aurel",
+                      "name":  "Prince Aurel\u0027s Crypt",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "crypt_strahd",
+                      "name":  "Nekrula\u0027s Crypt",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "black_x2_01",
+                      "name":  "Dark Corridor",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "black_x2_02",
+                      "name":  "Shadow Passage",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "black_x2_03",
+                      "name":  "Gloomy Hall",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "black_x2_04",
+                      "name":  "Dim Walkway",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "black_x3_01",
+                      "name":  "Dark Junction",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "black_x3_02",
+                      "name":  "Shadow Fork",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "black_x4_01",
+                      "name":  "Vaulted Crossroads",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "black_x4_02",
+                      "name":  "Grand Intersection",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "black_x4_03",
+                      "name":  "Four-Way Passage",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "black_x4_04",
+                      "name":  "Central Hub",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "black_x4_05",
+                      "name":  "Dark Nexus",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "black_x4_06",
+                      "name":  "Gothic Crossing",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "white_x2_01",
+                      "name":  "Stone Corridor",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "white_x2_02",
+                      "name":  "Ancient Passage",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "white_x2_03",
+                      "name":  "Dusty Hall",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "white_x3_01",
+                      "name":  "Stone Junction",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "white_x3_02",
+                      "name":  "Ancient Fork",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "white_x3_03",
+                      "name":  "Dusty Intersection",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "white_x3_04",
+                      "name":  "Weathered Junction",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  },
+                  {
+                      "id":  "white_x3_05",
+                      "name":  "Eroded Passage",
+                      "boneSquare":  {
+                                         "sqX":  1,
+                                         "sqZ":  1
+                                     }
+                  }
+              ],
+    "powerCards":  [
+                       {
+                           "id":  "cleric_healing_word",
+                           "name":  "Healing Word"
+                       },
+                       {
+                           "id":  "cleric_divine_flare",
+                           "name":  "Divine Flare"
+                       },
+                       {
+                           "id":  "cleric_healing_strike",
+                           "name":  "Healing Strike"
+                       },
+                       {
+                           "id":  "cleric_lance_of_faith",
+                           "name":  "Lance of Faith"
+                       },
+                       {
+                           "id":  "cleric_beacon_of_hope",
+                           "name":  "Beacon of Hope"
+                       },
+                       {
+                           "id":  "cleric_flame_strike",
+                           "name":  "Flame Strike"
+                       },
+                       {
+                           "id":  "cleric_hallowed_advance",
+                           "name":  "Hallowed Advance"
+                       },
+                       {
+                           "id":  "cleric_bless",
+                           "name":  "Bless"
+                       },
+                       {
+                           "id":  "cleric_consecrated_ground",
+                           "name":  "Consecrated Ground"
+                       },
+                       {
+                           "id":  "cleric_shield_of_faith",
+                           "name":  "Shield of Faith"
+                       },
+                       {
+                           "id":  "fighter_dragons_breath",
+                           "name":  "Dragon\u0027s Breath"
+                       },
+                       {
+                           "id":  "fighter_cleave",
+                           "name":  "Cleave"
+                       },
+                       {
+                           "id":  "fighter_trapping_strike",
+                           "name":  "Trapping Strike"
+                       },
+                       {
+                           "id":  "fighter_tide_of_iron",
+                           "name":  "Tide of Iron"
+                       },
+                       {
+                           "id":  "fighter_brute_strike",
+                           "name":  "Brute Strike"
+                       },
+                       {
+                           "id":  "fighter_come_and_get_it",
+                           "name":  "Come and Get It"
+                       },
+                       {
+                           "id":  "fighter_precise_strike",
+                           "name":  "Precise Strike"
+                       },
+                       {
+                           "id":  "fighter_bodyguard",
+                           "name":  "Bodyguard"
+                       },
+                       {
+                           "id":  "fighter_get_over_there",
+                           "name":  "Get Over There!"
+                       },
+                       {
+                           "id":  "fighter_unstoppable",
+                           "name":  "Unstoppable"
+                       },
+                       {
+                           "id":  "ranger_careful_attack",
+                           "name":  "Careful Attack"
+                       },
+                       {
+                           "id":  "ranger_hit_and_run",
+                           "name":  "Hit and Run"
+                       },
+                       {
+                           "id":  "ranger_hunters_shot",
+                           "name":  "Hunter\u0027s Shot"
+                       },
+                       {
+                           "id":  "ranger_twin_shot",
+                           "name":  "Twin Shot"
+                       },
+                       {
+                           "id":  "ranger_attacks_on_the_run",
+                           "name":  "Attacks on the Run"
+                       },
+                       {
+                           "id":  "ranger_bounding_attack",
+                           "name":  "Bounding Attack"
+                       },
+                       {
+                           "id":  "ranger_split_the_tree",
+                           "name":  "Split the Tree"
+                       },
+                       {
+                           "id":  "ranger_crucial_aid",
+                           "name":  "Crucial Aid"
+                       },
+                       {
+                           "id":  "ranger_unbalancing_parry",
+                           "name":  "Unbalancing Parry"
+                       },
+                       {
+                           "id":  "ranger_yield_ground",
+                           "name":  "Yield Ground"
+                       },
+                       {
+                           "id":  "rogue_sneak_attack",
+                           "name":  "Sneak Attack"
+                       },
+                       {
+                           "id":  "rogue_backstab",
+                           "name":  "Backstab"
+                       },
+                       {
+                           "id":  "rogue_deft_strike",
+                           "name":  "Deft Strike"
+                       },
+                       {
+                           "id":  "rogue_snipe_shot",
+                           "name":  "Snipe Shot"
+                       },
+                       {
+                           "id":  "rogue_dagger_barrage",
+                           "name":  "Dagger Barrage"
+                       },
+                       {
+                           "id":  "rogue_deep_cut",
+                           "name":  "Deep Cut"
+                       },
+                       {
+                           "id":  "rogue_riposte_strike",
+                           "name":  "Riposte Strike"
+                       },
+                       {
+                           "id":  "rogue_great_leap",
+                           "name":  "Great Leap"
+                       },
+                       {
+                           "id":  "rogue_spring_away",
+                           "name":  "Spring Away"
+                       },
+                       {
+                           "id":  "rogue_stealth",
+                           "name":  "Stealth"
+                       },
+                       {
+                           "id":  "wizard_fey_step",
+                           "name":  "Fey Step"
+                       },
+                       {
+                           "id":  "wizard_magic_missile",
+                           "name":  "Magic Missile"
+                       },
+                       {
+                           "id":  "wizard_thunderwave",
+                           "name":  "Thunderwave"
+                       },
+                       {
+                           "id":  "wizard_scorching_burst",
+                           "name":  "Scorching Burst"
+                       },
+                       {
+                           "id":  "wizard_fireball",
+                           "name":  "Fireball"
+                       },
+                       {
+                           "id":  "wizard_lightning_bolt",
+                           "name":  "Lightning Bolt"
+                       },
+                       {
+                           "id":  "wizard_freezing_cloud",
+                           "name":  "Freezing Cloud"
+                       },
+                       {
+                           "id":  "wizard_dispel_magic",
+                           "name":  "Dispel Magic"
+                       },
+                       {
+                           "id":  "wizard_illusionary_crowd",
+                           "name":  "Illusionary Crowd"
+                       },
+                       {
+                           "id":  "wizard_shield",
+                           "name":  "Shield"
+                       }
+                   ],
+    "encounters":  [
+                       {
+                           "id":  "enc_bat_swarm",
+                           "name":  "Bat Swarm"
+                       },
+                       {
+                           "id":  "enc_blood_fog",
+                           "name":  "Blood Fog"
+                       },
+                       {
+                           "id":  "enc_cackling_skull",
+                           "name":  "Cackling Skull"
+                       },
+                       {
+                           "id":  "enc_crippling_miasma",
+                           "name":  "Crippling Miasma"
+                       },
+                       {
+                           "id":  "enc_deadly_shadows",
+                           "name":  "Deadly Shadows"
+                       },
+                       {
+                           "id":  "enc_haunted_mists",
+                           "name":  "Haunted Mists"
+                       },
+                       {
+                           "id":  "enc_music_of_the_damned",
+                           "name":  "Music of the Damned"
+                       },
+                       {
+                           "id":  "enc_spirit_of_doom_env",
+                           "name":  "Spirit of Doom"
+                       },
+                       {
+                           "id":  "enc_bubbling_cauldron",
+                           "name":  "Bubbling Cauldron"
+                       },
+                       {
+                           "id":  "enc_corner_of_your_eye",
+                           "name":  "Corner of Your Eye"
+                       },
+                       {
+                           "id":  "enc_cowardly_flight",
+                           "name":  "Cowardly Flight"
+                       },
+                       {
+                           "id":  "enc_cyrus_belview",
+                           "name":  "Cyrus Belview"
+                       },
+                       {
+                           "id":  "enc_frenzy",
+                           "name":  "Frenzy"
+                       },
+                       {
+                           "id":  "enc_ghost_prince_of_aurel",
+                           "name":  "Ghost of Prince Aurel"
+                       },
+                       {
+                           "id":  "enc_howl_of_the_wolf",
+                           "name":  "Howl of the Wolf"
+                       },
+                       {
+                           "id":  "enc_illusionary_trick",
+                           "name":  "Illusionary Trick"
+                       },
+                       {
+                           "id":  "enc_lief_lipsiege",
+                           "name":  "Lief Lipsiege"
+                       },
+                       {
+                           "id":  "enc_mists_of_terror",
+                           "name":  "Mists of Terror"
+                       },
+                       {
+                           "id":  "enc_neglected_passage",
+                           "name":  "Neglected Passage"
+                       },
+                       {
+                           "id":  "enc_overrun",
+                           "name":  "Overrun"
+                       },
+                       {
+                           "id":  "enc_overwhelming_terror",
+                           "name":  "Overwhelming Terror"
+                       },
+                       {
+                           "id":  "enc_passage_of_time",
+                           "name":  "Passage of Time"
+                       },
+                       {
+                           "id":  "enc_prowling_spirits",
+                           "name":  "Prowling Spirits"
+                       },
+                       {
+                           "id":  "enc_reinforcements",
+                           "name":  "Reinforcements"
+                       },
+                       {
+                           "id":  "enc_secret_door",
+                           "name":  "Secret Door"
+                       },
+                       {
+                           "id":  "enc_spirit_of_doom_event",
+                           "name":  "Spirit of Doom"
+                       },
+                       {
+                           "id":  "enc_strahds_hunger",
+                           "name":  "Nekrula\u0027s Hunger"
+                       },
+                       {
+                           "id":  "enc_strahds_minions",
+                           "name":  "Nekrula\u0027s Minions"
+                       },
+                       {
+                           "id":  "enc_strahds_trick",
+                           "name":  "Nekrula\u0027s Trick"
+                       },
+                       {
+                           "id":  "enc_strahds_whispers",
+                           "name":  "Nekrula\u0027s Whispers"
+                       },
+                       {
+                           "id":  "enc_summoning_circle",
+                           "name":  "Summoning Circle"
+                       },
+                       {
+                           "id":  "enc_teleport_glyph",
+                           "name":  "Teleport Glyph"
+                       },
+                       {
+                           "id":  "enc_treasure_chest",
+                           "name":  "Treasure Chest"
+                       },
+                       {
+                           "id":  "enc_voice_of_the_master",
+                           "name":  "Voice of the Master"
+                       },
+                       {
+                           "id":  "enc_ambush",
+                           "name":  "Ambush!"
+                       },
+                       {
+                           "id":  "enc_animated_armor",
+                           "name":  "Animated Armor"
+                       },
+                       {
+                           "id":  "enc_circle_of_death",
+                           "name":  "Circle of Death"
+                       },
+                       {
+                           "id":  "enc_gray_ooze",
+                           "name":  "Gray Ooze"
+                       },
+                       {
+                           "id":  "enc_green_slime",
+                           "name":  "Green Slime"
+                       },
+                       {
+                           "id":  "enc_hands_of_the_dead",
+                           "name":  "Hands of the Dead"
+                       },
+                       {
+                           "id":  "enc_howling_ghost",
+                           "name":  "Howling Ghost"
+                       },
+                       {
+                           "id":  "enc_icy_corridor",
+                           "name":  "Icy Corridor"
+                       },
+                       {
+                           "id":  "enc_king_tomescus_portal",
+                           "name":  "King Tomescu\u0027s Portal"
+                       },
+                       {
+                           "id":  "enc_patrina_velikovna",
+                           "name":  "Patrina Velikovna"
+                       },
+                       {
+                           "id":  "enc_prowling_ghost",
+                           "name":  "Prowling Ghost"
+                       },
+                       {
+                           "id":  "enc_spider_webs",
+                           "name":  "Spider Webs"
+                       },
+                       {
+                           "id":  "enc_strahd_attacks",
+                           "name":  "Nekrula Attacks!"
+                       },
+                       {
+                           "id":  "enc_alarm_trap",
+                           "name":  "Alarm"
+                       },
+                       {
+                           "id":  "enc_crossbow_turret",
+                           "name":  "Crossbow Turret"
+                       },
+                       {
+                           "id":  "enc_crushing_walls",
+                           "name":  "Crushing Walls"
+                       },
+                       {
+                           "id":  "enc_dart_trap",
+                           "name":  "Dart Trap"
+                       },
+                       {
+                           "id":  "enc_fire_trap",
+                           "name":  "Fire Trap"
+                       },
+                       {
+                           "id":  "enc_sliding_walls",
+                           "name":  "Sliding Walls"
+                       },
+                       {
+                           "id":  "enc_spear_gauntlet",
+                           "name":  "Spear Gauntlet"
+                       },
+                       {
+                           "id":  "enc_test_sanctuary_monster_only",
+                           "name":  "Test Sanctuary Monster"
+                       },
+                       {
+                           "id":  "enc_test_sanctuary_hero_only",
+                           "name":  "Test Sanctuary Hero"
+                       }
+                   ],
+    "treasures":  [
+                      {
+                          "id":  "treasure_blessing_heroic_stand_151",
+                          "name":  "Heroic Stand"
+                      },
+                      {
+                          "id":  "treasure_blessing_guided_strikes_152",
+                          "name":  "Guided Strikes"
+                      },
+                      {
+                          "id":  "treasure_blessing_rejuvenating_onslaught_153",
+                          "name":  "Rejuvenating Onslaught"
+                      },
+                      {
+                          "id":  "treasure_blessing_run_154",
+                          "name":  "Run!"
+                      },
+                      {
+                          "id":  "treasure_blessing_surround_them_155",
+                          "name":  "Surround Them!"
+                      },
+                      {
+                          "id":  "fortune_action_surge",
+                          "name":  "Action Surge"
+                      },
+                      {
+                          "id":  "fortune_breath_of_life",
+                          "name":  "Breath Of Life"
+                      },
+                      {
+                          "id":  "fortune_breath_of_life_2",
+                          "name":  "Breath Of Life"
+                      },
+                      {
+                          "id":  "fortune_breath_of_life_3",
+                          "name":  "Breath Of Life"
+                      },
+                      {
+                          "id":  "fortune_burst_of_speed",
+                          "name":  "Burst Of Speed"
+                      },
+                      {
+                          "id":  "fortune_distant_sounds",
+                          "name":  "Distant Sounds"
+                      },
+                      {
+                          "id":  "fortune_clear_the_air",
+                          "name":  "Clear The Air"
+                      },
+                      {
+                          "id":  "fortune_daze",
+                          "name":  "Daze"
+                      },
+                      {
+                          "id":  "fortune_eagle_eyes",
+                          "name":  "Eagle Eyes"
+                      },
+                      {
+                          "id":  "fortune_glimpse_of_the_future",
+                          "name":  "Glimpse Of The Future"
+                      },
+                      {
+                          "id":  "fortune_harrowed_experience",
+                          "name":  "Harrowed Experience"
+                      },
+                      {
+                          "id":  "fortune_harrowed_experience_2",
+                          "name":  "Harrowed Experience"
+                      },
+                      {
+                          "id":  "fortune_intimidating_bellow",
+                          "name":  "Intimidating Bellow"
+                      },
+                      {
+                          "id":  "fortune_level_up",
+                          "name":  "Level Up"
+                      },
+                      {
+                          "id":  "fortune_lucky_find",
+                          "name":  "Lucky Find"
+                      },
+                      {
+                          "id":  "fortune_lucky_find_2",
+                          "name":  "Lucky Find"
+                      },
+                      {
+                          "id":  "fortune_moments_respite",
+                          "name":  "Moment\u0027s Respite"
+                      },
+                      {
+                          "id":  "fortune_shake_it_off",
+                          "name":  "Shake It Off"
+                      },
+                      {
+                          "id":  "fortune_short_rest",
+                          "name":  "Short Rest"
+                      },
+                      {
+                          "id":  "fortune_short_rest_2",
+                          "name":  "Short Rest"
+                      },
+                      {
+                          "id":  "item_amulet_of_protection",
+                          "name":  "Amulet Of Protection"
+                      },
+                      {
+                          "id":  "item_boots_of_striding",
+                          "name":  "Boots Of Striding"
+                      },
+                      {
+                          "id":  "item_crystal_ball",
+                          "name":  "Crystal Ball"
+                      },
+                      {
+                          "id":  "item_dragons_breath_elixir",
+                          "name":  "Dragon\u0027s Breath Elixir"
+                      },
+                      {
+                          "id":  "item_glyph_warding",
+                          "name":  "Glyph Of Warding"
+                      },
+                      {
+                          "id":  "item_holy_water",
+                          "name":  "Holy Water"
+                      },
+                      {
+                          "id":  "item_holy_avenger",
+                          "name":  "Holy Avenger"
+                      },
+                      {
+                          "id":  "item_lucky_charm",
+                          "name":  "Lucky Charm"
+                      },
+                      {
+                          "id":  "item_lucky_charm_2",
+                          "name":  "Lucky Charm"
+                      },
+                      {
+                          "id":  "item_lucky_charm_3",
+                          "name":  "Lucky Charm"
+                      },
+                      {
+                          "id":  "item_magic_sword",
+                          "name":  "Magic Sword"
+                      },
+                      {
+                          "id":  "item_necklace_fireballs",
+                          "name":  "Necklace Of Fireballs"
+                      },
+                      {
+                          "id":  "item_potion_of_healing",
+                          "name":  "Potion Of Healing"
+                      },
+                      {
+                          "id":  "item_potion_of_healing_2",
+                          "name":  "Potion Of Healing"
+                      },
+                      {
+                          "id":  "item_potion_of_rejuvenation",
+                          "name":  "Potion Of Rejuvenation"
+                      },
+                      {
+                          "id":  "item_ring_of_accuracy",
+                          "name":  "Ring Of Accuracy"
+                      },
+                      {
+                          "id":  "item_ring_of_regeneration",
+                          "name":  "Ring Of Regeneration"
+                      },
+                      {
+                          "id":  "item_scroll_of_teleportation",
+                          "name":  "Scroll Of Teleportation"
+                      },
+                      {
+                          "id":  "item_thieves_tools",
+                          "name":  "Thieves\u0027 Tools"
+                      },
+                      {
+                          "id":  "item_wand_of_teleportation",
+                          "name":  "Wand Of Teleportation"
+                      },
+                      {
+                          "id":  "treasure_icon_ravenloft",
+                          "name":  "Icon of The Shadowhold"
+                      },
+                      {
+                          "id":  "treasure_healing_potion",
+                          "name":  "Healing Potion"
+                      },
+                      {
+                          "id":  "treasure_blessing",
+                          "name":  "Blessing of the Morninglord"
+                      },
+                      {
+                          "id":  "treasure_silver_dagger",
+                          "name":  "Silver Dagger"
+                      },
+                      {
+                          "id":  "treasure_skull",
+                          "name":  "Skull of Kavan"
+                      },
+                      {
+                          "id":  "treasure_portrait",
+                          "name":  "Portrait of The Shadowhold"
+                      },
+                      {
+                          "id":  "item_wooden_stake",
+                          "name":  "Wooden Stake"
+                      },
+                      {
+                          "id":  "item_feywalk_amulet",
+                          "name":  "Feywalk Amulet"
+                      },
+                      {
+                          "id":  "item_torch",
+                          "name":  "Torch"
+                      },
+                      {
+                          "id":  "item_dimensional_shackles",
+                          "name":  "Dimensional Shackles"
+                      },
+                      {
+                          "id":  "item_holy_symbol_of_ravenkind",
+                          "name":  "Holy Symbol of Ravenkind"
+                      },
+                      {
+                          "id":  "item_icon_of_strahd",
+                          "name":  "Icon of Nekrula"
+                      },
+                      {
+                          "id":  "item_sunsword",
+                          "name":  "Sunsword"
+                      },
+                      {
+                          "id":  "item_silver_dagger",
+                          "name":  "Silver Dagger"
+                      },
+                      {
+                          "id":  "item_gravestorms_phylactery",
+                          "name":  "Varkath\u0027s Phylactery"
+                      },
+                      {
+                          "id":  "item_tome_of_strahd",
+                          "name":  "Tome of Nekrula"
+                      }
+                  ],
+    "items":  [
+                  {
+                      "id":  "card-item-shield",
+                      "name":  "Heavy Shield"
+                  },
+                  {
+                      "id":  "card-item-boots-speed",
+                      "name":  "Boots of Speed"
+                  },
+                  {
+                      "id":  "card-item-ring-protection",
+                      "name":  "Ring of Protection"
+                  },
+                  {
+                      "id":  "card-item-amulet-protection",
+                      "name":  "Amulet of Protection"
+                  },
+                  {
+                      "id":  "card-item-belt-strength",
+                      "name":  "Belt of Giant Strength"
+                  },
+                  {
+                      "id":  "card-item-boots-striding",
+                      "name":  "Boots of Striding"
+                  },
+                  {
+                      "id":  "card-item-magic-weapon",
+                      "name":  "Magic Weapon"
+                  },
+                  {
+                      "id":  "card-item-potion-healing",
+                      "name":  "Potion of Healing"
+                  },
+                  {
+                      "id":  "card-item-potion-speed",
+                      "name":  "Potion of Speed"
+                  },
+                  {
+                      "id":  "card-item-thieves-tools",
+                      "name":  "Thieves\u0027 Tools"
+                  },
+                  {
+                      "id":  "card-item-wand-magic-missiles",
+                      "name":  "Wand of Magic Missiles"
+                  },
+                  {
+                      "id":  "card-item-holy-symbol",
+                      "name":  "Holy Symbol"
+                  },
+                  {
+                      "id":  "card-item-ring-regeneration",
+                      "name":  "Ring of Regeneration"
+                  },
+                  {
+                      "id":  "card-item-blessing",
+                      "name":  "Blessing of the Sun"
+                  },
+                  {
+                      "id":  "card-item-potion-invisibility",
+                      "name":  "Potion of Invisibility"
+                  }
+              ],
+    "scenarioFiles":  [
+                          "adventure_01.json",
+                          "adventure_02.json",
+                          "adventure_03.json",
+                          "adventure_04.json",
+                          "adventure_05.json",
+                          "adventure_06.json",
+                          "adventure_07.json",
+                          "adventure_08.json",
+                          "adventure_09.json",
+                          "adventure_10.json",
+                          "adventure_11.json",
+                          "adventure_12.json",
+                          "adventure_13.json",
+                          "adventure_tome_of_strahd.json",
+                          "scenario1.json",
+                          "scenario2.json",
+                          "scenario3.json",
+                          "scenario4.json",
+                          "scenario5.json"
+                      ]
+}

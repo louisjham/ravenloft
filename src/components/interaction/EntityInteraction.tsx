@@ -2,6 +2,7 @@ import React from 'react'
 import { Entity } from '../../game/types'
 import { useGameStore } from '../../store/gameStore'
 import { useGameActions } from '../../hooks/useGameActions'
+import { SoundLibrary } from '../../audio/SoundLibrary'
 
 import { ThreeEvent } from '@react-three/fiber';
 
@@ -19,6 +20,8 @@ export const EntityInteraction: React.FC<EntityInteractionProps> = ({ entity, ch
 
   const onEntityClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
+    SoundLibrary.UI.click();
+    SoundLibrary.UI.click();
     
     // If we have an attack card/ability selected and target is a monster
     if (selectedCard && entity.type === 'monster') {

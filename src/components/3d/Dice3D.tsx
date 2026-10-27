@@ -2,11 +2,13 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Billboard, Text } from '@react-three/drei';
 import { Interactive, useXR } from '@react-three/xr';
+import { XRGrabSource, resolveGrabSource, isGrabActive, recordGrabRelease, getGrabWorldPose } from '../../xr/XRGrabManager';
 import { useSphere } from '@react-three/cannon';
 import * as THREE from 'three';
 import { createD20Geometry, createD20Material, getQuaternionForNumber, getUpFaceNumber } from './D20Geometry';
 import { useDiceStore } from '../../store/diceStore';
 import { useGameStore } from '../../store/gameStore';
+import { useUIStore } from '../../store/uiStore';
 import { DiceDismissEffect } from './DiceDismissEffect';
 
 const DIE_RADIUS = 0.35;
@@ -27,6 +29,8 @@ export const Dice3D: React.FC = () => {
   const setHeldByPlayer = useDiceStore(s => s.setHeldByPlayer);
   const isAutoRoll = useDiceStore(s => s.isAutoRoll);
   const announcementText = useDiceStore(s => s.announcementText);
+  const rollerId = useDiceStore(s => s.rollerId);
+  const targetId = useDiceStore(s => s.targetId);
 
   // Thrown-die params from a grab release (null = auto-toss / auto-roll).
   const [thrown, setThrown] = useState<{
@@ -57,35 +61,42 @@ export const Dice3D: React.FC = () => {
   };
 
   const handleSettled = (faceValue?: number, pos?: [number, number, number]) => {
+    if (pos) setSettlePos(pos);
     if (faceValue !== undefined) {
-      if (pos) setSettlePos(pos);
       storeSettleResult(faceValue);
     } else {
       storeSettleResult();
     }
   };
 
-  // Select hero world position as two stable primitives so the useMemo below only
-  // recomputes when the hero actually moves, not on every state change.
-  const heroWorldX = useGameStore((state) => {
+  // Select focus world position based on target (combat target), roller (attacker),
+  // or active hero, falling back to start tile center [2.0, 0.1, 2.0].
+  const focusWorldPos = useGameStore((state) => {
     const gs = state.gameState;
     if (!gs) return null;
-    const hero = gs.heroes.find(h => h.id === gs.currentHeroId);
-    return hero ? hero.position.x * 4 + hero.position.sqX + 0.5 : null;
-  });
-  const heroWorldZ = useGameStore((state) => {
-    const gs = state.gameState;
-    if (!gs) return null;
-    const hero = gs.heroes.find(h => h.id === gs.currentHeroId);
-    return hero ? hero.position.z * 4 + hero.position.sqZ + 0.5 : null;
+    let entity: { position: { x: number; z: number; sqX: number; sqZ: number } } | null = null;
+    if (targetId) {
+      entity = gs.heroes.find(h => h.id === targetId) || gs.monsters.find(m => m.id === targetId) || null;
+    }
+    if (!entity && rollerId) {
+      entity = gs.monsters.find(m => m.id === rollerId) || gs.heroes.find(h => h.id === rollerId) || null;
+    }
+    if (!entity && gs.currentHeroId) {
+      entity = gs.heroes.find(h => h.id === gs.currentHeroId) || null;
+    }
+    if (!entity) return null;
+    return [
+      entity.position.x * 4 + entity.position.sqX + 0.5,
+      entity.position.z * 4 + entity.position.sqZ + 0.5
+    ] as [number, number];
   });
 
   const arenaPosition = useMemo((): [number, number, number] => {
-    if (heroWorldX === null || heroWorldZ === null) return [0, 0, -6];
+    if (!focusWorldPos) return [2.0, 0.1, 2.0];
     // Offset the dice drop slightly towards the camera/side (+1.0 in X and Z)
-    // so it is visible and does not drop directly on top of the hero miniature.
-    return [heroWorldX + 1.0, 0.1, heroWorldZ + 1.0];
-  }, [heroWorldX, heroWorldZ]);
+    // so it is visible and does not drop directly on top of the entity miniature.
+    return [focusWorldPos[0] + 1.0, 0.1, focusWorldPos[1] + 1.0];
+  }, [focusWorldPos]);
 
   // We only render the physical die when rolling, settling, or showing result
   const shouldRenderPhysical = phase === 'rolling' || phase === 'settling' || phase === 'showing_result';
@@ -184,7 +195,7 @@ const HeldDie: React.FC<HeldDieProps> = ({ color, arenaPosition, heldPosRef, set
   const { geometry } = useMemo(() => createD20Geometry(), []);
   const material = useMemo(() => createD20Material(color), [color]);
   const { camera } = useThree();
-  const { isPresenting } = useXR();
+  const { isPresenting, controllers } = useXR();
 
   // Spawn in front of the player in XR; above the hero area on desktop.
   const spawnPosition = useMemo((): [number, number, number] => {
@@ -198,6 +209,8 @@ const HeldDie: React.FC<HeldDieProps> = ({ color, arenaPosition, heldPosRef, set
 
   const groupRef = useRef<THREE.Group>(null);
   const grabbingControllerRef = useRef<THREE.Object3D | null>(null);
+  const grabSourceRef = useRef<XRGrabSource | null>(null);
+  const diceResetVersionRef = useRef<number>(0);
   const posHistory = useRef<Array<{ x: number; y: number; z: number; t: number }>>([]);
   const [isGrabbed, setIsGrabbed] = useState(false);
 
@@ -208,12 +221,38 @@ const HeldDie: React.FC<HeldDieProps> = ({ color, arenaPosition, heldPosRef, set
   useFrame((state, delta) => {
     const group = groupRef.current;
     if (!group) return;
+    // Reset All: restore dice to initial spawn position
+    const currentResetVersion = useUIStore.getState().resetAllVersion;
+    if (currentResetVersion > diceResetVersionRef.current) {
+      diceResetVersionRef.current = currentResetVersion;
+      if (grabbingControllerRef.current || grabSourceRef.current || isGrabbed) {
+        grabbingControllerRef.current = null;
+        grabSourceRef.current = null;
+        setIsGrabbed(false);
+        setHeldByPlayer(false);
+      }
+      group.position.set(...spawnPosition);
+      heldPosRef.current = [...spawnPosition];
+      posHistory.current = [];
+    }
+
+
+    if (grabSourceRef.current) {
+      if (!isGrabActive(grabSourceRef.current)) {
+        handleGrabEnd();
+        return;
+      }
+    }
 
     if (grabbingControllerRef.current) {
-      const ctrl = grabbingControllerRef.current;
-      ctrl.updateWorldMatrix(true, false);
-      ctrl.getWorldPosition(_ctrlPos);
-      ctrl.getWorldQuaternion(_ctrlQuat);
+      if (grabSourceRef.current) {
+        getGrabWorldPose(grabSourceRef.current, _ctrlPos, _ctrlQuat);
+      } else {
+        const ctrl = grabbingControllerRef.current;
+        ctrl.updateWorldMatrix(true, false);
+        ctrl.getWorldPosition(_ctrlPos);
+        ctrl.getWorldQuaternion(_ctrlQuat);
+      }
       _offset.set(0, 0.02, -0.06).applyQuaternion(_ctrlQuat);
       _ctrlPos.add(_offset);
       group.position.lerp(_ctrlPos, 1 - Math.pow(0.001, delta));
@@ -234,10 +273,16 @@ const HeldDie: React.FC<HeldDieProps> = ({ color, arenaPosition, heldPosRef, set
   });
 
   const handleGrabStart = (e: any) => {
-    if (grabbingControllerRef.current) return;
+    if (grabbingControllerRef.current || grabSourceRef.current) return;
+    let source: XRGrabSource | null = null;
+    if (isPresenting) {
+      source = resolveGrabSource(e, controllers);
+      if (!source) return;
+    }
     const xrCtrl = e?.controller || (e?.target?.controller ? e.target : null);
-    const ctrlObj = xrCtrl?.controller || xrCtrl?.grip || (e?.target instanceof THREE.Object3D ? e.target : null);
+    const ctrlObj = source?.controller || xrCtrl?.controller || xrCtrl?.grip || (e?.target instanceof THREE.Object3D ? e.target : null);
     if (ctrlObj) {
+      grabSourceRef.current = source;
       grabbingControllerRef.current = ctrlObj;
       posHistory.current = [];
       setIsGrabbed(true);
@@ -248,6 +293,8 @@ const HeldDie: React.FC<HeldDieProps> = ({ color, arenaPosition, heldPosRef, set
   const handleGrabEnd = () => {
     const ctrl = grabbingControllerRef.current;
     if (!ctrl || !groupRef.current) return;
+    recordGrabRelease(grabSourceRef.current);
+    grabSourceRef.current = null;
     grabbingControllerRef.current = null;
     setIsGrabbed(false);
     setHeldByPlayer(false);
@@ -401,7 +448,8 @@ const PhysicalDie: React.FC<PhysicalDieProps> = ({
             api.velocity.set(0, 0, 0);
             api.angularVelocity.set(0, 0, 0);
           }
-          onSettled();
+          const p = ref.current ? ref.current.position : null;
+          onSettled(undefined, p ? [p.x, p.y, p.z] : undefined);
         }
       }
     }, settleMs);
@@ -459,7 +507,8 @@ const PhysicalDie: React.FC<PhysicalDieProps> = ({
             api.applyImpulse([0, 0.5 * physics.mass, 0], [0, 0, 0]);
           }
 
-          onSettled();
+          const p = ref.current ? ref.current.position : null;
+          onSettled(undefined, p ? [p.x, p.y, p.z] : undefined);
         }
       }
     } else {

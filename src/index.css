@@ -410,6 +410,68 @@ body {
   justify-content: center;
 }
 
+.help-content {
+  width: 400px;
+  max-width: 90vw;
+  padding: 30px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border: 2px solid var(--color-gold);
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.95), 0 0 20px rgba(192, 160, 96, 0.2);
+}
+
+.help-content h2.gothic-title {
+  margin: 0 0 20px 0;
+  font-size: 1.35rem;
+}
+
+.help-content ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.help-content li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(192, 160, 96, 0.2);
+  border-radius: 4px;
+  color: var(--color-text);
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.help-content li strong {
+  display: inline-block;
+  min-width: 52px;
+  text-align: center;
+  padding: 3px 6px;
+  background: rgba(192, 160, 96, 0.15);
+  border: 1px solid var(--color-gold);
+  border-radius: 3px;
+  color: var(--color-gold);
+  font-family: var(--font-gothic);
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+}
+
+.help-content .gothic-button {
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+}
+
 /* Error Fallback */
 .error-fallback {
   width: 100vw;

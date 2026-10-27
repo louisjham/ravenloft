@@ -9,6 +9,7 @@ import { CardHandDock3D } from '../../xr/cards/CardHandDock3D';
 import { SpatialCardPresenter3D } from '../../xr/cards/SpatialCardPresenter3D';
 import { SpatialFortuneDialog3D } from '../../xr/cards/SpatialFortuneDialog3D';
 import { XRMainMenu3D } from '../../xr/menus/XRMainMenu3D';
+import { XRSpatialSetupPanels } from '../../xr/menus/XRSpatialSetupPanels';
 import { XRSetupStage3D } from '../../xr/menus/XRSetupStage3D';
 import { XRUnboxingStage3D } from '../../xr/unboxing/XRUnboxingStage3D';
 import { XRTabletopHUD3D } from '../../xr/hud/XRTabletopHUD3D';
@@ -125,6 +126,14 @@ const CameraTracker: React.FC<{ controlsRef: React.RefObject<any> }> = ({ contro
  * Inner scene manager inside XR context. Adapts camera, lighting, tabletop scale,
  * controllers, and post-processing between desktop and immersive XR sessions.
  */
+// Snapshot for desktop camera & OrbitControls initial view
+const initialCameraSnapshot = {
+  position: new THREE.Vector3(),
+  target: new THREE.Vector3(),
+  hasSnapshot: false,
+};
+let lastSceneResetVersion = 0;
+
 const XRSceneContent: React.FC<{
   controlsRef: React.RefObject<any>;
   graphicsQuality: string;
@@ -134,6 +143,35 @@ const XRSceneContent: React.FC<{
   const { isPresenting, session } = useXR();
   const { gl } = useThree();
   const isAR = session?.environmentBlendMode === 'additive' || session?.environmentBlendMode === 'alpha-blend';
+  const { camera } = useThree();
+  useFrame(() => {
+    const phase = useGameStore.getState().gameState?.phase;
+    if (phase && phase !== 'setup' && controlsRef.current) {
+      if (!initialCameraSnapshot.hasSnapshot) {
+        initialCameraSnapshot.position.copy(camera.position);
+        initialCameraSnapshot.target.copy(controlsRef.current.target);
+        initialCameraSnapshot.hasSnapshot = true;
+      }
+    } else if (!phase || phase === 'setup') {
+      initialCameraSnapshot.hasSnapshot = false;
+    }
+
+    const currentResetVersion = useUIStore.getState().resetAllVersion;
+    if (currentResetVersion > lastSceneResetVersion) {
+      lastSceneResetVersion = currentResetVersion;
+      if (initialCameraSnapshot.hasSnapshot && controlsRef.current && !isPresenting) {
+        camera.position.copy(initialCameraSnapshot.position);
+        controlsRef.current.target.copy(initialCameraSnapshot.target);
+        controlsRef.current.update();
+      }
+    }
+  });
+
+
+  // Synchronize XR presentation status with UI store
+  useEffect(() => {
+    useUIStore.getState().setIsXRPresenting(isPresenting);
+  }, [isPresenting]);
 
   // 1. Enable Meta Quest Fixed Foveated Rendering (FFR) for maximum GPU fill-rate efficiency
   useEffect(() => {
@@ -240,6 +278,7 @@ const XRSceneContent: React.FC<{
         <XRMainMenu3D />
         <XRSetupStage3D />
         <XRUnboxingStage3D />
+        <XRSpatialSetupPanels />
 
         {/* Board & In-Game 3D Pieces (Scaled and positioned on tabletop during XR) */}
         <group position={isPresenting ? [-0.16, 0.01, -0.16] : [0, 0, 0]} scale={isPresenting ? 0.08 : 1.0}>

@@ -15,6 +15,7 @@ import { useGameActions } from '../../hooks/useGameActions';
 import { TileSystem } from '../../game/engine/TileSystem';
 import { ConditionSystem } from '../../game/engine/ConditionSystem';
 import { playHapticProfile } from '../../xr/XRHaptics';
+import { XRGrabSource, resolveGrabSource, isGrabActive, recordGrabRelease, getGrabWorldPose } from '../../xr/XRGrabManager';
 
 interface Hero3DProps {
   hero: Hero;
@@ -35,7 +36,7 @@ const _tempVec = new THREE.Vector3();
 const _floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
 const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
-  const { controllers } = useXR();
+  const { controllers, isPresenting } = useXR();
   const selectedEntity = useGameStore((state) => state.selectedEntity);
   const isSelected = selectedEntity?.id === hero.id;
   const currentHeroId = useGameStore((state) => state.gameState?.currentHeroId);
@@ -59,6 +60,8 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
   const [hoveredSquare, setHoveredSquare] = useState<Position | null>(null);
   const [hoveredMonsterId, setHoveredMonsterId] = useState<string | null>(null);
   const grabbingControllerRef = useRef<THREE.Object3D | null>(null);
+  const grabSourceRef = useRef<XRGrabSource | null>(null);
+  const heroResetVersionRef = useRef<number>(0);
   const isPointerDraggingRef = useRef(false);
   const dragStartPosRef = useRef<Position>(hero.position);
   const lastPointerPosRef = useRef<{ x: number; z: number }>({ x: 0, z: 0 });
@@ -158,9 +161,40 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
       lightPillarRef.current.scale.set(pulse, 1.0 + Math.sin(time * 2) * 0.04, pulse);
     }
 
+        // Reset All placement check: restore hero to exact legal square
+    const currentResetVersion = useUIStore.getState().resetAllVersion;
+    if (currentResetVersion > heroResetVersionRef.current) {
+      heroResetVersionRef.current = currentResetVersion;
+      if (isDragging) {
+        setIsDragging(false);
+        grabbingControllerRef.current = null;
+        grabSourceRef.current = null;
+        isPointerDraggingRef.current = false;
+      }
+      targetPos.current.set(worldX, 0, worldZ);
+      if (groupRef.current) {
+        groupRef.current.position.set(worldX, 0, worldZ);
+      }
+    }
     // 2. Grabbing & 6DoF / Desktop Mouse Dragging
+    if (isDragging && grabSourceRef.current) {
+      if (!isGrabActive(grabSourceRef.current)) {
+        handleGrabEnd();
+        return;
+      }
+    }
+
     if (isDragging) {
-      if (grabbingControllerRef.current && groupRef.current.parent) {
+      if (grabSourceRef.current && groupRef.current.parent) {
+        getGrabWorldPose(grabSourceRef.current, _ctrlPos, _ctrlRot);
+        groupRef.current.parent.updateWorldMatrix(true, false);
+
+        _tempVec.copy(_ctrlPos);
+        groupRef.current.parent.worldToLocal(_tempVec);
+
+        targetPos.current.set(_tempVec.x, Math.max(0.35, _tempVec.y + 0.1), _tempVec.z);
+        lastPointerPosRef.current = { x: _tempVec.x, z: _tempVec.z };
+      } else if (grabbingControllerRef.current && groupRef.current.parent) {
         // VR 6DoF Controller tracking
         grabbingControllerRef.current.updateWorldMatrix(true, false);
         grabbingControllerRef.current.getWorldPosition(_ctrlPos);
@@ -296,6 +330,12 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
   const handleGrabStart = useCallback((e: any) => {
     if (!isActive) return;
 
+    let source: XRGrabSource | null = null;
+    if (isPresenting) {
+      source = resolveGrabSource(e, controllers);
+      if (!source) return;
+    }
+
     playHapticProfile('hover');
     setIsDragging(true);
     setInteractionMode('move');
@@ -303,12 +343,17 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
     lastPointerPosRef.current = { x: worldX, z: worldZ };
     currentHoverRef.current = { square: hero.position, monsterId: null };
 
-    const xrCtrl = e?.controller || (e?.target?.controller ? e.target : null);
-    const ctrlObj = xrCtrl?.controller || xrCtrl?.grip || (e?.target instanceof THREE.Object3D ? e.target : null);
-    if (ctrlObj) {
-      grabbingControllerRef.current = ctrlObj;
+    if (source) {
+      grabSourceRef.current = source;
+      grabbingControllerRef.current = source.controller;
+    } else {
+      const xrCtrl = e?.controller || (e?.target?.controller ? e.target : null);
+      const ctrlObj = xrCtrl?.controller || xrCtrl?.grip || (e?.target instanceof THREE.Object3D ? e.target : null);
+      if (ctrlObj) {
+        grabbingControllerRef.current = ctrlObj;
+      }
     }
-  }, [isActive, hero.position, worldX, worldZ, setInteractionMode]);
+  }, [isActive, isPresenting, controllers, hero.position, worldX, worldZ, setInteractionMode]);
 
   // ---------------------------------------------------------------------------
   // Release / Drop Handlers (Intuitive, responsive, no stickiness)
@@ -316,8 +361,10 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
   const handleGrabEnd = useCallback(() => {
     if (!isDragging) return;
 
-    setIsDragging(false);
+    recordGrabRelease(grabSourceRef.current);
+    grabSourceRef.current = null;
     grabbingControllerRef.current = null;
+    setIsDragging(false);
     isPointerDraggingRef.current = false;
     setHoveredTargetEntityId(null);
     setHoveredMonsterId(null);

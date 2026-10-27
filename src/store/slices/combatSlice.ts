@@ -5,7 +5,9 @@ import { CombatAdapter } from '../../game/engine/CombatAdapter';
 import { TreasureSystem } from '../../game/engine/TreasureSystem';
 import { getTileGraphDistance, findBestLandingSquare } from '../../game/engine/MonsterAI';
 import { DataLoader } from '../../game/dataLoader';
-import { Position, GameLogEntry } from '../../game/types';
+import { Position, GameLogEntry, GameState } from '../../game/types';
+import { SoundLibrary } from '../../audio/SoundLibrary';
+import { addLogEntry } from '../../game/engine/LogUtils';
 
 export const createCombatSlice: StateCreator<GameStore, [], [], CombatSlice> = (set, get) => ({
   moveHero: (targetPosition: Position) => {
@@ -35,10 +37,9 @@ export const createCombatSlice: StateCreator<GameStore, [], [], CombatSlice> = (
       // Tireless Pursuit trigger check
       const startedAdjacentDwIds = hero.startedTurnAdjacentToDreadWarriorIds ?? [];
       let updatedMonsters = [...state.monsters];
-      let logIndex = state.logIdCounter ?? 0;
-      let logsToAdd: GameLogEntry[] = [];
       let currentHeroRef = { ...baseUpdatedHero };
       let newStateForCombat = { ...state };
+      const pursuitLogs: string[] = [];
 
       for (const dwId of startedAdjacentDwIds) {
         const dw = updatedMonsters.find(m => m.id === dwId && !m.isDefeated && m.hp > 0);
@@ -79,6 +80,7 @@ export const createCombatSlice: StateCreator<GameStore, [], [], CombatSlice> = (
             const isShieldAvailable = !(currentHeroRef.flippedPowerIds ?? []).includes('wizard_shield');
 
             if (attackResult.hit) {
+              SoundLibrary.Combat.hit();
               if (hasShield && isShieldAvailable) {
                 finalDamage = 0;
                 logSuffix = ` Prevented by ${currentHeroRef.name}'s Shield! The attack misses instead.`;
@@ -89,17 +91,18 @@ export const createCombatSlice: StateCreator<GameStore, [], [], CombatSlice> = (
               }
             }
 
+            if (finalDamage > 0) {
+              SoundLibrary.Combat.hurt();
+            }
+
             currentHeroRef = CombatSystem.applyDamage(currentHeroRef, finalDamage, newStateForCombat);
             if (currentHeroRef.hp <= 0) {
               currentHeroRef.isDefeated = true;
             }
 
-            logsToAdd.push({
-              id: String(logIndex++),
-              timestamp: new Date().toISOString(),
-              message: `Tireless Pursuit! Dread Warrior pursues ${currentHeroRef.name} to tile (${targetPosition.x}, ${targetPosition.z}) and attacks (+6 vs AC ${currentHeroRef.ac}) - ${attackResult.hit ? `HITS for ${attackResult.damage} damage.${logSuffix}` : 'MISSES.'}`,
-              type: 'combat' as const
-            });
+            pursuitLogs.push(
+              `Tireless Pursuit! Dread Warrior pursues ${currentHeroRef.name} to tile (${targetPosition.x}, ${targetPosition.z}) and attacks (+6 vs AC ${currentHeroRef.ac}) - ${attackResult.hit ? `HITS for ${attackResult.damage} damage.${logSuffix}` : 'MISSES.'}`
+            );
           }
         }
       }
@@ -113,27 +116,26 @@ export const createCombatSlice: StateCreator<GameStore, [], [], CombatSlice> = (
         return h;
       });
 
-      const updatedLog: GameLogEntry[] = [
-        ...state.log,
-        {
-          id: String(logIndex++),
-          timestamp: new Date().toISOString(),
-          message: `${hero.name} moves to [${targetTile.name || targetTile.id}] at (${targetPosition.x}, ${targetPosition.z}) square (${targetPosition.sqX}, ${targetPosition.sqZ})`,
-          type: 'action' as const
-        },
-        ...logsToAdd
-      ].slice(-300);
+      let nextGameState: GameState = {
+        ...state,
+        heroes: updatedHeroes,
+        monsters: updatedMonsters,
+        hasAttackedThisTurn: usedStandardActionForMove ? true : state.hasAttackedThisTurn
+      };
 
-      set({
-        gameState: {
-          ...state,
-          heroes: updatedHeroes,
-          monsters: updatedMonsters,
-          log: updatedLog,
-          logIdCounter: logIndex,
-          hasAttackedThisTurn: usedStandardActionForMove ? true : state.hasAttackedThisTurn
-        }
-      });
+      // 1. Log movement first
+      nextGameState = addLogEntry(
+        nextGameState,
+        `${hero.name} moves to [${targetTile.name || targetTile.id}] at (${targetPosition.x}, ${targetPosition.z}) square (${targetPosition.sqX}, ${targetPosition.sqZ})`,
+        'action'
+      );
+
+      // 2. Log pursuit counter-attacks in order
+      for (const pLog of pursuitLogs) {
+        nextGameState = addLogEntry(nextGameState, pLog, 'combat');
+      }
+
+      set({ gameState: nextGameState });
     },
 
   attackMonster: async (monsterId: string) => {
@@ -184,6 +186,7 @@ export const createCombatSlice: StateCreator<GameStore, [], [], CombatSlice> = (
             };
             cacklingSkullsLog = `Cackling Skulls: ${baseUpdatedHero.name} missed Skull Lord from within 1 tile and flips daily/utility power (${powerToFlip?.name || powerToFlipId}) face down!`;
           } else {
+            SoundLibrary.Combat.hurt();
             finalHero = CombatSystem.applyDamage(baseUpdatedHero, 1, currentState);
             cacklingSkullsLog = `Cackling Skulls: ${baseUpdatedHero.name} missed Skull Lord from within 1 tile, had no unused Daily/Utility powers, and takes 1 damage!`;
           }
@@ -200,48 +203,44 @@ export const createCombatSlice: StateCreator<GameStore, [], [], CombatSlice> = (
         return m;
       });
 
-      // Bug 6: Use deterministic logIdCounter instead of crypto.randomUUID()
-      const counter = currentState.logIdCounter ?? 0;
-      let logIndex = counter;
       const rollSummary = `🎲 Roll: ${result.roll} + ${attackBonus} = ${result.total} vs AC ${currentMonster.ac} ➔ ${result.critical ? 'CRITICAL HIT (Nat 20)!' : result.hit ? 'HIT!' : 'MISS!'}`;
       const damageStatus = result.hit ? `(${currentMonster.name} HP: ${Math.max(0, currentMonster.hp - result.damage)}/${currentMonster.maxHp})` : '';
-      const updatedLog: GameLogEntry[] = [
-        ...currentState.log,
-        {
-          id: String(logIndex++),
-          timestamp: new Date().toISOString(),
-          message: `${currentHero.name} attacks ${currentMonster.name}! ${rollSummary} and deals ${result.damage} damage! ${damageStatus}`.trim(),
-          type: 'combat' as const
-        }
-      ];
+
+      let runningState: GameState = {
+        ...currentState,
+        heroes: updatedHeroes,
+        monsters: updatedMonsters,
+        hasAttackedThisTurn: true
+      };
+
+      runningState = addLogEntry(
+        runningState,
+        `${currentHero.name} attacks ${currentMonster.name}! ${rollSummary} and deals ${result.damage} damage! ${damageStatus}`.trim(),
+        'combat'
+      );
 
       if (cacklingSkullsLog) {
-        updatedLog.push({
-          id: String(logIndex++),
-          timestamp: new Date().toISOString(),
-          message: cacklingSkullsLog,
-          type: 'combat' as const
-        });
+        runningState = addLogEntry(runningState, cacklingSkullsLog, 'combat');
       }
 
       if (currentMonster.hp - result.damage <= 0) {
-        updatedLog.push({
-          id: String(logIndex++),
-          timestamp: new Date().toISOString(),
-          message: `💀 ${currentMonster.name} is defeated! +1 XP added to Experience Pile.`,
-          type: 'combat' as const
-        });
+        SoundLibrary.Combat.death();
+        runningState = addLogEntry(
+          runningState,
+          `💀 ${currentMonster.name} is defeated! +1 XP added to Experience Pile.`,
+          'combat'
+        );
+      }
+
+      const treasuresBefore = currentState.treasuresDrawnThisTurn;
+      const finalStateAfterDefeat = TreasureSystem.processDefeatedMonsters(runningState);
+
+      if (finalStateAfterDefeat.treasuresDrawnThisTurn > treasuresBefore) {
+        SoundLibrary.Game.cardDraw();
       }
 
       set({
-        gameState: TreasureSystem.processDefeatedMonsters({
-          ...currentState,
-          heroes: updatedHeroes,
-          monsters: updatedMonsters,
-          log: updatedLog.slice(-300),
-          logIdCounter: logIndex,
-          hasAttackedThisTurn: true
-        })
+        gameState: finalStateAfterDefeat
       });
     },
 

@@ -124,3 +124,47 @@ npx tsx runTests.ts
 ---
 
 *Unofficial fan project. Not affiliated with Wizards of the Coast. Dungeons & Dragons and Castle Ravenloft are trademarks of Wizards of the Coast.*
+
+
+## Chronicle Log System (Oct 24, 2026 — dca42a41)
+
+### What Was Implemented
+
+#### 1. Comprehensive Game State Logging
+
+**Room Exploration & Dungeon Expansion (TileSystem.ts):**
+- Room Discovery: logs room name, coordinates, and edge danger ([ROOM] Allisa explored [Dungeon Corridor] at (1, 0) [▲ Black Triangle (Encounter Imminent)]).
+- Coffin & Item Tokens: logs token placement ([Coffin Token] A sinister coffin rests in the shadows of [Crypt]!).
+- Monster Spawns: logs when monsters crawl onto bone squares with full stat breakdowns and owner assignment ([SPAWN] A sinister growl echoes... Skeleton lurks on the bone square! (HP: 1, AC: 13, Speed: 2, controlled by Allisa)).
+
+**Attacks & Combat Math (combatSlice.ts):**
+- Complete Dice Equations: logs exact d20 roll, modifiers, total vs target AC, hit/miss status, and damage dealt: [HIT] Arjhan attacks Zombie! 🎲 Roll: 14 + 6 = 20 vs AC 13 ➔ HIT! and deals 2 damage! (Zombie HP: 0/2)
+- Critical Hits: highlights natural 20 critical hits with distinct [CRIT] badges.
+- Defeat & XP: explicit log entry when a foe falls: [DEFEAT] 💀 Zombie is defeated! +1 XP added to Experience Pile.
+
+**Spells & Power Cards (powerSlice.ts & cardSlice.ts):**
+- Spell Executions: logs hero, spell name, target, and roll breakdown ([SPELL] Kat uses Sneak Attack! Deals 3 damage to Kobold).
+- Daily & Utility Power Exhaustion: logs when a power flips face-down ([Power Spent] Arjhan's DAILY power [Dragon Breath] is exhausted and turned face-down).
+
+**Turn Boundaries & Surges (coreSlice.ts):**
+- Turn Banners: clear decorative section dividers marking each turn, hero HP, and healing surge stock: ── Turn 3: Arjhan's turn begins (8/10 HP, 2 Surges) ──
+
+**Treasure & Loot (cardSlice.ts):**
+- Loot Cards: detailed log entries for drew items, fortunes, and blessings ([LOOT] [Treasure] Allisa drew Treasure card: Potion of Healing (Item)).
+
+**Deterministic Log IDs:**
+- Replaced rogue crypto.randomUUID() calls with sequential logIdCounter increments, preserving integration test constraints.
+
+#### 2. Redesigned Chronicle UI (CombatLog.tsx)
+
+- Category Filter Tabs: All (complete unfiltered chronological log); ⚔️ Fight (attacks, damage, misses, and monster defeats); 🏰 Rooms (room explorations, edge types, and monster spawns); ✨ Magic (spells, power activations, daily flips, and treasures); 💀 Villain (monster activations, movements, and villain tactics).
+- Real-Time Keyword Search: search input at the top of the log filters entries live (e.g. searching "Strahd", "Nat 20", "Roll", or "Kat").
+- Enlarged Reading Mode (⛶ / ⊡): one-click expand button widens the panel to 340px and expands vertical height to 260px for comfortably reading extensive adventure history.
+- Scroll Freeze / Resume (⬇ / ⏸): players can pause autoscroll to inspect earlier rounds without new events jumping the scrollbar.
+- Visual Badges & Dice Equations: category tags ([HIT], [MISS], [CRIT], [ROOM], [SPAWN], [DEFEAT], [SPELL], [LOOT]); golden bordered dice equation pills (🎲 Roll: 14 + 6 = 20 vs AC 13 ➔); parchment turn divider banners.
+- Capacity: increased buffer to 300+ entries (up from 25) so players can review the entire campaign crawl.
+
+#### Verification
+
+- TypeScript Compilation: npx tsc --noEmit passed with 0 errors.
+- Integration Test Suite: npx tsx runTests.ts passed 100% of integration, scenario, hero, and ability tests.

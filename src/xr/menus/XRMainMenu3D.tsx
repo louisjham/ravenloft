@@ -199,10 +199,8 @@ export const XRMainMenu3D: React.FC = () => {
     setIsOpen((prev) => !prev);
   };
 
-  const handleBeginAdventure = (scenarioId: string = 'adventure_01') => {
-    const dataLoader = DataLoader.getInstance();
-    const heroes = dataLoader.getHeroes().map((h) => h.id);
-    startNewGame(scenarioId, heroes);
+  const handleBeginAdventure = (_scenarioId: string = 'adventure_01') => {
+    useUIStore.getState().setShowSetupScreen(true);
   };
 
   const handleQuickStart = () => {

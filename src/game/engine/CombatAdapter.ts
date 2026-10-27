@@ -3,6 +3,9 @@ import { CombatSystem } from './CombatSystem';
 import { isDev } from '../../utils/devEnv';
 import { useDiceStore } from '../../store/diceStore';
 import { useGameStore } from '../../store/gameStore';
+import { useUIStore } from '../../store/uiStore';
+import { SoundLibrary } from '../../audio/SoundLibrary';
+import { addLogEntry } from './LogUtils';
 
 const LOG_PREFIX = '[CombatAdapter]';
 const ASYNC_TIMEOUT_MS = 15_000;
@@ -42,7 +45,35 @@ export class CombatAdapter {
         if (isDev()) console.log(`${LOG_PREFIX} Async attack timed out, resolving with direct roll`);
         // targeted cancel roll before resolving
         store.getState().cancelRoll?.();
-        resolve(CombatSystem.resolveAttack(attacker, target, attackBonus, damage, rollModifier, undefined, gameState, missDamage));
+        const attackResult = CombatSystem.resolveAttack(attacker, target, attackBonus, damage, rollModifier, undefined, gameState, missDamage);
+        if (attackResult.hit) {
+          SoundLibrary.Combat.hit();
+          if (target.type === 'hero' && attackResult.damage > 0) {
+            SoundLibrary.Combat.hurt();
+          }
+        }
+
+        const timeoutSeconds = Math.round(timeoutMs / 1000);
+        const timeoutLogMessage = `🎲 Dice roll timed out after ${timeoutSeconds}s — auto-resolved attack roll for ${attacker.name} vs ${target.name}.`;
+
+        const storeGameState = useGameStore.getState().gameState;
+        const currentGameState = storeGameState ?? gameState;
+        if (currentGameState) {
+          const stateWithLog = addLogEntry(currentGameState, timeoutLogMessage, 'combat');
+          useGameStore.setState({ gameState: stateWithLog });
+          if (gameState) {
+            gameState.log = stateWithLog.log;
+            gameState.logIdCounter = stateWithLog.logIdCounter;
+          }
+        }
+
+        useUIStore.getState().addNotification(
+          `Dice roll timed out after ${timeoutSeconds}s — roll was auto-resolved for ${attacker.name}.`,
+          'warning',
+          4000
+        );
+
+        resolve(attackResult);
       }, timeoutMs);
 
       store.getState().requestRoll({
@@ -61,11 +92,16 @@ export class CombatAdapter {
           resolved = true;
           clearTimeout(timeout);
           const preRolledValue = store.getState().result;
-          if (preRolledValue !== null) {
-            resolve(CombatSystem.resolveAttack(attacker, target, attackBonus, damage, rollModifier, preRolledValue, gameState, missDamage));
-          } else {
-            resolve(CombatSystem.resolveAttack(attacker, target, attackBonus, damage, rollModifier, undefined, gameState, missDamage));
+          const attackResult = preRolledValue !== null
+            ? CombatSystem.resolveAttack(attacker, target, attackBonus, damage, rollModifier, preRolledValue, gameState, missDamage)
+            : CombatSystem.resolveAttack(attacker, target, attackBonus, damage, rollModifier, undefined, gameState, missDamage);
+          if (attackResult.hit) {
+            SoundLibrary.Combat.hit();
+            if (target.type === 'hero' && attackResult.damage > 0) {
+              SoundLibrary.Combat.hurt();
+            }
           }
+          resolve(attackResult);
         }
       });
     });

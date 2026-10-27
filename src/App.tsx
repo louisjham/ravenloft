@@ -185,6 +185,7 @@ const App: React.FC = () => {
         <VillainPhaseOverlay
           activeVillainId={gameState.activeVillainId}
           villainQueue={gameState.villainPhaseQueue}
+          villainQueueIndex={gameState.villainQueueIndex}
           monsters={gameState.monsters}
           traps={gameState.traps}
           isVillainPhaseActive={gameState.villainPhaseQueue.length > 0}

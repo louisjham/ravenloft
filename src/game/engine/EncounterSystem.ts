@@ -7,6 +7,7 @@ import { TileSystem } from './TileSystem';
 import { AbilitySystem } from '../ai/AbilitySystem';
 import { getPathToward, activateMonsterEntity, getTileGraphDistance } from './MonsterAI';
 import { isDev } from '../../utils/devEnv';
+import { addLogEntry, formatEncounterOutcome, formatEncounterLogMessage } from './LogUtils';
 
 
 
@@ -47,19 +48,27 @@ export class EncounterSystem {
             return resultState;
         }
 
+        let outcome = '';
         if (card.encounterType === 'environment') {
             const res = this.processEnvironmentCard(resultState, card);
-            return res.gameState;
+            resultState = res.gameState;
+            outcome = formatEncounterOutcome(card, { customOutcome: res.message });
         } else if (card.encounterType === 'event') {
             const res = this.processEventCard(resultState, card, activeHero);
-            return res.gameState;
+            resultState = res.gameState;
+            outcome = formatEncounterOutcome(card, { customOutcome: res.message });
         } else if (card.encounterType === 'event-attack') {
             const res = this.processEventAttackCard(resultState, card, activeHero);
-            return res.gameState;
+            resultState = res.gameState;
+            outcome = formatEncounterOutcome(card, { customOutcome: res.message });
         } else if (card.encounterType === 'trap') {
             const res = this.placeTrap(resultState, card, activeHero);
-            return res.gameState;
+            resultState = res.gameState;
+            outcome = formatEncounterOutcome(card, { customOutcome: res.message });
         }
+
+        const logMsg = formatEncounterLogMessage(card, outcome);
+        resultState = addLogEntry(resultState, { message: logMsg, type: 'encounter' });
 
         return resultState;
     }
@@ -260,9 +269,18 @@ export class EncounterSystem {
             if (r <= 10) {
                 const targetTile = gameState.tiles.find(t => t.x === activeHero.position.x && t.z === activeHero.position.z);
                 if (targetTile) {
-                    const spawnResult = this.spawnMonsterOnTile(gameState, targetTile);
+                    const spawnResult = this.spawnMonsterOnTile(gameState, targetTile, activeHero.id);
                     const updatedMonsters = spawnResult.monster ? [...gameState.monsters, spawnResult.monster] : gameState.monsters;
-                    return { success: true, message: `Lief Lipsiege (Roll: ${r}): ${activeHero.name} scared Lief! A new monster appears.`, gameState: discard({ ...gameState, monsters: updatedMonsters, monsterDeck: spawnResult.monsterDeck }) };
+                    return {
+                        success: true,
+                        message: `Lief Lipsiege (Roll: ${r}): ${activeHero.name} scared Lief! A new monster appears.`,
+                        gameState: discard({
+                            ...gameState,
+                            monsters: updatedMonsters,
+                            monsterDeck: spawnResult.monsterDeck,
+                            discardPiles: spawnResult.discardPiles ?? gameState.discardPiles
+                        })
+                    };
                 }
             } else {
                 const drawResult = TreasureSystem.drawTreasureCard(gameState, activeHero);
@@ -335,10 +353,15 @@ export class EncounterSystem {
                 x: targetCoords.x, z: targetCoords.z,
                 rotation: drawResult.validRotations[0],
                 connections: TileSystem.rotateConnections(drawResult.tile.connections.map(c => ({ ...c })), drawResult.validRotations[0]),
+                boneSquare: TileSystem.rotateBoneSquare(
+                    drawResult.tile.boneSquare?.sqX ?? 1,
+                    drawResult.tile.boneSquare?.sqZ ?? 1,
+                    drawResult.validRotations[0]
+                ),
                 isRevealed: true, monsters: [], heroes: [], items: []
             };
             let updatedTiles = TileSystem.connectTiles(gameState.tiles, parentTile, newTileInstance, closestPoint.edge);
-            const spawnResult = this.spawnMonsterOnTile({ ...gameState, tiles: updatedTiles, dungeonDeck: drawResult.remainingDeck }, newTileInstance);
+            const spawnResult = this.spawnMonsterOnTile({ ...gameState, tiles: updatedTiles, dungeonDeck: drawResult.remainingDeck }, newTileInstance, activeHero.id);
             let updatedMonsters = gameState.monsters;
             if (spawnResult.monster) {
                 updatedMonsters = [...gameState.monsters, spawnResult.monster];
@@ -349,7 +372,18 @@ export class EncounterSystem {
                     return t;
                 });
             }
-            return { success: true, message: 'Neglected Passage: A forgotten passage opens. A new monster lurks within.', gameState: discard({ ...gameState, tiles: updatedTiles, dungeonDeck: drawResult.remainingDeck, monsters: updatedMonsters, monsterDeck: spawnResult.monsterDeck }) };
+            return {
+                success: true,
+                message: 'Neglected Passage: A forgotten passage opens. A new monster lurks within.',
+                gameState: discard({
+                    ...gameState,
+                    tiles: updatedTiles,
+                    dungeonDeck: drawResult.remainingDeck,
+                    monsters: updatedMonsters,
+                    monsterDeck: spawnResult.monsterDeck,
+                    discardPiles: spawnResult.discardPiles ?? gameState.discardPiles
+                })
+            };
         }
 
         // -----------------------------------------------------------------------
@@ -470,11 +504,20 @@ export class EncounterSystem {
             if (!targetTile) {
                 return { success: true, message: 'Reinforcements: Could not find tile. Card discarded.', gameState: discard(gameState) };
             }
-            const spawnResult = this.spawnMonsterOnTile(gameState, targetTile);
+            const spawnResult = this.spawnMonsterOnTile(gameState, targetTile, fewestHero.id);
             const updatedMonsters = spawnResult.monster
                 ? [...gameState.monsters, { ...spawnResult.monster, ownedByHeroId: fewestHero.id }]
                 : gameState.monsters;
-            return { success: true, message: `Reinforcements: ${fewestHero.name} (fewest monsters) places a new monster on tile (${targetTile.x},${targetTile.z}).`, gameState: discard({ ...gameState, monsters: updatedMonsters, monsterDeck: spawnResult.monsterDeck }) };
+            return {
+                success: true,
+                message: `Reinforcements: ${fewestHero.name} (fewest monsters) places a new monster on tile (${targetTile.x},${targetTile.z}).`,
+                gameState: discard({
+                    ...gameState,
+                    monsters: updatedMonsters,
+                    monsterDeck: spawnResult.monsterDeck,
+                    discardPiles: spawnResult.discardPiles ?? gameState.discardPiles
+                })
+            };
         }
 
         // -----------------------------------------------------------------------
@@ -504,10 +547,15 @@ export class EncounterSystem {
                 x: targetCoords.x, z: targetCoords.z,
                 rotation: drawResult.validRotations[0],
                 connections: TileSystem.rotateConnections(drawResult.tile.connections.map(c => ({ ...c })), drawResult.validRotations[0]),
+                boneSquare: TileSystem.rotateBoneSquare(
+                    drawResult.tile.boneSquare?.sqX ?? 1,
+                    drawResult.tile.boneSquare?.sqZ ?? 1,
+                    drawResult.validRotations[0]
+                ),
                 isRevealed: true, monsters: [], heroes: [], items: []
             };
             let updatedTiles = TileSystem.connectTiles(gameState.tiles, parentTile, newTileInstance, closestPoint.edge);
-            const spawnResult = this.spawnMonsterOnTile({ ...gameState, tiles: updatedTiles, dungeonDeck: drawResult.remainingDeck }, newTileInstance);
+            const spawnResult = this.spawnMonsterOnTile({ ...gameState, tiles: updatedTiles, dungeonDeck: drawResult.remainingDeck }, newTileInstance, activeHero.id);
             let updatedMonsters = gameState.monsters;
             if (spawnResult.monster) {
                 updatedMonsters = [...gameState.monsters, { ...spawnResult.monster, ownedByHeroId: activeHero.id }];
@@ -518,7 +566,18 @@ export class EncounterSystem {
                     return t;
                 });
             }
-            return { success: true, message: `Secret Door: A hidden passage revealed at (${newTileInstance.x},${newTileInstance.z}). A monster emerges!`, gameState: discard({ ...gameState, tiles: updatedTiles, dungeonDeck: drawResult.remainingDeck, monsters: updatedMonsters, monsterDeck: spawnResult.monsterDeck }) };
+            return {
+                success: true,
+                message: `Secret Door: A hidden passage revealed at (${newTileInstance.x},${newTileInstance.z}). A monster emerges!`,
+                gameState: discard({
+                    ...gameState,
+                    tiles: updatedTiles,
+                    dungeonDeck: drawResult.remainingDeck,
+                    monsters: updatedMonsters,
+                    monsterDeck: spawnResult.monsterDeck,
+                    discardPiles: spawnResult.discardPiles ?? gameState.discardPiles
+                })
+            };
         }
 
         // -----------------------------------------------------------------------
@@ -542,22 +601,36 @@ export class EncounterSystem {
                 x: targetCoords.x, z: targetCoords.z,
                 rotation: drawResult.validRotations[0],
                 connections: TileSystem.rotateConnections(drawResult.tile.connections.map(c => ({ ...c })), drawResult.validRotations[0]),
+                boneSquare: TileSystem.rotateBoneSquare(
+                    drawResult.tile.boneSquare?.sqX ?? 1,
+                    drawResult.tile.boneSquare?.sqZ ?? 1,
+                    drawResult.validRotations[0]
+                ),
                 isRevealed: true, monsters: [], heroes: [], items: []
             };
             let updatedTiles = TileSystem.connectTiles(gameState.tiles, parentTile, newTileInstance, targetPoint.edge);
             
             let updatedMonsters = [...gameState.monsters];
             let monsterDeck = gameState.monsterDeck;
+            let discardPiles = gameState.discardPiles;
             
             // Spawn monster 1
-            const spawn1 = this.spawnMonsterOnTile({ ...gameState, tiles: updatedTiles, monsters: updatedMonsters, monsterDeck }, newTileInstance);
+            const spawn1 = this.spawnMonsterOnTile({ ...gameState, tiles: updatedTiles, monsters: updatedMonsters, monsterDeck, discardPiles }, newTileInstance, activeHero.id);
+            monsterDeck = spawn1.monsterDeck;
+            if (spawn1.discardPiles) {
+                discardPiles = spawn1.discardPiles;
+            }
             if (spawn1.monster) {
                 updatedMonsters = [...updatedMonsters, { ...spawn1.monster, ownedByHeroId: activeHero.id }];
                 monsterDeck = spawn1.monsterDeck;
                 newTileInstance.monsters.push(spawn1.monster.id);
             }
             // Spawn monster 2
-            const spawn2 = this.spawnMonsterOnTile({ ...gameState, tiles: updatedTiles, monsters: updatedMonsters, monsterDeck }, newTileInstance);
+            const spawn2 = this.spawnMonsterOnTile({ ...gameState, tiles: updatedTiles, monsters: updatedMonsters, monsterDeck, discardPiles }, newTileInstance, activeHero.id);
+            monsterDeck = spawn2.monsterDeck;
+            if (spawn2.discardPiles) {
+                discardPiles = spawn2.discardPiles;
+            }
             if (spawn2.monster) {
                 updatedMonsters = [...updatedMonsters, { ...spawn2.monster, ownedByHeroId: activeHero.id }];
                 monsterDeck = spawn2.monsterDeck;
@@ -590,7 +663,19 @@ export class EncounterSystem {
                 return { ...t, heroes };
             });
 
-            return { success: true, message: `Cyrus Belview: A new passage is opened. Two monsters spawn and all heroes relocate to the new tile.`, gameState: discard({ ...gameState, tiles: updatedTiles, dungeonDeck: drawResult.remainingDeck, monsters: updatedMonsters, monsterDeck, heroes: updatedHeroes }) };
+            return {
+                success: true,
+                message: `Cyrus Belview: A new passage is opened. Two monsters spawn and all heroes relocate to the new tile.`,
+                gameState: discard({
+                    ...gameState,
+                    tiles: updatedTiles,
+                    dungeonDeck: drawResult.remainingDeck,
+                    monsters: updatedMonsters,
+                    monsterDeck,
+                    discardPiles,
+                    heroes: updatedHeroes
+                })
+            };
         }
 
         // -----------------------------------------------------------------------
@@ -764,10 +849,15 @@ export class EncounterSystem {
                 return { ...t, heroes, monsters };
             });
             let monsterDeck = gameState.monsterDeck;
+            let discardPiles = gameState.discardPiles;
             let message = `Strahd's Minions: ${activeHero.name} and ${closest2.length} monster(s) moved to farthest tile (${farthestTile.x},${farthestTile.z}).`;
             // If fewer than 2 monsters, spawn 1 on the farthest tile
             if (activeMonsters.length < 2) {
-                const spawnResult = this.spawnMonsterOnTile({ ...gameState, tiles: updatedTiles, monsters: updatedMonsters, monsterDeck }, farthestTile);
+                const spawnResult = this.spawnMonsterOnTile({ ...gameState, tiles: updatedTiles, monsters: updatedMonsters, monsterDeck, discardPiles }, farthestTile, activeHero.id);
+                monsterDeck = spawnResult.monsterDeck;
+                if (spawnResult.discardPiles) {
+                    discardPiles = spawnResult.discardPiles;
+                }
                 if (spawnResult.monster) {
                     updatedMonsters = [...updatedMonsters, { ...spawnResult.monster, ownedByHeroId: activeHero.id }];
                     monsterDeck = spawnResult.monsterDeck;
@@ -780,7 +870,7 @@ export class EncounterSystem {
                     message += ' Fewer than 2 monsters: spawned 1 on the farthest tile.';
                 }
             }
-            return { success: true, message, gameState: discard({ ...gameState, heroes: updatedHeroes, monsters: updatedMonsters, tiles: updatedTiles, monsterDeck }) };
+            return { success: true, message, gameState: discard({ ...gameState, heroes: updatedHeroes, monsters: updatedMonsters, tiles: updatedTiles, monsterDeck, discardPiles }) };
         }
 
         // -----------------------------------------------------------------------
@@ -972,6 +1062,7 @@ export class EncounterSystem {
             let updatedTiles = [...gameState.tiles];
             let updatedMonsters = [...gameState.monsters];
             let monsterDeck = gameState.monsterDeck;
+            let discardPiles = gameState.discardPiles;
             let msg = '';
             if (adjacentTiles.length > 0) {
                 const newTile = adjacentTiles[Math.floor(Math.random() * adjacentTiles.length)];
@@ -988,10 +1079,15 @@ export class EncounterSystem {
                 if (r <= 15) {
                     const heroTile = updatedTiles.find(t => t.x === newTile.x && t.z === newTile.z);
                     if (heroTile) {
-                        const spawnResult = this.spawnMonsterOnTile({ ...gameState, tiles: updatedTiles, monsters: updatedMonsters, monsterDeck }, heroTile);
+                        const spawnResult = this.spawnMonsterOnTile({ ...gameState, tiles: updatedTiles, monsters: updatedMonsters, monsterDeck, discardPiles }, heroTile, activeHero.id);
+                        monsterDeck = spawnResult.monsterDeck;
+
+                        if (spawnResult.discardPiles) {
+                            discardPiles = spawnResult.discardPiles;
+                        }
                         if (spawnResult.monster) {
                             updatedMonsters = [...updatedMonsters, { ...spawnResult.monster, ownedByHeroId: activeHero.id }];
-                            monsterDeck = spawnResult.monsterDeck;
+
                         }
                     }
                     msg = `Corner of Your Eye (Roll: ${r}): ${activeHero.name} moved to (${newTile.x},${newTile.z}). A monster rushes from the darkness!`;
@@ -1010,7 +1106,7 @@ export class EncounterSystem {
             } else {
                 msg = 'Corner of Your Eye: No adjacent tile to move to.';
             }
-            return { success: true, message: msg, gameState: discard({ ...gameState, heroes: updatedHeroes, tiles: updatedTiles, monsters: updatedMonsters, monsterDeck }) };
+            return { success: true, message: msg, gameState: discard({ ...gameState, heroes: updatedHeroes, tiles: updatedTiles, monsters: updatedMonsters, monsterDeck, discardPiles }) };
         }
 
         // -----------------------------------------------------------------------
@@ -1044,6 +1140,11 @@ export class EncounterSystem {
                 x: targetCoords.x, z: targetCoords.z,
                 rotation: drawResult.validRotations[0],
                 connections: TileSystem.rotateConnections(drawResult.tile.connections.map(c => ({ ...c })), drawResult.validRotations[0]),
+                boneSquare: TileSystem.rotateBoneSquare(
+                    drawResult.tile.boneSquare?.sqX ?? 1,
+                    drawResult.tile.boneSquare?.sqZ ?? 1,
+                    drawResult.validRotations[0]
+                ),
                 isRevealed: true, monsters: [], heroes: [], items: []
             };
             let updatedTiles = TileSystem.connectTiles(gameState.tiles, parentTile, newTileInstance, closestPoint.edge);
@@ -1076,12 +1177,13 @@ export class EncounterSystem {
             });
 
             // Place a new monster on that tile
-            const spawnResult = this.spawnMonsterOnTile({ ...gameState, tiles: updatedTiles, monsters: updatedMonsters, monsterDeck: gameState.monsterDeck, dungeonDeck: drawResult.remainingDeck }, newTileInstance);
+            const spawnResult = this.spawnMonsterOnTile({ ...gameState, tiles: updatedTiles, monsters: updatedMonsters, monsterDeck: gameState.monsterDeck, dungeonDeck: drawResult.remainingDeck }, newTileInstance, activeHero.id);
             let finalMonsters = updatedMonsters;
-            let finalMonsterDeck = gameState.monsterDeck;
+            let finalMonsterDeck = spawnResult.monsterDeck;
+            let finalDiscardPiles = spawnResult.discardPiles ?? gameState.discardPiles;
             if (spawnResult.monster) {
                 finalMonsters = [...finalMonsters, { ...spawnResult.monster, ownedByHeroId: activeHero.id }];
-                finalMonsterDeck = spawnResult.monsterDeck;
+
                 updatedTiles = updatedTiles.map(t => {
                     if (t.x === newTileInstance.x && t.z === newTileInstance.z) {
                         return { ...t, monsters: [...new Set([...t.monsters, spawnResult.monster!.id])] };
@@ -1093,7 +1195,7 @@ export class EncounterSystem {
             return {
                 success: true,
                 message: `Cowardly Flight: The closest monster (${closestMonster.name}) flees to the new tile. A new monster has also spawned there.`,
-                gameState: discard({ ...gameState, tiles: updatedTiles, monsters: finalMonsters, monsterDeck: finalMonsterDeck, dungeonDeck: drawResult.remainingDeck })
+                gameState: discard({ ...gameState, tiles: updatedTiles, monsters: finalMonsters, monsterDeck: finalMonsterDeck, discardPiles: finalDiscardPiles, dungeonDeck: drawResult.remainingDeck })
             };
         }
 
@@ -1156,13 +1258,18 @@ export class EncounterSystem {
                 } else if (!placementDone) {
                     const heroTile = tempState.tiles.find(t => t.x === hero.position.x && t.z === hero.position.z);
                     if (heroTile) {
-                        const spawnResult = this.spawnMonsterOnTile(tempState, heroTile);
+                        const spawnResult = this.spawnMonsterOnTile(tempState, heroTile, hero.id);
+                        tempState = {
+                            ...tempState,
+                            monsterDeck: spawnResult.monsterDeck,
+                            discardPiles: spawnResult.discardPiles ?? tempState.discardPiles
+                        };
                         if (spawnResult.monster) {
                             const newMonster = { ...spawnResult.monster, ownedByHeroId: hero.id };
                             tempState = {
                                 ...tempState,
-                                monsters: [...tempState.monsters, newMonster],
-                                monsterDeck: spawnResult.monsterDeck
+                                monsters: [...tempState.monsters, newMonster]
+
                             };
                             msgs.push(`${hero.name} cannot activate a monster and instead places a new ${newMonster.name} on tile (${heroTile.x},${heroTile.z})`);
                         }
@@ -1320,10 +1427,14 @@ export class EncounterSystem {
                 // Post-attack spawn (e.g. Ambush!)
                 const targetTile = gameState.tiles.find(t => t.x === activeHero.position.x && t.z === activeHero.position.z);
                 if (targetTile) {
-                    const spawnResult = this.spawnMonsterOnTile({ ...gameState, monsters: updatedMonsters, monsterDeck }, targetTile);
+                    const spawnResult = this.spawnMonsterOnTile({ ...gameState, monsters: updatedMonsters, monsterDeck }, targetTile, activeHero.id);
+                    monsterDeck = spawnResult.monsterDeck;
+                    if (spawnResult.discardPiles) {
+                        gameState = { ...gameState, discardPiles: spawnResult.discardPiles };
+                    }
                     if (spawnResult.monster) {
                         updatedMonsters = [...updatedMonsters, { ...spawnResult.monster, ownedByHeroId: activeHero.id }];
-                        monsterDeck = spawnResult.monsterDeck;
+
                     }
                 }
             } else if (effect.type === 'heal_undead_on_tile') {
@@ -1381,13 +1492,22 @@ export class EncounterSystem {
                             id: `${drawResult.tile.id}_${Math.random().toString(36).substr(2, 5)}`,
                             x: targetCoords.x, z: targetCoords.z,
                             rotation: drawResult.validRotations[0],
+                            boneSquare: TileSystem.rotateBoneSquare(
+                                drawResult.tile.boneSquare?.sqX ?? 1,
+                                drawResult.tile.boneSquare?.sqZ ?? 1,
+                                drawResult.validRotations[0]
+                            ),
                             isRevealed: true, monsters: [], heroes: [], items: []
                         };
                         updatedTiles = TileSystem.connectTiles(updatedTiles, parentTile, newTileInstance, closestPoint.edge);
-                        const spawnResult = this.spawnMonsterOnTile({ ...gameState, tiles: updatedTiles, monsters: updatedMonsters, monsterDeck, dungeonDeck: drawResult.remainingDeck }, newTileInstance);
+                        const spawnResult = this.spawnMonsterOnTile({ ...gameState, tiles: updatedTiles, monsters: updatedMonsters, monsterDeck, dungeonDeck: drawResult.remainingDeck }, newTileInstance, activeHero.id);
+                        monsterDeck = spawnResult.monsterDeck;
+                        if (spawnResult.discardPiles) {
+                            gameState = { ...gameState, discardPiles: spawnResult.discardPiles };
+                        }
                         if (spawnResult.monster) {
                             updatedMonsters = [...updatedMonsters, { ...spawnResult.monster, ownedByHeroId: activeHero.id }];
-                            monsterDeck = spawnResult.monsterDeck;
+
                         }
                         // Move active hero to new tile
                         updatedHeroes = updatedHeroes.map(h => {
@@ -1529,17 +1649,9 @@ export class EncounterSystem {
         let updatedTiles = [...tempState.tiles];
         let updatedMonsters = [...tempState.monsters];
         let updatedMonsterDeck = tempState.monsterDeck;
-        let logIdCounter = tempState.logIdCounter ?? 0;
-        let log = [...(tempState.log ?? [])];
-
-        const addLogEntry = (message: string) => {
-            logIdCounter++;
-            log.push({
-                id: String(logIdCounter),
-                timestamp: new Date().toISOString(),
-                message,
-                type: 'combat' as const
-            });
+        let updatedDiscardPiles = tempState.discardPiles;
+        const addTrapLog = (message: string) => {
+            tempState = addLogEntry(tempState, message, 'combat');
         };
 
         const trapTile = tempState.tiles.find(t => t.id === trap.tileId);
@@ -1586,16 +1698,20 @@ export class EncounterSystem {
 
             if (unexploredEdges.length > 0) {
                 const closest = unexploredEdges[0];
-                const spawnResult = this.spawnMonsterOnTile(tempState, closest.tile);
+                const spawnResult = this.spawnMonsterOnTile({ ...tempState, discardPiles: updatedDiscardPiles }, closest.tile, tempState.currentHeroId);
+                updatedMonsterDeck = spawnResult.monsterDeck;
+                if (spawnResult.discardPiles) {
+                    updatedDiscardPiles = spawnResult.discardPiles;
+                }
                 if (spawnResult.monster) {
                     const newMonster = { ...spawnResult.monster, ownedByHeroId: tempState.currentHeroId };
                     updatedMonsters = [...updatedMonsters, newMonster];
-                    updatedMonsterDeck = spawnResult.monsterDeck;
-                    addLogEntry(`Alarm Trap: Spawned ${newMonster.name} on tile (${closest.tile.x},${closest.tile.z}) near unexplored ${closest.edge} edge.`);
+
+                    addTrapLog(`Alarm Trap: Spawned ${newMonster.name} on tile (${closest.tile.x},${closest.tile.z}) near unexplored ${closest.edge} edge.`);
                     results.push({ spawnedMonsterId: newMonster.id });
                 }
             } else {
-                addLogEntry(`Alarm Trap: No unexplored edges remain.`);
+                addTrapLog(`Alarm Trap: No unexplored edges remain.`);
             }
         }
 
@@ -1613,7 +1729,7 @@ export class EncounterSystem {
                 const updated = CombatSystem.applyDamage(hero, res.damage) as Hero;
                 updatedHeroes = updatedHeroes.map(h => h.id === hero.id ? updated : h);
                 results.push({ heroId: hero.id, hit: res.hit, damage: res.damage });
-                addLogEntry(`Crossbow Turret attacks ${hero.name} (+8 vs AC ${hero.ac}): ${res.hit ? 'HIT' : 'MISS'}. Deals ${res.damage} damage. (Roll: ${res.roll})`);
+                addTrapLog(`Crossbow Turret attacks ${hero.name} (+8 vs AC ${hero.ac}): ${res.hit ? 'HIT' : 'MISS'}. Deals ${res.damage} damage. (Roll: ${res.roll})`);
             }
         }
 
@@ -1632,7 +1748,7 @@ export class EncounterSystem {
                 }
                 updatedHeroes = updatedHeroes.map(h => h.id === hero.id ? updated : h);
                 results.push({ heroId: hero.id, hit: res.hit, damage: res.damage, statusEffect: res.hit ? 'immobilized' : undefined });
-                addLogEntry(`Crushing Walls attacks ${hero.name} (+6 vs AC ${hero.ac}): ${res.hit ? 'HIT' : 'MISS'}. Deals ${res.damage} damage${res.hit ? ' and Immobilized' : ''}. (Roll: ${res.roll})`);
+                addTrapLog(`Crushing Walls attacks ${hero.name} (+6 vs AC ${hero.ac}): ${res.hit ? 'HIT' : 'MISS'}. Deals ${res.damage} damage${res.hit ? ' and Immobilized' : ''}. (Roll: ${res.roll})`);
             }
         }
 
@@ -1648,7 +1764,7 @@ export class EncounterSystem {
                 const updated = CombatSystem.applyDamage(hero, res.damage) as Hero;
                 updatedHeroes = updatedHeroes.map(h => h.id === hero.id ? updated : h);
                 results.push({ heroId: hero.id, hit: res.hit, damage: res.damage });
-                addLogEntry(`Dart Trap attacks ${hero.name} (+8 vs AC ${hero.ac}): ${res.hit ? 'HIT' : 'MISS'}. Deals ${res.damage} damage. (Roll: ${res.roll})`);
+                addTrapLog(`Dart Trap attacks ${hero.name} (+8 vs AC ${hero.ac}): ${res.hit ? 'HIT' : 'MISS'}. Deals ${res.damage} damage. (Roll: ${res.roll})`);
             }
         }
 
@@ -1663,7 +1779,7 @@ export class EncounterSystem {
                 const updated = CombatSystem.applyDamage(hero, 2) as Hero;
                 updatedHeroes = updatedHeroes.map(h => h.id === hero.id ? updated : h);
                 results.push({ heroId: hero.id, hit: true, damage: 2 });
-                addLogEntry(`Fire Trap deals 2 damage directly to ${hero.name}.`);
+                addTrapLog(`Fire Trap deals 2 damage directly to ${hero.name}.`);
             }
         }
 
@@ -1716,12 +1832,12 @@ export class EncounterSystem {
                     };
                     updatedHeroes = updatedHeroes.map(h => h.id === hero.id ? updatedHero : h);
                     results.push({ heroId: hero.id, moved: true, targetTileId: targetTile.id });
-                    addLogEntry(`Sliding Walls (Roll: ${r} -> ${direction}): Placed ${hero.name} on tile (${targetTile.x},${targetTile.z}).`);
+                    addTrapLog(`Sliding Walls (Roll: ${r} -> ${direction}): Placed ${hero.name} on tile (${targetTile.x},${targetTile.z}).`);
                 } else {
                     const damagedHero = CombatSystem.applyDamage(hero, 1) as Hero;
                     updatedHeroes = updatedHeroes.map(h => h.id === hero.id ? damagedHero : h);
                     results.push({ heroId: hero.id, moved: false, damage: 1 });
-                    addLogEntry(`Sliding Walls (Roll: ${r} -> ${direction}): Wall/unexplored tile blocks path. ${hero.name} takes 1 damage and remains on tile (${trapTile.x},${trapTile.z}).`);
+                    addTrapLog(`Sliding Walls (Roll: ${r} -> ${direction}): Wall/unexplored tile blocks path. ${hero.name} takes 1 damage and remains on tile (${trapTile.x},${trapTile.z}).`);
                 }
             }
         }
@@ -1740,7 +1856,7 @@ export class EncounterSystem {
                 const updated = CombatSystem.applyDamage(hero, res.damage) as Hero;
                 updatedHeroes = updatedHeroes.map(h => h.id === hero.id ? updated : h);
                 results.push({ heroId: hero.id, hit: res.hit, damage: res.damage });
-                addLogEntry(`Spear Gauntlet attacks ${hero.name} (+6 vs AC ${hero.ac}): ${res.hit ? 'HIT' : 'MISS'}. Deals ${res.damage} damage. (Roll: ${res.roll})`);
+                addTrapLog(`Spear Gauntlet attacks ${hero.name} (+6 vs AC ${hero.ac}): ${res.hit ? 'HIT' : 'MISS'}. Deals ${res.damage} damage. (Roll: ${res.roll})`);
             }
         }
 
@@ -1753,9 +1869,7 @@ export class EncounterSystem {
                 heroes: updatedHeroes,
                 tiles: updatedTiles,
                 monsters: updatedMonsters,
-                monsterDeck: updatedMonsterDeck,
-                log: log.slice(-100),
-                logIdCounter
+                monsterDeck: updatedMonsterDeck
             }
         };
     }
@@ -1786,21 +1900,12 @@ export class EncounterSystem {
         const disableDC = card.disableDC || 10;
         const success = totalRoll >= disableDC;
 
-        const nextLogId = (gameState.logIdCounter ?? 0) + 1;
         const rollMathStr = trapDisableBonus ? ` (Roll: ${roll} + ${trapDisableBonus} = ${totalRoll}, DC: ${disableDC})` : ` (Roll: ${roll}, DC: ${disableDC})`;
         const msg = success
             ? `${hero.name} disabled the trap ${card.name}!${rollMathStr}`
             : `${hero.name} failed to disable the trap ${card.name}.${rollMathStr}`;
-        
-        const logEntry: GameLogEntry = {
-            id: String(nextLogId),
-            timestamp: new Date().toISOString(),
-            message: msg,
-            type: 'combat' as const
-        };
-        const nextLog = [...(gameState.log ?? []), logEntry].slice(-100);
 
-        let finalGameState = { ...gameState, log: nextLog, logIdCounter: nextLogId };
+        let finalGameState = addLogEntry(gameState, msg, 'combat');
 
         if (roll === 20) {
             finalGameState.heroes = finalGameState.heroes.map(h => 
@@ -1907,17 +2012,11 @@ export class EncounterSystem {
                         activeHero = updatedHero;
 
                         const baseState = result.gameState ?? gameState;
-                        const stealthLog = {
-                            id: String(baseState.logIdCounter),
-                            timestamp: new Date().toISOString(),
-                            message: `${activeHero.name} uses Stealth! Discards the drawn monster card (${monsterTemplateId || 'unknown'}) instead of spawning it. Stealth flips face-down.`,
-                            type: 'system' as const
-                        };
-                        result.gameState = {
-                            ...baseState,
-                            log: [...baseState.log, stealthLog].slice(-100),
-                            logIdCounter: (baseState.logIdCounter ?? 0) + 1
-                        };
+                        result.gameState = addLogEntry(
+                            baseState,
+                            `${activeHero.name} uses Stealth! Discards the drawn monster card (${monsterTemplateId || 'unknown'}) instead of spawning it. Stealth flips face-down.`,
+                            'system'
+                        );
                     } else {
                         // Music of the Damned Environment Check
                         if (gameState.activeEnvironmentCard === 'enc_music_of_the_damned' && currentDeck.length > 1) {
@@ -1943,7 +2042,7 @@ export class EncounterSystem {
                             }
                         }
 
-                        const spawnResult = this.spawnMonsterOnTile({ ...gameState, monsterDeck: currentDeck }, targetTile);
+                        const spawnResult = this.spawnMonsterOnTile({ ...gameState, monsterDeck: currentDeck }, targetTile, activeHero.id);
                         if (spawnResult.monster) {
                             updatedMonsters.push(spawnResult.monster);
                             result.spawnedMonsterId = spawnResult.monster.id;
@@ -2130,9 +2229,22 @@ export class EncounterSystem {
                             newState = trapResult.gameState;
                         }
                     }
+
+                    if (!resolution.hasLoggedChronicle) {
+                        const spawnedMonster = resolution.spawnedMonsterId
+                            ? newState.monsters.find(m => m.id === resolution.spawnedMonsterId)
+                            : undefined;
+                        const tilePos = hero ? { x: hero.position.x, z: hero.position.z } : undefined;
+                        const outcome = formatEncounterOutcome(card, {
+                            spawnedMonsterName: spawnedMonster?.name,
+                            tilePos
+                        });
+                        const message = formatEncounterLogMessage(card, outcome);
+                        newState = addLogEntry(newState, { message, type: 'encounter' });
+                    }
                 }
 
-                return { ...newState, cardResolution: { phase: 'idle', cardId: null, cardType: null, targetEntityId: null, pendingEffects: [], resolvedEffects: [], result: null } };
+                return { ...newState, cardResolution: { phase: 'idle', cardId: null, cardType: null, targetEntityId: null, pendingEffects: [], resolvedEffects: [], result: null, hasLoggedChronicle: true } };
             }
 
             default:
@@ -2140,32 +2252,62 @@ export class EncounterSystem {
         }
     }
 
-    private static spawnMonsterOnTile(gameState: GameState, tile: Tile): { monster: Monster | null; monsterDeck: string[] } {
+    private static spawnMonsterOnTile(
+        gameState: GameState,
+        tile: Tile,
+        controllingHeroId?: string
+    ): { monster: Monster | null; monsterDeck: string[]; discardPiles?: GameState['discardPiles'] } {
         if (gameState.monsterDeck.length === 0) {
             if (isDev()) console.error('[EncounterSystem] Monster deck is empty!');
-            return { monster: null, monsterDeck: gameState.monsterDeck };
+            return { monster: null, monsterDeck: gameState.monsterDeck, discardPiles: gameState.discardPiles };
         }
 
+        const effectiveHeroId = controllingHeroId ?? gameState.currentHeroId;
+        const activeTemplateIds = new Set(
+            gameState.monsters
+                .filter(m => m.ownedByHeroId === effectiveHeroId && !m.isDefeated && (m.hp ?? 1) > 0)
+                .map(m => m.templateId ?? m.id)
+        );
+
         const deck = [...gameState.monsterDeck];
-        const monsterTemplateId = deck.shift();
-        if (!monsterTemplateId) return { monster: null, monsterDeck: deck };
+        const discardedIds: string[] = [];
+        let monsterTemplateId: string | undefined;
+
+        while (deck.length > 0) {
+            const candidateId = deck.shift()!;
+            if (!activeTemplateIds.has(candidateId)) {
+                monsterTemplateId = candidateId;
+                break;
+            }
+            discardedIds.push(candidateId);
+        }
+
+        const updatedDiscardPiles = discardedIds.length > 0
+            ? { ...gameState.discardPiles, monster: [...(gameState.discardPiles?.monster ?? []), ...discardedIds] }
+            : gameState.discardPiles;
+
+        if (!monsterTemplateId) {
+            return { monster: null, monsterDeck: deck, discardPiles: updatedDiscardPiles };
+        }
 
         const template = DataLoader.getInstance().getMonsterById(monsterTemplateId);
         if (!template) {
             if (isDev()) console.error(`[EncounterSystem] Failed to find monster template: ${monsterTemplateId}`);
-            return { monster: null, monsterDeck: deck };
+            return { monster: null, monsterDeck: deck, discardPiles: updatedDiscardPiles };
         }
 
+        const spawnPos = TileSystem.getBoneSquareOrEmpty(tile, gameState);
         const uniqueId = `monster_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
         const newMonster: Monster = {
             ...template,
             id: uniqueId,
             templateId: template.id,
+            ownedByHeroId: effectiveHeroId,
             position: {
                 x: tile.x,
                 z: tile.z,
-                sqX: 2,
-                sqZ: 2
+                sqX: spawnPos.sqX,
+                sqZ: spawnPos.sqZ
             },
             isExhausted: false,
             conditions: [],
@@ -2173,6 +2315,6 @@ export class EncounterSystem {
             maxHp: template.maxHp
         };
 
-        return { monster: newMonster, monsterDeck: deck };
+        return { monster: newMonster, monsterDeck: deck, discardPiles: updatedDiscardPiles };
     }
 }

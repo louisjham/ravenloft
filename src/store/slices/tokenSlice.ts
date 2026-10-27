@@ -8,6 +8,7 @@ import { ObjectiveTracker } from '../../game/scenarios/Objectives';
 import { ScenarioManager } from '../../game/scenarios/ScenarioManager';
 import { useUIStore } from '../uiStore';
 import { isDev } from '../../utils/devEnv';
+import { SoundLibrary } from '../../audio/SoundLibrary';
 
 export const createTokenSlice: StateCreator<GameStore, [], [], TokenSlice> = (set, get) => ({
   initializeTokensForScenario: (scenarioId: string) => {
@@ -37,6 +38,7 @@ export const createTokenSlice: StateCreator<GameStore, [], [], TokenSlice> = (se
               const stateForDraw = { ...newState, treasuresDrawnThisTurn: 0 };
               const drawResult = TreasureSystem.drawTreasureCard(stateForDraw, hero);
               if (drawResult.card) {
+                  SoundLibrary.Game.cardDraw();
                   let drawState = drawResult.newState;
                   const effectiveHero = drawState.heroes.find(h => h.id === hero.id) || hero;
                   if (drawResult.card.treasureType === 'blessing') {

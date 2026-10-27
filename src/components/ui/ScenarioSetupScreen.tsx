@@ -8,6 +8,7 @@ import type { Card } from '../../game/types';
 interface ScenarioSetupScreenProps {
   onBack: () => void;
   onStart: (scenarioId: string, heroIds: string[]) => void;
+  isSpatialPanel?: boolean;
 }
 
 interface HeroPowerChoice {
@@ -44,7 +45,7 @@ const DIFFICULTY_STARS: Record<string, string> = {
   Hard:   '★★★',
 };
 
-export const ScenarioSetupScreen: React.FC<ScenarioSetupScreenProps> = ({ onBack, onStart }) => {
+export const ScenarioSetupScreen: React.FC<ScenarioSetupScreenProps> = ({ onBack, onStart, isSpatialPanel = false }) => {
   const dataLoader = DataLoader.getInstance();
   const allScenarios = useMemo(() => dataLoader.getScenarios(), [dataLoader]);
   const allHeroes   = useMemo(() => dataLoader.getHeroes(),   [dataLoader]);
@@ -312,18 +313,39 @@ export const ScenarioSetupScreen: React.FC<ScenarioSetupScreenProps> = ({ onBack
   return (
     <div
       className="setup-screen"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.97)',
-        backgroundImage: 'radial-gradient(circle at center, #1a1a2e 0%, #050510 100%)',
-        display: 'flex',
-        flexDirection: 'column',
-        zIndex: 3500,
-        color: 'white',
-        fontFamily: 'var(--font-body)',
-        overflow: 'hidden',     // prevent the whole page from scrolling
-      }}
+      style={
+        isSpatialPanel
+          ? {
+              position: 'relative',
+              width: '1100px',
+              height: '700px',
+              maxHeight: '85vh',
+              backgroundColor: 'rgba(10, 6, 18, 0.96)',
+              backgroundImage: 'radial-gradient(circle at center, rgba(30, 20, 48, 0.96) 0%, rgba(8, 4, 15, 0.98) 100%)',
+              border: '2px solid var(--color-gold)',
+              borderRadius: '12px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.8), 0 0 25px rgba(192, 160, 96, 0.35)',
+              display: 'flex',
+              flexDirection: 'column',
+              color: 'white',
+              fontFamily: 'var(--font-body)',
+              overflow: 'hidden',
+              pointerEvents: 'auto',
+              userSelect: 'none',
+            }
+          : {
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.97)',
+              backgroundImage: 'radial-gradient(circle at center, #1a1a2e 0%, #050510 100%)',
+              display: 'flex',
+              flexDirection: 'column',
+              zIndex: 3500,
+              color: 'white',
+              fontFamily: 'var(--font-body)',
+              overflow: 'hidden',     // prevent the whole page from scrolling
+            }
+      }
     >
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div style={{
