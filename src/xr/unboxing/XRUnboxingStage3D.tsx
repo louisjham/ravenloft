@@ -64,7 +64,7 @@ export const XRUnboxingStage3D: React.FC = () => {
         {/* Gold Border Trim */}
         <mesh position={[0, 0.027, 0]}>
           <boxGeometry args={[2.43, 0.001, 1.33]} />
-          <meshBasicMaterial color="#a08040" wireframe />
+          <meshStandardMaterial color="#a08040" roughness={0.4} metalness={0.5} />
         </mesh>
       </group>
 
@@ -76,7 +76,7 @@ export const XRUnboxingStage3D: React.FC = () => {
         </mesh>
         <mesh position={[0, 0, -0.005]}>
           <planeGeometry args={[1.58, 0.20]} />
-          <meshBasicMaterial color="#c5a059" wireframe />
+          <meshStandardMaterial color="#c5a059" roughness={0.4} metalness={0.5} />
         </mesh>
         <Text position={[0, 0.04, 0]} fontSize={0.065} color="#f5dfa3" textAlign="center">
           CASTLE RAVENLOFT UNBOXING
@@ -416,7 +416,7 @@ export const XRUnboxingStage3D: React.FC = () => {
             </mesh>
             <mesh position={[0, 0, 0.011]}>
               <boxGeometry args={[0.36, 0.065, 0.002]} />
-              <meshBasicMaterial color="#a08040" wireframe />
+              <meshStandardMaterial color="#a08040" roughness={0.4} metalness={0.5} />
             </mesh>
             <Text position={[0, 0, 0.015]} fontSize={0.026} color="#f5dfa3" textAlign="center">
               ← MAIN MENU
@@ -439,7 +439,7 @@ export const XRUnboxingStage3D: React.FC = () => {
             </mesh>
             <mesh position={[0, 0, 0.011]}>
               <boxGeometry args={[0.36, 0.065, 0.002]} />
-              <meshBasicMaterial color="#e09060" wireframe />
+              <meshStandardMaterial color="#e09060" roughness={0.4} metalness={0.5} />
             </mesh>
             <Text position={[0, 0, 0.015]} fontSize={0.026} color="#ffffff" textAlign="center">
               BEGIN ADVENTURE →

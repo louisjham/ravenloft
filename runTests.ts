@@ -18,6 +18,8 @@ import { runEncounterLoggingTests } from './src/testing/test_encounter_logging';
 import { runVillainPhaseTests } from './src/testing/test-villain-phase';
 import { runDiceTimeoutTests } from './src/testing/test_dice_timeout';
 import { runBonePileTests } from './src/testing/test_bone_pile';
+import { runAREntryTests } from './src/testing/test-ar-entry';
+import { runInteractionDampingTests } from './src/testing/test-interaction-damping';
 
 console.log('Starting integration tests in Node...');
 runFullGameLoopTest().then(async success => {
@@ -28,6 +30,8 @@ runFullGameLoopTest().then(async success => {
         await runVillainPhaseTests();
         await runDiceTimeoutTests();
         await runBonePileTests();
+        await runAREntryTests();
+        await runInteractionDampingTests();
         console.log('ALL TESTS PASSED SUCCESSFULLY!');
         process.exit(0);
     } catch (e) {

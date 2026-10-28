@@ -94,7 +94,7 @@ const HUDButton3D: React.FC<HUDButtonProps> = ({
 
         <mesh position={[0, 0, 0.007]}>
           <boxGeometry args={[width - 0.008, 0.042, 0.002]} />
-          <meshBasicMaterial color={borderColor} wireframe />
+          <meshStandardMaterial color={borderColor} roughness={0.4} metalness={0.5} />
         </mesh>
 
         <Text
@@ -415,7 +415,7 @@ export const XRTabletopHUD3D: React.FC = () => {
 
         <mesh position={[0, 0, 0.016]}>
           <boxGeometry args={[0.96, 0.51, 0.002]} />
-          <meshBasicMaterial color={isVictory ? '#55ff88' : '#ff4444'} wireframe />
+          <meshStandardMaterial color={isVictory ? '#55ff88' : '#ff4444'} roughness={0.4} metalness={0.5} />
         </mesh>
 
         <Text
@@ -535,7 +535,7 @@ export const XRTabletopHUD3D: React.FC = () => {
 
       <mesh position={[0, 0, 0]}>
         <boxGeometry args={[0.94, 0.085, 0.002]} />
-        <meshBasicMaterial color="#a08040" wireframe />
+        <meshStandardMaterial color="#a08040" roughness={0.4} metalness={0.5} />
       </mesh>
 
       {/* ── Hero Stats & Palm-Up Hint (Left side) ──────────────────────── */}

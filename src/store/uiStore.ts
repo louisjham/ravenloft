@@ -4,6 +4,7 @@ import type { ExplorationState } from '../game/engine/ExplorationStateMachine';
 export type ModalType = 'none' | 'scenario_intro' | 'victory' | 'defeat' | 'settings' | 'tutorial' | 'help' | 'experience';
 
 export type InteractionMode = 'none' | 'move' | 'attack' | 'ability' | 'explore';
+export type AREntryStage = 'idle' | 'loading' | 'transitioning' | 'guidance' | 'complete';
 
 interface Notification {
   id: string;
@@ -40,6 +41,9 @@ interface UIStore {
   isUnboxingMode: boolean
   isXRPresenting: boolean
   showSetupScreen: boolean
+  arEntryStage: AREntryStage
+  arDirectionStep: number
+  arDirectionDismissed: boolean
   xrTableTransform: {
     position: [number, number, number]
     rotationY: number
@@ -55,6 +59,10 @@ interface UIStore {
   setIsUnboxingMode: (enabled: boolean) => void
   setIsXRPresenting: (presenting: boolean) => void
   setShowSetupScreen: (show: boolean) => void
+  setAREntryStage: (stage: AREntryStage) => void
+  setARDirectionStep: (step: number) => void
+  dismissARDirection: () => void
+  resetAREntry: () => void
   setXRTableTransform: (transform: { position: [number, number, number]; rotationY: number; scale: number }) => void
   requestXRTableReset: () => void
   clearXRTableResetRequest: () => void
@@ -82,8 +90,20 @@ export const useUIStore = create<UIStore>()((set) => ({
   isUnboxingMode: false,
   isXRPresenting: false,
   showSetupScreen: false,
-  setIsXRPresenting: (presenting) => set({ isXRPresenting: presenting }),
+  arEntryStage: 'idle',
+  arDirectionStep: 1,
+  arDirectionDismissed: false,
+  setIsXRPresenting: (presenting) => set((state) => ({
+    isXRPresenting: presenting,
+    // When entering XR from desktop, reset AR entry sequence if idle
+    arEntryStage: presenting ? (state.arEntryStage === 'idle' ? 'loading' : state.arEntryStage) : 'idle',
+    arDirectionDismissed: presenting ? state.arDirectionDismissed : false,
+  })),
   setShowSetupScreen: (show) => set({ showSetupScreen: show }),
+  setAREntryStage: (stage) => set({ arEntryStage: stage }),
+  setARDirectionStep: (step) => set({ arDirectionStep: step }),
+  dismissARDirection: () => set({ arDirectionDismissed: true }),
+  resetAREntry: () => set({ arEntryStage: 'idle', arDirectionStep: 1, arDirectionDismissed: false }),
   setIsUnboxingMode: (enabled) => set({ isUnboxingMode: enabled }),
   xrTableTransform: {
     position: [0, 0.75, -1.0],
@@ -98,12 +118,14 @@ export const useUIStore = create<UIStore>()((set) => ({
     resetAllVersion: state.resetAllVersion + 1,
     resetAllRequested: true,
     xrTableResetRequested: true,
+    arDirectionDismissed: false,
   })),
   clearResetAllRequest: () => set({ resetAllRequested: false, xrTableResetRequested: false }),
   requestXRTableReset: () => set((state) => ({
     resetAllVersion: state.resetAllVersion + 1,
     resetAllRequested: true,
     xrTableResetRequested: true,
+    arDirectionDismissed: false,
   })),
   clearXRTableResetRequest: () => set({ resetAllRequested: false, xrTableResetRequested: false }),
   notifications: [],

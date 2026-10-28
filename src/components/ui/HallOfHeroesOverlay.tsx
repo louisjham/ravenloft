@@ -72,7 +72,7 @@ export const HallOfHeroesOverlay: React.FC<HallOfHeroesOverlayProps> = ({ onClos
             className="gothic-button"
             style={{ padding: '4px 14px', fontSize: '0.8rem', letterSpacing: '1px' }}
           >
-            ✕ Close
+            ✕ Close Window
           </button>
         </div>
 

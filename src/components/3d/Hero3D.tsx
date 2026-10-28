@@ -646,7 +646,7 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
                 </mesh>
                 <mesh position={[0, 0, 0.011]}>
                   <boxGeometry args={[1.96, 0.18, 0.002]} />
-                  <meshBasicMaterial color={isPendingApproval ? '#00ff88' : (hoveredMonster ? '#ffd700' : (isDragging ? '#00ffff' : '#f5dfa3'))} wireframe />
+                  <meshStandardMaterial color={isPendingApproval ? '#00ff88' : (hoveredMonster ? '#ffd700' : (isDragging ? '#00ffff' : '#f5dfa3'))} roughness={0.4} metalness={0.5} />
                 </mesh>
                 <Text
                   position={[0, 0.035, 0.02]}

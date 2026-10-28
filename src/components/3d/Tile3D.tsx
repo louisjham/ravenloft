@@ -16,7 +16,7 @@ const TILE_EDGES = ['north', 'south', 'east', 'west'] as const;
 
 // Shared static geometries to eliminate GC churn and improve draw call performance
 const slabGeometry = new THREE.BoxGeometry(0.88, 0.06, 0.88);
-const borderGeometry = new THREE.BoxGeometry(0.90, 0.065, 0.90);
+const borderGeometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(0.90, 0.065, 0.90));
 const chevronGeometry = new THREE.ConeGeometry(0.08, 0.16, 4);
 const hoverPlaneGeometry = new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE);
 const tileBaseGeometry = new THREE.BoxGeometry(TILE_SIZE, 0.2, TILE_SIZE);
@@ -268,9 +268,9 @@ const MovementSquare3D: React.FC<MovementSquare3DProps> = ({ sqX, sqZ, tile, onM
         </mesh>
 
         {/* Luminous Outer Border */}
-        <mesh position={[0, 0, 0]} geometry={borderGeometry}>
-          <meshBasicMaterial color={hovered ? '#ffffff' : '#55ffaa'} wireframe transparent opacity={0.7} />
-        </mesh>
+        <lineSegments position={[0, 0, 0]} geometry={borderGeometry}>
+          <lineBasicMaterial color={hovered ? '#ffffff' : '#55ffaa'} transparent opacity={0.7} />
+        </lineSegments>
 
         {/* Hover Floating Chevron Down Arrow */}
         {hovered && (

@@ -120,7 +120,7 @@ const TreasureCardPanel: React.FC<TreasureCardPanelProps> = ({
         <div style={{ fontSize: '20px', fontWeight: 'bold' }}>
           {hero.heroClass} Treasures
         </div>
-        <button style={closeButtonStyle} onClick={onClose}>×</button>
+        <button style={closeButtonStyle} onClick={onClose} title="Close Treasure Cards Panel" aria-label="Close Treasure Panel">✕ Close</button>
       </header>
 
       <div style={gridStyle}>

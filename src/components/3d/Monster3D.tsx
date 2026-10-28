@@ -319,7 +319,7 @@ const Monster3DInner: React.FC<Monster3DProps> = ({ monster }) => {
             </mesh>
             <mesh position={[0, 0, 0.011]}>
               <boxGeometry args={[1.96, 0.24, 0.002]} />
-              <meshBasicMaterial color="#ffd700" wireframe />
+              <meshStandardMaterial color="#ffd700" roughness={0.4} metalness={0.5} />
             </mesh>
             <Text
               position={[0, 0.04, 0.02]}

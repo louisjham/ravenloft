@@ -5,6 +5,9 @@ import * as THREE from 'three';
 import { playHapticProfile } from './XRHaptics';
 import { useUIStore } from '../store/uiStore';
 import { useGameStore } from '../store/gameStore';
+import { ARLoadingBeat3D } from './entry/ARLoadingBeat3D';
+import { ARTransitionMist3D } from './entry/ARTransitionMist3D';
+import { ARFirstTimeDirection3D } from './entry/ARFirstTimeDirection3D';
 
 interface XRTabletopRigProps {
   children: React.ReactNode;
@@ -23,8 +26,16 @@ const MAX_SCALE = 1.8;
 const MIN_Y = 0.35;
 const MAX_Y = 1.60;
 
-// Horizontal leash: table midpoint cannot wander more than 3 m from origin
-const MAX_XZ_RADIUS = 3.0;
+// Horizontal leash: table midpoint cannot wander more than 2.2 m from origin
+const MAX_XZ_RADIUS = 2.2;
+
+// Interaction damping & velocity limits (Item 20)
+// Prevents fast hand motions from flipping or throwing the table out of view
+const MAX_ANGULAR_VELOCITY    = Math.PI * 1.5; // rad/s (~270 deg/s) velocity cap on rotation
+const MAX_TRANSLATION_SPEED   = 1.8;           // m/s velocity cap on planar translation
+const MIN_ROTATION_DISTANCE   = 0.12;          // m minimum hand separation to engage rotation (prevents gimbal flips when hands touch)
+const ROTATION_DAMP_LAMBDA    = 24.0;          // Damping factor for smooth responsive rotation without lag
+const TRANSLATION_DAMP_LAMBDA = 26.0;          // Damping factor for smooth planar translation
 
 // Scratch variables – allocated once, reused every frame to avoid GC pressure at 90 Hz
 const _posA      = new THREE.Vector3();
@@ -97,6 +108,8 @@ export const XRTabletopRig: React.FC<XRTabletopRigProps> = ({ children }) => {
   const { isPresenting, controllers } = useXR();
   const { camera } = useThree();
   const rigRef = useRef<THREE.Group>(null);
+  const tableAssemblyRef = useRef<THREE.Group>(null);
+  const transitionProgressRef = useRef<number>(0);
   const hasSpawnedInXR = useRef(false);
 
   // Mutable refs for 90 Hz direct scene graph updates without React re-renders
@@ -129,6 +142,8 @@ export const XRTabletopRig: React.FC<XRTabletopRigProps> = ({ children }) => {
     initialMidpoint: THREE.Vector3;
     initialAngle: number;
     initialDistance: number;
+    lastAngle: number;
+    targetRotY: number;
   } | null>(null);
 
   // Reset to desktop origin when not presenting in XR
@@ -271,7 +286,7 @@ export const XRTabletopRig: React.FC<XRTabletopRigProps> = ({ children }) => {
         const dy   = _posB.y - _posA.y;
         const dz   = _posB.z - _posA.z;
         const angle = Math.atan2(dx, dz);
-        const dist  = Math.hypot(dx, dy, dz); // full 3D distance (fix #4)
+        const dist  = Math.hypot(dx, dy, dz); // full 3D distance (fix #4: preserved double-pinch zoom)
 
         if (!dualGripRef.current) {
           dualGripRef.current = {
@@ -281,20 +296,49 @@ export const XRTabletopRig: React.FC<XRTabletopRigProps> = ({ children }) => {
             initialMidpoint:   _mid.clone(),
             initialAngle:      angle,
             initialDistance:   Math.max(dist, 0.05),
+            lastAngle:         angle,
+            targetRotY:        worldRotYRef.current,
           };
           playHapticProfile('hover');
         } else {
-          worldRotYRef.current   = dualGripRef.current.initialWorldRotY + (angle - dualGripRef.current.initialAngle);
-          worldScaleRef.current  = Math.max(MIN_SCALE, Math.min(MAX_SCALE,
+          // 1. ZOOM: Preserved authentic double-pinch zoom (100% untouched formula)
+          worldScaleRef.current = Math.max(MIN_SCALE, Math.min(MAX_SCALE,
             dualGripRef.current.initialWorldScale * (dist / dualGripRef.current.initialDistance)));
 
-          _deltaMid.copy(_mid).sub(dualGripRef.current.initialMidpoint);
-          _newPos.copy(dualGripRef.current.initialWorldPos).add(_deltaMid);
-          worldPosRef.current.copy(_newPos);
+          // 2. ROTATION: Angle-unwrapping, deadband & velocity cap (Item 20)
+          // Prevents fast hand motions from flipping the board 360° or spinning out of view
+          if (dist >= MIN_ROTATION_DISTANCE) {
+            let deltaAngle = angle - dualGripRef.current.lastAngle;
+            // Shortest angular path unwrapping (eliminates -PI / +PI branch cut flip)
+            deltaAngle = Math.atan2(Math.sin(deltaAngle), Math.cos(deltaAngle));
+
+            // Velocity cap on rotation rate
+            const maxRotDelta = MAX_ANGULAR_VELOCITY * delta;
+            deltaAngle = THREE.MathUtils.clamp(deltaAngle, -maxRotDelta, maxRotDelta);
+
+            dualGripRef.current.targetRotY += deltaAngle;
+            dualGripRef.current.lastAngle = angle;
+          }
+          // Smooth rotation damping (eliminates abrupt snapping and jitter)
+          worldRotYRef.current = THREE.MathUtils.damp(
+            worldRotYRef.current,
+            dualGripRef.current.targetRotY,
+            ROTATION_DAMP_LAMBDA,
+            delta
+          );
+
+          // 3. PLANAR TRANSLATION with Floor Lock (Item 20: Y stays anchored to floor plane)
+          const targetX = dualGripRef.current.initialWorldPos.x + (_mid.x - dualGripRef.current.initialMidpoint.x);
+          const targetZ = dualGripRef.current.initialWorldPos.z + (_mid.z - dualGripRef.current.initialMidpoint.z);
+
+          worldPosRef.current.x = THREE.MathUtils.damp(worldPosRef.current.x, targetX, TRANSLATION_DAMP_LAMBDA, delta);
+          worldPosRef.current.z = THREE.MathUtils.damp(worldPosRef.current.z, targetZ, TRANSLATION_DAMP_LAMBDA, delta);
+          worldPosRef.current.y = dualGripRef.current.initialWorldPos.y; // Floor-locked!
+
           transformChanged = true;
         }
       } else if (activePinchers.length === 1) {
-        // SINGLE PINCH → grasp & pull (mirrors single-grip controller path)
+        // SINGLE PINCH → grasp & pull with Floor Lock & Damping (Item 20)
         if (dualGripRef.current) dualGripRef.current = null;
 
         const p = activePinchers[0];
@@ -308,9 +352,12 @@ export const XRTabletopRig: React.FC<XRTabletopRigProps> = ({ children }) => {
           };
           playHapticProfile('hover', p.handedness);
         } else {
-          worldPosRef.current.x = singleGripRef.current!.initialWorldPos.x + (p.pos.x - singleGripRef.current!.startHandPos.x);
-          worldPosRef.current.y = singleGripRef.current!.initialWorldPos.y + (p.pos.y - singleGripRef.current!.startHandPos.y);
-          worldPosRef.current.z = singleGripRef.current!.initialWorldPos.z + (p.pos.z - singleGripRef.current!.startHandPos.z);
+          const targetX = singleGripRef.current!.initialWorldPos.x + (p.pos.x - singleGripRef.current!.startHandPos.x);
+          const targetZ = singleGripRef.current!.initialWorldPos.z + (p.pos.z - singleGripRef.current!.startHandPos.z);
+
+          worldPosRef.current.x = THREE.MathUtils.damp(worldPosRef.current.x, targetX, TRANSLATION_DAMP_LAMBDA, delta);
+          worldPosRef.current.z = THREE.MathUtils.damp(worldPosRef.current.z, targetZ, TRANSLATION_DAMP_LAMBDA, delta);
+          worldPosRef.current.y = singleGripRef.current!.initialWorldPos.y; // Floor-locked!
           transformChanged = true;
         }
       } else {
@@ -359,16 +406,37 @@ export const XRTabletopRig: React.FC<XRTabletopRigProps> = ({ children }) => {
             initialMidpoint:   _mid.clone(),
             initialAngle:      angle,
             initialDistance:   Math.max(dist, 0.05),
+            lastAngle:         angle,
+            targetRotY:        worldRotYRef.current,
           };
           playHapticProfile('hover');
         } else {
-          worldRotYRef.current  = dualGripRef.current.initialWorldRotY + (angle - dualGripRef.current.initialAngle);
+          // Zoom scale preserved
           worldScaleRef.current = Math.max(MIN_SCALE, Math.min(MAX_SCALE,
             dualGripRef.current.initialWorldScale * (dist / dualGripRef.current.initialDistance)));
 
-          _deltaMid.copy(_mid).sub(dualGripRef.current.initialMidpoint);
-          _newPos.copy(dualGripRef.current.initialWorldPos).add(_deltaMid);
-          worldPosRef.current.copy(_newPos);
+          // Rotation with angle unwrapping & velocity cap
+          if (dist >= MIN_ROTATION_DISTANCE) {
+            let deltaAngle = angle - dualGripRef.current.lastAngle;
+            deltaAngle = Math.atan2(Math.sin(deltaAngle), Math.cos(deltaAngle));
+            const maxRotDelta = MAX_ANGULAR_VELOCITY * delta;
+            deltaAngle = THREE.MathUtils.clamp(deltaAngle, -maxRotDelta, maxRotDelta);
+            dualGripRef.current.targetRotY += deltaAngle;
+            dualGripRef.current.lastAngle = angle;
+          }
+          worldRotYRef.current = THREE.MathUtils.damp(
+            worldRotYRef.current,
+            dualGripRef.current.targetRotY,
+            ROTATION_DAMP_LAMBDA,
+            delta
+          );
+
+          // Planar translation with Floor Lock
+          const targetX = dualGripRef.current.initialWorldPos.x + (_mid.x - dualGripRef.current.initialMidpoint.x);
+          const targetZ = dualGripRef.current.initialWorldPos.z + (_mid.z - dualGripRef.current.initialMidpoint.z);
+          worldPosRef.current.x = THREE.MathUtils.damp(worldPosRef.current.x, targetX, TRANSLATION_DAMP_LAMBDA, delta);
+          worldPosRef.current.z = THREE.MathUtils.damp(worldPosRef.current.z, targetZ, TRANSLATION_DAMP_LAMBDA, delta);
+          worldPosRef.current.y = dualGripRef.current.initialWorldPos.y; // Floor-locked!
           transformChanged = true;
         }
       } else if (activeGrippers.length === 1) {
@@ -384,9 +452,11 @@ export const XRTabletopRig: React.FC<XRTabletopRigProps> = ({ children }) => {
           };
           playHapticProfile('hover', g.handedness as any);
         } else {
-          worldPosRef.current.x = singleGripRef.current.initialWorldPos.x + (g.pos.x - singleGripRef.current.startHandPos.x);
-          worldPosRef.current.y = singleGripRef.current.initialWorldPos.y + (g.pos.y - singleGripRef.current.startHandPos.y);
-          worldPosRef.current.z = singleGripRef.current.initialWorldPos.z + (g.pos.z - singleGripRef.current.startHandPos.z);
+          const targetX = singleGripRef.current.initialWorldPos.x + (g.pos.x - singleGripRef.current.startHandPos.x);
+          const targetZ = singleGripRef.current.initialWorldPos.z + (g.pos.z - singleGripRef.current.startHandPos.z);
+          worldPosRef.current.x = THREE.MathUtils.damp(worldPosRef.current.x, targetX, TRANSLATION_DAMP_LAMBDA, delta);
+          worldPosRef.current.z = THREE.MathUtils.damp(worldPosRef.current.z, targetZ, TRANSLATION_DAMP_LAMBDA, delta);
+          worldPosRef.current.y = singleGripRef.current.initialWorldPos.y; // Floor-locked!
           transformChanged = true;
         }
       } else {
@@ -434,8 +504,9 @@ export const XRTabletopRig: React.FC<XRTabletopRigProps> = ({ children }) => {
     applyClamps();
 
     // ── Apply to scene graph ──────────────────────────────────────────────
+    // ── Apply to scene graph (Floor-locked: gravity-aligned, pitch/roll locked to 0) ──
     rigRef.current.position.copy(worldPosRef.current);
-    rigRef.current.rotation.y = worldRotYRef.current;
+    rigRef.current.rotation.set(0, worldRotYRef.current, 0);
     rigRef.current.scale.setScalar(worldScaleRef.current);
 
     // ── Sync to store (throttled by minimum delta) ────────────────────────
@@ -456,11 +527,39 @@ export const XRTabletopRig: React.FC<XRTabletopRigProps> = ({ children }) => {
         });
       }
     }
+
+    // ── Tabletop Entry Assembly Animation (Crossing from RR into AR) ──
+    const arStage = useUIStore.getState().arEntryStage;
+    if (tableAssemblyRef.current) {
+      if (isPresenting && arStage === 'loading') {
+        tableAssemblyRef.current.visible = false;
+        transitionProgressRef.current = 0;
+      } else if (isPresenting && arStage === 'transitioning') {
+        tableAssemblyRef.current.visible = true;
+        transitionProgressRef.current = Math.min(1, transitionProgressRef.current + delta / 1.8);
+        const ease = 1 - Math.pow(1 - transitionProgressRef.current, 3);
+        tableAssemblyRef.current.position.y = -(1 - ease) * 0.22;
+        tableAssemblyRef.current.scale.setScalar(THREE.MathUtils.lerp(0.85, 1.0, ease));
+      } else {
+        tableAssemblyRef.current.visible = true;
+        tableAssemblyRef.current.position.y = 0;
+        tableAssemblyRef.current.scale.setScalar(1.0);
+        transitionProgressRef.current = 0;
+      }
+    }
   });
 
   return (
     <group ref={rigRef} position={[0, 0, 0]} scale={1.0} rotation={[0, 0, 0]}>
-      {children}
+      {/* AR Entry Visuals (Loading Beat, Transition Mist, First-Time Direction) */}
+      <ARLoadingBeat3D />
+      <ARTransitionMist3D />
+      <ARFirstTimeDirection3D />
+
+      {/* Assembly group containing the tabletop, board, cards, box, and HUD */}
+      <group ref={tableAssemblyRef} position={[0, 0, 0]}>
+        {children}
+      </group>
     </group>
   );
 };

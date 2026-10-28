@@ -72,7 +72,7 @@ const DialogButton3D: React.FC<DialogButtonProps> = ({
 
         <mesh position={[0, 0, 0.008]}>
           <boxGeometry args={[width - 0.008, height - 0.008, 0.002]} />
-          <meshBasicMaterial color={borderColor} wireframe />
+          <meshStandardMaterial color={borderColor} roughness={0.4} metalness={0.5} />
         </mesh>
 
         <Text
@@ -389,7 +389,7 @@ export const SpatialFortuneDialog3D: React.FC = () => {
       {/* Gold Trim Wireframe */}
       <mesh position={[0, 0, 0.011]}>
         <boxGeometry args={[panelW - 0.01, panelH - 0.01, 0.002]} />
-        <meshBasicMaterial color="#c5a059" wireframe />
+        <meshStandardMaterial color="#c5a059" roughness={0.4} metalness={0.5} />
       </mesh>
 
       {/* Title */}

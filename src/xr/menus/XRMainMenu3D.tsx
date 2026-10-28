@@ -78,11 +78,24 @@ const MenuButton3D: React.FC<MenuButtonProps> = ({
           <meshStandardMaterial color={bgColor} roughness={0.6} metalness={0.2} />
         </mesh>
 
-        {/* Ornate Border Frame */}
-        <mesh position={[0, 0, 0.008]}>
-          <boxGeometry args={[0.425, 0.062, 0.002]} />
-          <meshBasicMaterial color={borderColor} wireframe />
-        </mesh>
+        {/* Ornate Border Frame (Clean rectangular loop, zero diagonal X wireframe lines) */}
+        <lineLoop position={[0, 0, 0.009]}>
+          <bufferGeometry>
+            <bufferAttribute
+              attach="attributes-position"
+              args={[
+                new Float32Array([
+                  -0.212, -0.031, 0,
+                   0.212, -0.031, 0,
+                   0.212,  0.031, 0,
+                  -0.212,  0.031, 0,
+                ]),
+                3,
+              ]}
+            />
+          </bufferGeometry>
+          <lineBasicMaterial color={borderColor} />
+        </lineLoop>
 
         {/* Button Text */}
         <Text
@@ -233,7 +246,7 @@ export const XRMainMenu3D: React.FC = () => {
         {/* Tray Gold Rim */}
         <mesh position={[0, BOX_H / 2 + 0.001, 0]}>
           <boxGeometry args={[BOX_W + 0.002, 0.002, BOX_D + 0.002]} />
-          <meshBasicMaterial color="#a08040" wireframe />
+          <meshStandardMaterial color="#a08040" roughness={0.4} metalness={0.6} />
         </mesh>
       </group>
 
@@ -272,7 +285,7 @@ export const XRMainMenu3D: React.FC = () => {
             {/* Lid Lip Trim */}
             <mesh position={[0, 0, 0]}>
               <boxGeometry args={[BOX_W + 0.012, LID_H + 0.002, BOX_D + 0.012]} />
-              <meshBasicMaterial color={boxHovered && !isOpen ? '#f5dfa3' : '#a08040'} wireframe />
+              <meshStandardMaterial color={boxHovered && !isOpen ? '#f5dfa3' : '#a08040'} roughness={0.4} metalness={0.6} />
             </mesh>
 
             {/* "CLICK TO OPEN" Hint Banner when closed */}
@@ -284,7 +297,7 @@ export const XRMainMenu3D: React.FC = () => {
                 </mesh>
                 <mesh position={[0, 0, -0.001]}>
                   <planeGeometry args={[0.355, 0.045]} />
-                  <meshBasicMaterial color="#f0d070" wireframe />
+                  <meshStandardMaterial color="#f0d070" roughness={0.4} metalness={0.5} />
                 </mesh>
                 <Text fontSize={0.022} color="#f5dfa3" textAlign="center">
                   TAP / CLICK TO OPEN BOX
@@ -356,7 +369,7 @@ export const XRMainMenu3D: React.FC = () => {
               }}
             >
               <Text fontSize={0.015} color="#807090" textAlign="center">
-                [CLOSE BOX LID]
+                ▼ CLOSE GAME BOX LID (Folds 3D Lid Down)
               </Text>
             </group>
           </Interactive>

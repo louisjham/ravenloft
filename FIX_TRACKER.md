@@ -221,6 +221,28 @@ No prompt until he decides.
 
 ## Fixed / settled — reference, do not re-report
 
+- **Hand interaction damping & floor lock (Item 20) — FIXED.**
+  1. Damped rotation & gestures: Added shortest-path delta angle unwrapping (`Math.atan2(Math.sin(d), Math.cos(d))`) to eliminate the $-\pi / +\pi$ branch cut flip bug that previously caused instantaneous 360° flips when hands crossed the negative Z axis. Added an angular velocity cap (`MAX_ANGULAR_VELOCITY = 1.5 * Math.PI` rad/s) and responsive exponential damping filter (`ROTATION_DAMP_LAMBDA = 24.0`) so fast, sloppy hand motions cannot send the board spinning or out of view.
+  2. Deadband for close-hand rotation: When hands are closer than 12 cm (`MIN_ROTATION_DISTANCE = 0.12`), rotation updates are inhibited to eliminate micro-jitter and gimbal flips when hands touch, while zoom/scale continues responding cleanly.
+  3. Floor lock: Locked the table orientation strictly level to the floor (`rigRef.current.rotation.set(0, worldRotYRef.current, 0)`), locking pitch and roll to 0 so the board can never tilt, flip, or end up inverted. Anchored the table elevation to the floor plane (`worldPosRef.current.y = initialWorldPos.y`) during all hand pinch-and-grab interactions, providing a fixed reference position that slides smoothly across the room without lifting into the player's face or sinking below the floor.
+  4. Planar translation damping & leash: Added velocity cap and smooth damping (`TRANSLATION_DAMP_LAMBDA = 26.0`) with a tightened horizontal leash (`MAX_XZ_RADIUS = 2.2m`) so the board stays permanently in view.
+  5. Preserved praised mechanisms: The 1:1 double-pinch zoom calculation (`worldScale * (dist / initialDistance)`) and pinch-and-grab grasp detection remain 100% untouched and responsive. Zero game rules changed.
+  6. Verified with `npx tsc --noEmit` (0 errors), `npx tsx runTests.ts` (all test suites passed), and `npm run build` (exit code 0).
+
+- **AR entry sequence & guidance (Item 19) — FIXED.**
+  1. Built cinematic loading beat (`src/xr/entry/ARLoadingBeat3D.tsx`): while AR initializes, renders an evocative Ravenloft-themed sequence (backlit Castle Ravenloft silhouette, 3 revolving Tarokka cards with procedural sigils, drifting atmospheric mist motes, and narrative subtitles; no blank screens, no bare spinners).
+  2. Implemented smooth passthrough transition & tabletop assembly (`src/xr/entry/ARTransitionMist3D.tsx` & `src/xr/XRTabletopRig.tsx`): eases the real-world view out with expanding mist rings while smoothly assembling the table and board into view (22cm vertical rise and cubic easing from 0.85 to 1.0 scale with tactile haptic lock) rather than popping in abruptly, creating an immersive crossing from RR into AR.
+  3. Added first-time step-by-step direction (`src/xr/entry/ARFirstTimeDirection3D.tsx`):
+     - Step 1: Pre-setup banner and pulsating gold ghost highlight beacon pointing to "Begin Adventure", clarifying empty space pinch locomotion.
+     - Step 2: Clear guidance on party setup and power selection during setup.
+     - Step 3: First turn move guidance with emerald ghost highlight under the active hero miniature, auto-dismissing after the hero's first move.
+  4. Diagnosed and resolved the "box with X's" UI elements across the codebase:
+     - Identified root cause: `boxGeometry` combined with `wireframe: true` in Three.js draws the diagonal hypotenuse across rectangular quad faces, rendering prominent diagonal "X" artifacts across buttons and frames.
+     - Fixed `XRMainMenu3D.tsx`: replaced wireframe `boxGeometry` in `MenuButton3D` with clean 4-vertex `<lineLoop>`, replaced wireframe trims with polished solid materials, and replaced ambiguous `[CLOSE BOX LID]` with explicit `▼ CLOSE GAME BOX LID (Folds 3D Lid Down)`.
+     - Fixed identical wireframe X artifacts in `XRTabletopHUD3D.tsx` (action buttons, status frames, altar), `SpatialFortuneDialog3D.tsx`, `XRUnboxingStage3D.tsx`, `Hero3D.tsx`, `Monster3D.tsx`, and `Tile3D.tsx` (using `EdgesGeometry`).
+     - Clarified close actions in `HallOfHeroesOverlay.tsx` (`✕ Close Window`), `LoadJourneyOverlay.tsx` (`✕ Close Window`), and `TreasureCardPanel.tsx` (`✕ Close Panel`).
+  5. 100% preservation of board pinch-and-grab movement, card effects, and game rules. Verified with `npx tsc --noEmit` (0 errors), `npx tsx runTests.ts` (all test suites passed including new `test-ar-entry.ts`), and `npm run build` (exit code 0).
+
 - **Right-hand show/hide gesture latched (Item 18) — FIXED.**
   1. Replaced continuous per-frame pose polling in CardHandDock3D.tsx with a persistent latched toggle state (isDockVisibleRef).
   2. Implemented edge-triggered gesture detection with dwell gating (>= 120ms sustained palm-up) and hysteresis re-arming (< 0.20 neutral release). Tactile haptic feedback fires on toggle.
