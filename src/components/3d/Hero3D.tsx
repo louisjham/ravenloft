@@ -332,7 +332,7 @@ const Hero3DInner: React.FC<Hero3DProps> = ({ hero }) => {
 
     let source: XRGrabSource | null = null;
     if (isPresenting) {
-      source = resolveGrabSource(e, controllers);
+      source = resolveGrabSource(e, controllers, groupRef.current);
       if (!source) return;
     }
 

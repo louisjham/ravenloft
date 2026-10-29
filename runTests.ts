@@ -20,6 +20,7 @@ import { runDiceTimeoutTests } from './src/testing/test_dice_timeout';
 import { runBonePileTests } from './src/testing/test_bone_pile';
 import { runAREntryTests } from './src/testing/test-ar-entry';
 import { runInteractionDampingTests } from './src/testing/test-interaction-damping';
+import { runGrabMechanicsTests } from './src/testing/test_grab_mechanics';
 
 console.log('Starting integration tests in Node...');
 runFullGameLoopTest().then(async success => {
@@ -32,6 +33,7 @@ runFullGameLoopTest().then(async success => {
         await runBonePileTests();
         await runAREntryTests();
         await runInteractionDampingTests();
+        await runGrabMechanicsTests();
         console.log('ALL TESTS PASSED SUCCESSFULLY!');
         process.exit(0);
     } catch (e) {

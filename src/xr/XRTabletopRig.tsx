@@ -8,6 +8,7 @@ import { useGameStore } from '../store/gameStore';
 import { ARLoadingBeat3D } from './entry/ARLoadingBeat3D';
 import { ARTransitionMist3D } from './entry/ARTransitionMist3D';
 import { ARFirstTimeDirection3D } from './entry/ARFirstTimeDirection3D';
+import { isHandHoldingObject, updateHandReArmStatus } from './XRGrabManager';
 
 interface XRTabletopRigProps {
   children: React.ReactNode;
@@ -265,6 +266,8 @@ export const XRTabletopRig: React.FC<XRTabletopRigProps> = ({ children }) => {
         const handedness = (ctrl.inputSource?.handedness ?? 'right') as 'left' | 'right';
         const hand = ctrl.hand as THREE.XRHandSpace | undefined;
         if (!hand) continue;
+        updateHandReArmStatus(hand, handedness);
+        if (isHandHoldingObject(handedness)) continue;
 
         if (isHandPinching(hand)) {
           const pp = new THREE.Vector3();

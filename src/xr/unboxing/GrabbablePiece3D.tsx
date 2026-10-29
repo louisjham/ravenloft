@@ -90,6 +90,13 @@ export const GrabbablePiece3D: React.FC<GrabbablePiece3DProps> = ({
 
     const speed = 1 - Math.pow(0.001, delta);
 
+    if (grabSourceRef.current) {
+      if (!isGrabActive(grabSourceRef.current)) {
+        handleGrabEnd();
+        return;
+      }
+    }
+
     if (grabbingControllerRef.current) {
       // 1. Check for Thumbstick Scale adjustments while holding the figure
       for (let idx = 0; idx < controllers.length; idx++) {
@@ -185,7 +192,7 @@ export const GrabbablePiece3D: React.FC<GrabbablePiece3DProps> = ({
   const handleGrabStart = (e: any) => {
     let source: XRGrabSource | null = null;
     if (isPresenting) {
-      source = resolveGrabSource(e, controllers);
+      source = resolveGrabSource(e, controllers, groupRef.current);
       if (!source) return;
     }
     playHapticProfile('click');

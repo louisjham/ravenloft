@@ -194,7 +194,7 @@ export const PhysicalCard3D: React.FC<PhysicalCard3DProps> = ({
   const handleGrabStart = (e: any) => {
     let source: XRGrabSource | null = null;
     if (isPresenting) {
-      source = resolveGrabSource(e, controllers);
+      source = resolveGrabSource(e, controllers, groupRef.current);
       if (!source) return;
     }
     const xrCtrl = e?.controller || (e?.target?.controller ? e.target : null);

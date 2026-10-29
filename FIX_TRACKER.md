@@ -221,6 +221,21 @@ No prompt until he decides.
 
 ## Fixed / settled — reference, do not re-report
 
+- **Sticky grabs & deliberate pickup revisited (Item 15 Revisit) — FIXED.**
+  1. Authoritative Meta Horizon OS ground-truth: Queried `metavr` developer documentation and retrieved `design/grab_specs.md` and `design/grab_usage.md` to ground pinch thresholds and interaction models against Meta's canonical design specifications.
+  2. Deliberate pickup (eliminated accidental & brushing pickups):
+     - Identified root cause: `@react-three/xr` casts an infinite laser ray forward from the wrist/palm. When a player pinched empty air (e.g. to move the table or gesture), the ray hit pieces on the table, and `resolveGrabSource` had no physical proximity check, immediately snatching objects from across the room.
+     - Implemented direct proximity validation in `XRGrabManager.ts`: Direct hand grabbing now checks the physical 3D distance between the pinching fingertips (`getPinchPos`) and the target object (`DEFAULT_MAX_GRAB_DISTANCE = 0.24m`). Grabs on objects beyond reach are rejected.
+     - Added deliberate pinch intent threshold: Hand pinch initiation strictly requires finger joint distance `<= 0.018m` (1.8 cm). Casual finger curvature (e.g. 2.4 cm) or passing movement never grabs.
+  3. Guaranteed release (eliminated sticky grabs and infinite holds):
+     - Fixed `GrabbablePiece3D.tsx`: Added missing `isGrabActive` check in `useFrame` (previously never checked active grab in `useFrame`, making miniatures impossible to drop once picked up).
+     - Fixed latching bug in `isGrabActive`: Removed dangerous fallback to `return true;`. Now strictly returns `false` if fingers open beyond `0.026m` (2.6 cm), if `inputState.pinching === false`, or if tracking joints are lost/occluded. Release executes on the exact frame fingers open at 90Hz.
+     - Implemented Re-Arming State Machine: Upon release, the hand is disarmed (`isReArmed = false`). The hand cannot initiate another grab until it has physically opened to neutral (`> 0.038m` / 3.8 cm). This completely eliminates immediate noisy re-grabs when hovering over a dropped piece.
+  4. Resolved table locomotion conflict:
+     - In `XRTabletopRig.tsx`, hands actively holding an object (`isHandHoldingObject(handedness)`) are excluded from `activePinchers`. Moving a hero miniature across the board no longer simultaneously drags the room/table. Board pinch/grab locomotion on empty air and double-pinch zoom remain 100% preserved.
+  5. Wired and verified across all 8 grabbable entities: `Hero3D`, `Dice3D`, `PhysicalCard3D`, `GrabbablePiece3D`, `PhysicalTile3D`, `PhysicalToken3D`, `GrabbableBox3D`, and `XRTabletopHUD3D`.
+  6. Verified with unit tests (`test_grab_mechanics.ts`), full integration suite (`npx tsx runTests.ts` passed 100%), and production build (`npm run build` exit code 0).
+
 - **Hand interaction damping & floor lock (Item 20) — FIXED.**
   1. Damped rotation & gestures: Added shortest-path delta angle unwrapping (`Math.atan2(Math.sin(d), Math.cos(d))`) to eliminate the $-\pi / +\pi$ branch cut flip bug that previously caused instantaneous 360° flips when hands crossed the negative Z axis. Added an angular velocity cap (`MAX_ANGULAR_VELOCITY = 1.5 * Math.PI` rad/s) and responsive exponential damping filter (`ROTATION_DAMP_LAMBDA = 24.0`) so fast, sloppy hand motions cannot send the board spinning or out of view.
   2. Deadband for close-hand rotation: When hands are closer than 12 cm (`MIN_ROTATION_DISTANCE = 0.12`), rotation updates are inhibited to eliminate micro-jitter and gimbal flips when hands touch, while zoom/scale continues responding cleanly.

@@ -203,7 +203,7 @@ export const XRTabletopHUD3D: React.FC = () => {
 
     let source: XRGrabSource | null = null;
     if (isPresenting) {
-      source = resolveGrabSource(e, controllers);
+      source = resolveGrabSource(e, controllers, groupRef.current, 0.45);
       if (!source) return;
     }
 
