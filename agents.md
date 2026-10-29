@@ -24,6 +24,8 @@ Load castle-ravenloft-ar for any AR, XR, passthrough, WebXR session, hand-tracki
 
 Load castle-ravenloft-rules for any rules question, mechanics definition, or rulebook-compliance check. It takes precedence over current engine behavior when the two disagree; flag conflicts, never silently follow code.
 
+Load hz-spatial-interaction for any request involving designing, tuning, reviewing, or debugging spatial interactions, hand tracking, pinch/grab gestures, spatial UI, locomotion, or haptic feedback. It mandates querying Meta Horizon OS canonical design documentation via metavr (`vr_docs_search` under `scope: design`) BEFORE writing or proposing spatial interaction code.
+
 For any refactor, cleanup, bug-fix, performance optimization, or architectural change in this repository, load and follow the workspace skill `castle-ravenloft-refactor` before making edits.
 
 Skill path:

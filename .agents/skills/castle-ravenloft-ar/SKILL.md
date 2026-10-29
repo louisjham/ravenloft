@@ -91,7 +91,10 @@ packaging or store step.
 ## Input
 
 - Hands-first (competition requirement). Hand tracking is the primary input
-  for AR play: grabbing heroes, dice, and cards with hands.
+  for AR play: grabbing heroes, dice, and cards with hands. Follow the
+  `hz-spatial-interaction` skill: verify canonical Meta Horizon OS thresholds
+  via `metavr` (`vr_docs_search` under `scope: design`) before designing or tuning
+  spatial interaction models, pinch/grab metrics, or gestures.
 - Controllers remain a fallback where already implemented (grab-and-throw
   dice, hero grab-and-drop), but do not build new controller-only features.
 - Seated-optimized: the player sits, the table is within reach, no room-scale
