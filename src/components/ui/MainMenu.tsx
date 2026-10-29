@@ -34,7 +34,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStart, onGameLoaded, isSpa
                 width: '560px',
                 height: '620px',
                 backgroundColor: 'rgba(10, 6, 18, 0.94)',
-                backgroundImage: 'linear-gradient(rgba(10, 5, 18, 0.85), rgba(5, 5, 10, 0.95)), url(/ui/box_art.webp)',
+                backgroundImage: 'linear-gradient(rgba(10, 5, 18, 0.85), rgba(5, 5, 10, 0.95)), url(/ui/shadowhold_bg.webp)',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 border: '2px solid var(--color-gold)',
@@ -54,7 +54,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStart, onGameLoaded, isSpa
                 left: 0,
                 width: '100%',
                 height: '100%',
-                backgroundImage: 'linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.7)), url(/ui/box_art.webp)',
+                backgroundImage: 'linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.65)), url(/ui/shadowhold_bg.webp)',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 display: 'flex',
@@ -66,28 +66,37 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStart, onGameLoaded, isSpa
               }
         }
       >
-        <div className="title-area" style={{ textAlign: 'center', marginBottom: isSpatialPanel ? '28px' : '60px' }}>
-          <h1
-            className="gothic-title"
-            style={{
-              fontSize: isSpatialPanel ? '3.2rem' : '5rem',
-              margin: 0,
-              textShadow: '0 0 20px var(--color-accent), 0 0 40px black',
-            }}
-          >
-            Castle Ravenloft
-          </h1>
-          <div
-            style={{
-              fontSize: isSpatialPanel ? '1rem' : '1.2rem',
-              fontFamily: 'var(--font-accent)',
-              color: 'var(--color-gold)',
-              letterSpacing: '4px',
-            }}
-          >
-            A 3D Board Game Adaptation
+        {isSpatialPanel ? (
+          <div className="title-area" style={{ textAlign: 'center', marginBottom: '28px' }}>
+            <h1
+              className="gothic-title"
+              style={{
+                fontSize: '3.2rem',
+                margin: 0,
+                textShadow: '0 0 20px var(--color-accent), 0 0 40px black',
+              }}
+            >
+              The Shadowhold
+            </h1>
+            <div
+              style={{
+                fontSize: '1rem',
+                fontFamily: 'var(--font-accent)',
+                color: 'var(--color-gold)',
+                letterSpacing: '4px',
+              }}
+            >
+              A 3D Board Game Adaptation
+            </div>
           </div>
-        </div>
+        ) : (
+          <>
+            <h1 style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>
+              The Shadowhold: A 3D Board Game Adaptation
+            </h1>
+            <div style={{ height: '150px' }} aria-hidden="true" />
+          </>
+        )}
 
         <div
           className="menu-box gothic-panel"

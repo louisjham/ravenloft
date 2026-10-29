@@ -315,10 +315,10 @@ export const XRMainMenu3D: React.FC = () => {
           {/* Header Title Crest inside the box */}
           <group position={[0, 0.16, 0]}>
             <Text fontSize={0.042} color="#f5dfa3" textAlign="center" position={[0, 0.01, 0]}>
-              CASTLE RAVENLOFT
+              THE SHADOWHOLD
             </Text>
             <Text fontSize={0.016} color="#a89070" textAlign="center" letterSpacing={0.08} position={[0, -0.022, 0]}>
-              DUNGEONS & DRAGONS ADVENTURE SYSTEM
+              A 3D BOARD GAME ADAPTATION
             </Text>
             <mesh position={[0, -0.038, 0]}>
               <planeGeometry args={[0.38, 0.002]} />

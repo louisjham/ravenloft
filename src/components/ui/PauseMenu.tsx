@@ -128,7 +128,7 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
             }}
           />
           <p style={{ color: '#d0d0d0', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '28px' }}>
-            Are you sure you wish to return to the mortal realm? Any unsaved progress will be claimed by Castle Ravenloft.
+            Are you sure you wish to return to the mortal realm? Any unsaved progress will be claimed by The Shadowhold.
           </p>
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
             <button

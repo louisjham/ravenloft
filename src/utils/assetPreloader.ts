@@ -25,6 +25,7 @@ const MONSTER_MODELS = [
 ];
 
 const CORE_TEXTURES = [
+  '/ui/shadowhold_bg.webp',
   '/ui/box_art.webp',
   '/assets/tiles/StartTile.png',
   '/assets/tiles/Tile_Back.png',
